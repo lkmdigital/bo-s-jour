@@ -105,5 +105,62 @@ class UserPolicy
         // Seul le super_admin peut modifier les rôles
         return $user->hasRole('super_admin');
     }
+
+    /**
+     * Déterminer si l'utilisateur peut valider un hôte (User avec rôle host)
+     */
+    public function validate(User $user, User $model): bool
+    {
+        // On permet à tout admin "classique" ou avec les permissions RBAC/roles étendus
+        return $user->isAdmin() ||
+            $user->hasPermission('hosts.validate') ||
+            $user->hasAnyRole(['super_admin', 'admin', 'gerant']);
+    }
+
+    /**
+     * Déterminer si l'utilisateur peut rejeter un hôte
+     */
+    public function reject(User $user, User $model): bool
+    {
+        return $user->isAdmin() ||
+            $user->hasPermission('hosts.reject') ||
+            $user->hasAnyRole(['super_admin', 'admin', 'gerant']);
+    }
+
+    /**
+     * Déterminer si l'utilisateur peut suspendre un hôte
+     */
+    public function suspend(User $user, User $model): bool
+    {
+        return $user->isAdmin() ||
+            $user->hasPermission('hosts.suspend') ||
+            $user->hasAnyRole(['super_admin', 'admin']);
+    }
+
+    /**
+     * Déterminer si l'utilisateur peut retirer le statut hôte
+     */
+    public function removeHostStatus(User $user, User $model): bool
+    {
+        return $user->isAdmin() ||
+            $user->hasPermission('hosts.remove_status') ||
+            $user->hasRole('super_admin');
+    }
+
+    /**
+     * Déterminer si l'utilisateur peut voir les notes internes d'un hôte
+     */
+    public function viewInternalNotes(User $user, User $model): bool
+    {
+        return $user->hasAnyRole(['super_admin', 'admin', 'gerant']);
+    }
+
+    /**
+     * Déterminer si l'utilisateur peut créer des notes internes sur un hôte
+     */
+    public function createInternalNotes(User $user, User $model): bool
+    {
+        return $user->hasAnyRole(['super_admin', 'admin', 'gerant']);
+    }
 }
 

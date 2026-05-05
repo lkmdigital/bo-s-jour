@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -20,6 +21,7 @@ const queryClient = new QueryClient({
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const { checkAuth } = useAuthStore();
   const { theme: currentTheme } = useThemeStore();
   const { fetchSettings, maintenanceEnabled, maintenanceMessage, eventTheme, loaded } =
@@ -44,7 +46,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   // Maintenance : bloquer les non-admins (laisser passer les admins pour qu'ils puissent désactiver)
   const isAdmin = user?.role === 'admin';
-  if (loaded && maintenanceEnabled && !isAdmin) {
+  const isAuthRoute = pathname?.startsWith('/auth/') ?? false;
+  if (loaded && maintenanceEnabled && !isAdmin && !isAuthRoute) {
     return <MaintenancePage message={maintenanceMessage} />;
   }
 

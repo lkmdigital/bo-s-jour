@@ -33,24 +33,22 @@ function LoginContent() {
 
     try {
       await login(data.email, data.password);
-      
+
       // Récupérer l'utilisateur connecté avec les rôles RBAC (déjà chargés par le store)
       const currentUser = useAuthStore.getState().user;
-      
+
       // Les contrôleurs sont toujours redirigés vers la page des inspections (vérification via RBAC)
       if (isController(currentUser)) {
         router.push('/dashboard/admin/inspections');
         return;
       }
-      
+
       // Vérifier s'il y a un paramètre redirect (sauf pour les contrôleurs)
       const redirectPath = searchParams.get('redirect');
-      
+
       if (redirectPath) {
-        // Rediriger vers la page demandée
         router.push(decodeURIComponent(redirectPath));
       } else {
-        // Rediriger selon le rôle
         if (currentUser?.role === 'host') {
           router.push('/dashboard/host');
         } else if (isAdmin(currentUser)) {
@@ -60,8 +58,14 @@ function LoginContent() {
         }
       }
     } catch (err: any) {
-      // Gérer le cas du 2FA
-      if (err.requires_2fa) {
+      if (err.requires_email_otp) {
+        // Stocker user_id et email pour la page OTP
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('otp_user_id', String(err.user_id));
+          sessionStorage.setItem('otp_email', data.email);
+        }
+        router.push(`/auth/verify-otp?user_id=${err.user_id}`);
+      } else if (err.requires_2fa) {
         setError('Authentification à deux facteurs activée. Cette fonctionnalité sera disponible prochainement. Veuillez contacter le support pour désactiver temporairement le 2FA.');
       } else {
         setError(err.response?.data?.message || err.message || 'Erreur lors de la connexion');
@@ -125,6 +129,11 @@ function LoginContent() {
               {errors.password && (
                 <p className="text-red-500 text-xs sm:text-sm mt-1 break-words">{errors.password.message}</p>
               )}
+              <div className="text-right mt-1">
+                <Link href="/auth/forgot-password" className="text-xs sm:text-sm text-primary hover:underline transition-colors">
+                  Mot de passe oublié ?
+                </Link>
+              </div>
             </div>
 
             <button

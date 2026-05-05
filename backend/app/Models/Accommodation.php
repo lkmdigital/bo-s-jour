@@ -32,6 +32,7 @@ class Accommodation extends Model
         // Nouveaux champs
         'opening_year',
         'star_rating',
+        'standing',
         'room_types',
         'room_type_pricing',
         'conference_rooms_count',
@@ -55,6 +56,15 @@ class Accommodation extends Model
         'check_in_time',
         'check_out_time',
         'invoice_paid_before_hours',
+        // Tarification : chaque plan est une option à cocher par l'hôte
+        'pricing_auto_enabled',
+        'pricing_non_refundable_enabled',
+        'pricing_non_refundable_discount',
+        'pricing_modifiable_enabled',
+        'pricing_modifiable_surcharge',
+        'pricing_long_stay_enabled',
+        'pricing_long_stay_discount',
+        'pricing_long_stay_nights',
     ];
 
     protected function casts(): array
@@ -77,6 +87,13 @@ class Accommodation extends Model
             'pets_allowed' => 'boolean',
             'deposit_required' => 'boolean',
             'breakfast_included' => 'boolean',
+            'pricing_auto_enabled' => 'boolean',
+            'pricing_non_refundable_enabled' => 'boolean',
+            'pricing_modifiable_enabled' => 'boolean',
+            'pricing_long_stay_enabled' => 'boolean',
+            'pricing_non_refundable_discount' => 'decimal:2',
+            'pricing_modifiable_surcharge' => 'decimal:2',
+            'pricing_long_stay_discount' => 'decimal:2',
         ];
     }
 
@@ -114,6 +131,16 @@ class Accommodation extends Model
     {
         return $this->hasOne(Subscription::class)->where('status', 'active')
             ->where('expires_at', '>=', now());
+    }
+
+    public function promotions()
+    {
+        return $this->hasMany(Promotion::class);
+    }
+
+    public function activePromotions()
+    {
+        return $this->hasMany(Promotion::class)->where('is_active', true);
     }
 
     public function scopePublished($query)

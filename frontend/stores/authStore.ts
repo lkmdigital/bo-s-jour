@@ -22,7 +22,22 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
 
   login: async (email: string, password: string) => {
-    const { user, token } = await authService.login({ email, password });
+    const result = await authService.login({ email, password });
+
+    // Si une étape 2FA est requise, propager l'info au caller sans modifier le store
+    if (result.requires_2fa || result.requires_email_otp) {
+      const error: any = new Error(
+        result.requires_email_otp ? 'Email OTP required' : '2FA verification required'
+      );
+      error.requires_2fa = result.requires_2fa;
+      error.requires_email_otp = result.requires_email_otp;
+      error.user_id = result.user_id;
+      error.temp_token = result.temp_token;
+      throw error;
+    }
+
+    const { user, token } = result as { user: User; token: string };
+
     try {
       const freshUser = await authService.getCurrentUser();
       const activeUser = freshUser ?? user;

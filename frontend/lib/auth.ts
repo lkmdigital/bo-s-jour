@@ -32,26 +32,40 @@ export interface RegisterData {
 }
 
 export const authService = {
-  async login(credentials: LoginCredentials) {
+  async login(credentials: LoginCredentials): Promise<{
+    user?: User;
+    token?: string;
+    requires_2fa?: boolean;
+    requires_email_otp?: boolean;
+    user_id?: number;
+    temp_token?: string;
+  }> {
     const response = await api.post('/login', credentials);
-    
-    // Vérifier si le 2FA est requis
+
+    // Google 2FA
     if (response.data.requires_2fa) {
-      // Retourner une erreur spéciale pour le 2FA
-      const error: any = new Error('2FA verification required');
-      error.requires_2fa = true;
-      error.user_id = response.data.user_id;
-      error.temp_token = response.data.temp_token;
-      throw error;
+      return {
+        requires_2fa: true,
+        user_id: response.data.user_id,
+        temp_token: response.data.temp_token,
+      };
     }
-    
+
+    // Email OTP
+    if (response.data.requires_email_otp) {
+      return {
+        requires_email_otp: true,
+        user_id: response.data.user_id,
+      };
+    }
+
     const { user, token } = response.data;
-    
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
     }
-    
+
     return { user, token };
   },
 
@@ -112,6 +126,45 @@ export const authService = {
       localStorage.setItem('user', JSON.stringify(data.user));
     }
     return { user: data.user, token: data.token };
+  },
+
+  /**
+   * Vérifier le code OTP email et finaliser la connexion
+   */
+  async verifyEmailOtp(userId: number, code: string): Promise<{ user: User; token: string }> {
+    const response = await api.post('/auth/verify-otp', { user_id: userId, code });
+    const { user, token } = response.data;
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+    }
+
+    return { user, token };
+  },
+
+  /**
+   * Demander un email de réinitialisation de mot de passe
+   */
+  async forgotPassword(email: string): Promise<void> {
+    await api.post('/auth/forgot-password', { email });
+  },
+
+  /**
+   * Réinitialiser le mot de passe avec le token reçu par email
+   */
+  async resetPassword(
+    token: string,
+    email: string,
+    password: string,
+    passwordConfirmation: string
+  ): Promise<void> {
+    await api.post('/auth/reset-password', {
+      token,
+      email,
+      password,
+      password_confirmation: passwordConfirmation,
+    });
   },
 };
 

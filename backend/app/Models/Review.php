@@ -16,6 +16,12 @@ class Review extends Model
         'category_ratings',
         'comment',
         'comment_en',
+        'host_reply',
+        'host_replied_at',
+        'is_reported',
+        'report_reason',
+        'report_count',
+        'moderation_status',
     ];
 
     protected function casts(): array
@@ -23,6 +29,8 @@ class Review extends Model
         return [
             'rating' => 'integer',
             'category_ratings' => 'array',
+            'host_replied_at' => 'datetime',
+            'is_reported' => 'boolean',
         ];
     }
 

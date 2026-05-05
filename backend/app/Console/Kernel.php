@@ -3,6 +3,8 @@
 namespace App\Console;
 
 use App\Console\Commands\CancelExpiredBookings;
+use App\Console\Commands\RemindAndCancelUnpaidBookings;
+use App\Console\Commands\SendPostStayReviewLinks;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -13,6 +15,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         CancelExpiredBookings::class,
+        RemindAndCancelUnpaidBookings::class,
     ];
 
     /**
@@ -21,6 +24,8 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('bookings:cancel-expired')->everyFifteenMinutes();
+        $schedule->command('bookings:remind-cancel-unpaid')->hourly();
+        $schedule->command('reviews:send-post-stay-links')->dailyAt('09:00');
     }
 
     /**

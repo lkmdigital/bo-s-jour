@@ -4,9 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Accommodation;
 use App\Models\AccommodationImage;
+use App\Models\Room;
+use App\Services\RoomPricingService;
+use App\Services\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class AccommodationController extends Controller
 {
@@ -41,6 +47,49 @@ class AccommodationController extends Controller
             $query->featured();
         }
 
+        // Filtrer par dates et nombre de voyageurs si fournis
+        $checkIn = $request->get('check_in');
+        $checkOut = $request->get('check_out');
+        $guests = $request->get('guests');
+
+        if ($checkIn && $checkOut) {
+            // Filtrer les hébergements qui ont au moins une chambre disponible pour ces dates
+            $query->whereHas('rooms', function($q) use ($checkIn, $checkOut, $guests) {
+                $q->where('is_active', true);
+                
+                // Filtrer par capacité si nombre de voyageurs spécifié
+                if ($guests) {
+                    $q->where('capacity', '>=', $guests);
+                }
+                
+                // Exclure les chambres avec des conflits de disponibilité manuelle
+                $q->whereDoesntHave('availabilities', function($aq) use ($checkIn, $checkOut) {
+                    $aq->whereBetween('date', [$checkIn, $checkOut])
+                       ->where('status', '!=', 'available');
+                });
+                
+                // Vérifier qu'il reste au moins une chambre disponible
+                // On compare la quantité avec le nombre de réservations confirmées pour ces dates
+                $q->whereRaw('COALESCE(quantity, 1) > COALESCE((
+                    SELECT COUNT(*) 
+                    FROM bookings 
+                    WHERE bookings.room_id = rooms.id 
+                    AND bookings.status = "confirmed"
+                    AND (
+                        (bookings.check_in <= ? AND bookings.check_out >= ?)
+                        OR (bookings.check_in BETWEEN ? AND ?)
+                        OR (bookings.check_out BETWEEN ? AND ?)
+                    )
+                ), 0)', [$checkOut, $checkIn, $checkIn, $checkOut, $checkIn, $checkOut]);
+            });
+        } elseif ($guests) {
+            // Si seulement le nombre de voyageurs est spécifié (sans dates)
+            $query->whereHas('rooms', function($q) use ($guests) {
+                $q->where('is_active', true)
+                  ->where('capacity', '>=', $guests);
+            });
+        }
+
         // Sorting
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
@@ -54,272 +103,374 @@ class AccommodationController extends Controller
 
     public function show(Request $request, $id)
     {
-        $query = Accommodation::with(['host', 'images', 'reviews.user']);
+        // Charger les chambres actives avec leurs images pour les visiteurs
+        $query = Accommodation::with([
+            'host', 
+            'images', 
+            'reviews.user',
+            'rooms' => function($query) {
+                $query->active() // Seulement les chambres actives
+                      ->with(['images' => function($q) {
+                          $q->ordered(); // Images triées
+                      }, 'primaryImage']); // Image principale
+            }
+        ]);
 
         // If authenticated and is owner or admin, allow viewing regardless of status
         $user = $request->user();
         if ($user && ($user->isAdmin() || Accommodation::where('id', $id)->where('host_id', $user->id)->exists())) {
-            $accommodation = $query->findOrFail($id);
+            // Pour le propriétaire/admin : charger TOUTES les chambres (actives et inactives)
+            $accommodation = Accommodation::with([
+                'host', 
+                'images', 
+                'reviews.user',
+                'rooms' => function($query) {
+                    $query->with(['images' => function($q) {
+                        $q->ordered();
+                    }, 'primaryImage']);
+                }
+            ])->findOrFail($id);
         } else {
-            // Public: only published
+            // Public: only published accommodations with active rooms
             $accommodation = $query->published()->findOrFail($id);
         }
 
         return response()->json($accommodation);
     }
 
-    public function uploadMedia(Request $request, $id)
+    /**
+     * Aperçu du prix effectif selon les dates et la politique d'annulation.
+     * Utilise la tarification automatique (non remboursable -10%, modifiable +10%, long séjour -15%).
+     */
+    public function pricePreview(Request $request, $id)
     {
-        // Utiliser le canal de log dédié pour les uploads de médias
-        $mediaLog = \Log::channel('media_upload');
-        
-        // Log immédiatement pour s'assurer que la méthode est appelée
-        $mediaLog->info("=== UPLOAD MEDIA REQUEST START ===", [
-            'accommodation_id' => $id,
-            'user_id' => $request->user() ? $request->user()->id : null,
-            'has_file_media' => $request->hasFile('media'),
-            'has_file_media_array' => $request->hasFile('media[]'),
-            'content_type' => $request->header('Content-Type'),
-            'all_files_keys' => array_keys($request->allFiles()),
-            'request_method' => $request->method(),
-            'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-        
-        // Aussi log dans le log principal
-        \Log::info("=== UPLOAD MEDIA REQUEST RECEIVED ===", [
-            'accommodation_id' => $id,
-            'user_id' => $request->user() ? $request->user()->id : null,
-            'has_files' => $request->hasFile('media'),
-            'has_files_array' => $request->hasFile('media[]'),
-            'content_type' => $request->header('Content-Type'),
-            'all_files_keys' => array_keys($request->allFiles()),
-            'request_method' => $request->method(),
+        $accommodation = Accommodation::published()->findOrFail($id);
+
+        $request->validate([
+            'check_in' => 'required|date|after_or_equal:today',
+            'check_out' => 'required|date|after:check_in',
+            'room_id' => 'nullable|exists:rooms,id',
         ]);
 
+        $checkIn = $request->check_in;
+        $checkOut = $request->check_out;
+        $roomId = $request->room_id;
+
+        $nights = \Carbon\Carbon::parse($checkIn)->diffInDays(\Carbon\Carbon::parse($checkOut));
+        $cancellationHours = $accommodation->cancellation_policy_hours ?? 48;
+
+        $basePricePerNight = $accommodation->price_per_night;
+        $room = null;
+
+        if ($roomId) {
+            $room = Room::where('accommodation_id', $id)->where('is_active', true)->find($roomId);
+            if ($room) {
+                $basePricePerNight = $room->price_per_night;
+            }
+        }
+
+        $effectivePricePerNight = RoomPricingService::getEffectivePricePerNight(
+            (float) $basePricePerNight,
+            (int) $cancellationHours,
+            $nights,
+            $accommodation
+        );
+
+        // Déterminer le type de tarif appliqué (selon les plans activés par l'hôte)
+        $rateType = 'base';
+        $longStayNights = (int) ($accommodation->pricing_long_stay_nights ?? config('room-pricing.long_stay_nights_threshold', 7));
+        if ($accommodation->pricing_long_stay_enabled && $nights >= $longStayNights) {
+            $rateType = 'long_stay';
+        } elseif ($accommodation->pricing_non_refundable_enabled && $cancellationHours === 0) {
+            $rateType = 'non_refundable';
+        } elseif ($accommodation->pricing_modifiable_enabled && $cancellationHours > 0) {
+            $rateType = 'modifiable';
+        }
+
+        $total = round($effectivePricePerNight * $nights, 2);
+        $variants = RoomPricingService::getPriceVariants((float) $basePricePerNight, $accommodation);
+
+        return response()->json([
+            'base_price_per_night' => (float) $basePricePerNight,
+            'effective_price_per_night' => $effectivePricePerNight,
+            'nights' => $nights,
+            'total' => $total,
+            'rate_type' => $rateType,
+            'cancellation_policy_hours' => $cancellationHours,
+            'variants' => $variants,
+        ]);
+    }
+
+    /**
+     * Suggestions d'autocomplétion pour la barre de recherche
+     * Retourne villes et noms d'hébergements correspondant à la requête
+     */
+    public function suggestions(Request $request)
+    {
+        $q = trim($request->get('q', ''));
+        $limit = min((int) $request->get('limit', 8), 15);
+
+        if (strlen($q) < 2) {
+            return response()->json(['cities' => [], 'accommodations' => []]);
+        }
+
+        $search = '%' . $q . '%';
+
+        // Villes distinctes correspondant à la recherche
+        $cities = Accommodation::published()
+            ->where('city', 'like', $search)
+            ->select('city')
+            ->distinct()
+            ->orderBy('city')
+            ->limit(5)
+            ->pluck('city')
+            ->values()
+            ->toArray();
+
+        // Hébergements correspondant (nom ou ville)
+        $accommodations = Accommodation::published()
+            ->where(function ($query) use ($search) {
+                $query->where('name', 'like', $search)
+                    ->orWhere('city', 'like', $search);
+            })
+            ->select('id', 'name', 'city', 'slug')
+            ->orderBy('name')
+            ->limit($limit - count($cities))
+            ->get()
+            ->map(function ($a) {
+                return [
+                    'id' => $a->id,
+                    'name' => $a->name,
+                    'city' => $a->city,
+                    'slug' => $a->slug,
+                ];
+            });
+
+        return response()->json([
+            'cities' => $cities,
+            'accommodations' => $accommodations,
+        ]);
+    }
+
+    /**
+     * Récupérer les établissements de la même ville (pour suggestions)
+     * Route publique - accessible sans authentification
+     */
+    public function getSimilarByCity(Request $request, $id)
+    {
+        // Récupérer l'établissement (même s'il n'est pas publié, on peut quand même suggérer d'autres établissements)
+        $accommodation = Accommodation::findOrFail($id);
+        
+        // Si l'établissement n'a pas de ville, retourner un tableau vide
+        if (!$accommodation->city) {
+            return response()->json([]);
+        }
+        
+        // Récupérer les établissements de la même ville, publiés uniquement, excluant l'établissement actuel
+        $similar = Accommodation::with(['images'])
+            ->published() // Seulement les établissements publiés
+            ->where('city', $accommodation->city)
+            ->where('id', '!=', $id)
+            ->orderBy('rating', 'desc') // Trier par note décroissante
+            ->orderBy('created_at', 'desc') // Puis par date de création
+            ->limit(6) // Limiter à 6 suggestions
+            ->get();
+
+        return response()->json($similar);
+    }
+
+    public function uploadMedia(Request $request, $id, ImageUploadService $uploadService)
+    {
         $mediaLog = \Log::channel('media_upload');
         
+        $mediaLog->info("=== UPLOAD MEDIA REQUEST START ===", [
+            'accommodation_id' => $id,
+            'user_id' => $request->user()?->id,
+            'has_files' => $request->hasFile('media'),
+        ]);
+
         try {
             $accommodation = Accommodation::findOrFail($id);
-            $mediaLog->info("Accommodation found", ['accommodation_id' => $id, 'host_id' => $accommodation->host_id]);
         } catch (\Exception $e) {
-            $mediaLog->error("Accommodation not found", ['id' => $id, 'error' => $e->getMessage()]);
-            \Log::error("Accommodation not found", ['id' => $id, 'error' => $e->getMessage()]);
+            $mediaLog->error("Accommodation not found", ['id' => $id]);
             return response()->json(['message' => 'Hébergement non trouvé'], 404);
         }
 
         if (!$request->user()) {
-            $mediaLog->warning("Unauthenticated upload attempt", ['accommodation_id' => $id]);
-            \Log::warning("Unauthenticated upload attempt", ['accommodation_id' => $id]);
             return response()->json(['message' => 'Non authentifié'], 401);
         }
 
         if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
-            $mediaLog->warning("Unauthorized upload attempt", [
-                'accommodation_id' => $id,
-                'user_id' => $request->user()->id,
-                'host_id' => $accommodation->host_id,
-            ]);
-            \Log::warning("Unauthorized upload attempt", [
-                'accommodation_id' => $id,
-                'user_id' => $request->user()->id,
-                'host_id' => $accommodation->host_id,
-            ]);
-            return response()->json(['message' => 'Vous n\'avez pas la permission d\'uploader des images pour cet hébergement'], 403);
+            return response()->json(['message' => 'Permission refusée'], 403);
         }
 
-        // Laravel traite automatiquement 'media[]' comme un tableau dans $request->file('media')
+        // Récupérer les fichiers
         $mediaFiles = $request->file('media', []);
-        
-        // Si aucun fichier n'est trouvé avec 'media', essayer 'media[]'
         if (empty($mediaFiles)) {
             $mediaFiles = $request->file('media[]', []);
         }
-        
-        $mediaLog = \Log::channel('media_upload');
-        
-        $mediaLog->info("Files received", [
-            'accommodation_id' => $id,
-            'files_count' => is_array($mediaFiles) ? count($mediaFiles) : ($mediaFiles ? 1 : 0),
-            'is_array' => is_array($mediaFiles),
-            'all_files' => array_keys($request->allFiles()),
-        ]);
-        
-        \Log::info("Files received", [
-            'accommodation_id' => $id,
-            'files_count' => is_array($mediaFiles) ? count($mediaFiles) : ($mediaFiles ? 1 : 0),
-            'is_array' => is_array($mediaFiles),
-            'all_files' => array_keys($request->allFiles()),
-        ]);
-        
-        // Normaliser en tableau si ce n'est pas déjà le cas
         if (!is_array($mediaFiles)) {
             $mediaFiles = $mediaFiles ? [$mediaFiles] : [];
         }
-        
-        // Filtrer les valeurs null
-        $mediaFiles = array_filter($mediaFiles, function($file) {
-            return $file !== null && $file !== false;
-        });
+        $mediaFiles = array_values(array_filter($mediaFiles, fn($f) => $f instanceof \Illuminate\Http\UploadedFile));
         
         if (empty($mediaFiles)) {
-            $mediaLog = \Log::channel('media_upload');
-            $mediaLog->warning("No media files provided", [
-                'accommodation_id' => $id,
-                'request_files' => array_keys($request->allFiles()),
-                'has_file_media' => $request->hasFile('media'),
-                'has_file_media_array' => $request->hasFile('media[]'),
-                'all_files' => $request->allFiles(),
-            ]);
-            \Log::warning("No media files provided", [
-                'accommodation_id' => $id,
-                'request_files' => array_keys($request->allFiles()),
-                'has_file_media' => $request->hasFile('media'),
-                'has_file_media_array' => $request->hasFile('media[]'),
-                'all_files_keys' => array_keys($request->allFiles()),
-            ]);
-            return response()->json([
-                'message' => 'Aucun fichier média fourni',
-                'debug' => [
-                    'has_file_media' => $request->hasFile('media'),
-                    'has_file_media_array' => $request->hasFile('media[]'),
-                    'all_files_keys' => array_keys($request->allFiles()),
-                ]
-            ], 422);
-        }
-        
-        $mediaLog = \Log::channel('media_upload');
-        $mediaLog->info("Processing media files", [
-            'accommodation_id' => $id,
-            'files_count' => count($mediaFiles),
-        ]);
-        
-        \Log::info("Processing media files", [
-            'accommodation_id' => $id,
-            'files_count' => count($mediaFiles),
-        ]);
-
-        // Valider chaque fichier
-        foreach ($mediaFiles as $index => $file) {
-            if (!$file || !$file->isValid()) {
-                return response()->json(['message' => "Le fichier à l'index {$index} est invalide"], 422);
-            }
-            
-            $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'video/x-msvideo'];
-            if (!in_array($file->getMimeType(), $allowedMimes)) {
-                return response()->json(['message' => "Le type de fichier n'est pas autorisé pour le fichier à l'index {$index}"], 422);
-            }
-            
-            if ($file->getSize() > 20480 * 1024) { // 20MB en bytes
-                return response()->json(['message' => "Le fichier à l'index {$index} dépasse la taille maximale de 20MB"], 422);
-            }
+            return response()->json(['message' => 'Aucun fichier fourni'], 422);
         }
 
+        // Limiter à 10 fichiers
         $existingCount = $accommodation->images()->count();
         if (($existingCount + count($mediaFiles)) > 10) {
-            return response()->json(['message' => 'Maximum 10 media files allowed per accommodation'], 422);
+            return response()->json(['message' => 'Maximum 10 fichiers par hébergement'], 422);
         }
 
         $saved = [];
         $errors = [];
-        
+
         foreach ($mediaFiles as $index => $file) {
             try {
                 if (!$file || !$file->isValid()) {
-                    $errorMsg = "Le fichier à l'index {$index} est invalide";
-                    \Log::warning("Invalid file at index {$index}", [
-                        'accommodation_id' => $accommodation->id,
-                        'file_name' => $file ? $file->getClientOriginalName() : 'null',
-                        'is_valid' => $file ? $file->isValid() : false,
-                        'error' => $file ? $file->getError() : 'file is null',
-                    ]);
-                    $errors[] = $errorMsg;
-                    continue; // Ignorer les fichiers invalides
-                }
-                
-                $path = $file->store("accommodations/{$accommodation->id}", 'public');
-                
-                if (!$path) {
-                    $errorMsg = "Impossible de stocker le fichier à l'index {$index}";
-                    \Log::error("Failed to store file", [
-                        'accommodation_id' => $accommodation->id,
-                        'file_name' => $file->getClientOriginalName(),
-                        'index' => $index,
-                    ]);
-                    $errors[] = $errorMsg;
+                    $errors[] = "Fichier invalide à l'index {$index}";
                     continue;
                 }
-                
-                $url = Storage::url($path);
-                
-                // S'assurer que l'URL est complète (avec le domaine si nécessaire)
-                // Storage::url() retourne déjà une URL relative commençant par /storage/
-                // On utilise asset() pour obtenir l'URL complète avec le domaine
-                $fullUrl = asset($url);
-                
-                $mediaLog = \Log::channel('media_upload');
-                $mediaLog->info("Image uploaded successfully", [
-                    'accommodation_id' => $accommodation->id,
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_size' => $file->getSize(),
-                    'file_mime' => $file->getMimeType(),
-                    'path' => $path,
-                    'url' => $url,
-                    'full_url' => $fullUrl,
-                ]);
-                
-                \Log::info("Image uploaded successfully", [
-                    'accommodation_id' => $accommodation->id,
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_size' => $file->getSize(),
-                    'file_mime' => $file->getMimeType(),
-                    'path' => $path,
-                    'url' => $url,
-                    'full_url' => $fullUrl,
+
+                $mime = $file->getMimeType();
+                $isImage = str_starts_with($mime, 'image/');
+                $isVideo = str_starts_with($mime, 'video/');
+
+                // Types autorisés
+                if (!$isImage && !$isVideo) {
+                    $errors[] = "Type non autorisé à l'index {$index}";
+                    continue;
+                }
+
+                // Validation taille
+                if ($file->getSize() > 10 * 1024 * 1024) {
+                    $errors[] = "Fichier trop volumineux à l'index {$index} (max 10MB)";
+                    continue;
+                }
+
+                if ($isImage) {
+                    // Upload via le service pour les images (avec compression auto)
+                    $result = $uploadService->upload($file, "accommodations/{$accommodation->id}", 'acc');
+                    $fullUrl = $result['full_url'];
+                } else {
+                    // Upload direct pour les vidéos (pas de compression)
+                    $dir = "accommodations/{$accommodation->id}";
+                    if (!Storage::disk('public')->directoryExists($dir)) {
+                        Storage::disk('public')->makeDirectory($dir);
+                    }
+                    $path = $file->store($dir, 'public');
+                    $fullUrl = asset(Storage::url($path));
+                    
+                    // Fallback public/storage
+                    try {
+                        $publicPath = public_path('storage/' . $path);
+                        File::ensureDirectoryExists(dirname($publicPath));
+                        File::copy(Storage::disk('public')->path($path), $publicPath);
+                    } catch (\Exception $e) {
+                        $mediaLog->warning("Copy to public/storage failed", ['path' => $path]);
+                    }
+                }
+
+                $mediaLog->info("File uploaded", [
+                    'index' => $index,
+                    'mime' => $mime,
+                    'url' => $fullUrl,
                 ]);
 
                 $image = AccommodationImage::create([
                     'accommodation_id' => $accommodation->id,
-                    'url' => $fullUrl, // Utiliser l'URL complète
-                    'is_primary' => $existingCount === 0 && $index === 0, // set first as primary if none
+                    'url' => $fullUrl,
+                    'is_primary' => $existingCount === 0 && $index === 0,
                     'order' => $existingCount + $index + 1,
                 ]);
 
                 $saved[] = $image;
             } catch (\Exception $e) {
-                $errorMsg = "Erreur lors du traitement du fichier à l'index {$index}: " . $e->getMessage();
-                \Log::error("Error storing image", [
-                    'accommodation_id' => $accommodation->id,
-                    'file_name' => $file ? $file->getClientOriginalName() : 'null',
-                    'index' => $index,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                ]);
-                $errors[] = $errorMsg;
-                continue;
+                $errors[] = "Erreur index {$index}: " . $e->getMessage();
+                $mediaLog->error("Upload failed", ['index' => $index, 'error' => $e->getMessage()]);
             }
         }
 
         if (empty($saved) && !empty($errors)) {
             return response()->json([
-                'message' => 'Aucun fichier n\'a pu être uploadé',
+                'message' => 'Aucun fichier uploadé',
                 'errors' => $errors
             ], 422);
         }
 
-        if (!empty($errors)) {
-            \Log::warning("Some files failed to upload", [
-                'accommodation_id' => $accommodation->id,
-                'saved_count' => count($saved),
-                'errors' => $errors,
-            ]);
-        }
-
         return response()->json([
             'data' => $saved,
-            'message' => count($saved) . ' fichier(s) uploadé(s) avec succès',
+            'message' => count($saved) . ' fichier(s) uploadé(s)',
             'errors' => $errors
         ], 201);
+    }
+
+    /**
+     * Supprimer une image d'un établissement
+     */
+    public function deleteMedia(Request $request, $accommodationId, $imageId, ImageUploadService $uploadService)
+    {
+        $accommodation = Accommodation::findOrFail($accommodationId);
+
+        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $image = AccommodationImage::where('accommodation_id', $accommodationId)
+            ->where('id', $imageId)
+            ->firstOrFail();
+
+        // Supprimer via le service
+        $uploadService->delete($image->url, true);
+
+        $wasPrimary = $image->is_primary;
+        $image->delete();
+
+        // Si c'était l'image principale, en définir une nouvelle
+        if ($wasPrimary) {
+            $nextImage = AccommodationImage::where('accommodation_id', $accommodationId)
+                ->orderBy('order')
+                ->orderBy('id')
+                ->first();
+
+            if ($nextImage) {
+                $nextImage->is_primary = true;
+                $nextImage->save();
+            }
+        }
+
+        return response()->json(['message' => 'Image supprimée avec succès']);
+    }
+
+    /**
+     * Définir une image comme image principale
+     */
+    public function setPrimaryMedia(Request $request, $accommodationId, $imageId)
+    {
+        $accommodation = Accommodation::findOrFail($accommodationId);
+
+        // Autorisations : propriétaire ou admin
+        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $image = AccommodationImage::where('accommodation_id', $accommodationId)
+            ->where('id', $imageId)
+            ->firstOrFail();
+
+        // Mettre toutes les autres images en non-principales
+        AccommodationImage::where('accommodation_id', $accommodationId)
+            ->update(['is_primary' => false]);
+
+        $image->is_primary = true;
+        $image->save();
+
+        return response()->json([
+            'message' => 'Image principale mise à jour avec succès',
+            'data' => $image,
+        ]);
     }
 
     public function store(Request $request)
@@ -372,6 +523,7 @@ class AccommodationController extends Controller
             // Nouveaux champs
             'opening_year' => 'nullable|integer|min:1900|max:' . date('Y'),
             'star_rating' => 'nullable|integer|min:1|max:5',
+            'standing' => 'nullable|string|in:luxury,standard,economy',
             'room_types' => 'nullable|array',
             'room_type_pricing' => 'nullable|array',
             'room_type_pricing.*.type' => 'required_with:room_type_pricing|string|max:255',
@@ -403,6 +555,20 @@ class AccommodationController extends Controller
             'check_out_time' => 'nullable|date_format:H:i',
             'invoice_paid_before_hours' => 'nullable|integer|min:0',
         ]);
+
+        // Sécurité: empêcher la création de doublons pour le même hôte
+        $duplicate = Accommodation::where('host_id', $user->id)
+            ->whereRaw('LOWER(name) = LOWER(?)', [$request->name])
+            ->whereRaw('LOWER(city) = LOWER(?)', [$request->city])
+            ->whereNotIn('status', ['removed'])
+            ->first();
+
+        if ($duplicate) {
+            return response()->json([
+                'message' => 'Vous avez déjà enregistré un établissement avec ce nom dans cette ville. Veuillez modifier l\'établissement existant ou choisir un autre nom.',
+                'existing_id' => $duplicate->id,
+            ], 422);
+        }
 
         Log::info('Accommodation request validated successfully', [
             'user_id' => $user->id,
@@ -439,6 +605,7 @@ class AccommodationController extends Controller
             // Nouveaux champs
             'opening_year' => $request->opening_year,
             'star_rating' => $request->star_rating,
+            'standing' => $request->standing,
             'room_types' => $request->room_types ?? [],
             'room_type_pricing' => $request->room_type_pricing ?? [],
             'conference_rooms_count' => $request->conference_rooms_count ?? 0,
@@ -499,6 +666,7 @@ class AccommodationController extends Controller
             // Nouveaux champs
             'opening_year' => 'nullable|integer|min:1900|max:' . date('Y'),
             'star_rating' => 'nullable|integer|min:1|max:5',
+            'standing' => 'nullable|string|in:luxury,standard,economy',
             'room_types' => 'nullable|array',
             'conference_rooms_count' => 'nullable|integer|min:0',
             'conference_capacity' => 'nullable|integer|min:0',
@@ -521,6 +689,14 @@ class AccommodationController extends Controller
             'check_in_time' => 'nullable|date_format:H:i',
             'check_out_time' => 'nullable|date_format:H:i',
             'invoice_paid_before_hours' => 'nullable|integer|min:0',
+            'pricing_auto_enabled' => 'nullable|boolean',
+            'pricing_non_refundable_enabled' => 'nullable|boolean',
+            'pricing_non_refundable_discount' => 'nullable|numeric|min:0|max:100',
+            'pricing_modifiable_enabled' => 'nullable|boolean',
+            'pricing_modifiable_surcharge' => 'nullable|numeric|min:0|max:100',
+            'pricing_long_stay_enabled' => 'nullable|boolean',
+            'pricing_long_stay_discount' => 'nullable|numeric|min:0|max:100',
+            'pricing_long_stay_nights' => 'nullable|integer|min:1|max:90',
         ]);
 
         // Only admin can set published/rejected
@@ -533,7 +709,7 @@ class AccommodationController extends Controller
             'latitude', 'longitude', 'price_per_night', 'max_guests',
             'bedrooms', 'bathrooms', 'amenities', 'status',
             // Nouveaux champs
-            'opening_year', 'star_rating', 'room_types', 'room_type_pricing',
+            'opening_year', 'star_rating', 'standing', 'room_types', 'room_type_pricing',
             'conference_rooms_count', 'conference_capacity',
             'restaurant_capacity', 'bar_capacity',
             'shuttle_service', 'laundry', 'breakfast_price',
@@ -543,6 +719,10 @@ class AccommodationController extends Controller
             'special_conditions', 'breakfast_included',
             'breakfast_included_persons', 'check_in_time',
             'check_out_time', 'invoice_paid_before_hours',
+            'pricing_auto_enabled', 'pricing_non_refundable_enabled',
+            'pricing_non_refundable_discount', 'pricing_modifiable_enabled',
+            'pricing_modifiable_surcharge', 'pricing_long_stay_enabled',
+            'pricing_long_stay_discount', 'pricing_long_stay_nights',
         ]);
 
         // Convertir les valeurs boolean si elles sont présentes
@@ -566,6 +746,18 @@ class AccommodationController extends Controller
         }
         if ($request->has('breakfast_included')) {
             $updateData['breakfast_included'] = $request->boolean('breakfast_included');
+        }
+        if ($request->has('pricing_auto_enabled')) {
+            $updateData['pricing_auto_enabled'] = $request->boolean('pricing_auto_enabled');
+        }
+        if ($request->has('pricing_non_refundable_enabled')) {
+            $updateData['pricing_non_refundable_enabled'] = $request->boolean('pricing_non_refundable_enabled');
+        }
+        if ($request->has('pricing_modifiable_enabled')) {
+            $updateData['pricing_modifiable_enabled'] = $request->boolean('pricing_modifiable_enabled');
+        }
+        if ($request->has('pricing_long_stay_enabled')) {
+            $updateData['pricing_long_stay_enabled'] = $request->boolean('pricing_long_stay_enabled');
         }
 
         $accommodation->update($updateData);
@@ -597,6 +789,24 @@ class AccommodationController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
+        // Seuls les établissements non actifs peuvent être supprimés
+        if ($accommodation->status === 'published') {
+            return response()->json([
+                'message' => 'Impossible de supprimer un établissement publié. Passez-le en "Indisponible" ou "En attente" avant de le supprimer.',
+            ], 422);
+        }
+
+        $hasFutureBookings = $accommodation->bookings()
+            ->whereIn('status', ['confirmed', 'pending'])
+            ->where('check_out', '>=', now()->startOfDay()->toDateString())
+            ->exists();
+
+        if ($hasFutureBookings) {
+            return response()->json([
+                'message' => 'Impossible de supprimer : des réservations à venir existent pour cet établissement.',
+            ], 422);
+        }
+
         $accommodation->delete();
 
         return response()->json(['message' => 'Accommodation deleted successfully']);
@@ -614,7 +824,16 @@ class AccommodationController extends Controller
             }])
             ->withCount(['bookings' => function($q) {
                 $q->where('status', 'confirmed');
-            }]);
+            }])
+            ->withCount([
+                'rooms as total_rooms_count',
+                'rooms as active_rooms_count' => function($q) {
+                    $q->where('is_active', true);
+                },
+                'rooms as inactive_rooms_count' => function($q) {
+                    $q->where('is_active', false);
+                }
+            ]);
 
         // Filter by status
         if ($request->has('status')) {

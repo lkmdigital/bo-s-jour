@@ -44,6 +44,11 @@ class AdminHostController extends Controller
         $perPage = $request->get('per_page', 15);
         $hosts = $query->paginate($perPage);
 
+        $hosts->getCollection()->transform(function (User $host) {
+            $host->compliance_status = $host->compliance_status;
+            return $host;
+        });
+
         return response()->json([
             'data' => $hosts->items(),
             'pagination' => [
@@ -71,6 +76,9 @@ class AdminHostController extends Controller
 
         $this->authorize('view', $host);
 
+        $host->compliance_status = $host->compliance_status;
+        $host->compliance_requirements = $host->compliance_requirements;
+
         return response()->json(['data' => $host]);
     }
 
@@ -81,6 +89,20 @@ class AdminHostController extends Controller
     {
         $host = User::where('role', 'host')->findOrFail($id);
         $this->authorize('validate', $host);
+
+        $requirements = $host->compliance_requirements;
+        $missing = collect($requirements)
+            ->filter(fn ($item) => empty($item['ok']))
+            ->pluck('label')
+            ->values();
+
+        if ($missing->isNotEmpty()) {
+            return response()->json([
+                'message' => 'Profil non conforme: certains documents/informations obligatoires sont manquants.',
+                'compliance_status' => 'non_conforme',
+                'missing_requirements' => $missing,
+            ], 422);
+        }
 
         $validated = $request->validate([
             'comment' => 'nullable|string|max:2000',
@@ -108,6 +130,7 @@ class AdminHostController extends Controller
         return response()->json([
             'message' => 'Hôte validé avec succès',
             'data' => $host->load('hostValidationHistory'),
+            'compliance_status' => 'conforme',
         ]);
     }
 

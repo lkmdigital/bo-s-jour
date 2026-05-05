@@ -19,6 +19,9 @@ class User extends Authenticatable
         'role', // Rôle principal (rétrocompatibilité)
         'avatar',
         'email_verified_at',
+        'google_id',
+        'microsoft_id',
+        'oauth_provider',
         'date_of_birth',
         'bio',
         'address_line1',
@@ -33,6 +36,8 @@ class User extends Authenticatable
         'id_document_verso_path',
         'proof_of_address_path',
         'business_license_path',
+        'rccm_document_path',
+        'tax_document_path',
         'profile_completed',
         'profile_verified',
         'profile_verified_at',
@@ -55,6 +60,14 @@ class User extends Authenticatable
         'last_login_at',
         'last_login_ip',
         'login_count',
+        // Champs 2FA
+        'two_factor_enabled',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'two_factor_enabled_at',
+        // Champs OTP email
+        'email_otp_code',
+        'email_otp_expires_at',
     ];
 
     protected $hidden = [
@@ -70,7 +83,74 @@ class User extends Authenticatable
             'blocked_at' => 'datetime',
             'last_login_at' => 'datetime',
             'login_count' => 'integer',
+            'two_factor_enabled' => 'boolean',
+            'two_factor_enabled_at' => 'datetime',
+            'email_otp_expires_at' => 'datetime',
         ];
+    }
+
+    public function hasCompleteIdentityDocument(): bool
+    {
+        $hasSingle = !empty($this->id_document_path);
+        $hasRectoVerso = !empty($this->id_document_recto_path) && !empty($this->id_document_verso_path);
+
+        return $hasSingle || $hasRectoVerso;
+    }
+
+    public function getComplianceRequirementsAttribute(): array
+    {
+        $checks = [
+            'manager_id_document' => [
+                'label' => 'Pièce du gérant',
+                'ok' => $this->hasCompleteIdentityDocument(),
+            ],
+            'manager_id_number' => [
+                'label' => 'Numéro de pièce du gérant',
+                'ok' => !empty($this->id_number),
+            ],
+            'establishment_number' => [
+                'label' => 'Numéro de l\'établissement',
+                'ok' => !empty($this->phone_fixed),
+            ],
+            'establishment_whatsapp' => [
+                'label' => 'WhatsApp de l\'établissement',
+                'ok' => !empty($this->whatsapp),
+            ],
+            'rccm_number' => [
+                'label' => 'Numéro RCM',
+                'ok' => !empty($this->rccm),
+            ],
+            'tax_number' => [
+                'label' => 'Numéro contribuable',
+                'ok' => !empty($this->tax_account_number),
+            ],
+            'rccm_document' => [
+                'label' => 'Document RCM',
+                'ok' => !empty($this->rccm_document_path),
+            ],
+            'operating_license_document' => [
+                'label' => 'Licence d\'exploitation',
+                'ok' => !empty($this->business_license_path),
+            ],
+            'tax_document' => [
+                'label' => 'Document contribuable',
+                'ok' => !empty($this->tax_document_path),
+            ],
+        ];
+
+        return $checks;
+    }
+
+    public function getComplianceStatusAttribute(): string
+    {
+        $checks = $this->compliance_requirements;
+        foreach ($checks as $check) {
+            if (empty($check['ok'])) {
+                return 'non_conforme';
+            }
+        }
+
+        return 'conforme';
     }
 
     public function accommodations()
@@ -166,6 +246,11 @@ class User extends Authenticatable
     {
         // Super admin a toutes les permissions
         if ($this->hasRole('super_admin')) {
+            return true;
+        }
+
+        // Admin legacy (role = 'admin') a toutes les permissions (rétrocompatibilité)
+        if ($this->role === 'admin') {
             return true;
         }
 

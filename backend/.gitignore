@@ -16,4 +16,9 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+.DS_Store
 

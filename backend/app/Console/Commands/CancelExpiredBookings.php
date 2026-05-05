@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Booking;
 use App\Models\RoomAvailability;
+use App\Services\CancellationPolicyService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -34,7 +35,10 @@ class CancelExpiredBookings extends Command
             DB::transaction(function () use ($booking, &$cancelled) {
                 $booking->update([
                     'status' => 'cancelled',
+                    'payment_status' => 'cancelled',
                 ]);
+
+                CancellationPolicyService::onBookingCancelled($booking);
 
                 if ($booking->room_id) {
                     $dates = $this->getDatesBetween($booking->check_in, $booking->check_out);

@@ -123,12 +123,20 @@ class RevenueController extends Controller
         }
 
         // Statistiques globales
+        // Solde disponible pour retrait = commissions dont le séjour a commencé (released_at) et pas encore versées
+        $availableBalance = (float) Commission::where('host_id', $hostId)
+            ->whereNotNull('released_at')
+            ->where('status', 'pending')
+            ->sum('host_amount');
         $totalRevenue = Commission::where('host_id', $hostId)->sum('host_amount');
         $paidRevenue = Commission::where('host_id', $hostId)
             ->where('status', 'paid')
             ->sum('host_amount');
         $pendingRevenue = Commission::where('host_id', $hostId)
             ->where('status', 'pending')
+            ->sum('host_amount');
+        $awaitingCheckin = (float) Commission::where('host_id', $hostId)
+            ->whereNull('released_at')
             ->sum('host_amount');
         $totalBookings = Commission::where('host_id', $hostId)->count();
 
@@ -151,6 +159,8 @@ class RevenueController extends Controller
         return response()->json([
             'statistics' => [
                 'total_revenue' => (float) $totalRevenue,
+                'available_balance' => $availableBalance,
+                'awaiting_checkin' => $awaitingCheckin,
                 'paid_revenue' => (float) $paidRevenue,
                 'pending_revenue' => (float) $pendingRevenue,
                 'total_bookings' => $totalBookings,
@@ -170,29 +180,59 @@ class RevenueController extends Controller
         }
 
         $request->validate([
-            'commission_rate' => 'required|numeric|min:0|max:100',
+            'commission_rate' => 'required|numeric|min:8|max:10',
         ]);
 
+        $rate = round((float) $request->commission_rate, 2);
         Setting::set(
             'commission_rate',
-            $request->commission_rate,
+            $rate,
             'number',
-            'Taux de commission en pourcentage (ex: 10 pour 10%)'
+            'Taux de commission plateforme (8 à 10 %)'
         );
 
         return response()->json([
             'message' => 'Taux de commission mis à jour',
-            'commission_rate' => $request->commission_rate,
+            'commission_rate' => $rate,
         ]);
     }
 
     /**
-     * Obtenir le taux de commission actuel
+     * Obtenir le taux de commission actuel (borné entre 8 % et 10 %)
      */
     public function getCommissionRate(Request $request)
     {
-        $rate = Setting::get('commission_rate', 10.00);
-        return response()->json(['commission_rate' => (float) $rate]);
+        $rate = (float) Setting::get('commission_rate', 10.00);
+        $rate = max(8.0, min(10.0, $rate));
+        return response()->json(['commission_rate' => $rate]);
     }
-}
+
+    /**
+     * Marquer une ou plusieurs commissions comme reversées (payées aux hôtels)
+     */
+    public function markCommissionsPaid(Request $request)
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $request->validate([
+            'commission_ids' => 'required|array',
+            'commission_ids.*' => 'integer|exists:commissions,id',
+        ]);
+
+        $updated = Commission::whereIn('id', $request->commission_ids)
+            ->where('status', 'pending')
+            ->update([
+                'status' => 'paid',
+                'paid_at' => now(),
+            ]);
+
+        return response()->json([
+            'message' => $updated . ' commission(s) marquée(s) comme reversée(s).',
+            'updated_count' => $updated,
+        ]);
+    }
+    }
+
 

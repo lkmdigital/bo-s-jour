@@ -38,7 +38,7 @@ class RoomAvailabilityController extends Controller
 
         $request->validate([
             'date' => 'required|date|after_or_equal:today',
-            'status' => 'required|string|in:available,occupied,maintenance',
+            'status' => 'required|string|in:available,occupied,blocked,maintenance',
             'price_override' => 'nullable|numeric|min:0',
         ]);
 
@@ -67,7 +67,7 @@ class RoomAvailabilityController extends Controller
         $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'status' => 'required|string|in:available,occupied,maintenance',
+            'status' => 'required|string|in:available,occupied,blocked,maintenance',
             'price_override' => 'nullable|numeric|min:0',
         ]);
 
@@ -116,7 +116,7 @@ class RoomAvailabilityController extends Controller
         }
 
         $request->validate([
-            'status' => 'sometimes|string|in:available,occupied,maintenance',
+            'status' => 'sometimes|string|in:available,occupied,blocked,maintenance',
             'price_override' => 'nullable|numeric|min:0',
         ]);
 
@@ -146,6 +146,10 @@ class RoomAvailabilityController extends Controller
     {
         $room = Room::where('accommodation_id', $accommodationId)->findOrFail($roomId);
 
+        if ($room->accommodation->host_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
         $startDate = $request->get('start_date', Carbon::now()->format('Y-m-d'));
         $endDate = $request->get('end_date', Carbon::now()->addMonths(2)->format('Y-m-d'));
 
@@ -162,16 +166,18 @@ class RoomAvailabilityController extends Controller
 
         while ($current->lte($end)) {
             $dateStr = $current->format('Y-m-d');
+            $availability = $availabilities[$dateStr] ?? null;
             $calendar[] = [
                 'date' => $dateStr,
-                'status' => $availabilities[$dateStr]->status ?? 'available',
-                'price' => $availabilities[$dateStr]->price_override ?? $room->price_per_night,
+                'status' => $availability?->status ?? 'available',
+                'price_override' => $availability?->price_override,
             ];
             $current->addDay();
         }
 
         return response()->json([
-            'room' => $room,
+            'room_id' => (int) $room->id,
+            'base_price' => (float) $room->price_per_night,
             'calendar' => $calendar,
         ]);
     }

@@ -37,5 +37,27 @@ return [
         'aggregated_merchant_id' => env('MALIA_PAY_AGGREGATED_MERCHANT_ID', 'am-1j54gkvb820we'),
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL') . '/api/auth/google/callback'),
+    ],
+
+    'microsoft' => [
+        'client_id' => env('MICROSOFT_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
+        'redirect' => env('MICROSOFT_REDIRECT_URI', env('APP_URL') . '/api/auth/microsoft/callback'),
+        'tenant' => env('MICROSOFT_TENANT', 'common'),
+    ],
+
+    'onesignal' => [
+        'app_id'       => env('ONESIGNAL_APP_ID', '2fefb867-761c-4857-93dd-8937c418e98a'),
+        'api_key'      => env('ONESIGNAL_REST_API_KEY', ''),
+        'api_url'      => env('ONESIGNAL_API_URL', 'https://onesignal.com/api/v1/notifications'),
+        'email_enabled'    => env('ONESIGNAL_EMAIL_ENABLED', false),
+        'from_email'   => env('ONESIGNAL_FROM_EMAIL', 'contact@bosejour.ci'),
+        'from_name'    => env('ONESIGNAL_FROM_NAME', 'BosEjour'),
+    ],
+
 ];
 

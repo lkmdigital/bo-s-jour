@@ -37,7 +37,8 @@ class HostPolicy
      */
     public function validate(User $user, User $host): bool
     {
-        return $user->hasPermission('hosts.validate') || 
+        return $user->isAdmin() ||
+               $user->hasPermission('hosts.validate') || 
                $user->hasAnyRole(['super_admin', 'admin', 'gerant']);
     }
 
@@ -46,7 +47,8 @@ class HostPolicy
      */
     public function reject(User $user, User $host): bool
     {
-        return $user->hasPermission('hosts.reject') || 
+        return $user->isAdmin() ||
+               $user->hasPermission('hosts.reject') || 
                $user->hasAnyRole(['super_admin', 'admin', 'gerant']);
     }
 
@@ -55,7 +57,8 @@ class HostPolicy
      */
     public function suspend(User $user, User $host): bool
     {
-        return $user->hasPermission('hosts.suspend') || 
+        return $user->isAdmin() ||
+               $user->hasPermission('hosts.suspend') || 
                $user->hasAnyRole(['super_admin', 'admin']);
     }
 
@@ -64,7 +67,8 @@ class HostPolicy
      */
     public function removeHostStatus(User $user, User $host): bool
     {
-        return $user->hasPermission('hosts.remove_status') || 
+        return $user->isAdmin() ||
+               $user->hasPermission('hosts.remove_status') || 
                $user->hasRole('super_admin');
     }
 

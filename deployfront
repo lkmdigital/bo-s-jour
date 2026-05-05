@@ -1,0 +1,221 @@
+#!/bin/bash
+# =============================================================================
+# deployfront — Déploiement rapide Frontend (Next.js) uniquement
+# Usage: ./deployfront [--build-local]
+#
+# Options:
+#   --build-local  Compiler le frontend localement avant envoi (si VPS < 2GB RAM)
+#
+# Déploie uniquement les modifications du frontend sans toucher au backend
+# =============================================================================
+
+set -euo pipefail
+
+# ─── Couleurs ────────────────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+log()     { echo -e "${GREEN}[$(date '+%H:%M:%S')] ✓${NC} $*"; }
+info()    { echo -e "${BLUE}[$(date '+%H:%M:%S')] ℹ${NC} $*"; }
+warn()    { echo -e "${YELLOW}[$(date '+%H:%M:%S')] ⚠${NC} $*"; }
+error()   { echo -e "${RED}[$(date '+%H:%M:%S')] ✗ ERREUR:${NC} $*" >&2; }
+section() { echo -e "\n${BOLD}${CYAN}══ $* ══${NC}\n"; }
+die()     { error "$*"; exit 1; }
+
+# ─── Charger la configuration ─────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/deploy.config"
+
+[[ -f "$CONFIG_FILE" ]] || die "Fichier deploy.config introuvable."
+
+# Valeurs par défaut
+SERVER=""
+SERVER_PASS=""
+FRONTEND_DIR=""
+PM2_APP="monbeaupays-frontend"
+
+source "$CONFIG_FILE"
+
+[[ -n "$SERVER" ]]       || die "SERVER non défini dans deploy.config"
+[[ -n "$FRONTEND_DIR" ]] || die "FRONTEND_DIR non défini dans deploy.config"
+
+LOCAL_FRONTEND="$SCRIPT_DIR/frontend"
+
+# ─── Parsing arguments ───────────────────────────────────────────────────────
+BUILD_LOCAL=false
+for arg in "$@"; do
+    case $arg in
+        --build-local) BUILD_LOCAL=true ;;
+        *) die "Option inconnue: $arg (utilisez --build-local)" ;;
+    esac
+done
+
+# ─── Commandes SSH/Rsync ─────────────────────────────────────────────────────
+ssh_exec() {
+    if [[ -n "$SERVER_PASS" ]]; then
+        sshpass -p "$SERVER_PASS" ssh \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
+            -o PubkeyAuthentication=no \
+            -o PasswordAuthentication=yes \
+            "$SERVER" "$@"
+    else
+        ssh "$SERVER" "$@"
+    fi
+}
+
+rsync_exec() {
+    if [[ -n "$SERVER_PASS" ]]; then
+        sshpass -p "$SERVER_PASS" rsync \
+            -e "ssh -o StrictHostKeyChecking=no -o PubkeyAuthentication=no -o PasswordAuthentication=yes" \
+            "$@"
+    else
+        rsync "$@"
+    fi
+}
+
+# ─── Vérification SSH ─────────────────────────────────────────────────────────
+check_ssh() {
+    section "Vérification connexion SSH"
+    info "Connexion à $SERVER..."
+
+    if [[ -n "$SERVER_PASS" ]]; then
+        sshpass -p "$SERVER_PASS" ssh \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=15 \
+            -o PubkeyAuthentication=no \
+            -o PasswordAuthentication=yes \
+            "$SERVER" "echo ok" > /dev/null 2>&1 \
+            || die "Connexion échouée. Vérifiez SERVER et SERVER_PASS"
+    else
+        ssh -o BatchMode=yes -o ConnectTimeout=10 "$SERVER" "echo ok" > /dev/null 2>&1 \
+            || die "Connexion SSH échouée. Vérifiez votre clé SSH."
+    fi
+
+    log "Connexion SSH OK"
+}
+
+# ─── FRONTEND ──────────────────────────────────────────────────────────────────
+deploy_frontend() {
+    section "Déploiement Frontend (Next.js)"
+
+    [[ -d "$LOCAL_FRONTEND" ]] || die "Dossier frontend introuvable: $LOCAL_FRONTEND"
+
+    # Backup
+    local TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+    local BACKUP_PATH="/var/www/backups/frontend-${TIMESTAMP}"
+    info "Backup → $BACKUP_PATH"
+    ssh_exec "
+        mkdir -p /var/www/backups
+        if [ -d '$FRONTEND_DIR' ]; then
+            rsync -a --exclude='node_modules' --exclude='.next' \
+                  '$FRONTEND_DIR/' '$BACKUP_PATH/'
+            ls -dt /var/www/backups/frontend-* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
+        fi
+    "
+
+    if [ "$BUILD_LOCAL" = "true" ]; then
+        # Build local (Mac) puis transfert
+        section "Build local du frontend"
+        info "Installation des dépendances npm..."
+        (cd "$LOCAL_FRONTEND" && npm ci)
+
+        info "Build de production..."
+        (cd "$LOCAL_FRONTEND" && npm run build)
+        log "Build local terminé"
+
+        info "Transfert du build vers le serveur..."
+        rsync_exec -az --delete \
+            "$LOCAL_FRONTEND/.next/standalone/" "$SERVER:$FRONTEND_DIR/"
+        rsync_exec -az \
+            "$LOCAL_FRONTEND/.next/static/" "$SERVER:$FRONTEND_DIR/.next/static/"
+        rsync_exec -az \
+            "$LOCAL_FRONTEND/public/" "$SERVER:$FRONTEND_DIR/public/"
+
+        info "Redémarrage PM2..."
+        ssh_exec "
+            set -e
+            mkdir -p /var/log/pm2
+            cd '$FRONTEND_DIR'
+            if [ ! -f '.env.production' ]; then
+                echo 'NEXT_PUBLIC_API_URL=https://apimonbeaupays.loyerpay.ci/api' > .env.production
+                echo 'NODE_ENV=production' >> .env.production
+            fi
+            pm2 restart '$PM2_APP' --update-env 2>/dev/null || \
+            pm2 start '$FRONTEND_DIR/server.js' --name '$PM2_APP' \
+                --env production \
+                -e /var/log/pm2/$PM2_APP-error.log \
+                -o /var/log/pm2/$PM2_APP-out.log
+            pm2 save
+        "
+    else
+        # Transfert sources puis build sur serveur
+        info "Transfert des sources frontend..."
+        rsync_exec -az --delete \
+            --exclude='node_modules/' \
+            --exclude='.next/' \
+            --exclude='.git/' \
+            --exclude='.DS_Store' \
+            --exclude='*.log' \
+            --exclude='.env.local' \
+            --exclude='.env.development' \
+            --exclude='*.tar.gz' \
+            --exclude='*.sh' \
+            --exclude='*.md' \
+            "$LOCAL_FRONTEND/" "$SERVER:$FRONTEND_DIR/"
+        log "Fichiers transférés"
+
+        info "Build + redémarrage sur le serveur..."
+        ssh_exec "
+            set -e
+            cd '$FRONTEND_DIR'
+            mkdir -p /var/log/pm2
+
+            echo '→ Vérification environnement...'
+            command -v node >/dev/null 2>&1 || { echo 'Node.js introuvable'; exit 1; }
+            command -v npm >/dev/null 2>&1 || { echo 'npm introuvable'; exit 1; }
+            command -v pm2 >/dev/null 2>&1 || { echo 'pm2 introuvable'; exit 1; }
+
+            echo '→ Configuration .env.production...'
+            echo 'NEXT_PUBLIC_API_URL=https://apimonbeaupays.loyerpay.ci/api' > .env.production
+            echo 'NODE_ENV=production' >> .env.production
+
+            echo '→ Nettoyage du build précédent...'
+            rm -rf .next
+
+            echo '→ Installation npm...'
+            npm ci || npm install
+
+            echo '→ Build de production...'
+            npm run build
+
+            echo '→ Redémarrage PM2...'
+            pm2 restart '$PM2_APP' --update-env 2>/dev/null || \
+            pm2 start ecosystem.config.js --only '$PM2_APP' 2>/dev/null || \
+            pm2 start npm --name '$PM2_APP' -- start
+            pm2 save
+            echo '✓ Frontend OK'
+        "
+    fi
+
+    log "Frontend déployé avec succès"
+}
+
+# ─── MAIN ─────────────────────────────────────────────────────────────────────
+echo -e "\n${BOLD}${CYAN}🚀 DeployFront — Frontend uniquement [$(date '+%d/%m/%Y %H:%M')]${NC}\n"
+echo -e "  Serveur : ${BOLD}$SERVER${NC}"
+echo -e "  Source  : ${BOLD}$LOCAL_FRONTEND${NC}"
+[ "$BUILD_LOCAL" = "true" ] && echo -e "  Mode    : ${YELLOW}Build local${NC}"
+echo ""
+
+check_ssh
+deploy_frontend
+
+echo ""
+echo -e "${GREEN}✅ Frontend déployé !${NC}"
+echo ""

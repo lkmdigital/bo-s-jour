@@ -6,6 +6,8 @@ use App\Models\Booking;
 use App\Models\Accommodation;
 use App\Models\User;
 use App\Models\Subscription;
+use App\Models\Commission;
+use App\Models\Promotion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -20,6 +22,10 @@ class AnalyticsController extends Controller
 
         $hostId = $request->user()->id;
 
+        $filterByPeriod = $request->has('from_date') && $request->has('to_date');
+        $startDate = $filterByPeriod ? Carbon::parse($request->from_date)->startOfDay() : null;
+        $endDate = $filterByPeriod ? Carbon::parse($request->to_date)->endOfDay() : null;
+
         // Total bookings
         $totalBookings = Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
@@ -30,24 +36,33 @@ class AnalyticsController extends Controller
             $q->where('host_id', $hostId);
         })->where('status', 'confirmed')->count();
 
-        // Total revenue
+        // Total revenue (filtré par période si from_date/to_date fournis)
         $totalRevenue = Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
-        })->where('status', 'confirmed')->sum('total_price');
+        })->where('status', 'confirmed');
+        if ($filterByPeriod) {
+            $totalRevenue = $totalRevenue->whereBetween('created_at', [$startDate, $endDate]);
+        }
+        $totalRevenue = $totalRevenue->sum('total_price');
 
-        // Monthly revenue (last 6 months)
-        $monthlyRevenue = Booking::whereHas('accommodation', function($q) use ($hostId) {
-            $q->where('host_id', $hostId);
-        })
-        ->where('status', 'confirmed')
-        ->where('created_at', '>=', Carbon::now()->subMonths(6))
-        ->select(
-            DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
-            DB::raw('SUM(total_price) as revenue')
-        )
-        ->groupBy('month')
-        ->orderBy('month')
-        ->get();
+        // Monthly revenue (période filtrée ou 12 derniers mois)
+        $monthlyRevenueQuery = Booking::whereHas('accommodation', function($q) use ($hostId) {
+                $q->where('host_id', $hostId);
+            })
+            ->whereIn('status', ['confirmed', 'pending']);
+        if ($filterByPeriod) {
+            $monthlyRevenueQuery = $monthlyRevenueQuery->whereBetween('created_at', [$startDate, $endDate]);
+        } else {
+            $monthlyRevenueQuery = $monthlyRevenueQuery->where('created_at', '>=', Carbon::now()->subMonths(11)->startOfMonth());
+        }
+        $monthlyRevenue = $monthlyRevenueQuery
+            ->select(
+                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw('SUM(total_price) as revenue')
+            )
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
 
         // Occupancy rate (last 30 days)
         $totalNights = Booking::whereHas('accommodation', function($q) use ($hostId) {
@@ -98,6 +113,70 @@ class AnalyticsController extends Controller
             ->where('status', 'rejected')
             ->count();
 
+        // Room statistics (avec protection contre les tables manquantes)
+        $roomStats = null;
+        try {
+            // Vérifier si la table room_images existe
+            $tableExists = DB::select("SHOW TABLES LIKE 'room_images'");
+            
+            if (!empty($tableExists)) {
+                $totalRoomsCount = DB::table('rooms')
+                    ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
+                    ->where('accommodations.host_id', $hostId)
+                    ->count();
+
+                $activeRoomsCount = DB::table('rooms')
+                    ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
+                    ->where('accommodations.host_id', $hostId)
+                    ->where('rooms.is_active', true)
+                    ->count();
+
+                $inactiveRoomsCount = $totalRoomsCount - $activeRoomsCount;
+
+                // Rooms without minimum images (need attention)
+                $roomsNeedingImages = DB::table('rooms')
+                    ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
+                    ->leftJoin(DB::raw('(SELECT room_id, COUNT(*) as image_count FROM room_images GROUP BY room_id) as image_counts'), 
+                        'rooms.id', '=', 'image_counts.room_id')
+                    ->where('accommodations.host_id', $hostId)
+                    ->where(function($q) {
+                        $q->whereNull('image_counts.image_count')
+                          ->orWhere('image_counts.image_count', '<', 3);
+                    })
+                    ->count();
+
+                // Average images per room
+                $avgImagesPerRoom = DB::table('rooms')
+                    ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
+                    ->leftJoin('room_images', 'rooms.id', '=', 'room_images.room_id')
+                    ->where('accommodations.host_id', $hostId)
+                    ->select(DB::raw('COUNT(room_images.id) / NULLIF(COUNT(DISTINCT rooms.id), 0) as avg_images'))
+                    ->value('avg_images') ?? 0;
+
+                // Room occupancy statistics
+                $roomBookings = DB::table('bookings')
+                    ->join('rooms', 'bookings.room_id', '=', 'rooms.id')
+                    ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
+                    ->where('accommodations.host_id', $hostId)
+                    ->where('bookings.status', 'confirmed')
+                    ->where('bookings.check_in', '>=', Carbon::now()->subDays(30))
+                    ->count();
+
+                $roomStats = [
+                    'total_rooms' => $totalRoomsCount,
+                    'active_rooms' => $activeRoomsCount,
+                    'inactive_rooms' => $inactiveRoomsCount,
+                    'rooms_needing_images' => $roomsNeedingImages,
+                    'avg_images_per_room' => round($avgImagesPerRoom, 1),
+                    'room_bookings_last_30_days' => $roomBookings,
+                ];
+            }
+        } catch (\Exception $e) {
+            // Si erreur avec les tables room, ignorer et continuer
+            \Log::warning('Error fetching room stats: ' . $e->getMessage());
+            $roomStats = null;
+        }
+
         // Upcoming bookings (next 30 days)
         $upcomingBookings = Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
@@ -114,7 +193,25 @@ class AnalyticsController extends Controller
         ->where('status', 'pending')
         ->count();
 
-        // Revenue this month
+        // Réservations modifiées (hôte)
+        $modifiedBookingsHost = Booking::whereHas('accommodation', function($q) use ($hostId) {
+            $q->where('host_id', $hostId);
+        })->whereRaw('updated_at > DATE_ADD(created_at, INTERVAL 1 MINUTE)')->count();
+
+        // Comptabilité hôte : montants dus et déjà reversés
+        $hostCommissionsDue = (float) Commission::where('host_id', $hostId)->where('status', 'pending')->sum('host_amount');
+        $hostCommissionsReversed = (float) Commission::where('host_id', $hostId)->where('status', 'paid')->sum('host_amount');
+
+        // Promotions actives (hébergements de l'hôte)
+        $today = Carbon::today();
+        $activePromotionsHost = Promotion::whereHas('accommodation', function($q) use ($hostId) {
+            $q->where('host_id', $hostId);
+        })->where('is_active', true)
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->count();
+
+        // Revenue this month (ou période si filtre actif)
         $revenueThisMonth = Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         })
@@ -136,24 +233,30 @@ class AnalyticsController extends Controller
             ? (($revenueThisMonth - $revenueLastMonth) / $revenueLastMonth) * 100 
             : 0;
 
-        // Daily revenue (today)
-        $dailyRevenue = Booking::whereHas('accommodation', function($q) use ($hostId) {
+        if ($filterByPeriod) {
+            $revenueThisMonth = $totalRevenue;
+            $revenueLastMonth = 0;
+            $revenueGrowth = 0;
+        }
+
+        // Daily revenue (today) — 0 si filtre par période
+        $dailyRevenue = $filterByPeriod ? 0 : Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         })
         ->where('status', 'confirmed')
         ->whereDate('created_at', Carbon::today())
         ->sum('total_price');
 
-        // Weekly revenue (last 7 days)
-        $weeklyRevenue = Booking::whereHas('accommodation', function($q) use ($hostId) {
+        // Weekly revenue (last 7 days) — 0 si filtre par période
+        $weeklyRevenue = $filterByPeriod ? 0 : Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         })
         ->where('status', 'confirmed')
         ->where('created_at', '>=', Carbon::now()->subDays(7))
         ->sum('total_price');
 
-        // Monthly revenue (current month)
-        $monthlyRevenueCurrent = Booking::whereHas('accommodation', function($q) use ($hostId) {
+        // Monthly revenue (current month) — période si filtre actif
+        $monthlyRevenueCurrent = $filterByPeriod ? $totalRevenue : Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         })
         ->where('status', 'confirmed')
@@ -161,8 +264,8 @@ class AnalyticsController extends Controller
         ->whereYear('created_at', Carbon::now()->year)
         ->sum('total_price');
 
-        // Statistics per accommodation
-        $accommodationsStats = Accommodation::where('host_id', $hostId)
+        // Statistics per accommodation (avec revenus période si filtre)
+        $accommodationsStatsQuery = Accommodation::where('host_id', $hostId)
             ->withCount(['bookings' => function($q) {
                 $q->where('status', 'confirmed');
             }])
@@ -194,10 +297,21 @@ class AnalyticsController extends Controller
                 $q->where('status', 'confirmed')
                   ->whereMonth('created_at', Carbon::now()->month)
                   ->whereYear('created_at', Carbon::now()->year);
-            }], 'total_price')
-            ->get()
-            ->map(function($accommodation) {
-                return [
+            }], 'total_price');
+
+        if ($filterByPeriod) {
+            $accommodationsStatsQuery = $accommodationsStatsQuery
+                ->withCount(['bookings as period_bookings' => function($q) use ($startDate, $endDate) {
+                    $q->where('status', 'confirmed')->whereBetween('created_at', [$startDate, $endDate]);
+                }])
+                ->withSum(['bookings as period_revenue' => function($q) use ($startDate, $endDate) {
+                    $q->where('status', 'confirmed')->whereBetween('created_at', [$startDate, $endDate]);
+                }], 'total_price');
+        }
+
+        $accommodationsStats = $accommodationsStatsQuery->get()
+            ->map(function($accommodation) use ($filterByPeriod) {
+                $row = [
                     'id' => $accommodation->id,
                     'name' => $accommodation->name,
                     'city' => $accommodation->city,
@@ -212,7 +326,29 @@ class AnalyticsController extends Controller
                     'monthly_bookings' => $accommodation->monthly_bookings ?? 0,
                     'monthly_revenue' => (float) ($accommodation->monthly_revenue ?? 0),
                 ];
+                if ($filterByPeriod) {
+                    $row['period_bookings'] = $accommodation->period_bookings ?? 0;
+                    $row['period_revenue'] = (float) ($accommodation->period_revenue ?? 0);
+                }
+                return $row;
             });
+
+        // KPI hôte : RevPAR, prix moyen (sur les 30 derniers jours)
+        $kpiDays = 30;
+        $kpiStartHost = Carbon::now()->subDays($kpiDays)->startOfDay();
+        $bookingsKpiHost = Booking::whereHas('accommodation', function($q) use ($hostId) {
+            $q->where('host_id', $hostId);
+        })->where('status', 'confirmed')
+            ->where('check_out', '>=', $kpiStartHost)
+            ->where('check_in', '<=', Carbon::now())
+            ->get();
+        $roomNightsSoldHost = $bookingsKpiHost->sum(function ($b) use ($kpiStartHost) {
+            return Carbon::parse($b->check_in)->diffInDays(Carbon::parse($b->check_out));
+        });
+        $revenueKpiHost = (float) $bookingsKpiHost->sum('total_price');
+        $availableNightsHost = $totalRooms * $kpiDays;
+        $revparHost = $availableNightsHost > 0 ? round($revenueKpiHost / $availableNightsHost, 2) : 0;
+        $avgPricePerRoomHost = $roomNightsSoldHost > 0 ? round($revenueKpiHost / $roomNightsSoldHost, 2) : 0;
 
         return response()->json([
             'total_bookings' => $totalBookings,
@@ -237,6 +373,27 @@ class AnalyticsController extends Controller
                 'pending' => $pendingAccommodations,
                 'rejected' => $rejectedAccommodations,
             ],
+            'room_stats' => $roomStats,
+            'reservations' => [
+                'total' => $totalBookings,
+                'modified' => $modifiedBookingsHost,
+                'pending' => $pendingBookings,
+            ],
+            'accounting' => [
+                'commissions_due' => $hostCommissionsDue,
+                'commissions_reversed' => $hostCommissionsReversed,
+            ],
+            'promotions' => [
+                'active_count' => $activePromotionsHost,
+            ],
+            'kpis' => [
+                'revpar' => $revparHost,
+                'total_revenue' => $totalRevenue,
+                'occupancy_rate' => round($occupancyRate, 2),
+                'average_price_per_room' => $avgPricePerRoomHost,
+                'room_nights_sold' => $roomNightsSoldHost,
+                'period_days' => $kpiDays,
+            ],
         ]);
     }
 
@@ -244,6 +401,48 @@ class AnalyticsController extends Controller
     {
         if (!$request->user()->isAdmin()) {
             return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        // Room statistics for admin (avec protection contre les tables manquantes)
+        $roomStatsAdmin = null;
+        try {
+            // Vérifier si la table room_images existe
+            $tableExists = DB::select("SHOW TABLES LIKE 'room_images'");
+            
+            if (!empty($tableExists)) {
+                $totalRoomsAdmin = DB::table('rooms')->count();
+                $activeRoomsAdmin = DB::table('rooms')->where('is_active', true)->count();
+                $inactiveRoomsAdmin = $totalRoomsAdmin - $activeRoomsAdmin;
+                
+                $roomsNeedingImagesAdmin = DB::table('rooms')
+                    ->leftJoin(DB::raw('(SELECT room_id, COUNT(*) as image_count FROM room_images GROUP BY room_id) as image_counts'), 
+                        'rooms.id', '=', 'image_counts.room_id')
+                    ->where(function($q) {
+                        $q->whereNull('image_counts.image_count')
+                          ->orWhere('image_counts.image_count', '<', 3);
+                    })
+                    ->count();
+                
+                $avgImagesPerRoomAdmin = DB::table('rooms')
+                    ->leftJoin('room_images', 'rooms.id', '=', 'room_images.room_id')
+                    ->select(DB::raw('COUNT(room_images.id) / NULLIF(COUNT(DISTINCT rooms.id), 0) as avg_images'))
+                    ->value('avg_images') ?? 0;
+
+                $totalRoomImages = DB::table('room_images')->count();
+
+                $roomStatsAdmin = [
+                    'total_rooms' => $totalRoomsAdmin,
+                    'active_rooms' => $activeRoomsAdmin,
+                    'inactive_rooms' => $inactiveRoomsAdmin,
+                    'rooms_needing_images' => $roomsNeedingImagesAdmin,
+                    'avg_images_per_room' => round($avgImagesPerRoomAdmin, 1),
+                    'total_room_images' => $totalRoomImages,
+                ];
+            }
+        } catch (\Exception $e) {
+            // Si erreur avec les tables room, ignorer et continuer
+            \Log::warning('Error fetching admin room stats: ' . $e->getMessage());
+            $roomStatsAdmin = null;
         }
 
         $stats = [
@@ -258,6 +457,7 @@ class AnalyticsController extends Controller
             'active_subscriptions' => Subscription::where('status', 'active')
                 ->where('expires_at', '>=', Carbon::now())
                 ->count(),
+            'room_stats' => $roomStatsAdmin,
         ];
 
         // Active cities

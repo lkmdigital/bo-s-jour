@@ -28,6 +28,8 @@ class HostProfileController extends Controller
             'user' => $user,
             'completion_percentage' => $completion,
             'is_complete' => $completion >= 100,
+            'compliance_status' => $user->compliance_status,
+            'compliance_requirements' => $user->compliance_requirements,
         ]);
     }
 
@@ -59,6 +61,10 @@ class HostProfileController extends Controller
             'city' => 'sometimes|string|max:100',
             'postal_code' => 'sometimes|nullable|string|max:20',
             'country' => 'sometimes|string|max:100',
+            'phone_fixed' => 'sometimes|nullable|string|max:20',
+            'whatsapp' => 'sometimes|nullable|string|max:20',
+            'rccm' => 'sometimes|nullable|string|max:255',
+            'tax_account_number' => 'sometimes|nullable|string|max:255',
             'id_type' => ['sometimes', 'nullable', Rule::in(['CNI', 'Passeport', 'Permis de conduire', 'Autre'])],
             'id_number' => 'sometimes|nullable|string|max:50',
             'id_document' => 'sometimes|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB - Pour passeport ou document unique
@@ -67,12 +73,14 @@ class HostProfileController extends Controller
             'id_document_verso' => 'sometimes|file|mimes:pdf,jpg,jpeg,png|max:5120', // Verso pour CNI/Permis
             'proof_of_address' => 'sometimes|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'business_license' => 'sometimes|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'rccm_document' => 'sometimes|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'tax_document' => 'sometimes|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         // Mise à jour des champs texte
         // Utiliser input() au lieu de only() pour FormData
         $updateData = [];
-        $fields = ['name', 'phone', 'date_of_birth', 'bio', 'address_line1', 'address_line2', 'city', 'postal_code', 'country', 'id_type', 'id_number'];
+        $fields = ['name', 'phone', 'date_of_birth', 'bio', 'address_line1', 'address_line2', 'city', 'postal_code', 'country', 'phone_fixed', 'whatsapp', 'rccm', 'tax_account_number', 'id_type', 'id_number'];
         
         foreach ($fields as $field) {
             if ($request->has($field)) {
@@ -164,6 +172,22 @@ class HostProfileController extends Controller
             $user->business_license_path = $path;
         }
 
+        if ($request->hasFile('rccm_document')) {
+            if ($user->rccm_document_path) {
+                Storage::disk('public')->delete($user->rccm_document_path);
+            }
+            $path = $request->file('rccm_document')->store('host-documents', 'public');
+            $user->rccm_document_path = $path;
+        }
+
+        if ($request->hasFile('tax_document')) {
+            if ($user->tax_document_path) {
+                Storage::disk('public')->delete($user->tax_document_path);
+            }
+            $path = $request->file('tax_document')->store('host-documents', 'public');
+            $user->tax_document_path = $path;
+        }
+
         // Recalculer le statut de complétion
         $completion = $this->calculateCompletion($user);
         $user->profile_completed = $completion >= 100;
@@ -192,6 +216,8 @@ class HostProfileController extends Controller
                 'user' => $user,
                 'completion_percentage' => $completion,
                 'is_complete' => $completion >= 100,
+                'compliance_status' => $user->compliance_status,
+                'compliance_requirements' => $user->compliance_requirements,
             ], 200);
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la sauvegarde du profil', [
@@ -217,12 +243,19 @@ class HostProfileController extends Controller
             'address_line1' => 10,
             'city' => 5,
             'country' => 5,
+            'phone_fixed' => 10,
+            'whatsapp' => 10,
+            'rccm' => 5,
+            'tax_account_number' => 5,
             'id_type' => 10,
             'id_number' => 10,
             'id_document_path' => 15, // Pour passeport ou autre
             'id_document_recto_path' => 7.5, // Pour CNI/Permis (recto)
             'id_document_verso_path' => 7.5, // Pour CNI/Permis (verso)
             'proof_of_address_path' => 15,
+            'business_license_path' => 10,
+            'rccm_document_path' => 10,
+            'tax_document_path' => 10,
         ];
 
         $total = 0;

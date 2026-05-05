@@ -6,8 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Accommodation;
 use App\Models\AccommodationAuditLog;
 use App\Models\AdminNote;
+use App\Models\Booking;
+use App\Models\Payment;
+use App\Models\Room;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Controller pour la gestion des établissements par les admins
@@ -52,8 +56,15 @@ class AdminAccommodationController extends Controller
         $perPage = $request->get('per_page', 15);
         $accommodations = $query->paginate($perPage);
 
+        // Ajouter les statistiques pour chaque établissement
+        $accommodationsData = $accommodations->items();
+        foreach ($accommodationsData as $accommodation) {
+            $accommodation->stats = $this->getAccommodationStats($accommodation->id);
+            $this->attachComplianceData($accommodation);
+        }
+
         return response()->json([
-            'data' => $accommodations->items(),
+            'data' => $accommodationsData,
             'pagination' => [
                 'current_page' => $accommodations->currentPage(),
                 'last_page' => $accommodations->lastPage(),
@@ -115,6 +126,20 @@ class AdminAccommodationController extends Controller
             'check_out_time' => 'nullable|date_format:H:i',
             'invoice_paid_before_hours' => 'nullable|integer|min:0',
         ]);
+
+        // Sécurité: empêcher la création de doublons pour le même hôte (même nom + ville)
+        $duplicate = Accommodation::where('host_id', $validated['host_id'])
+            ->whereRaw('LOWER(name) = LOWER(?)', [$validated['name']])
+            ->whereRaw('LOWER(city) = LOWER(?)', [$validated['city']])
+            ->whereNotIn('status', ['removed'])
+            ->first();
+
+        if ($duplicate) {
+            return response()->json([
+                'message' => 'Cet hôte a déjà un établissement avec ce nom dans cette ville. Modifiez l\'établissement existant ou choisissez un autre nom.',
+                'existing_id' => $duplicate->id,
+            ], 422);
+        }
 
         // Générer un slug unique
         $baseSlug = \Str::slug($validated['name']);
@@ -196,9 +221,14 @@ class AdminAccommodationController extends Controller
             'reviews.user',
             'auditLogs.user',
             'adminNotes.creator',
+            'rooms',
         ])->findOrFail($id);
 
         $this->authorize('view', $accommodation);
+
+        // Ajouter les statistiques détaillées
+        $accommodation->stats = $this->getAccommodationStats($id, true);
+        $this->attachComplianceData($accommodation);
 
         return response()->json(['data' => $accommodation]);
     }
@@ -208,8 +238,24 @@ class AdminAccommodationController extends Controller
      */
     public function approve(Request $request, $id)
     {
-        $accommodation = Accommodation::findOrFail($id);
+        $accommodation = Accommodation::with('host')->findOrFail($id);
         $this->authorize('approve', $accommodation);
+
+        $host = $accommodation->host;
+        if (!$host || $host->compliance_status !== 'conforme') {
+            $missing = $host
+                ? collect($host->compliance_requirements)
+                    ->filter(fn ($item) => empty($item['ok']))
+                    ->pluck('label')
+                    ->values()
+                : collect(['Hôte introuvable']);
+
+            return response()->json([
+                'message' => 'Établissement non conforme: le profil hôte est incomplet.',
+                'compliance_status' => 'non_conforme',
+                'missing_requirements' => $missing,
+            ], 422);
+        }
 
         $validated = $request->validate([
             'reason' => 'nullable|string|max:2000',
@@ -235,6 +281,19 @@ class AdminAccommodationController extends Controller
             'message' => 'Établissement approuvé avec succès',
             'data' => $accommodation->load('auditLogs'),
         ]);
+    }
+
+    private function attachComplianceData(Accommodation $accommodation): void
+    {
+        $host = $accommodation->host;
+
+        if (!$host) {
+            $accommodation->compliance_status = 'non_conforme';
+            return;
+        }
+
+        $host->compliance_status = $host->compliance_status;
+        $accommodation->compliance_status = $host->compliance_status;
     }
 
     /**
@@ -418,6 +477,210 @@ class AdminAccommodationController extends Controller
             ->paginate(50);
 
         return response()->json(['data' => $logs]);
+    }
+
+    /**
+     * Calculer les statistiques d'un établissement
+     */
+    private function getAccommodationStats($accommodationId, $detailed = false)
+    {
+        $accommodation = Accommodation::find($accommodationId);
+        if (!$accommodation) {
+            return null;
+        }
+
+        // Nombre de chambres
+        // Compter les chambres actives ; si is_active est null (anciennes données), on les considère actives
+        $totalRooms = Room::where('accommodation_id', $accommodationId)
+            ->where(function ($q) {
+                $q->where('is_active', true)
+                  ->orWhereNull('is_active');
+            })
+            ->count();
+
+        // Fallback : si aucune chambre en table mais un nombre de chambres est renseigné sur l'établissement
+        if ($totalRooms === 0 && $accommodation->bedrooms !== null) {
+            $totalRooms = (int) $accommodation->bedrooms;
+        }
+
+        // Statistiques des réservations
+        $now = now();
+        $thirtyDaysAgo = $now->copy()->subDays(30);
+        $thirtyDaysAhead = $now->copy()->addDays(30);
+        $todayStart = $now->copy()->startOfDay();
+        $todayEnd = $now->copy()->endOfDay();
+
+        // Réservations confirmées dans les 30 derniers jours
+        $confirmedBookings = Booking::where('accommodation_id', $accommodationId)
+            ->where('status', 'confirmed')
+            ->where('check_in', '>=', $thirtyDaysAgo)
+            ->where('check_in', '<=', $thirtyDaysAhead)
+            ->get();
+
+        // Calculer le taux d'occupation
+        $occupiedNights = 0;
+        $totalAvailableNights = $totalRooms * 30; // 30 jours * nombre de chambres
+
+        foreach ($confirmedBookings as $booking) {
+            $checkIn = \Carbon\Carbon::parse($booking->check_in);
+            $checkOut = \Carbon\Carbon::parse($booking->check_out);
+            $nights = $checkIn->diffInDays($checkOut);
+            
+            // Ne compter que les nuits dans la période de 30 jours
+            $periodStart = max($checkIn, $thirtyDaysAgo);
+            $periodEnd = min($checkOut, $thirtyDaysAhead);
+            if ($periodStart < $periodEnd) {
+                $occupiedNights += $periodStart->diffInDays($periodEnd);
+            }
+        }
+
+        $occupancyRate = $totalAvailableNights > 0 
+            ? round(($occupiedNights / $totalAvailableNights) * 100, 2) 
+            : 0;
+
+        // Montant collecté (paiements complétés)
+        $amountCollectedAllTime = Payment::where('status', 'completed')
+            ->whereHas('booking', function ($q) use ($accommodationId) {
+                $q->where('accommodation_id', $accommodationId);
+            })
+            ->sum('amount');
+
+        $amountCollected30d = Payment::where('status', 'completed')
+            ->where('created_at', '>=', $thirtyDaysAgo)
+            ->whereHas('booking', function ($q) use ($accommodationId) {
+                $q->where('accommodation_id', $accommodationId);
+            })
+            ->sum('amount');
+
+        // Chambres occupées / réservées / libres (focus sur aujourd'hui)
+        $overlappingToday = Booking::where('accommodation_id', $accommodationId)
+            ->where('status', 'confirmed')
+            ->where(function ($q) use ($todayStart, $todayEnd) {
+                $q->whereBetween('check_in', [$todayStart, $todayEnd])
+                  ->orWhereBetween('check_out', [$todayStart, $todayEnd])
+                  ->orWhere(function ($sub) use ($todayStart, $todayEnd) {
+                      $sub->where('check_in', '<=', $todayStart)
+                          ->where('check_out', '>=', $todayEnd);
+                  });
+            });
+
+        $occupiedRoomIds = (clone $overlappingToday)
+            ->whereNotNull('room_id')
+            ->pluck('room_id')
+            ->unique();
+
+        $occupiedUnknownRooms = (clone $overlappingToday)
+            ->whereNull('room_id')
+            ->count();
+
+        $occupiedRoomsToday = $occupiedRoomIds->count() + min(
+            $occupiedUnknownRooms,
+            max($totalRooms - $occupiedRoomIds->count(), 0)
+        );
+
+        $reservedUpcomingQuery = Booking::where('accommodation_id', $accommodationId)
+            ->where('status', 'confirmed')
+            ->where('check_in', '>', $todayEnd);
+
+        $reservedRoomIds = (clone $reservedUpcomingQuery)
+            ->whereNotNull('room_id')
+            ->pluck('room_id')
+            ->unique();
+
+        $reservedUnknownRooms = (clone $reservedUpcomingQuery)
+            ->whereNull('room_id')
+            ->count();
+
+        $reservedRoomsUpcoming = $reservedRoomIds->count() + min(
+            $reservedUnknownRooms,
+            max($totalRooms - $reservedRoomIds->count(), 0)
+        );
+
+        $freeRoomsToday = max($totalRooms - $occupiedRoomsToday, 0);
+
+        $stats = [
+            'total_rooms' => $totalRooms,
+            'occupancy_rate' => $occupancyRate,
+            'occupied_nights' => $occupiedNights,
+            'total_available_nights' => $totalAvailableNights,
+            'confirmed_bookings_count' => $confirmedBookings->count(),
+            'amount_collected_all_time' => $amountCollectedAllTime,
+            'amount_collected_30d' => $amountCollected30d,
+            'occupied_rooms_today' => $occupiedRoomsToday,
+            'reserved_rooms_upcoming' => $reservedRoomsUpcoming,
+            'free_rooms_today' => $freeRoomsToday,
+        ];
+
+        if ($detailed) {
+            // Statistiques détaillées par chambre
+            $rooms = Room::where('accommodation_id', $accommodationId)
+                ->where(function ($q) {
+                    $q->where('is_active', true)
+                      ->orWhereNull('is_active');
+                })
+                ->withCount(['bookings' => function($query) use ($thirtyDaysAgo, $thirtyDaysAhead) {
+                    $query->where('status', 'confirmed')
+                        ->where('check_in', '>=', $thirtyDaysAgo)
+                        ->where('check_in', '<=', $thirtyDaysAhead);
+                }])
+                ->get();
+
+            $roomsStats = [];
+            foreach ($rooms as $room) {
+                $roomBookings = Booking::where('room_id', $room->id)
+                    ->where('status', 'confirmed')
+                    ->where('check_in', '>=', $thirtyDaysAgo)
+                    ->where('check_in', '<=', $thirtyDaysAhead)
+                    ->get();
+
+                $roomOccupiedNights = 0;
+                foreach ($roomBookings as $booking) {
+                    $checkIn = \Carbon\Carbon::parse($booking->check_in);
+                    $checkOut = \Carbon\Carbon::parse($booking->check_out);
+                    $periodStart = max($checkIn, $thirtyDaysAgo);
+                    $periodEnd = min($checkOut, $thirtyDaysAhead);
+                    if ($periodStart < $periodEnd) {
+                        $roomOccupiedNights += $periodStart->diffInDays($periodEnd);
+                    }
+                }
+
+                $roomOccupancyRate = 30 > 0 
+                    ? round(($roomOccupiedNights / 30) * 100, 2) 
+                    : 0;
+
+                $roomsStats[] = [
+                    'id' => $room->id,
+                    'name' => $room->name,
+                    'type' => $room->type,
+                    'capacity' => $room->capacity,
+                    'price_per_night' => $room->price_per_night,
+                    'bookings_count' => $room->bookings_count,
+                    'occupied_nights' => $roomOccupiedNights,
+                    'occupancy_rate' => $roomOccupancyRate,
+                ];
+            }
+
+            $stats['rooms'] = $roomsStats;
+
+            // Statistiques globales supplémentaires
+            $allTimeBookings = Booking::where('accommodation_id', $accommodationId)
+                ->where('status', 'confirmed')
+                ->count();
+
+            $pendingBookings = Booking::where('accommodation_id', $accommodationId)
+                ->where('status', 'pending')
+                ->count();
+
+            $cancelledBookings = Booking::where('accommodation_id', $accommodationId)
+                ->where('status', 'cancelled')
+                ->count();
+
+            $stats['all_time_bookings'] = $allTimeBookings;
+            $stats['pending_bookings'] = $pendingBookings;
+            $stats['cancelled_bookings'] = $cancelledBookings;
+        }
+
+        return $stats;
     }
 }
 

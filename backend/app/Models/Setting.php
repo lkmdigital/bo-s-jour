@@ -18,23 +18,26 @@ class Setting extends Model
 
     protected function casts(): array
     {
-        return [
-            'value' => function ($value, $attributes) {
-                $type = $attributes['type'] ?? 'string';
-                return match($type) {
-                    'number' => (float) $value,
-                    'boolean' => (bool) $value,
-                    'json' => json_decode($value, true),
-                    default => $value,
-                };
-            },
-        ];
+        return [];
+    }
+
+    /**
+     * Retourne la valeur castée selon le type stocké.
+     */
+    public function getCastedValue(): mixed
+    {
+        return match($this->type) {
+            'number'  => (float) $this->value,
+            'boolean' => filter_var($this->value, FILTER_VALIDATE_BOOLEAN),
+            'json'    => json_decode($this->value, true),
+            default   => $this->value,
+        };
     }
 
     public static function get($key, $default = null)
     {
         $setting = self::where('key', $key)->first();
-        return $setting ? $setting->value : $default;
+        return $setting ? $setting->getCastedValue() : $default;
     }
 
     public static function set($key, $value, $type = 'string', $description = null)

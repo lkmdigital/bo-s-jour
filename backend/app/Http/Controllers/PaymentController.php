@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Commission;
+use App\Models\Message;
 use App\Models\Setting;
+use App\Services\PaymentOptionsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +19,15 @@ class PaymentController extends Controller
     private function generateNumCommande($length = 15)
     {
         return substr(str_shuffle(str_repeat('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', $length)), 0, $length);
+    }
+
+    /**
+     * Taux de commission plateforme borné entre 8 % et 10 %
+     */
+    private static function getCommissionRateClamped(): float
+    {
+        $rate = (float) Setting::get('commission_rate', 10.00);
+        return max(8.0, min(10.0, $rate));
     }
 
     /**
@@ -38,14 +49,16 @@ class PaymentController extends Controller
                 'request_user_id' => $request->user()?->id,
             ]);
 
-            // Vérifier que l'utilisateur est le propriétaire de la réservation
-            if ($booking->user_id !== $request->user()->id) {
+            // Vérifier que l'utilisateur est le propriétaire de la réservation (si authentifié)
+            $user = $request->user();
+            if ($user && $booking->user_id !== $user->id) {
                 \Log::warning('Payment initiation: User not authorized', [
                     'booking_user_id' => $booking->user_id,
-                    'request_user_id' => $request->user()->id,
+                    'request_user_id' => $user->id,
                 ]);
                 return response()->json(['message' => 'Forbidden'], 403);
             }
+            // Si l'utilisateur n'est pas authentifié, permettre l'accès (pour les réservations sans compte)
 
             // Vérifier que la réservation n'est pas déjà payée
             if ($booking->isPaid()) {
@@ -72,13 +85,12 @@ class PaymentController extends Controller
             }
 
             $paymentMethod = $request->input('payment_method', 'wave-ci');
+            $paymentType = $request->input('payment_type', 'full'); // 'full' | 'guarantee'
 
             $remainingBalance = $booking->remainingBalance();
-            if ($remainingBalance <= 0) {
+            if ($remainingBalance <= 0 && $booking->payment_status !== 'guarantee_paid') {
                 \Log::info('Payment initiation: No balance remaining', [
                     'booking_id' => $booking->id,
-                    'amount_paid' => $booking->amount_paid,
-                    'total_price' => $booking->total_price,
                 ]);
                 return response()->json([
                     'message' => 'Aucun paiement supplémentaire n\'est requis pour cette réservation',
@@ -86,30 +98,61 @@ class PaymentController extends Controller
                 ], 400);
             }
 
-            $depositPaid = $booking->hasPaidDeposit();
-            $paymentPurpose = $depositPaid || $booking->deposit_amount <= 0 ? 'balance' : 'deposit';
-            if ($paymentPurpose === 'balance' && $remainingBalance <= 0) {
+            // Utiliser PaymentOptionsService pour les options full/guarantee
+            $paymentOptions = PaymentOptionsService::getPaymentOptions($booking);
+
+            if ($paymentOptions['full_only']) {
+                $paymentType = 'full';
+            }
+
+            $amountToPay = 0;
+            $paymentPurpose = 'full';
+
+            if ($paymentType === 'full') {
+                $fullOpt = $paymentOptions['options']['full'] ?? null;
+                if (!$fullOpt) {
+                    return response()->json(['message' => 'Option de paiement non disponible'], 400);
+                }
+                $amountToPay = (float) $fullOpt['amount'];
+                $paymentPurpose = 'full';
+            } elseif ($paymentType === 'guarantee') {
+                $guaranteeOpt = $paymentOptions['options']['guarantee'] ?? $paymentOptions['guarantee'] ?? null;
+                if (!$guaranteeOpt) {
+                    return response()->json([
+                        'message' => 'L\'option garantie n\'est pas disponible pour cette réservation (paiement intégral obligatoire)'
+                    ], 400);
+                }
+                $amountToPay = (float) ($guaranteeOpt['amount'] ?? $guaranteeOpt);
+                $paymentPurpose = 'guarantee';
+            } else {
+                return response()->json(['message' => 'Type de paiement invalide'], 400);
+            }
+
+            if ($amountToPay <= 0) {
                 return response()->json([
-                    'message' => 'Le solde de la réservation est déjà réglé'
+                    'message' => 'Montant de paiement invalide'
                 ], 400);
             }
 
-            $amountToPay = $paymentPurpose === 'deposit'
-                ? min($booking->deposit_amount ?: $remainingBalance, $remainingBalance)
-                : $remainingBalance;
+            // Mettre à jour le booking avec payment_type et deposit_amount
+            $booking->update([
+                'payment_type' => $paymentType,
+                'deposit_amount' => $paymentType === 'guarantee' ? $amountToPay : $amountToPay,
+            ]);
 
             \Log::info('Creating or retrieving payment', [
                 'booking_id' => $booking->id,
-                'user_id' => $request->user()->id,
+                'user_id' => $user ? $user->id : $booking->user_id,
                 'payment_method' => $paymentMethod,
                 'amount' => $amountToPay,
                 'purpose' => $paymentPurpose,
             ]);
 
             $paymentAmount = (int) round($amountToPay);
+            $userId = $user ? $user->id : $booking->user_id;
 
             $payment = Payment::where('booking_id', $booking->id)
-                ->where('user_id', $request->user()->id)
+                ->where('user_id', $userId)
                 ->where('purpose', $paymentPurpose)
                 ->where('status', 'pending')
                 ->first();
@@ -124,7 +167,7 @@ class PaymentController extends Controller
             } else {
                 $payment = Payment::create([
                     'booking_id' => $booking->id,
-                    'user_id' => $request->user()->id,
+                    'user_id' => $userId,
                     'amount' => $paymentAmount,
                     'purpose' => $paymentPurpose,
                     'status' => 'pending',
@@ -178,7 +221,7 @@ class PaymentController extends Controller
             ]);
 
             try {
-                $paymentLink = $this->createPaymentLink($payment, $booking, $request->user(), $paymentMethod);
+                $paymentLink = $this->createPaymentLink($payment, $booking, $user, $paymentMethod);
                 
                 \Log::info('Payment link created successfully', [
                     'payment_id' => $payment->id,
@@ -241,10 +284,15 @@ class PaymentController extends Controller
      */
     private function createPaymentLink($payment, $booking, $user, $paymentMethod)
     {
+        // Si l'utilisateur n'est pas fourni, utiliser l'utilisateur de la réservation
+        if (!$user && $booking->user) {
+            $user = $booking->user;
+        }
+        
         \Log::info('createPaymentLink called', [
             'payment_id' => $payment->id,
             'booking_id' => $booking->id,
-            'user_id' => $user->id,
+            'user_id' => $user ? $user->id : $booking->user_id,
             'payment_method' => $paymentMethod,
         ]);
 
@@ -265,7 +313,7 @@ class PaymentController extends Controller
         ]);
 
         // Séparer le nom complet en prénom et nom
-        $fullName = trim($user->name ?? 'Client');
+        $fullName = trim($user ? ($user->name ?? 'Client') : 'Client');
         $nameParts = explode(' ', $fullName, 2);
         $customerName = $nameParts[0] ?? 'Client'; // Prénom
         $customerSurname = $nameParts[1] ?? $nameParts[0] ?? 'Client'; // Nom (ou prénom si un seul mot)
@@ -291,7 +339,7 @@ class PaymentController extends Controller
         }
 
         // Formater le numéro de téléphone selon la documentation : "225XXXXXXXXX" (sans le +)
-        $phoneNumber = $user->phone ?? '';
+        $phoneNumber = $user ? ($user->phone ?? '') : '';
         // Retirer le + et les espaces si présents
         $phoneNumber = str_replace(['+', ' ', '-'], '', $phoneNumber);
         // S'assurer que ça commence par 225 (code pays Côte d'Ivoire)
@@ -315,7 +363,7 @@ class PaymentController extends Controller
             "customer_name" => $customerName,
             "customer_surname" => $customerSurname,
             "customer_phone_number" => $phoneNumber ?: '22500000000', // Valeur par défaut si vide
-            "customer_email" => $user->email,
+            "customer_email" => $user ? $user->email : ($booking->user ? $booking->user->email : ''),
             "notification_url" => url('/api/payments/webhook'),
             "return_url" => url("/bookings/{$booking->id}?payment=success"),
             "error_url" => url("/bookings/{$booking->id}/payment?error=1"),
@@ -508,11 +556,13 @@ class PaymentController extends Controller
     public function process(Request $request, $paymentId)
     {
         $payment = Payment::with('booking')->findOrFail($paymentId);
+        $user = $request->user();
 
-        // Vérifier que l'utilisateur est le propriétaire
-        if ($payment->user_id !== $request->user()->id) {
+        // Vérifier que l'utilisateur est le propriétaire (si authentifié)
+        if ($user && $payment->user_id !== $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
+        // Si l'utilisateur n'est pas authentifié, permettre l'accès (pour les réservations sans compte)
 
         // Vérifier que le paiement est en attente
         if (!$payment->isPending()) {
@@ -601,8 +651,9 @@ class PaymentController extends Controller
                 $booking = $this->updateBookingPaymentState($payment);
 
                 if ($booking->payment_status === 'paid') {
-                    // Calculer et enregistrer la commission
+                    // Calculer et enregistrer la commission (released_at = null jusqu'au check-in)
                     $this->createCommission($payment);
+                    $this->sendBookingCodeNotification($booking);
                 }
 
                 \Log::info('Webhook malia-pay: Paiement confirmé', [
@@ -666,8 +717,8 @@ class PaymentController extends Controller
             $booking = $this->updateBookingPaymentState($payment);
 
             if ($booking->payment_status === 'paid') {
-                // Calculer et enregistrer la commission
                 $this->createCommission($payment);
+                $this->sendBookingCodeNotification($booking);
             }
 
             return response()->json([
@@ -697,13 +748,18 @@ class PaymentController extends Controller
     public function show(Request $request, $paymentId)
     {
         $payment = Payment::with(['booking.accommodation', 'user'])->findOrFail($paymentId);
+        $user = $request->user();
 
-        // Vérifier les permissions
-        if ($payment->user_id !== $request->user()->id && 
-            $payment->booking->accommodation->host_id !== $request->user()->id &&
-            !$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Forbidden'], 403);
+        // Si l'utilisateur est authentifié, vérifier les permissions
+        if ($user) {
+            if ($payment->user_id !== $user->id && 
+                $payment->booking->accommodation->host_id !== $user->id &&
+                !$user->isAdmin()) {
+                return response()->json(['message' => 'Forbidden'], 403);
+            }
         }
+        // Si l'utilisateur n'est pas authentifié, permettre l'accès (pour les réservations sans compte)
+        // La sécurité est assurée par le fait que seul quelqu'un avec l'ID du paiement peut y accéder
 
         return response()->json($payment);
     }
@@ -721,16 +777,37 @@ class PaymentController extends Controller
             (float) $booking->amount_paid + (float) $payment->amount
         );
 
-        if ($payment->purpose === 'deposit' && !$booking->deposit_paid_at) {
+        if (in_array($payment->purpose, ['deposit', 'guarantee']) && !$booking->deposit_paid_at) {
             $booking->deposit_paid_at = now();
             if ($booking->status === 'pending') {
                 $booking->status = 'confirmed';
+                if (empty($booking->confirmation_code)) {
+                    $booking->confirmation_code = Booking::generateConfirmationCode();
+                }
             }
         }
 
-        if ($booking->amount_paid >= $booking->total_price) {
+        if ($payment->purpose === 'full') {
             $booking->payment_status = 'paid';
             $booking->expires_at = null;
+            if ($booking->status === 'pending') {
+                $booking->status = 'confirmed';
+                if (empty($booking->confirmation_code)) {
+                    $booking->confirmation_code = Booking::generateConfirmationCode();
+                }
+            }
+        } elseif ($payment->purpose === 'guarantee') {
+            $booking->payment_status = 'guarantee_paid';
+            $booking->expires_at = null;
+        } elseif ($booking->amount_paid >= $booking->total_price) {
+            $booking->payment_status = 'paid';
+            $booking->expires_at = null;
+            if ($booking->status === 'pending') {
+                $booking->status = 'confirmed';
+                if (empty($booking->confirmation_code)) {
+                    $booking->confirmation_code = Booking::generateConfirmationCode();
+                }
+            }
         } else {
             $booking->payment_status = 'pending';
         }
@@ -742,43 +819,115 @@ class PaymentController extends Controller
 
     /**
      * Créer une commission pour un paiement
+     * IMPORTANT: Une seule commission par réservation pour éviter les surpaiements
      */
     private function createCommission(Payment $payment)
     {
         $booking = $payment->booking;
         $accommodation = $booking->accommodation;
 
-        // Récupérer le taux de commission depuis les settings (défaut: 10%)
-        $commissionRate = (float) Setting::get('commission_rate', 10.00);
+        // Vérifier qu'une commission n'existe pas déjà pour cette réservation
+        // C'est la clé pour éviter les surpaiements : une seule commission par réservation
+        $existingCommission = Commission::where('booking_id', $booking->id)->first();
+
+        if ($existingCommission) {
+            // Une commission existe déjà pour cette réservation
+            // Mettre à jour avec le dernier paiement et recalculer si nécessaire
+            \Log::info('Commission déjà existante pour cette réservation', [
+                'booking_id' => $booking->id,
+                'existing_commission_id' => $existingCommission->id,
+                'payment_id' => $payment->id,
+            ]);
+
+            // Taux de commission plateforme (borné 8–10 %)
+            $commissionRate = self::getCommissionRateClamped();
+
+            // Recalculer la commission basée sur le montant total de la réservation
+            $bookingAmount = $booking->total_price;
+            $commissionAmount = ($bookingAmount * $commissionRate) / 100;
+            $hostAmount = $bookingAmount - $commissionAmount;
+
+            // Mettre à jour la commission existante avec les nouvelles valeurs
+            // et associer le dernier paiement qui a complété la réservation
+            $existingCommission->update([
+                'payment_id' => $payment->id, // Associer le dernier paiement
+                'booking_amount' => $bookingAmount,
+                'commission_rate' => $commissionRate,
+                'commission_amount' => $commissionAmount,
+                'host_amount' => $hostAmount,
+                // Ne pas changer le statut si déjà payé
+            ]);
+
+            \Log::info('Commission mise à jour pour éviter le doublon', [
+                'commission_id' => $existingCommission->id,
+                'booking_id' => $booking->id,
+                'host_amount' => $hostAmount,
+            ]);
+
+            return $existingCommission;
+        }
+
+        // Aucune commission n'existe pour cette réservation, créer une nouvelle
+        $commissionRate = self::getCommissionRateClamped();
 
         $bookingAmount = $booking->total_price;
         $commissionAmount = ($bookingAmount * $commissionRate) / 100;
         $hostAmount = $bookingAmount - $commissionAmount;
 
-        // Vérifier si une commission existe déjà pour ce paiement
-        $existingCommission = Commission::where('payment_id', $payment->id)->first();
-
-        if ($existingCommission) {
-            // Mettre à jour la commission existante
-            $existingCommission->update([
-                'booking_amount' => $bookingAmount,
-                'commission_rate' => $commissionRate,
-                'commission_amount' => $commissionAmount,
-                'host_amount' => $hostAmount,
-            ]);
-        } else {
-            // Créer une nouvelle commission
-            Commission::create([
+        // Vérifier que le montant total des commissions pour cette réservation ne dépasse pas le montant de la réservation
+        $totalCommissionsForBooking = Commission::where('booking_id', $booking->id)->sum('commission_amount');
+        if ($totalCommissionsForBooking + $commissionAmount > $bookingAmount) {
+            \Log::warning('Tentative de créer une commission qui dépasserait le montant de la réservation', [
                 'booking_id' => $booking->id,
-                'payment_id' => $payment->id,
-                'host_id' => $accommodation->host_id,
                 'booking_amount' => $bookingAmount,
-                'commission_rate' => $commissionRate,
-                'commission_amount' => $commissionAmount,
-                'host_amount' => $hostAmount,
-                'status' => 'pending',
+                'existing_commissions' => $totalCommissionsForBooking,
+                'new_commission' => $commissionAmount,
+                'total_would_be' => $totalCommissionsForBooking + $commissionAmount,
             ]);
+            throw new \RuntimeException('Impossible de créer une commission : le montant total dépasserait le montant de la réservation.');
         }
+
+        $commission = Commission::create([
+            'booking_id' => $booking->id,
+            'payment_id' => $payment->id,
+            'host_id' => $accommodation->host_id,
+            'booking_amount' => $bookingAmount,
+            'commission_rate' => $commissionRate,
+            'commission_amount' => $commissionAmount,
+            'host_amount' => $hostAmount,
+            'status' => 'pending',
+        ]);
+
+        \Log::info('Nouvelle commission créée', [
+            'commission_id' => $commission->id,
+            'booking_id' => $booking->id,
+            'payment_id' => $payment->id,
+            'host_amount' => $hostAmount,
+        ]);
+
+        return $commission;
+    }
+
+    /**
+     * Envoyer au client une notification avec le code de réservation (à présenter au gérant à l'arrivée).
+     */
+    private function sendBookingCodeNotification(Booking $booking): void
+    {
+        if (!$booking->confirmation_code || !$booking->user_id) {
+            return;
+        }
+        $accommodationName = $booking->accommodation?->name ?? 'l\'établissement';
+        Message::create([
+            'recipient_id' => $booking->user_id,
+            'sender_id' => null,
+            'is_from_platform' => true,
+            'subject' => 'Votre code de réservation',
+            'body' => "Votre réservation a été confirmée.\n\n"
+                . "Code à présenter au gérant à votre arrivée : **" . $booking->confirmation_code . "**\n\n"
+                . "Remettez ce code au responsable de " . $accommodationName . " pour marquer le début de votre séjour.\n\n"
+                . "Réservation #" . $booking->id . " – " . $accommodationName,
+            'booking_id' => $booking->id,
+        ]);
     }
 }
 

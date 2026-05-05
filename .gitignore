@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Fichiers temporaires de déploiement
+*.txt
+!README.txt
+
+# Credentials et config sensibles
+deploy.config
+
+# Logs
+*.log

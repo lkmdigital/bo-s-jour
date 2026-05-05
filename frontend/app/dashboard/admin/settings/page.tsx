@@ -55,11 +55,7 @@ export default function AdminSettingsPage() {
     try {
       setLoading(true);
       setError(null);
-      const [commissionRes, adminRes] = await Promise.all([
-        api.get('/revenue/commission-rate'),
-        api.get('/settings/admin'),
-      ]);
-      setCommissionRate(String(commissionRes.data?.commission_rate ?? 10));
+      const adminRes = await api.get('/settings/admin');
       const s = adminRes.data || {};
       setMaintenanceEnabled(!!s.maintenance_enabled);
       setMaintenanceMessage(s.maintenance_message ?? '');
@@ -72,8 +68,15 @@ export default function AdminSettingsPage() {
       setBookingMinNights(String(s.booking_min_nights ?? 1));
       setBookingMaxNights(String(s.booking_max_nights ?? 30));
       setRegistrationHostsEnabled(typeof s.registration_hosts_enabled === 'boolean' ? s.registration_hosts_enabled : true);
+
+      try {
+        const commissionRes = await api.get('/revenue/commission-rate');
+        setCommissionRate(String(commissionRes.data?.commission_rate ?? 10));
+      } catch {
+        setCommissionRate('10');
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur chargement paramètres');
+      setError(err.response?.data?.message || err.message || 'Erreur chargement paramètres');
     } finally {
       setLoading(false);
     }
@@ -81,15 +84,15 @@ export default function AdminSettingsPage() {
 
   const saveCommission = async () => {
     const rate = parseFloat(commissionRate);
-    if (isNaN(rate) || rate < 0 || rate > 100) {
-      alert('Taux entre 0 et 100');
+    if (isNaN(rate) || rate < 8 || rate > 10) {
+      alert('Taux entre 8 et 10');
       return;
     }
     setSaving(true);
     try {
       await api.put('/revenue/commission-rate', { commission_rate: rate });
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur');
+      alert(err.response?.data?.message || err.message || 'Erreur');
     } finally {
       setSaving(false);
     }
@@ -98,6 +101,13 @@ export default function AdminSettingsPage() {
   const saveGeneral = async () => {
     setSavingGeneral(true);
     try {
+      const rate = parseFloat(commissionRate);
+      if (isNaN(rate) || rate < 8 || rate > 10) {
+        alert('Taux de commission entre 8 et 10');
+        setSavingGeneral(false);
+        return;
+      }
+
       const payload: Record<string, any> = {};
 
       // Maintenance: toujours envoyer l'état, message seulement si actif
@@ -118,19 +128,11 @@ export default function AdminSettingsPage() {
       // Notifications regroupées : bool simple
       payload.notifications_grouped = groupNotifications;
 
-      // App / contact : ne pas écraser si vide
-      if (appName.trim()) {
-        payload.app_name = appName.trim();
-      }
-      if (appSupportEmail.trim()) {
-        payload.app_support_email = appSupportEmail.trim();
-      }
-      if (appSupportPhone.trim()) {
-        payload.app_support_phone = appSupportPhone.trim();
-      }
-      if (appCurrency.trim()) {
-        payload.app_currency = appCurrency.trim();
-      }
+      // App / contact : autoriser aussi l'effacement volontaire
+      payload.app_name = appName.trim();
+      payload.app_support_email = appSupportEmail.trim() || null;
+      payload.app_support_phone = appSupportPhone.trim();
+      payload.app_currency = appCurrency.trim() || 'XOF';
 
       // Réservations : n'envoyer que si valeurs valides
       const minN = parseInt(bookingMinNights, 10);
@@ -141,13 +143,21 @@ export default function AdminSettingsPage() {
       if (!Number.isNaN(maxN)) {
         payload.booking_max_nights = maxN;
       }
+      if (!Number.isNaN(minN) && !Number.isNaN(maxN) && minN > maxN) {
+        alert('Nuitées min doit être inférieure ou égale à nuitées max');
+        setSavingGeneral(false);
+        return;
+      }
 
       // Inscription hôtes : bool simple
       payload.registration_hosts_enabled = registrationHostsEnabled;
 
       await api.put('/settings/admin', payload);
+      await api.put('/revenue/commission-rate', { commission_rate: rate });
+      await loadSettings();
+      alert('Paramètres enregistrés avec succès');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur');
+      alert(err.response?.data?.message || err.message || 'Erreur');
     } finally {
       setSavingGeneral(false);
     }
@@ -243,13 +253,14 @@ export default function AdminSettingsPage() {
                 <label className="block text-sm font-medium mb-1">Taux</label>
                 <input
                   type="number"
-                  min={0}
-                  max={100}
+                  min={8}
+                  max={10}
                   step={0.1}
                   value={commissionRate}
                   onChange={(e) => setCommissionRate(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
                 />
+                <p className="text-xs text-gray-500 mt-1">Valeur autorisée : 8 à 10%</p>
               </div>
               <button onClick={saveCommission} disabled={saving} className="btn-primary">
                 {saving ? '…' : 'Enregistrer'}

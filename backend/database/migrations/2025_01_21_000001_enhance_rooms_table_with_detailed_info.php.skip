@@ -1,0 +1,139 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('rooms', function (Blueprint $table) {
+            // Type principal et sous-type
+            $table->string('room_category')->after('type')->nullable()->comment('single, double, twin, triple, pmr, suite, other');
+            $table->string('room_subcategory')->nullable()->comment('standard, confort, superieure, deluxe, premium, junior, familiale');
+            
+            // Literie
+            $table->json('bedding')->nullable()->comment('Configuration des lits');
+            $table->string('bedding_custom')->nullable()->comment('Literie personnalisée');
+            
+            // Dimensions
+            $table->decimal('surface_area', 6, 2)->nullable()->comment('Superficie en m²');
+            
+            // Salle de bain
+            $table->json('bathroom_features')->nullable()->comment('shower, bathtub, jacuzzi, double_sink, pmr_adapted');
+            $table->boolean('has_guest_toilet')->default(false)->comment('Toilettes visiteurs séparées');
+            $table->boolean('has_additional_bathroom')->default(false)->comment('Salle de bain supplémentaire');
+            
+            // Équipements de base
+            $table->json('basic_amenities')->nullable()->comment('TV, climatisation, wifi, bureau, etc.');
+            
+            // Vue
+            $table->string('view_type')->nullable()->comment('garden, sea, mountain, pool, city, parking');
+            $table->integer('view_price_modifier')->default(0)->comment('Modificateur de prix en %');
+            
+            // Extérieur
+            $table->json('outdoor_features')->nullable()->comment('balcony, terrace');
+            $table->decimal('outdoor_area', 6, 2)->nullable()->comment('Superficie extérieure en m²');
+            
+            // Rangements
+            $table->json('storage_options')->nullable()->comment('dressing, wardrobe');
+            
+            // Espaces supplémentaires (suites)
+            $table->boolean('has_living_room')->default(false)->comment('Espace salon');
+            $table->json('living_room_features')->nullable()->comment('Détails du salon');
+            $table->boolean('has_kitchen')->default(false)->comment('Cuisine/Kitchenette');
+            $table->string('kitchen_type')->nullable()->comment('full, kitchenette, corner');
+            $table->json('kitchen_equipment')->nullable()->comment('Équipements de cuisine');
+            $table->boolean('has_dining_area')->default(false)->comment('Coin salle à manger');
+            $table->integer('dining_capacity')->nullable()->comment('Nombre de places à table');
+            
+            // Pour suites familiales
+            $table->integer('additional_bedrooms')->default(0)->comment('Chambres supplémentaires');
+            $table->json('additional_bedrooms_config')->nullable()->comment('Configuration des chambres supplémentaires');
+            
+            // Commodités premium
+            $table->json('premium_amenities')->nullable()->comment('Mini-bar, coffre-fort, plateau courtoisie, etc.');
+            
+            // Options payantes
+            $table->json('paid_options')->nullable()->comment('Options avec supplément (prix, description)');
+            
+            // Piscine privée (villas/suites)
+            $table->boolean('has_private_pool')->default(false);
+            $table->boolean('pool_heated')->default(false)->nullable();
+            
+            // Parking/Garage
+            $table->boolean('has_parking')->default(false);
+            $table->string('parking_type')->nullable()->comment('garage, private, shared');
+            $table->decimal('parking_price', 10, 2)->nullable()->comment('Prix parking/nuit');
+            
+            // Accessibilité
+            $table->boolean('is_pmr_accessible')->default(false)->comment('Accessible PMR');
+            $table->json('pmr_features')->nullable()->comment('Caractéristiques PMR');
+            
+            // Tarification avancée
+            $table->decimal('single_occupancy_price', 10, 2)->nullable()->comment('Tarif 1 personne');
+            $table->decimal('extra_bed_price', 10, 2)->nullable()->comment('Supplément lit d\'appoint');
+            $table->integer('max_extra_beds')->default(0)->comment('Nombre max lits d\'appoint');
+            
+            // Tags dynamiques
+            $table->json('custom_tags')->nullable()->comment('Tags personnalisés');
+            
+            // Langues
+            $table->text('description_en')->nullable()->after('description');
+            $table->string('name_en')->nullable()->after('name');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('rooms', function (Blueprint $table) {
+            $table->dropColumn([
+                'room_category',
+                'room_subcategory',
+                'bedding',
+                'bedding_custom',
+                'surface_area',
+                'bathroom_features',
+                'has_guest_toilet',
+                'has_additional_bathroom',
+                'basic_amenities',
+                'view_type',
+                'view_price_modifier',
+                'outdoor_features',
+                'outdoor_area',
+                'storage_options',
+                'has_living_room',
+                'living_room_features',
+                'has_kitchen',
+                'kitchen_type',
+                'kitchen_equipment',
+                'has_dining_area',
+                'dining_capacity',
+                'additional_bedrooms',
+                'additional_bedrooms_config',
+                'premium_amenities',
+                'paid_options',
+                'has_private_pool',
+                'pool_heated',
+                'has_parking',
+                'parking_type',
+                'parking_price',
+                'is_pmr_accessible',
+                'pmr_features',
+                'single_occupancy_price',
+                'extra_bed_price',
+                'max_extra_beds',
+                'custom_tags',
+                'description_en',
+                'name_en',
+            ]);
+        });
+    }
+};
