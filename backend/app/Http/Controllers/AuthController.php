@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\TwoFactorService;
 use App\Services\OneSignalService;
+use App\Mail\OtpMail;
+use App\Mail\PasswordResetMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -256,8 +259,7 @@ class AuthController extends Controller
         ]);
 
         try {
-            $oneSignal = app(OneSignalService::class);
-            $oneSignal->sendOtpEmail($user->email, $otp, $user->name);
+            Mail::to($user->email)->send(new OtpMail($user->name, $otp));
         } catch (\Throwable $e) {
             Log::error('OTP email send failed: ' . $e->getMessage(), ['user_id' => $user->id]);
         }
@@ -427,8 +429,7 @@ class AuthController extends Controller
         ]);
 
         try {
-            $oneSignal = app(OneSignalService::class);
-            $oneSignal->sendOtpEmail($user->email, $otp, $user->name);
+            Mail::to($user->email)->send(new OtpMail($user->name, $otp));
         } catch (\Throwable $e) {
             Log::error('OTP email send failed: ' . $e->getMessage(), ['user_id' => $user->id]);
         }
@@ -519,8 +520,7 @@ class AuthController extends Controller
         $resetUrl = 'https://bosejour.ci/auth/reset-password?token=' . urlencode($token) . '&email=' . urlencode($user->email);
 
         try {
-            $oneSignal = app(OneSignalService::class);
-            $oneSignal->sendPasswordResetEmail($user->email, $user->name, $resetUrl);
+            Mail::to($user->email)->send(new PasswordResetMail($user->name, $resetUrl));
         } catch (\Throwable $e) {
             Log::error('Password reset email failed: ' . $e->getMessage(), ['email' => $user->email]);
         }
