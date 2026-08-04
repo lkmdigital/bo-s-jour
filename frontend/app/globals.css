@@ -1,16 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Charte graphique bo séjour 2025 — polices chargées via next/font (layout.tsx) */
 :root {
-  --primary: #007A3D;
-  --accent: #FFD700;
-  --font-logo: 'IBM Plex Sans Condensed', sans-serif;
-  --font-dm-sans: var(--font-dm-sans);
-  --font-slogan: 'Brush Script MT', 'Brush Script Std', cursive;
+  --primary: #FF0000;   /* rouge principal — CTA */
+  --accent: #000000;    /* noir — textes/titres */
+  --bosejour-red: #FF0000;
+  --bosejour-black: #000000;
+  --bosejour-beige: #F7E8C6;
+  --bosejour-gray-green: #4B5F5A;
+  --bosejour-rose: #EE233C;
+  /* Les variables --font-baloo / --font-dm-sans / --font-dancing sont
+     injectées par next/font sur <body> (voir layout.tsx). */
 }
 
 body {
@@ -33,44 +35,40 @@ body {
 }
 
 @layer components {
+  /* Boutons pilule — charte bo séjour (rouge plein / contour rouge) */
   .btn-primary {
-    @apply bg-primary hover:bg-primary-dark text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300;
+    @apply bg-primary hover:bg-primary-dark text-white font-semibold py-2.5 px-6 rounded-full transition-all duration-300;
     @apply hover:scale-105 active:scale-95 hover:shadow-lg;
   }
 
   .btn-secondary {
-    @apply bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-semibold py-2 px-4 rounded-lg transition-all duration-300;
+    @apply bg-black hover:bg-gray-800 text-white font-semibold py-2.5 px-6 rounded-full transition-all duration-300;
+    @apply hover:scale-105 active:scale-95 hover:shadow-md;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary text-primary hover:bg-primary hover:text-white font-semibold py-2.5 px-6 rounded-full transition-all duration-300;
     @apply hover:scale-105 active:scale-95 hover:shadow-md;
   }
 
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6;
+    @apply bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6;
     @apply transition-all duration-300 hover:shadow-xl;
-  }
-
-  .btn-outline {
-    @apply border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold py-2 px-4 rounded-lg transition-all duration-300;
-    @apply hover:scale-105 active:scale-95 hover:shadow-md;
   }
 
   .no-print {
     @apply print:hidden;
   }
 
-  .logo-text {
-    font-family: var(--font-logo);
-    font-weight: 700;
-  }
-
+  /* Typographies de marque */
+  .logo-text,
   .font-logo {
-    font-family: 'IBM Plex Sans Condensed', sans-serif;
+    font-family: var(--font-baloo), 'Baloo 2', system-ui, sans-serif;
     font-weight: 700;
-    font-stretch: semi-condensed;
   }
 
   .font-slogan {
-    font-family: var(--font-slogan);
-    font-style: italic;
+    font-family: var(--font-dancing), 'Dancing Script', cursive;
   }
 }
 
@@ -88,6 +86,18 @@ body {
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+/* Défilement continu droite -> gauche (marquee) */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 32s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
 }
 
 /* Smooth scroll behavior */

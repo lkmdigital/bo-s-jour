@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import { useAuthStore } from '@/stores/authStore';
@@ -118,7 +117,6 @@ export default function HostAnalyticsPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -133,7 +131,6 @@ export default function HostAnalyticsPage() {
   if (error) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <ErrorDisplay error={error} onDismiss={() => setError(null)} />
         </div>
@@ -144,7 +141,6 @@ export default function HostAnalyticsPage() {
   if (!analytics) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <p className="text-center text-gray-600 dark:text-gray-400">Aucune donnée analytique disponible.</p>
         </div>
@@ -154,7 +150,6 @@ export default function HostAnalyticsPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>

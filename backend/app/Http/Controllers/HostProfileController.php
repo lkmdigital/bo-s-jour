@@ -85,10 +85,7 @@ class HostProfileController extends Controller
         foreach ($fields as $field) {
             if ($request->has($field)) {
                 $value = $request->input($field);
-                // Ne pas mettre à jour si la valeur est vide string (sauf pour les champs optionnels)
-                if ($value !== '' || in_array($field, ['address_line2', 'postal_code'])) {
-                    $updateData[$field] = $value === '' ? null : $value;
-                }
+                $updateData[$field] = $value === '' ? null : $value;
             }
         }
         

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useConfirm } from '@/components/common/ConfirmContext';
+import { useToast } from '@/components/common/ToastContext';
 import { formatPrice } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -33,6 +34,7 @@ export default function SubscriptionManager({ accommodationId }: SubscriptionMan
   const [duration, setDuration] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const confirmAction = useConfirm();
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     fetchSubscriptions();
@@ -65,7 +67,7 @@ export default function SubscriptionManager({ accommodationId }: SubscriptionMan
       await fetchSubscriptions();
       setShowForm(false);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors de l\'abonnement');
+      showError(err.response?.data?.message || 'Erreur lors de l\'abonnement');
     } finally {
       setSubmitting(false);
     }
@@ -85,7 +87,7 @@ export default function SubscriptionManager({ accommodationId }: SubscriptionMan
       await api.post(`/subscriptions/${id}/cancel`);
       await fetchSubscriptions();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors de l\'annulation');
+      showError(err.response?.data?.message || 'Erreur lors de l\'annulation');
     }
   };
 

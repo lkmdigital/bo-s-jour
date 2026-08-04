@@ -56,7 +56,15 @@ return [
         'api_url'      => env('ONESIGNAL_API_URL', 'https://onesignal.com/api/v1/notifications'),
         'email_enabled'    => env('ONESIGNAL_EMAIL_ENABLED', false),
         'from_email'   => env('ONESIGNAL_FROM_EMAIL', 'contact@bosejour.ci'),
-        'from_name'    => env('ONESIGNAL_FROM_NAME', 'BosEjour'),
+        'from_name'    => env('ONESIGNAL_FROM_NAME', 'Bosejour'),
+    ],
+
+    'smsto' => [
+        'enabled'              => env('SMSTO_ENABLED', false),
+        'api_key'              => env('SMSTO_API_KEY', ''),
+        'api_url'              => env('SMSTO_API_URL', 'https://api.sms.to/sms/send'),
+        'sender_id'            => env('SMSTO_SENDER_ID', 'Bosejour'),
+        'default_country_code' => env('SMSTO_DEFAULT_COUNTRY_CODE', '225'),
     ],
 
 ];

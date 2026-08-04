@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\TwoFactorService;
 use App\Services\OneSignalService;
+use App\Services\SmsService;
 use App\Mail\OtpMail;
 use App\Mail\PasswordResetMail;
 use Illuminate\Http\Request;
@@ -258,16 +259,32 @@ class AuthController extends Controller
             'email_otp_expires_at' => now()->addMinutes(10),
         ]);
 
+        $emailSent = true;
         try {
             Mail::to($user->email)->send(new OtpMail($user->name, $otp));
         } catch (\Throwable $e) {
+            $emailSent = false;
             Log::error('OTP email send failed: ' . $e->getMessage(), ['user_id' => $user->id]);
+        }
+
+        // Envoyer aussi le code par SMS (best-effort, en plus de l'email)
+        $smsSent = false;
+        if (!empty($user->phone)) {
+            $smsSent = app(SmsService::class)->sendOtp($user->phone, $otp);
+        }
+
+        if (!$emailSent && !$smsSent) {
+            // Effacer l'OTP si aucun canal n'a pu envoyer le code
+            $user->update(['email_otp_code' => null, 'email_otp_expires_at' => null]);
+            return response()->json([
+                'message' => 'Impossible d\'envoyer le code. Veuillez réessayer dans quelques instants.',
+            ], 503);
         }
 
         return response()->json([
             'requires_email_otp' => true,
             'user_id'            => $user->id,
-            'message'            => 'Un code de vérification a été envoyé à votre adresse email.',
+            'message'            => 'Un code de vérification a été envoyé par email' . ($smsSent ? ' et par SMS' : '') . '.',
         ], 200);
     }
 
@@ -428,10 +445,23 @@ class AuthController extends Controller
             'email_otp_expires_at' => now()->addMinutes(10),
         ]);
 
+        $emailSent = true;
         try {
             Mail::to($user->email)->send(new OtpMail($user->name, $otp));
         } catch (\Throwable $e) {
+            $emailSent = false;
             Log::error('OTP email send failed: ' . $e->getMessage(), ['user_id' => $user->id]);
+        }
+
+        // Envoyer aussi le code par SMS (best-effort, en plus de l'email)
+        $smsSent = false;
+        if (!empty($user->phone)) {
+            $smsSent = app(SmsService::class)->sendOtp($user->phone, $otp);
+        }
+
+        if (!$emailSent && !$smsSent) {
+            $user->update(['email_otp_code' => null, 'email_otp_expires_at' => null]);
+            return response()->json(['message' => 'Impossible d\'envoyer le code. Veuillez réessayer.'], 503);
         }
 
         return response()->json(['message' => 'Code OTP envoyé.'], 200);
@@ -449,14 +479,23 @@ class AuthController extends Controller
 
         $user = User::findOrFail($request->user_id);
 
-        if (
-            $user->email_otp_code === null ||
-            $user->email_otp_expires_at === null ||
-            $user->email_otp_expires_at->isPast() ||
-            $user->email_otp_code !== $request->code
-        ) {
+        $submittedCode = trim($request->code);
+
+        if ($user->email_otp_code === null || $user->email_otp_expires_at === null) {
             throw ValidationException::withMessages([
-                'code' => ['Le code est invalide ou a expiré.'],
+                'code' => ['Aucun code en attente. Veuillez vous reconnecter pour en recevoir un nouveau.'],
+            ]);
+        }
+
+        if ($user->email_otp_expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'code' => ['Ce code a expiré. Veuillez vous reconnecter pour en recevoir un nouveau.'],
+            ]);
+        }
+
+        if ($user->email_otp_code !== $submittedCode) {
+            throw ValidationException::withMessages([
+                'code' => ['Code incorrect. Vérifiez votre email et réessayez.'],
             ]);
         }
 

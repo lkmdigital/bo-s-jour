@@ -20,7 +20,7 @@ class StoreBookingRequest extends FormRequest
             'check_in' => [
                 'required',
                 'date',
-                'after:today',
+                'after_or_equal:today',
             ],
             'check_out' => [
                 'required',
@@ -45,6 +45,7 @@ class StoreBookingRequest extends FormRequest
             'room_id.exists' => 'La chambre sélectionnée n\'existe pas.',
             'check_in.required' => 'La date d\'arrivée est requise.',
             'check_in.after' => 'La date d\'arrivée doit être dans le futur.',
+            'check_in.after_or_equal' => 'La date d\'arrivée doit être aujourd\'hui ou dans le futur.',
             'check_out.required' => 'La date de départ est requise.',
             'check_out.after' => 'La date de départ doit être après la date d\'arrivée.',
             'guests.required' => 'Le nombre de voyageurs est requis.',

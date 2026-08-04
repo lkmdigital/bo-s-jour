@@ -159,6 +159,13 @@ class RoomAvailabilityController extends Controller
             ->get()
             ->keyBy('date');
 
+        // Prix effectif par date : price_override > période tarifaire > tarif de base
+        $nightlyPrices = \App\Services\RoomPricingService::getNightlyBasePrices(
+            $room,
+            $startDate,
+            Carbon::parse($endDate)->addDay()->format('Y-m-d')
+        );
+
         // Generate calendar structure
         $calendar = [];
         $current = Carbon::parse($startDate);
@@ -171,6 +178,7 @@ class RoomAvailabilityController extends Controller
                 'date' => $dateStr,
                 'status' => $availability?->status ?? 'available',
                 'price_override' => $availability?->price_override,
+                'price' => $nightlyPrices[$dateStr] ?? (float) $room->price_per_night,
             ];
             $current->addDay();
         }

@@ -24,6 +24,9 @@ import {
   Settings,
   Inbox,
   MessageSquare,
+  Search,
+  Globe,
+  Headphones,
 } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -273,19 +276,13 @@ export default function Header() {
     // Menu public (non connecté)
     return (
       <>
-        <Link 
-          href="/" 
-          className={`hover:text-primary transition-colors inline-flex items-center gap-1.5 ${pathname === '/' ? 'text-primary font-semibold' : ''}`}
-        >
-          <Home className="w-4 h-4" />
-          Accueil
-        </Link>
-        <Link 
-          href="/accommodations" 
+        <Link
+          href="/accommodations"
           className={`hover:text-primary transition-colors inline-flex items-center gap-1.5 ${pathname?.startsWith('/accommodations') ? 'text-primary font-semibold' : ''}`}
         >
-          <Building2 className="w-4 h-4" />
-          Hébergements
+          <Search className="w-4 h-4" />
+          
+          Reservation
         </Link>
       </>
     );
@@ -370,16 +367,16 @@ export default function Header() {
     if (isAuthenticated && user && user.role === 'user') {
       return (
         <>
-          <Link href="/" onClick={closeMobileMenu} className={linkClass(isHomePage)}>
+          <Link href="/" onClick={closeMobileMenu} className={linkClass(false)}>
             <Home className="w-4 h-4" /> Accueil
           </Link>
-          <Link href="/accommodations" onClick={closeMobileMenu} className={linkClass(isHomePage)}>
+          <Link href="/accommodations" onClick={closeMobileMenu} className={linkClass(false)}>
             <Building2 className="w-4 h-4" /> Hébergements
           </Link>
-          <Link href="/bookings" onClick={closeMobileMenu} className={linkClass(isHomePage)}>
+          <Link href="/bookings" onClick={closeMobileMenu} className={linkClass(false)}>
             <CalendarCheck className="w-4 h-4" /> Réservations
           </Link>
-          <Link href="/dashboard" onClick={closeMobileMenu} className={linkClass(isHomePage)}>
+          <Link href="/dashboard" onClick={closeMobileMenu} className={linkClass(false)}>
             <LayoutDashboard className="w-4 h-4" /> Tableau de bord
           </Link>
         </>
@@ -389,165 +386,108 @@ export default function Header() {
     // Menu public (non connecté)
     return (
       <>
-        <Link href="/" onClick={closeMobileMenu} className={linkClass(isHomePage)}>
-          <Home className="w-4 h-4" /> Accueil
-        </Link>
-        <Link href="/accommodations" onClick={closeMobileMenu} className={linkClass(isHomePage)}>
-          <Building2 className="w-4 h-4" /> Hébergements
+        <Link href="/accommodations" onClick={closeMobileMenu} className={linkClass(false)}>
+          <Search className="w-4 h-4" /> Explorer
         </Link>
       </>
     );
   };
 
-  const isHomePage = pathname === '/';
-  
+  // Un menu de navigation par rôle n'est affiché que pour les utilisateurs connectés
+  // (admin/host/user). Le public voit un header épuré façon maquette.
+  const showRoleMenu = isAuthenticated;
+
   return (
-    <motion.header 
-      className={`${
-        isHomePage 
-          ? 'bg-transparent text-white shadow-none' 
-          : 'bg-white dark:bg-gray-800 shadow-md'
-      } fixed top-0 left-0 right-0 z-50 transition-all duration-300`}
+    <motion.header
+      className="bg-white dark:bg-gray-900 shadow-md fixed top-0 left-0 right-0 z-50 transition-all duration-300"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
-      <nav className="container mx-auto px-4 py-4">
+      <nav className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            transition={{ duration: 0.2 }}
-            className={isHomePage ? 'brightness-0 invert' : ''}
-          >
-            <Logo 
-              href={
-                isAdminPage ? '/dashboard/admin' : 
-                (user?.role === 'host' ? '/dashboard/host' : '/')
-              }
+          <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }}>
+            <Logo
+              href={isAdminPage ? '/dashboard/admin' : user?.role === 'host' ? '/dashboard/host' : '/'}
               size="md"
             />
           </motion.div>
 
           <div className="hidden md:flex items-center space-x-6">
-            {/* Menu selon le rôle (sauf pour les contrôleurs) */}
-            {!isControllerUser && (
-              <motion.div 
-                className={`flex items-center space-x-6 ${
-                  isHomePage ? 'text-white' : ''
-                }`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                {getMenuForRole(isHomePage)}
-              </motion.div>
+            {/* Seuls les membres (voyageurs) ont la navigation publique. */}
+            {isAuthenticated && user?.role === 'user' && (
+              <div className="flex items-center space-x-6">{getMenuForRole(false)}</div>
             )}
 
-            <motion.button
-              onClick={toggleTheme}
-              className={`p-2 rounded-lg ${
-                isHomePage 
-                  ? 'hover:bg-white/20 text-white' 
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-              aria-label="Changer le thème"
-              whileHover={{ scale: 1.1, rotate: 15 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {theme === 'dark' ? (
-                <Sun className="w-5 h-5" />
-              ) : (
-                <Moon className={`w-5 h-5 ${isHomePage ? 'text-white' : ''}`} />
-              )}
-            </motion.button>
-
             {isAuthenticated ? (
-              <motion.div 
-                className={`flex items-center space-x-4 ${isHomePage ? 'text-white' : ''}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <span className="text-sm">{user?.name}</span>
-                <motion.button
-                  onClick={handleLogout}
-                  className={`${
-                    isHomePage 
-                      ? 'bg-white/20 hover:bg-white/30 text-white border-white/30' 
-                      : 'btn-secondary'
-                  } text-sm px-4 py-2 rounded-lg transition-colors`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Déconnexion
-                </motion.button>
-              </motion.div>
+              <div className="flex items-center space-x-3">
+                <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Changer le thème">
+                  {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                </button>
+                {/* Le personnel (admin/host) accède à son espace via un bouton dédié — jamais la nav complète en public */}
+                {isAdmin(user) && (
+                  <Link href="/dashboard/admin" className="btn-secondary text-sm inline-flex items-center gap-1.5">
+                    <LayoutDashboard className="w-4 h-4" /> Tableau de bord
+                  </Link>
+                )}
+                {user?.role === 'host' && (
+                  <Link href="/dashboard/host" className="btn-secondary text-sm inline-flex items-center gap-1.5">
+                    <LayoutDashboard className="w-4 h-4" /> Espace partenaire
+                  </Link>
+                )}
+                <span className="text-sm font-medium hidden lg:inline">{user?.name}</span>
+                <button onClick={handleLogout} className="text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">Déconnexion</button>
+              </div>
             ) : (
-              <motion.div 
-                className="flex items-center space-x-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Link 
-                    href="/auth/login" 
-                    className={`${
-                      isHomePage 
-                        ? 'bg-white/20 hover:bg-white/30 text-white border-white/30' 
-                        : 'btn-secondary'
-                    } text-sm inline-flex items-center gap-1.5 px-4 py-2 rounded-lg transition-colors`}
-                  >
-                    <LogIn className="w-4 h-4" />
-                    Accéder à mon espace
-                  </Link>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Link 
-                    href="/auth/register" 
-                    className={`${
-                      isHomePage 
-                        ? 'bg-orange-500 hover:bg-orange-600 text-white' 
-                        : 'btn-primary'
-                    } text-sm inline-flex items-center gap-1.5 px-4 py-2 rounded-lg transition-colors`}
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    Créer mon espace
-                  </Link>
-                </motion.div>
-              </motion.div>
+              <div className="flex items-center gap-3">
+                {/* Langue */}
+                <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary" aria-label="Changer la langue">
+                  <Globe className="w-5 h-5" />
+                </button>
+                {/* Support */}
+                <a
+                  href="https://wa.me/2250705654775?text=Bonjour%2C%20j%27ai%20besoin%20d%27assistance."
+                  target="_blank" rel="noopener noreferrer"
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
+                  aria-label="Assistance"
+                >
+                  <Headphones className="w-5 h-5" />
+                </a>
+                {/* Connexion */}
+                <Link href="/auth/login" className="btn-primary text-sm inline-flex items-center gap-1.5">
+                  <LogIn className="w-4 h-4" />
+                  Connexion
+                </Link>
+              </div>
             )}
           </div>
 
-          {/* Actions mobiles (thème + déconnexion) - visibles uniquement sur mobile */}
+          {/* Actions mobiles */}
           <div className="flex md:hidden items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className={`p-2 rounded-lg ${
-                isHomePage 
-                  ? 'hover:bg-white/20 text-white' 
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-              aria-label="Changer le thème"
-            >
-              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className={`w-5 h-5 ${isHomePage ? 'text-white' : ''}`} />}
-            </button>
-            {isAuthenticated && (
-              <button
-                onClick={handleLogout}
-                className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
-                  isHomePage 
-                    ? 'bg-white/20 hover:bg-white/30 text-white' 
-                    : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                Déconnexion
-              </button>
+            {isAuthenticated ? (
+              <>
+                {isAdmin(user) && (
+                  <Link href="/dashboard/admin" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-primary" aria-label="Tableau de bord">
+                    <LayoutDashboard className="w-5 h-5" />
+                  </Link>
+                )}
+                {user?.role === 'host' && (
+                  <Link href="/dashboard/host" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-primary" aria-label="Espace partenaire">
+                    <LayoutDashboard className="w-5 h-5" />
+                  </Link>
+                )}
+                <button onClick={handleLogout} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+                  Déconnexion
+                </button>
+              </>
+            ) : (
+              <Link href="/auth/login" className="btn-primary text-sm inline-flex items-center gap-1.5">
+                <LogIn className="w-4 h-4" />
+                Connexion
+              </Link>
             )}
           </div>
         </div>
-
-        {/* Menu mobile supprimé - remplacé par MobileBottomBar */}
       </nav>
     </motion.header>
   );

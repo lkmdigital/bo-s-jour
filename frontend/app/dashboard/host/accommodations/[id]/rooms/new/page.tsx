@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
 import api from '@/lib/api';
 import Link from 'next/link';
@@ -174,7 +173,6 @@ export default function NewRoomPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <Link

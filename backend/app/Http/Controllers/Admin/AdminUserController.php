@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PasswordResetMail;
 use App\Models\User;
 use App\Models\UserActivityLog;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -218,6 +222,85 @@ class AdminUserController extends Controller
         ]);
 
         return response()->json(['message' => 'Utilisateur débloqué avec succès', 'data' => $user]);
+    }
+
+    /**
+     * Supprimer définitivement un utilisateur.
+     * Refusé si l'utilisateur a des réservations ou (en tant qu'hôte) des établissements,
+     * car la suppression est en cascade au niveau base de données (bookings, accommodations
+     * et tout ce qui en dépend seraient irrémédiablement perdus).
+     */
+    public function destroy(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $this->authorize('delete', $user);
+
+        $bookingsCount = $user->bookings()->count();
+        $accommodationsCount = $user->accommodations()->count();
+
+        if ($bookingsCount > 0 || $accommodationsCount > 0) {
+            return response()->json([
+                'message' => "Impossible de supprimer cet utilisateur : il a {$bookingsCount} réservation(s) et {$accommodationsCount} établissement(s) lié(s). Bloquez le compte à la place, ou retirez/transférez d'abord ces éléments.",
+            ], 422);
+        }
+
+        $name = $user->name;
+        $email = $user->email;
+
+        UserActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'user.deleted',
+            'model_type' => User::class,
+            'model_id' => $user->id,
+            'description' => "Suppression définitive de l'utilisateur {$name} ({$email})",
+            'ip_address' => $request->ip(),
+        ]);
+
+        $user->delete();
+
+        return response()->json(['message' => 'Utilisateur supprimé définitivement']);
+    }
+
+    /**
+     * Déclencher la réinitialisation du mot de passe d'un utilisateur (envoi d'un lien par email),
+     * réutilisant le même mécanisme que le flux "mot de passe oublié" en self-service.
+     */
+    public function resetPassword(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $this->authorize('update', $user);
+
+        $token = Str::random(64);
+
+        DB::table('password_reset_tokens')->upsert(
+            [
+                'email' => $user->email,
+                'token' => Hash::make($token),
+                'created_at' => now(),
+            ],
+            ['email'],
+            ['token', 'created_at']
+        );
+
+        $resetUrl = 'https://bosejour.ci/auth/reset-password?token=' . urlencode($token) . '&email=' . urlencode($user->email);
+
+        try {
+            Mail::to($user->email)->send(new PasswordResetMail($user->name, $resetUrl));
+        } catch (\Throwable $e) {
+            Log::error('Admin password reset email failed: ' . $e->getMessage(), ['email' => $user->email]);
+            return response()->json(['message' => "Le lien a été généré mais l'envoi de l'email a échoué."], 500);
+        }
+
+        UserActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'user.password_reset_sent',
+            'model_type' => User::class,
+            'model_id' => $user->id,
+            'description' => "Lien de réinitialisation de mot de passe envoyé à {$user->name}",
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['message' => 'Un lien de réinitialisation a été envoyé à ' . $user->email]);
     }
 
     /**

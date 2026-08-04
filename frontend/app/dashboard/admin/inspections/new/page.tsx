@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { isAdminOrController } from '@/lib/userUtils';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { ArrowLeft, FileCheck, CheckCircle, Building2 } from 'lucide-react';
 import Link from 'next/link';
@@ -91,7 +90,6 @@ export default function NewInspectionPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -105,7 +103,6 @@ export default function NewInspectionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6 flex items-center gap-4">
           <Link

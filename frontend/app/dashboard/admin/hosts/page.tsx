@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { isController, isAdmin } from '@/lib/userUtils';
+import { useToast } from '@/components/common/ToastContext';
+import { useValidation } from '@/components/common/ValidationContext';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Pagination from '@/components/common/Pagination';
 import {
@@ -22,6 +23,13 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+interface ComplianceRequirement {
+  key: string;
+  label: string;
+  ok?: boolean;
+  info?: string;
+}
+
 interface Host {
   id: number;
   name: string;
@@ -31,6 +39,7 @@ interface Host {
   profile_verified: boolean;
   profile_verified_at?: string;
   compliance_status?: 'conforme' | 'non_conforme';
+  compliance_requirements?: ComplianceRequirement[];
   status: 'active' | 'inactive' | 'blocked' | 'suspended';
   created_at: string;
   host_validation_history?: Array<{
@@ -67,6 +76,8 @@ export default function AdminHostsPage() {
   }>({ type: null, hostId: null });
   const [actionComment, setActionComment] = useState('');
   const [actionInternalNotes, setActionInternalNotes] = useState('');
+  const { showError, showWarning, showSuccess } = useToast();
+  const showValidation = useValidation();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
@@ -118,13 +129,67 @@ export default function AdminHostsPage() {
 
   const handleAction = async (type: 'validate' | 'reject' | 'suspend', hostId: number) => {
     if (type === 'reject' && !actionComment.trim()) {
-      alert('Veuillez indiquer un motif de rejet');
+      showWarning('Veuillez indiquer un motif de rejet');
       return;
     }
 
+    const host = hosts.find(h => h.id === hostId);
+
+    // Si validation et hôte non conforme, afficher un avertissement mais permettre la validation
+    if (type === 'validate' && host?.compliance_status === 'non_conforme') {
+      showValidation({
+        title: 'Valider un profil non conforme',
+        message: 'Cet hôte est validé mais son profil reste non conforme. Ses établissements afficheront la mention "Profil non conforme". L\'hôte est invité à compléter ses documents manquants.',
+        requirements: host?.compliance_requirements || [],
+        complianceStatus: 'non_conforme',
+        variant: 'warning',
+        actionLabel: 'Valider quand même',
+        cancelLabel: 'Annuler',
+        onAction: () => executeValidation(hostId),
+      });
+      return;
+    }
+
+    // Si validation normale (conforme), exécuter directement
+    if (type === 'validate') {
+      executeValidation(hostId);
+      return;
+    }
+
+    // Pour les autres actions (reject, suspend)
+    executeAction(type, hostId);
+  };
+
+  const executeValidation = async (hostId: number) => {
     try {
       setActionLoading(hostId);
-      const endpoint = type === 'validate' ? 'validate' : type === 'reject' ? 'reject' : 'suspend';
+      const response = await api.post(`/admin/hosts/${hostId}/validate`, {
+        comment: actionComment || undefined,
+        internal_notes: actionInternalNotes || undefined,
+      });
+      setShowActionModal({ type: null, hostId: null });
+      setActionComment('');
+      setActionInternalNotes('');
+
+      // Afficher un message approprié selon le statut de conformité
+      if (response.data.compliance_status === 'non_conforme') {
+        showWarning('Hôte validé mais profil non conforme - documents manquants');
+      } else {
+        showSuccess('Hôte validé avec succès');
+      }
+
+      fetchHosts();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Erreur lors de la validation');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const executeAction = async (type: 'reject' | 'suspend', hostId: number) => {
+    try {
+      setActionLoading(hostId);
+      const endpoint = type === 'reject' ? 'reject' : 'suspend';
       await api.post(`/admin/hosts/${hostId}/${endpoint}`, {
         comment: actionComment || undefined,
         internal_notes: actionInternalNotes || undefined,
@@ -133,8 +198,9 @@ export default function AdminHostsPage() {
       setActionComment('');
       setActionInternalNotes('');
       fetchHosts();
+      showSuccess(type === 'reject' ? 'Hôte rejeté' : 'Hôte suspendu');
     } catch (err: any) {
-      alert(err.response?.data?.message || `Erreur lors de l'action ${type}`);
+      showError(err.response?.data?.message || `Erreur lors de l'action ${type}`);
     } finally {
       setActionLoading(null);
     }
@@ -169,7 +235,6 @@ export default function AdminHostsPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -183,7 +248,6 @@ export default function AdminHostsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <div>

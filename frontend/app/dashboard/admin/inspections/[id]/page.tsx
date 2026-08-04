@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
+import { useToast } from '@/components/common/ToastContext';
 import { isAdminOrController, isAdmin, isController } from '@/lib/userUtils';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import {
   ArrowLeft,
@@ -119,6 +119,7 @@ export default function InspectionDetailPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const confirmAction = useConfirm();
+  const { showError, showWarning } = useToast();
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || !isAdminOrController(user))) {
@@ -208,7 +209,7 @@ export default function InspectionDetailPage() {
       await api.post(`/admin/inspections/${inspectionId}/start`);
       fetchInspection();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors du démarrage');
+      showError(err.response?.data?.message || 'Erreur lors du démarrage');
     } finally {
       setActionLoading(false);
     }
@@ -220,7 +221,7 @@ export default function InspectionDetailPage() {
       await api.post(`/admin/inspections/${inspectionId}/pause`);
       fetchInspection();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors de la mise en pause');
+      showError(err.response?.data?.message || 'Erreur lors de la mise en pause');
     } finally {
       setActionLoading(false);
     }
@@ -261,13 +262,13 @@ export default function InspectionDetailPage() {
 
   const saveResponse = async (key: string, item: ChecklistItem) => {
     if (!inspection || inspection.status !== 'in_progress') {
-      alert('L\'inspection doit être en cours pour enregistrer des réponses');
+      showWarning('L\'inspection doit être en cours pour enregistrer des réponses');
       return;
     }
 
     // Vérifier que l'utilisateur est le contrôleur assigné ou un admin
     if (isController(user) && inspection.inspector?.id !== user?.id) {
-      alert('Vous n\'êtes pas autorisé à modifier cette inspection. Seul le contrôleur assigné peut ajouter des réponses.');
+      showError('Vous n\'êtes pas autorisé à modifier cette inspection. Seul le contrôleur assigné peut ajouter des réponses.');
       return;
     }
 
@@ -276,13 +277,13 @@ export default function InspectionDetailPage() {
       const response = responses[key];
       
       if (item.type === 'rating' && !response?.rating) {
-        alert('Veuillez attribuer une note avant de sauvegarder');
+        showWarning('Veuillez attribuer une note avant de sauvegarder');
         setSaving(null);
         return;
       }
       
       if (item.type === 'boolean' && response?.boolean === undefined) {
-        alert('Veuillez sélectionner Oui ou Non avant de sauvegarder');
+        showWarning('Veuillez sélectionner Oui ou Non avant de sauvegarder');
         setSaving(null);
         return;
       }
@@ -310,7 +311,7 @@ export default function InspectionDetailPage() {
         },
       }));
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors de l\'enregistrement');
+      showError(err.response?.data?.message || 'Erreur lors de l\'enregistrement');
       console.error('Error saving response:', err);
     } finally {
       setSaving(null);
@@ -402,7 +403,6 @@ export default function InspectionDetailPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -417,7 +417,6 @@ export default function InspectionDetailPage() {
   if (!inspection) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
         <main className="container mx-auto px-4 py-8">
           <div className="card">
             <p className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -440,7 +439,6 @@ export default function InspectionDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         {/* En-tête */}
         <div className="mb-6 flex items-center justify-between">

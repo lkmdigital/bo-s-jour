@@ -357,8 +357,16 @@ deploy_frontend() {
             echo "→ Build de production..."
             npm run build
 
+            echo "→ Copie des assets statiques dans le bundle standalone..."
+            # En mode output:'standalone', Next ne copie pas .next/static ni public
+            # dans .next/standalone — sans ça le serveur renvoie 404 sur tous les assets.
+            rm -rf .next/standalone/.next/static .next/standalone/public
+            mkdir -p .next/standalone/.next
+            cp -r .next/static .next/standalone/.next/static
+            cp -r public .next/standalone/public
+
             echo "→ Redémarrage PM2..."
-            pm2 restart $PM2_APP 2>/dev/null || pm2 start ecosystem.config.js
+            pm2 restart $PM2_APP --update-env 2>/dev/null || pm2 start ecosystem.config.js
             pm2 save
             echo "✓ Frontend OK"
 ENDSSH

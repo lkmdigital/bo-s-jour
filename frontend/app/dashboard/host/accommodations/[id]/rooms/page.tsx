@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
-import Header from '@/components/common/Header';
+import { useToast } from '@/components/common/ToastContext';
 import Footer from '@/components/common/Footer';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import api from '@/lib/api';
@@ -36,6 +36,7 @@ export default function AccommodationRoomsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const confirmAction = useConfirm();
+  const { showError, showWarning } = useToast();
 
   useEffect(() => {
     if (authLoading) return;
@@ -78,13 +79,13 @@ export default function AccommodationRoomsPage() {
       await api.delete(`/accommodations/${accommodationId}/rooms/${roomId}`);
       setRooms(rooms.filter((r) => r.id !== roomId));
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors de la suppression');
+      showError(err.response?.data?.message || 'Erreur lors de la suppression');
     }
   };
 
   const toggleActive = async (room: Room) => {
     if (!room.images || room.images.length < 3) {
-      alert('La chambre doit avoir au moins 3 images pour être activée');
+      showWarning('La chambre doit avoir au moins 3 images pour être activée');
       return;
     }
 
@@ -94,14 +95,13 @@ export default function AccommodationRoomsPage() {
       });
       fetchData();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors de la mise à jour');
+      showError(err.response?.data?.message || 'Erreur lors de la mise à jour');
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <main className="container mx-auto px-4 py-12">
           <LoadingSpinner />
         </main>
@@ -112,7 +112,6 @@ export default function AccommodationRoomsPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <Link

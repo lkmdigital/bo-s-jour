@@ -1,0 +1,228 @@
+#!/bin/bash
+# =============================================================================
+# deployback — Déploiement Zero-Downtime Backend (Laravel)
+# Usage: ./deployback
+#
+# Stratégie zero-downtime :
+#   1. Transfert des fichiers dans un dossier temporaire
+#   2. composer install dans le dossier temporaire (pas de downtime)
+#   3. php artisan down (maintenance) — fenêtre minimale ~5 secondes
+#   4. Migrations + swap atomique (mv)
+#   5. php artisan up — retour en ligne immédiat
+#   6. Rollback automatique si erreur
+# =============================================================================
+
+set -euo pipefail
+
+# ─── Couleurs ────────────────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+log()     { echo -e "${GREEN}[$(date '+%H:%M:%S')] ✓${NC} $*"; }
+info()    { echo -e "${BLUE}[$(date '+%H:%M:%S')] ℹ${NC} $*"; }
+warn()    { echo -e "${YELLOW}[$(date '+%H:%M:%S')] ⚠${NC} $*"; }
+error()   { echo -e "${RED}[$(date '+%H:%M:%S')] ✗ ERREUR:${NC} $*" >&2; }
+section() { echo -e "\n${BOLD}${CYAN}══ $* ══${NC}\n"; }
+die()     { error "$*"; exit 1; }
+
+# ─── Charger la configuration ─────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$(dirname "$SCRIPT_DIR")/deploy.config"
+
+[[ -f "$CONFIG_FILE" ]] || die "Fichier deploy.config introuvable."
+
+SERVER=""
+SERVER_PASS=""
+BACKEND_DIR=""
+PHP_SERVICE="php8.2-fpm"
+
+source "$CONFIG_FILE"
+
+[[ -n "$SERVER" ]]      || die "SERVER non défini dans deploy.config"
+[[ -n "$BACKEND_DIR" ]] || die "BACKEND_DIR non défini dans deploy.config"
+
+LOCAL_BACKEND="$SCRIPT_DIR"
+BUILD_DIR="${BACKEND_DIR}_build_tmp"
+
+# ─── Commandes SSH/Rsync ─────────────────────────────────────────────────────
+ssh_exec() {
+    if [[ -n "$SERVER_PASS" ]]; then
+        sshpass -p "$SERVER_PASS" ssh \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
+            -o PubkeyAuthentication=no \
+            -o PasswordAuthentication=yes \
+            "$SERVER" "$@"
+    else
+        ssh "$SERVER" "$@"
+    fi
+}
+
+rsync_exec() {
+    if [[ -n "$SERVER_PASS" ]]; then
+        sshpass -p "$SERVER_PASS" rsync \
+            -e "ssh -o StrictHostKeyChecking=no -o PubkeyAuthentication=no -o PasswordAuthentication=yes" \
+            "$@"
+    else
+        rsync "$@"
+    fi
+}
+
+# ─── Vérification SSH ─────────────────────────────────────────────────────────
+check_ssh() {
+    section "Vérification connexion SSH"
+    info "Connexion à $SERVER..."
+    if [[ -n "$SERVER_PASS" ]]; then
+        sshpass -p "$SERVER_PASS" ssh \
+            -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
+            -o PubkeyAuthentication=no -o PasswordAuthentication=yes \
+            "$SERVER" "echo ok" > /dev/null 2>&1 \
+            || die "Connexion échouée. Vérifiez SERVER et SERVER_PASS"
+    else
+        ssh -o BatchMode=yes -o ConnectTimeout=10 "$SERVER" "echo ok" > /dev/null 2>&1 \
+            || die "Connexion SSH échouée. Vérifiez votre clé SSH."
+    fi
+    log "Connexion SSH OK"
+}
+
+# ─── BACKEND ZERO-DOWNTIME ────────────────────────────────────────────────────
+deploy_backend() {
+    section "Déploiement Backend Zero-Downtime (Laravel)"
+    [[ -d "$LOCAL_BACKEND" ]] || die "Dossier backend introuvable: $LOCAL_BACKEND"
+
+    local TIMESTAMP
+    TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+    local BACKUP_DIR="${BACKEND_DIR}_backup_${TIMESTAMP}"
+
+    # ── PHASE 1 : Transfert + préparation (sans downtime) ─────────────────
+    section "Phase 1 — Transfert (service actif)"
+
+    info "Création dossier build temporaire..."
+    ssh_exec "rm -rf '$BUILD_DIR' && mkdir -p '$BUILD_DIR'"
+
+    info "Transfert des fichiers..."
+    rsync_exec -az \
+        --exclude='vendor/' \
+        --exclude='.git/' \
+        --exclude='storage/' \
+        --exclude='bootstrap/cache/*' \
+        --exclude='.env' \
+        --exclude='*.tar.gz' \
+        --exclude='.DS_Store' \
+        "$LOCAL_BACKEND/" "$SERVER:$BUILD_DIR/"
+    log "Fichiers transférés"
+
+    info "Préparation dans le dossier build..."
+    ssh_exec bash << ENDSSH
+        set -e
+        cd '$BUILD_DIR'
+
+        echo '→ Création des dossiers storage...'
+        mkdir -p storage/framework/{sessions,views,cache}
+        mkdir -p storage/logs
+        mkdir -p storage/app/public
+        mkdir -p bootstrap/cache
+
+        echo '→ Copie du .env depuis la version active...'
+        cp '$BACKEND_DIR/.env' .env 2>/dev/null || true
+
+        echo '→ Copie du storage depuis la version active...'
+        rsync -a --exclude='logs/*' --exclude='framework/cache/*' \
+            '$BACKEND_DIR/storage/' storage/ 2>/dev/null || true
+
+        echo '→ Composer install (dans le build, service toujours actif)...'
+        composer install --optimize-autoloader --no-dev --no-interaction --quiet
+
+        echo '→ Permissions...'
+        PHP_USER=\$(ps aux | grep -E 'php.*fpm' | grep -v grep | head -1 | awk '{print \$1}')
+        PHP_USER=\${PHP_USER:-www-data}
+        chown -R \$PHP_USER:\$PHP_USER storage bootstrap/cache 2>/dev/null || true
+        chmod -R 775 storage/framework bootstrap/cache
+        chmod -R 777 storage/app/public storage/logs
+
+        echo '✓ Phase 1 terminée'
+ENDSSH
+    log "Préparation terminée"
+
+    # ── PHASE 2 : Fenêtre de maintenance minimale (~5s) ───────────────
+    section "Phase 2 — Swap + Migrations (fenêtre ~5s)"
+    info "Activation maintenance + swap + migrations..."
+
+    ssh_exec bash << ENDSSH
+        set -e
+        BACKEND_DIR='$BACKEND_DIR'
+        BUILD_DIR='$BUILD_DIR'
+        BACKUP_DIR='$BACKUP_DIR'
+        PHP_SERVICE='$PHP_SERVICE'
+
+        # Activer le mode maintenance (répond 503 aux requêtes)
+        echo '→ Maintenance ON...'
+        php "\$BACKEND_DIR/artisan" down --retry=5 --refresh=5 2>/dev/null || true
+
+        # Swap atomique
+        echo '→ Swap atomique...'
+        mv "\$BACKEND_DIR" "\$BACKUP_DIR"
+        mv "\$BUILD_DIR"   "\$BACKEND_DIR"
+
+        # Migrations sur la nouvelle version
+        echo '→ Migrations...'
+        php "\$BACKEND_DIR/artisan" migrate --force 2>&1 || {
+            echo 'ERREUR migrations — rollback...'
+            php "\$BACKEND_DIR/artisan" up 2>/dev/null || true
+            mv "\$BACKEND_DIR" "\$BUILD_DIR"
+            mv "\$BACKUP_DIR"  "\$BACKEND_DIR"
+            php "\$BACKEND_DIR/artisan" up 2>/dev/null || true
+            echo '✓ Rollback effectué'
+            exit 1
+        }
+
+        # Storage link
+        echo '→ Storage link...'
+        rm -f "\$BACKEND_DIR/public/storage" 2>/dev/null || true
+        php "\$BACKEND_DIR/artisan" storage:link 2>/dev/null || true
+        chmod -R 777 "\$BACKEND_DIR/public/storage" 2>/dev/null || true
+
+        # Clear + rebuild caches
+        echo '→ Caches...'
+        php "\$BACKEND_DIR/artisan" cache:clear   2>/dev/null || true
+        php "\$BACKEND_DIR/artisan" config:cache
+        php "\$BACKEND_DIR/artisan" route:cache
+        php "\$BACKEND_DIR/artisan" view:cache
+        php "\$BACKEND_DIR/artisan" optimize
+
+        # Désactiver maintenance
+        echo '→ Maintenance OFF...'
+        php "\$BACKEND_DIR/artisan" up
+
+        # Reload PHP-FPM (graceful, sans arrêt)
+        echo '→ Reload PHP-FPM...'
+        systemctl reload "\$PHP_SERVICE" 2>/dev/null || \
+        kill -USR2 \$(cat /var/run/php/php8.2-fpm.pid 2>/dev/null) 2>/dev/null || \
+        systemctl reload php-fpm 2>/dev/null || true
+
+        # Nettoyage backups (garder les 3 derniers)
+        ls -dt ${BACKEND_DIR}_backup_* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
+
+        echo '✓ Backend live'
+ENDSSH
+
+    log "Backend déployé sans downtime"
+}
+
+# ─── MAIN ─────────────────────────────────────────────────────────────────────
+echo -e "\n${BOLD}${CYAN}🚀 DeployBack Zero-Downtime [$(date '+%d/%m/%Y %H:%M')]${NC}\n"
+echo -e "  Serveur : ${BOLD}$SERVER${NC}"
+echo -e "  Source  : ${BOLD}$LOCAL_BACKEND${NC}"
+echo ""
+
+check_ssh
+deploy_backend
+
+echo ""
+echo -e "${GREEN}✅ Backend déployé sans interruption de service !${NC}"
+echo ""

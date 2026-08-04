@@ -7,6 +7,21 @@ const nextConfig = {
   // Pour le déploiement sur serveur Node.js, utilisez 'standalone'
   // Pour un build statique, utilisez 'export'
   output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  // Proxy dev : les appels API passent par le front (même origine) -> pas de CORS,
+  // pas de mixed-content, un seul tunnel ngrok suffit. Voir NEXT_PUBLIC_API_URL=/tunnel-api
+  async rewrites() {
+    return [
+      {
+        source: '/tunnel-api/:path*',
+        destination: 'http://localhost:8000/api/:path*',
+      },
+      {
+        // Proxifie aussi les images/fichiers servis par Laravel
+        source: '/tunnel-storage/:path*',
+        destination: 'http://localhost:8000/storage/:path*',
+      },
+    ];
+  },
   images: {
     // Désactive l'optimisation Next pour éviter les erreurs d'upstream (certificat/HTTP)
     unoptimized: true,

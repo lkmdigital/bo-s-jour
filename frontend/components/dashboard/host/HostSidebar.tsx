@@ -1,0 +1,154 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  LayoutGrid,
+  Building2,
+  BedDouble,
+  CalendarDays,
+  BookOpen,
+  Users,
+  Star,
+  Gift,
+  Wallet,
+  FileText,
+  UserCog,
+  Megaphone,
+  BarChart3,
+  Sparkles,
+  HelpCircle,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+} from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
+import { useRouter } from 'next/navigation';
+
+const NAV_ITEMS = [
+  { href: '/dashboard/host', label: 'Tableau de bord', icon: LayoutGrid },
+  { href: '/dashboard/host/property', label: 'Mon établissement', icon: Building2 },
+  { href: '/dashboard/host/rooms', label: 'Chambres et tarifs', icon: BedDouble },
+  { href: '/dashboard/host/calendar', label: 'Calendrier', icon: CalendarDays },
+  { href: '/dashboard/host/reservations', label: 'Réservations', icon: BookOpen },
+  { href: '/dashboard/host/clients', label: 'Clients', icon: Users },
+  { href: '/dashboard/host/reviews', label: 'Avis', icon: Star },
+  { href: '/dashboard/host/promotions', label: 'Promotions', icon: Gift },
+  { href: '/dashboard/host/finances', label: 'Finances', icon: Wallet },
+  { href: '/dashboard/host/documents', label: 'Documents', icon: FileText },
+  { href: '/dashboard/host/staff', label: 'Personnel', icon: UserCog },
+  { href: '/dashboard/host/marketing', label: 'Commercialisation', icon: Megaphone },
+  { href: '/dashboard/host/stats', label: 'Statistiques', icon: BarChart3 },
+  { href: '/dashboard/host/ai', label: 'Assistant IA', icon: Sparkles },
+];
+
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuthStore();
+
+  const isActive = (href: string) => {
+    if (href === '/dashboard/host') return pathname === href;
+    return pathname === href || pathname?.startsWith(href + '/');
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/auth/login');
+  };
+
+  return (
+    <>
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          const active = isActive(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={onNavigate}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                active
+                  ? 'bg-bosejour-red text-white'
+                  : 'text-gray-300 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span className="truncate">{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="border-t border-white/10 py-3 px-3 space-y-1">
+        <Link
+          href="/dashboard/host/profile"
+          onClick={onNavigate}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white"
+        >
+          <Settings className="w-4 h-4" />
+          Paramètres
+        </Link>
+        <a
+          href="mailto:contact@bosejour.ci"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white"
+        >
+          <HelpCircle className="w-4 h-4" />
+          Centre d&apos;aide
+        </a>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white"
+        >
+          <LogOut className="w-4 h-4" />
+          Déconnexion
+        </button>
+      </div>
+    </>
+  );
+}
+
+export default function HostSidebar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    <>
+      {/* Bouton menu mobile */}
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-3 left-3 z-30 p-2 rounded-lg bg-black text-white shadow-md"
+        aria-label="Ouvrir le menu"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Sidebar desktop */}
+      <aside className="hidden lg:flex lg:flex-col w-64 shrink-0 bg-black text-gray-300 h-screen self-start sticky top-0">
+        <SidebarContent />
+      </aside>
+
+      {/* Drawer mobile */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 flex">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
+          <aside className="relative w-72 max-w-[80vw] bg-black text-gray-300 flex flex-col">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-3 right-3 p-2 rounded-lg hover:bg-white/10"
+              aria-label="Fermer le menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="pt-14 flex flex-col flex-1 overflow-hidden">
+              <SidebarContent onNavigate={() => setMobileOpen(false)} />
+            </div>
+          </aside>
+        </div>
+      )}
+    </>
+  );
+}

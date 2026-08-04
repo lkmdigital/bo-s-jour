@@ -92,6 +92,16 @@ class AdminDashboardController extends Controller
             ->where('created_at', '>=', $startDate)
             ->sum('amount');
         $totalRevenueAllTime = Payment::where('status', 'completed')->sum('amount');
+        $revenueToday = (float) Payment::where('status', 'completed')
+            ->whereDate('created_at', Carbon::today())
+            ->sum('amount');
+        $revenueThisMonth = (float) Payment::where('status', 'completed')
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->sum('amount');
+        $revenueThisYear = (float) Payment::where('status', 'completed')
+            ->whereYear('created_at', Carbon::now()->year)
+            ->sum('amount');
 
         // Inspections
         $totalInspections = Inspection::count();
@@ -201,6 +211,9 @@ class AdminDashboardController extends Controller
                     'period' => $totalRevenue,
                     'all_time' => $totalRevenueAllTime,
                     'period_days' => $period,
+                    'today' => $revenueToday,
+                    'this_month' => $revenueThisMonth,
+                    'this_year' => $revenueThisYear,
                 ],
                 'inspections' => [
                     'total' => $totalInspections,
@@ -305,6 +318,134 @@ class AdminDashboardController extends Controller
             });
 
         return response()->json(['data' => $distribution]);
+    }
+
+    /**
+     * Réservations et CA par ville (proxy de "région" tant qu'aucun champ région dédié n'existe).
+     */
+    public function bookingsByRegion()
+    {
+        $data = Booking::join('accommodations', 'bookings.accommodation_id', '=', 'accommodations.id')
+            ->where('bookings.status', 'confirmed')
+            ->select(
+                'accommodations.city',
+                DB::raw('COUNT(bookings.id) as bookings_count'),
+                DB::raw('SUM(bookings.total_price) as revenue')
+            )
+            ->groupBy('accommodations.city')
+            ->orderByDesc('bookings_count')
+            ->limit(10)
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'city' => $row->city,
+                    'bookings_count' => (int) $row->bookings_count,
+                    'revenue' => (float) $row->revenue,
+                ];
+            });
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Top établissements par CA / nombre de réservations (tous hôtes confondus).
+     */
+    public function topAccommodations(Request $request)
+    {
+        $limit = (int) $request->get('limit', 10);
+
+        $data = Accommodation::withCount(['bookings' => function ($q) {
+                $q->where('status', 'confirmed');
+            }])
+            ->withSum(['bookings' => function ($q) {
+                $q->where('status', 'confirmed');
+            }], 'total_price')
+            ->orderByDesc('bookings_sum_total_price')
+            ->limit($limit)
+            ->get()
+            ->map(function ($accommodation) {
+                return [
+                    'id' => $accommodation->id,
+                    'name' => $accommodation->name,
+                    'city' => $accommodation->city,
+                    'bookings_count' => $accommodation->bookings_count,
+                    'revenue' => (float) ($accommodation->bookings_sum_total_price ?? 0),
+                ];
+            });
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Évolution du chiffre d'affaires et des commissions sur les 12 derniers mois.
+     */
+    public function monthlyRevenueTrend()
+    {
+        $startDate = Carbon::now()->subMonths(11)->startOfMonth();
+
+        $revenueByMonth = Payment::where('status', 'completed')
+            ->where('created_at', '>=', $startDate)
+            ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'), DB::raw('SUM(amount) as revenue'))
+            ->groupBy('month')
+            ->pluck('revenue', 'month');
+
+        $commissionsByMonth = Commission::where('created_at', '>=', $startDate)
+            ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'), DB::raw('SUM(commission_amount) as commissions'))
+            ->groupBy('month')
+            ->pluck('commissions', 'month');
+
+        $data = [];
+        $cursor = $startDate->copy();
+        for ($i = 0; $i < 12; $i++) {
+            $key = $cursor->format('Y-m');
+            $data[] = [
+                'month' => $key,
+                'revenue' => (float) ($revenueByMonth[$key] ?? 0),
+                'commissions' => (float) ($commissionsByMonth[$key] ?? 0),
+            ];
+            $cursor->addMonth();
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Tendance du taux d'occupation moyen sur les 12 derniers mois (tous établissements publiés).
+     */
+    public function occupancyTrend()
+    {
+        $totalRooms = (int) DB::table('rooms')
+            ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
+            ->where('accommodations.status', 'published')
+            ->count();
+
+        $data = [];
+        $cursor = Carbon::now()->subMonths(11)->startOfMonth();
+        for ($i = 0; $i < 12; $i++) {
+            $monthStart = $cursor->copy()->startOfMonth();
+            $monthEnd = $cursor->copy()->endOfMonth();
+            $daysInMonth = $monthStart->daysInMonth;
+
+            $roomNightsSold = Booking::where('status', 'confirmed')
+                ->where('check_in', '<=', $monthEnd)
+                ->where('check_out', '>=', $monthStart)
+                ->get()
+                ->sum(function ($b) use ($monthStart, $monthEnd) {
+                    $start = Carbon::parse($b->check_in)->max($monthStart);
+                    $end = Carbon::parse($b->check_out)->min($monthEnd);
+                    return max(0, $start->diffInDays($end));
+                });
+
+            $availableNights = $totalRooms * $daysInMonth;
+
+            $data[] = [
+                'month' => $monthStart->format('Y-m'),
+                'occupancy_rate' => $availableNights > 0 ? round(($roomNightsSold / $availableNights) * 100, 2) : 0,
+            ];
+            $cursor->addMonth();
+        }
+
+        return response()->json(['data' => $data]);
     }
 }
 

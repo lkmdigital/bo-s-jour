@@ -12,6 +12,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { formatPrice } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
+import { useToast } from '@/components/common/ToastContext';
 import { isAdmin } from '@/lib/userUtils';
 import { MapPin, Star, Users, Bed, Bath, Clock, CheckCircle, XCircle, EyeOff, Wrench, Edit, Trash2, Calendar, ExternalLink } from 'lucide-react';
 import MediaCarousel from '@/components/media/MediaCarousel';
@@ -146,6 +147,7 @@ export default function AccommodationDetailPage() {
   const [appointmentDate, setAppointmentDate] = useState('');
   const [appointmentNotes, setAppointmentNotes] = useState('');
   const confirmAction = useConfirm();
+  const { showSuccess } = useToast();
 
   // Fonction de tri (définie avant son utilisation)
   const sortRooms = (roomsToSort: Room[], sort: 'price' | 'capacity' | 'name') => {
@@ -377,7 +379,7 @@ export default function AccommodationDetailPage() {
       setAppointmentOpen(false);
       setAppointmentDate('');
       setAppointmentNotes('');
-      alert('Demande de visite envoyée.');
+      showSuccess('Demande de visite envoyée');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors de la demande de visite');
     } finally {

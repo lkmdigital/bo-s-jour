@@ -1,0 +1,35 @@
+# Fichiers à ne PAS uploader sur le serveur de production
+
+# Backend
+backend/.env
+backend/vendor/
+backend/node_modules/
+backend/storage/logs/*.log
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/bootstrap/cache/*
+!backend/storage/.gitkeep
+!backend/bootstrap/cache/.gitkeep
+
+# Frontend
+frontend/.env*
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+frontend/.vercel/
+
+# Général
+.DS_Store
+*.log
+*.tmp
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Fichiers de déploiement locaux
+deploy.sh.local
+*.local
+

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { isAdminOrController } from '@/lib/userUtils';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Pagination from '@/components/common/Pagination';
 import { isController, isAdmin } from '@/lib/userUtils';
@@ -150,7 +149,6 @@ export default function AdminInspectionsPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -164,7 +162,6 @@ export default function AdminInspectionsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <div>

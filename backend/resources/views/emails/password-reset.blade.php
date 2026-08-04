@@ -12,7 +12,7 @@
         <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
           <tr>
             <td style="background:linear-gradient(135deg,#0f766e,#0d9488);padding:32px 40px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">BosEjour</h1>
+              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">Bosejour</h1>
               <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">bosejour.ci</p>
             </td>
           </tr>
@@ -20,7 +20,7 @@
             <td style="padding:40px 40px 32px;">
               <p style="margin:0 0 8px;font-size:15px;color:#374151;">Bonjour <strong>{{ $userName }}</strong>,</p>
               <p style="margin:0 0 28px;font-size:15px;color:#374151;line-height:1.6;">
-                Nous avons reçu une demande de réinitialisation du mot de passe associé à votre compte BosEjour.
+                Nous avons reçu une demande de réinitialisation du mot de passe associé à votre compte Bosejour.
                 Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe.
               </p>
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
@@ -48,7 +48,7 @@
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb;text-align:center;">
               <p style="margin:0;font-size:12px;color:#9ca3af;">
-                © 2026 BosEjour · <a href="https://bosejour.ci" style="color:#0d9488;text-decoration:none;">bosejour.ci</a>
+                © 2026 Bosejour · <a href="https://bosejour.ci" style="color:#0d9488;text-decoration:none;">bosejour.ci</a>
               </p>
             </td>
           </tr>

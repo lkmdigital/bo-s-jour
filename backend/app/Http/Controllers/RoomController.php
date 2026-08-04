@@ -192,7 +192,7 @@ class RoomController extends Controller
             return 0;
         }
         
-        // Compter les réservations confirmées pour ces dates
+        // Compter les réservations confirmées pour ces dates (seulement confirmed, pas pending)
         $bookingsCount = DB::table('bookings')
             ->where('room_id', $roomId)
             ->where('status', 'confirmed')

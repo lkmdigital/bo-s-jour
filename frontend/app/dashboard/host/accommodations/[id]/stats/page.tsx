@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import { formatPrice } from '@/lib/utils';
@@ -138,7 +137,6 @@ export default function AccommodationStatsPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -153,7 +151,6 @@ export default function AccommodationStatsPage() {
   if (error && !stats) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="mb-4">
             <Link
@@ -182,7 +179,6 @@ export default function AccommodationStatsPage() {
   if (!stats && !loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="mb-4">
             <Link
@@ -216,7 +212,6 @@ export default function AccommodationStatsPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
       
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}

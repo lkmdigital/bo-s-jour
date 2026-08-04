@@ -29,7 +29,7 @@ class OneSignalService
         }
 
         $fromEmail = (string) config('services.onesignal.from_email', 'contact@bosejour.ci');
-        $fromName  = (string) config('services.onesignal.from_name', 'BosEjour');
+        $fromName  = (string) config('services.onesignal.from_name', 'Bosejour');
 
         $payload = [
             'app_id'               => $appId,
@@ -87,7 +87,7 @@ class OneSignalService
 
     public function sendOtpEmail(string $email, string $code, string $userName): bool
     {
-        $subject = 'Votre code de vérification BosEjour';
+        $subject = 'Votre code de vérification Bosejour';
 
         $body = <<<HTML
 <!DOCTYPE html>
@@ -105,7 +105,7 @@ class OneSignalService
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#0f766e,#0d9488);padding:32px 40px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">BosEjour</h1>
+              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">Bosejour</h1>
               <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">bosejour.ci</p>
             </td>
           </tr>
@@ -114,7 +114,7 @@ class OneSignalService
             <td style="padding:40px 40px 32px;">
               <p style="margin:0 0 8px;font-size:15px;color:#374151;">Bonjour <strong>{$userName}</strong>,</p>
               <p style="margin:0 0 28px;font-size:15px;color:#374151;line-height:1.6;">
-                Voici votre code de vérification pour finaliser votre connexion à BosEjour.
+                Voici votre code de vérification pour finaliser votre connexion à Bosejour.
               </p>
 
               <!-- OTP Code Box -->
@@ -141,7 +141,7 @@ class OneSignalService
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb;text-align:center;">
               <p style="margin:0;font-size:12px;color:#9ca3af;">
-                © 2026 BosEjour · <a href="https://bosejour.ci" style="color:#0d9488;text-decoration:none;">bosejour.ci</a>
+                © 2026 Bosejour · <a href="https://bosejour.ci" style="color:#0d9488;text-decoration:none;">bosejour.ci</a>
               </p>
             </td>
           </tr>
@@ -158,7 +158,7 @@ HTML;
 
     public function sendPasswordResetEmail(string $email, string $userName, string $resetUrl): bool
     {
-        $subject = 'Réinitialisation de votre mot de passe BosEjour';
+        $subject = 'Réinitialisation de votre mot de passe Bosejour';
 
         $body = <<<HTML
 <!DOCTYPE html>
@@ -176,7 +176,7 @@ HTML;
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#0f766e,#0d9488);padding:32px 40px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">BosEjour</h1>
+              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">Bosejour</h1>
               <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">bosejour.ci</p>
             </td>
           </tr>
@@ -185,7 +185,7 @@ HTML;
             <td style="padding:40px 40px 32px;">
               <p style="margin:0 0 8px;font-size:15px;color:#374151;">Bonjour <strong>{$userName}</strong>,</p>
               <p style="margin:0 0 28px;font-size:15px;color:#374151;line-height:1.6;">
-                Nous avons reçu une demande de réinitialisation du mot de passe associé à votre compte BosEjour.
+                Nous avons reçu une demande de réinitialisation du mot de passe associé à votre compte Bosejour.
                 Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe.
               </p>
 
@@ -219,7 +219,7 @@ HTML;
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb;text-align:center;">
               <p style="margin:0;font-size:12px;color:#9ca3af;">
-                © 2026 BosEjour · <a href="https://bosejour.ci" style="color:#0d9488;text-decoration:none;">bosejour.ci</a>
+                © 2026 Bosejour · <a href="https://bosejour.ci" style="color:#0d9488;text-decoration:none;">bosejour.ci</a>
               </p>
             </td>
           </tr>

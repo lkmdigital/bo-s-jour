@@ -10,5 +10,13 @@
 # Credentials et config sensibles
 deploy.config
 
+# Dumps de base de données (jamais de données prod/réelles dans le repo)
+*.sql
+!backend/database/**/*.sql
+!database/schema.sql
+
+# Archives de build / déploiement (trop volumineuses pour git)
+*.tar.gz
+
 # Logs
 *.log

@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
+import { useValidation } from '@/components/common/ValidationContext';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import { User, Phone, Calendar, MapPin, FileText, Upload, CheckCircle, AlertCircle, Save, Edit, Camera, X } from 'lucide-react';
@@ -39,6 +39,12 @@ interface HostProfile {
   profile_completed: boolean;
   profile_verified: boolean;
   compliance_status?: 'conforme' | 'non_conforme';
+  compliance_requirements?: Array<{
+    key: string;
+    label: string;
+    ok?: boolean;
+    info?: string;
+  }>;
 }
 
 export default function HostProfilePage() {
@@ -52,6 +58,11 @@ export default function HostProfilePage() {
   const [completion, setCompletion] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [complianceData, setComplianceData] = useState<{
+    status: 'conforme' | 'non_conforme' | null;
+    requirements: HostProfile['compliance_requirements'];
+  }>({ status: null, requirements: [] });
+  const showValidation = useValidation();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -106,6 +117,10 @@ export default function HostProfilePage() {
       setProfile(profileData);
       setCompletion(response.data.completion_percentage);
       setIsComplete(response.data.is_complete);
+      setComplianceData({
+        status: response.data.compliance_status ?? profileData.compliance_status ?? null,
+        requirements: response.data.compliance_requirements ?? [],
+      });
 
       setFormData({
         name: profileData.name || '',
@@ -282,7 +297,6 @@ export default function HostProfilePage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner message="Chargement du profil..." size="lg" />
         </div>
@@ -320,7 +334,6 @@ export default function HostProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Messages de succès/erreur */}
         {success && (
@@ -405,6 +418,38 @@ export default function HostProfilePage() {
                       </span>
                     )}
                   </span>
+
+                  {/* Badge de conformité */}
+                  {complianceData.status && (
+                    <button
+                      onClick={() => showValidation({
+                        title: 'État de conformité du profil',
+                        message: complianceData.status === 'conforme'
+                          ? 'Votre profil est conforme. Vous pouvez créer des établissements et recevoir des réservations.'
+                          : 'Votre profil n\'est pas conforme. Veuillez compléter les informations manquantes pour débloquer toutes les fonctionnalités.',
+                        requirements: complianceData.requirements,
+                        complianceStatus: complianceData.status,
+                        variant: complianceData.status === 'conforme' ? 'success' : 'warning',
+                        actionLabel: 'Compléter mon profil',
+                        actionHref: isEditing ? undefined : '#edit',
+                        onAction: isEditing ? undefined : () => setIsEditing(true),
+                      })}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 ${
+                        complianceData.status === 'conforme'
+                          ? 'bg-green-500/20 text-white border border-green-300'
+                          : 'bg-red-500/20 text-white border border-red-300'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        {complianceData.status === 'conforme' ? (
+                          <CheckCircle className="w-4 h-4" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4" />
+                        )}
+                        {complianceData.status === 'conforme' ? 'Conforme' : 'Non conforme'}
+                      </span>
+                    </button>
+                  )}
                   
                   {/* Barre de progression */}
                   <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
@@ -479,18 +524,16 @@ export default function HostProfilePage() {
                       onChange={(e) => setFormData({ ...formData, phone_fixed: e.target.value })}
                       disabled={!isEditing}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
-                      required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">WhatsApp établissement *</label>
+                    <label className="block text-sm font-medium mb-2">WhatsApp établissement</label>
                     <input
                       type="tel"
                       value={formData.whatsapp}
                       onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
                       disabled={!isEditing}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
-                      required
                     />
                   </div>
                   <div>
@@ -521,11 +564,10 @@ export default function HostProfilePage() {
                       onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
                       disabled={!isEditing}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
-                      required
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2">Biographie *</label>
+                    <label className="block text-sm font-medium mb-2">Biographie</label>
                     <textarea
                       value={formData.bio}
                       onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
@@ -533,7 +575,6 @@ export default function HostProfilePage() {
                       disabled={!isEditing}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
                       placeholder="Parlez-nous de vous..."
-                      required
                     />
                   </div>
                 </div>
@@ -554,7 +595,6 @@ export default function HostProfilePage() {
                       onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
                       disabled={!isEditing}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
-                      required
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -575,7 +615,6 @@ export default function HostProfilePage() {
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       disabled={!isEditing}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
-                      required
                     />
                   </div>
                   <div>
@@ -596,7 +635,6 @@ export default function HostProfilePage() {
                       onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                       disabled={!isEditing}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
-                      required
                     />
                   </div>
                 </div>
@@ -616,7 +654,6 @@ export default function HostProfilePage() {
                         value={formData.id_type}
                         onChange={(e) => setFormData({ ...formData, id_type: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                        required
                       >
                         <option value="">Sélectionner...</option>
                         <option value="CNI">CNI</option>
@@ -632,7 +669,6 @@ export default function HostProfilePage() {
                         value={formData.id_number}
                         onChange={(e) => setFormData({ ...formData, id_number: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                        required
                       />
                     </div>
                     {/* Affichage conditionnel selon le type de document */}
@@ -647,7 +683,6 @@ export default function HostProfilePage() {
                             accept=".pdf,.jpg,.jpeg,.png"
                             onChange={(e) => handleFileChange('id_document_recto', e.target.files?.[0] || null)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                            required
                           />
                           {profile?.id_document_recto_path && !files.id_document_recto && (
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -664,7 +699,6 @@ export default function HostProfilePage() {
                             accept=".pdf,.jpg,.jpeg,.png"
                             onChange={(e) => handleFileChange('id_document_verso', e.target.files?.[0] || null)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                            required
                           />
                           {profile?.id_document_verso_path && !files.id_document_verso && (
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -683,7 +717,6 @@ export default function HostProfilePage() {
                           accept=".pdf,.jpg,.jpeg,.png"
                           onChange={(e) => handleFileChange('id_document', e.target.files?.[0] || null)}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                          required
                         />
                         {profile?.id_document_path && !files.id_document && (
                           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -740,7 +773,6 @@ export default function HostProfilePage() {
                         onChange={(e) => setFormData({ ...formData, rccm: e.target.value })}
                         disabled={!isEditing}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
-                        required
                       />
                     </div>
                     <div>
@@ -765,7 +797,6 @@ export default function HostProfilePage() {
                         onChange={(e) => setFormData({ ...formData, tax_account_number: e.target.value })}
                         disabled={!isEditing}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
-                        required
                       />
                     </div>
                     <div>

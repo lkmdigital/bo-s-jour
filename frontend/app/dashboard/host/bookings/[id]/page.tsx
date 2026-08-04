@@ -7,7 +7,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
-import Header from '@/components/common/Header';
+import { useToast } from '@/components/common/ToastContext';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { formatPrice } from '@/lib/utils';
@@ -97,6 +97,7 @@ export default function HostBookingDetailPage() {
   const [checkInLoading, setCheckInLoading] = useState(false);
   const [checkInMessage, setCheckInMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const confirmAction = useConfirm();
+  const { showError } = useToast();
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || user?.role !== 'host')) {
@@ -186,7 +187,7 @@ export default function HostBookingDetailPage() {
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 
                           'Erreur lors de la mise à jour';
-      alert(errorMessage);
+      showError(errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -195,7 +196,6 @@ export default function HostBookingDetailPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner message="Chargement des détails de la réservation..." size="lg" />
         </div>
@@ -206,7 +206,6 @@ export default function HostBookingDetailPage() {
   if (error || !booking) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <ErrorDisplay 
             error={error || 'Réservation non trouvée'} 
@@ -255,7 +254,6 @@ export default function HostBookingDetailPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         {/* Header avec bouton retour */}
         <div className="mb-6">

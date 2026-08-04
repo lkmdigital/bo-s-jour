@@ -6,7 +6,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
 import { useForm } from 'react-hook-form';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import SuccessDisplay from '@/components/common/SuccessDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -412,7 +411,6 @@ export default function EditAccommodationPage() {
   if (loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -422,7 +420,6 @@ export default function EditAccommodationPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
       
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Link 

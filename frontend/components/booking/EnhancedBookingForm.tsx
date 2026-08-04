@@ -95,6 +95,7 @@ export default function EnhancedBookingForm({ accommodationId, pricePerNight, ro
       check_in: defaultCheckIn,
       check_out: defaultCheckOut,
       booked_for_third_party: false,
+      room_id: preSelectedRoomId || undefined,
     },
   });
 
@@ -140,6 +141,11 @@ export default function EnhancedBookingForm({ accommodationId, pricePerNight, ro
       setPricePreview(null);
       return;
     }
+    // Si une chambre est pré-sélectionnée mais pas encore résolue, attendre
+    if (preSelectedRoomId && !selectedRoom) {
+      setPricePreview(null);
+      return;
+    }
     try {
       const params = new URLSearchParams({
         check_in: checkIn.toISOString().split('T')[0],
@@ -157,7 +163,7 @@ export default function EnhancedBookingForm({ accommodationId, pricePerNight, ro
     } catch {
       setPricePreview(null);
     }
-  }, [accommodationId, checkIn, checkOut, selectedRoom?.id]);
+  }, [accommodationId, checkIn, checkOut, selectedRoom?.id, preSelectedRoomId]);
 
   useEffect(() => {
     fetchPricePreview();

@@ -39,8 +39,33 @@ class AccommodationController extends Controller
             $query->byType($request->type);
         }
 
-        if ($request->has('min_price') && $request->has('max_price')) {
-            $query->priceRange($request->min_price, $request->max_price);
+        // Prix (bornes indépendantes)
+        if ($request->filled('min_price')) {
+            $query->where('price_per_night', '>=', (float) $request->min_price);
+        }
+        if ($request->filled('max_price')) {
+            $query->where('price_per_night', '<=', (float) $request->max_price);
+        }
+
+        // Note minimale
+        if ($request->filled('min_rating')) {
+            $query->where('rating', '>=', (float) $request->min_rating);
+        }
+
+        // Services / équipements (tous requis)
+        if ($request->filled('amenities')) {
+            foreach (array_filter(array_map('trim', explode(',', $request->amenities))) as $amenity) {
+                $query->whereJsonContains('amenities', $amenity);
+            }
+        }
+
+        // Politique d'annulation -> heures (Flexible 48h / Modérée 24h / Stricte 0h)
+        if ($request->filled('cancellation_policy')) {
+            $policy = \Illuminate\Support\Str::lower($request->cancellation_policy);
+            $map = ['flexible' => 48, 'modérée' => 24, 'moderee' => 24, 'stricte' => 0];
+            if (array_key_exists($policy, $map)) {
+                $query->where('cancellation_policy_hours', $map[$policy]);
+            }
         }
 
         if ($request->has('featured')) {
@@ -90,10 +115,17 @@ class AccommodationController extends Controller
             });
         }
 
-        // Sorting
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        // Tri (mapping depuis le paramètre `sort` du front)
+        switch ($request->get('sort')) {
+            case 'price_asc':   $query->orderBy('price_per_night', 'asc'); break;
+            case 'price_desc':  $query->orderBy('price_per_night', 'desc'); break;
+            case 'rating':      $query->orderBy('rating', 'desc'); break;
+            case 'recommended': $query->orderBy('is_featured', 'desc')->orderBy('rating', 'desc'); break;
+            default:
+                $sortBy = $request->get('sort_by', 'created_at');
+                $sortOrder = $request->get('sort_order', 'desc');
+                $query->orderBy($sortBy, $sortOrder);
+        }
 
         $perPage = $request->get('per_page', 12);
         $accommodations = $query->paginate($perPage);
@@ -165,7 +197,13 @@ class AccommodationController extends Controller
         if ($roomId) {
             $room = Room::where('accommodation_id', $id)->where('is_active', true)->find($roomId);
             if ($room) {
-                $basePricePerNight = $room->price_per_night;
+                // Tarification par période : prix moyen par nuit selon les périodes
+                // tarifaires programmées par l'hôte (sinon tarif de base)
+                $basePricePerNight = RoomPricingService::getAverageBasePricePerNight(
+                    $room,
+                    $checkIn,
+                    $checkOut
+                );
             }
         }
 
@@ -173,17 +211,19 @@ class AccommodationController extends Controller
             (float) $basePricePerNight,
             (int) $cancellationHours,
             $nights,
-            $accommodation
+            $accommodation,
+            $checkIn
         );
 
         // Déterminer le type de tarif appliqué (selon les plans activés par l'hôte)
         $rateType = 'base';
         $longStayNights = (int) ($accommodation->pricing_long_stay_nights ?? config('room-pricing.long_stay_nights_threshold', 7));
+        $hoursUntilCheckIn = now()->diffInHours(\Carbon\Carbon::parse($checkIn), false);
         if ($accommodation->pricing_long_stay_enabled && $nights >= $longStayNights) {
             $rateType = 'long_stay';
         } elseif ($accommodation->pricing_non_refundable_enabled && $cancellationHours === 0) {
             $rateType = 'non_refundable';
-        } elseif ($accommodation->pricing_modifiable_enabled && $cancellationHours > 0) {
+        } elseif ($accommodation->pricing_modifiable_enabled && $cancellationHours > 0 && $hoursUntilCheckIn >= $cancellationHours) {
             $rateType = 'modifiable';
         }
 

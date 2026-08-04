@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { isController, isAdmin } from '@/lib/userUtils';
+import { useToast } from '@/components/common/ToastContext';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Pagination from '@/components/common/Pagination';
 import { formatPrice } from '@/lib/utils';
@@ -79,6 +79,7 @@ export default function AdminAccommodationsPage() {
   }>({ type: null, accommodationId: null });
   const [actionReason, setActionReason] = useState('');
   const [actionNotes, setActionNotes] = useState('');
+  const { showError, showWarning } = useToast();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
@@ -130,7 +131,7 @@ export default function AdminAccommodationsPage() {
 
   const handleAction = async (type: 'approve' | 'reject' | 'remove' | 'disable' | 'enable', accommodationId: number) => {
     if ((type === 'reject' || type === 'remove') && !actionReason.trim()) {
-      alert('Veuillez indiquer un motif');
+      showWarning('Veuillez indiquer un motif');
       return;
     }
 
@@ -146,7 +147,7 @@ export default function AdminAccommodationsPage() {
       setActionNotes('');
       fetchAccommodations();
     } catch (err: any) {
-      alert(err.response?.data?.message || `Erreur lors de l'action ${type}`);
+      showError(err.response?.data?.message || `Erreur lors de l'action ${type}`);
     } finally {
       setActionLoading(null);
     }
@@ -206,7 +207,6 @@ export default function AdminAccommodationsPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -220,7 +220,6 @@ export default function AdminAccommodationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <div>

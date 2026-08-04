@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import { useAuthStore } from '@/stores/authStore';
+import { useToast } from '@/components/common/ToastContext';
 import api from '@/lib/api';
 import {
   Settings,
@@ -18,6 +18,8 @@ import {
   Phone,
   Calendar,
   UserPlus,
+  Map,
+  KeyRound,
 } from 'lucide-react';
 
 export default function AdminSettingsPage() {
@@ -28,6 +30,7 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingGeneral, setSavingGeneral] = useState(false);
+  const { showError, showSuccess, showWarning } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
   const [maintenanceMessage, setMaintenanceMessage] = useState('');
@@ -40,6 +43,10 @@ export default function AdminSettingsPage() {
   const [bookingMinNights, setBookingMinNights] = useState('1');
   const [bookingMaxNights, setBookingMaxNights] = useState('30');
   const [registrationHostsEnabled, setRegistrationHostsEnabled] = useState(true);
+  // Intégrations & API externes
+  const [mapsProvider, setMapsProvider] = useState<'osm' | 'mapbox'>('osm');
+  const [mapboxToken, setMapboxToken] = useState('');
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || user?.role !== 'admin')) {
@@ -68,6 +75,9 @@ export default function AdminSettingsPage() {
       setBookingMinNights(String(s.booking_min_nights ?? 1));
       setBookingMaxNights(String(s.booking_max_nights ?? 30));
       setRegistrationHostsEnabled(typeof s.registration_hosts_enabled === 'boolean' ? s.registration_hosts_enabled : true);
+      setMapsProvider(s.maps_provider === 'mapbox' ? 'mapbox' : 'osm');
+      setMapboxToken(s.mapbox_token ?? '');
+      setGoogleMapsApiKey(s.google_maps_api_key ?? '');
 
       try {
         const commissionRes = await api.get('/revenue/commission-rate');
@@ -85,14 +95,15 @@ export default function AdminSettingsPage() {
   const saveCommission = async () => {
     const rate = parseFloat(commissionRate);
     if (isNaN(rate) || rate < 8 || rate > 10) {
-      alert('Taux entre 8 et 10');
+      showWarning('Le taux de commission doit être entre 8 et 10');
       return;
     }
     setSaving(true);
     try {
       await api.put('/revenue/commission-rate', { commission_rate: rate });
+      showSuccess('Taux de commission enregistré');
     } catch (err: any) {
-      alert(err.response?.data?.message || err.message || 'Erreur');
+      showError(err.response?.data?.message || err.message || 'Erreur');
     } finally {
       setSaving(false);
     }
@@ -103,7 +114,7 @@ export default function AdminSettingsPage() {
     try {
       const rate = parseFloat(commissionRate);
       if (isNaN(rate) || rate < 8 || rate > 10) {
-        alert('Taux de commission entre 8 et 10');
+        showWarning('Le taux de commission doit être entre 8 et 10');
         setSavingGeneral(false);
         return;
       }
@@ -144,7 +155,7 @@ export default function AdminSettingsPage() {
         payload.booking_max_nights = maxN;
       }
       if (!Number.isNaN(minN) && !Number.isNaN(maxN) && minN > maxN) {
-        alert('Nuitées min doit être inférieure ou égale à nuitées max');
+        showWarning('Les nuitées min doivent être inférieures ou égales aux nuitées max');
         setSavingGeneral(false);
         return;
       }
@@ -152,12 +163,17 @@ export default function AdminSettingsPage() {
       // Inscription hôtes : bool simple
       payload.registration_hosts_enabled = registrationHostsEnabled;
 
+      // Intégrations & API externes
+      payload.maps_provider = mapsProvider;
+      payload.mapbox_token = mapboxToken.trim() || null;
+      payload.google_maps_api_key = googleMapsApiKey.trim() || null;
+
       await api.put('/settings/admin', payload);
       await api.put('/revenue/commission-rate', { commission_rate: rate });
       await loadSettings();
-      alert('Paramètres enregistrés avec succès');
+      showSuccess('Paramètres enregistrés avec succès');
     } catch (err: any) {
-      alert(err.response?.data?.message || err.message || 'Erreur');
+      showError(err.response?.data?.message || err.message || 'Erreur');
     } finally {
       setSavingGeneral(false);
     }
@@ -166,7 +182,6 @@ export default function AdminSettingsPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -178,7 +193,6 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         <h1 className="text-2xl font-bold flex items-center gap-2 mb-6">
           <Settings className="w-6 h-6 text-primary" />
@@ -399,6 +413,58 @@ export default function AdminSettingsPage() {
                   }`}
                 />
               </button>
+            </div>
+          </section>
+
+          {/* Intégrations & API externes */}
+          <section className="card">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+              <KeyRound className="w-5 h-5 text-primary" />
+              Intégrations & API externes
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Renseignez ici les clés des services externes. Ces clés sont des clés « navigateur » (non secrètes) ;
+              pensez à les restreindre par domaine chez le fournisseur.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+                  <Map className="w-4 h-4" /> Fond de carte (page résultats)
+                </label>
+                <select
+                  value={mapsProvider}
+                  onChange={(e) => setMapsProvider(e.target.value as 'osm' | 'mapbox')}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm"
+                >
+                  <option value="osm">OpenStreetMap (gratuit, sans clé)</option>
+                  <option value="mapbox">Mapbox (nécessite un jeton)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Jeton public Mapbox</label>
+                <input
+                  type="text"
+                  value={mapboxToken}
+                  onChange={(e) => setMapboxToken(e.target.value)}
+                  placeholder="pk.xxxxxxxx"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono"
+                />
+                <p className="text-xs text-gray-400 mt-1">Utilisé seulement si le fond de carte est « Mapbox ».</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Clé API Google Maps</label>
+                <input
+                  type="text"
+                  value={googleMapsApiKey}
+                  onChange={(e) => setGoogleMapsApiKey(e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono"
+                />
+                <p className="text-xs text-gray-400 mt-1">Pour la géolocalisation des adresses (géocodage) côté partenaire.</p>
+              </div>
             </div>
           </section>
 

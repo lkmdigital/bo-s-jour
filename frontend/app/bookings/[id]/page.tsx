@@ -7,6 +7,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
+import { useToast } from '@/components/common/ToastContext';
 import Header from '@/components/common/Header';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -97,6 +98,7 @@ export default function BookingDetailPage() {
   const [hasReview, setHasReview] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const confirmAction = useConfirm();
+  const { showError } = useToast();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -190,7 +192,7 @@ export default function BookingDetailPage() {
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 
                           'Erreur lors de l\'annulation';
-      alert(errorMessage);
+      showError(errorMessage);
     } finally {
       setCancelling(false);
     }
@@ -226,7 +228,7 @@ export default function BookingDetailPage() {
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 
                           'Erreur lors de la mise à jour';
-      alert(errorMessage);
+      showError(errorMessage);
     } finally {
       setUpdating(false);
     }

@@ -90,7 +90,7 @@ class BookingController extends Controller
             ->whereHas('accommodation', function($q) use ($hostId) {
                 $q->where('host_id', $hostId);
             })
-            ->where('status', 'confirmed');
+            ->whereIn('status', ['confirmed', 'pending']);
 
         $startOfWeek = $now->copy()->startOfWeek();
         $endOfWeek = $now->copy()->endOfWeek();
@@ -246,22 +246,13 @@ class BookingController extends Controller
                 return response()->json(['message' => 'Exceeds room capacity'], 400);
             }
 
-            // ─── ANTI-SURBOOKING TRANSACTIONNEL ──────────────────────────────
-            // Le verrou (lockForUpdate) garantit qu'aucune autre requête concurrente
-            // ne peut créer une réservation pour la même chambre/période
-            // entre la vérification et l'insertion.
-            DB::transaction(function () use ($request, $room) {
-                Room::lockForUpdate()->findOrFail($room->id);
-
-                $this->bookingService->assertAvailable(
-                    $room->id,
-                    Carbon::parse($request->check_in),
-                    Carbon::parse($request->check_out)
-                );
-            });
-            // ─────────────────────────────────────────────────────────────────
-
-            $pricePerNight = $room->price_per_night;
+            // Tarification par période : prix moyen par nuit selon les périodes
+            // tarifaires programmées par l'hôte (sinon tarif de base)
+            $pricePerNight = RoomPricingService::getAverageBasePricePerNight(
+                $room,
+                $request->check_in,
+                $request->check_out
+            );
 
         } else {
             // Legacy : réservation sans chambre spécifique
@@ -290,7 +281,8 @@ class BookingController extends Controller
             (float) $pricePerNight,
             (int) $cancellationHours,
             $nights,
-            $accommodation
+            $accommodation,
+            $request->check_in
         );
 
         $basePrice = $effectivePricePerNight * $nights;
@@ -334,36 +326,51 @@ class BookingController extends Controller
         $isNonRefundable = ($cancellationHours === 0);
         $depositAmount = 0;
 
-        $booking = Booking::create([
-            'user_id' => $user->id,
-            'accommodation_id' => $request->accommodation_id,
-            'room_id' => $request->room_id,
-            'check_in' => $request->check_in,
-            'check_out' => $request->check_out,
-            'guests' => $request->guests,
-            'total_price' => $totalPrice,
-            'deposit_amount' => $depositAmount,
-            'amount_paid' => 0,
-            'status' => 'pending',
-            'payment_status' => 'pending',
-            'is_non_refundable' => $isNonRefundable,
-            'cancellation_policy_hours_snapshot' => $cancellationHours,
-            'special_requests' => $request->special_requests,
-            'booked_for_third_party' => $bookedForThirdParty,
-            'traveler_name' => $bookedForThirdParty ? $request->traveler_name : null,
-            'traveler_phone' => $bookedForThirdParty ? $request->traveler_phone : null,
-            'traveler_email' => $bookedForThirdParty ? $request->traveler_email : null,
-            'expires_at' => now()->addHours(48),
-        ]);
+        // ─── ANTI-SURBOOKING TRANSACTIONNEL ──────────────────────────────────
+        // Le verrou, la vérification ET la création sont dans la même transaction
+        // pour garantir qu'aucune autre requête concurrente ne peut s'intercaler.
+        $booking = DB::transaction(function () use (
+            $request, $room, $accommodation, $user, $bookedForThirdParty,
+            $totalPrice, $depositAmount, $isNonRefundable, $cancellationHours
+        ) {
+            if ($room) {
+                Room::lockForUpdate()->findOrFail($room->id);
 
-        // Bloquer les dates dans room_availabilities
-        if ($room) {
-            $this->bookingService->blockDates(
-                $room->id,
-                Carbon::parse($request->check_in),
-                Carbon::parse($request->check_out)
-            );
-        }
+                $this->bookingService->assertAvailable(
+                    $room->id,
+                    Carbon::parse($request->check_in),
+                    Carbon::parse($request->check_out)
+                );
+            }
+
+            $newBooking = Booking::create([
+                'user_id' => $user->id,
+                'accommodation_id' => $request->accommodation_id,
+                'room_id' => $request->room_id,
+                'check_in' => $request->check_in,
+                'check_out' => $request->check_out,
+                'guests' => $request->guests,
+                'total_price' => $totalPrice,
+                'deposit_amount' => $depositAmount,
+                'amount_paid' => 0,
+                'status' => 'pending',
+                'payment_status' => 'pending',
+                'is_non_refundable' => $isNonRefundable,
+                'cancellation_policy_hours_snapshot' => $cancellationHours,
+                'special_requests' => $request->special_requests,
+                'booked_for_third_party' => $bookedForThirdParty,
+                'traveler_name' => $bookedForThirdParty ? $request->traveler_name : null,
+                'traveler_phone' => $bookedForThirdParty ? $request->traveler_phone : null,
+                'traveler_email' => $bookedForThirdParty ? $request->traveler_email : null,
+                'expires_at' => now()->addHours(48),
+            ]);
+
+            // NOTE: Les dates ne sont bloquées que lors de la confirmation (après paiement)
+            // dans BookingService::confirm() pour permettre les réservations concurrentes en pending
+
+            return $newBooking;
+        });
+        // ─────────────────────────────────────────────────────────────────────
 
         // Historique de création
         $this->bookingService->logHistory(
@@ -514,9 +521,24 @@ class BookingController extends Controller
                 }
             }
 
+            $confirmedWithoutPayment = $request->user()->isAdmin() && !$booking->isPaid();
+            if ($confirmedWithoutPayment) {
+                Log::warning('Admin confirmed booking without payment', [
+                    'booking_id' => $booking->id,
+                    'admin_id'   => $request->user()->id,
+                    'total_price' => $booking->total_price,
+                    'amount_paid' => $booking->amount_paid,
+                ]);
+            }
+
             $booking = $this->bookingService->confirm($booking, $request->user()->id);
 
-            return response()->json($booking);
+            $response = $booking->toArray();
+            if ($confirmedWithoutPayment) {
+                $response['warning'] = 'Réservation confirmée sans paiement complet. Le client doit encore régler ' . number_format((float) $booking->remainingBalance(), 0, ',', ' ') . ' FCFA.';
+            }
+
+            return response()->json($response);
         }
 
         // ── Complétion ─────────────────────────────────────────────────────────

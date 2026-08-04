@@ -90,20 +90,6 @@ class AdminHostController extends Controller
         $host = User::where('role', 'host')->findOrFail($id);
         $this->authorize('validate', $host);
 
-        $requirements = $host->compliance_requirements;
-        $missing = collect($requirements)
-            ->filter(fn ($item) => empty($item['ok']))
-            ->pluck('label')
-            ->values();
-
-        if ($missing->isNotEmpty()) {
-            return response()->json([
-                'message' => 'Profil non conforme: certains documents/informations obligatoires sont manquants.',
-                'compliance_status' => 'non_conforme',
-                'missing_requirements' => $missing,
-            ], 422);
-        }
-
         $validated = $request->validate([
             'comment' => 'nullable|string|max:2000',
             'internal_notes' => 'nullable|string|max:5000',
@@ -127,10 +113,14 @@ class AdminHostController extends Controller
             'validation_data' => $validated['validation_data'] ?? null,
         ]);
 
+        // Recharger l'hôte pour avoir les données à jour incluant le compliance_status
+        $host->refresh();
+
         return response()->json([
             'message' => 'Hôte validé avec succès',
             'data' => $host->load('hostValidationHistory'),
-            'compliance_status' => 'conforme',
+            'compliance_status' => $host->compliance_status,
+            'compliance_requirements' => $host->compliance_requirements,
         ]);
     }
 

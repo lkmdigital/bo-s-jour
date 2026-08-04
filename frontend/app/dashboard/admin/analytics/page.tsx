@@ -6,7 +6,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { isController, isAdmin } from '@/lib/userUtils';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import {
   BarChart3,
@@ -127,7 +126,6 @@ export default function AdminAnalyticsPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -141,7 +139,6 @@ export default function AdminAnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>

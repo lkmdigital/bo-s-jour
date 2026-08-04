@@ -350,6 +350,104 @@ class AnalyticsController extends Controller
         $revparHost = $availableNightsHost > 0 ? round($revenueKpiHost / $availableNightsHost, 2) : 0;
         $avgPricePerRoomHost = $roomNightsSoldHost > 0 ? round($revenueKpiHost / $roomNightsSoldHost, 2) : 0;
 
+        // ── KPI additionnels pour le dashboard partenaire v2 ──────────────────
+
+        // Réservations du jour / du mois (agrégat hôte)
+        $bookingsTodayHost = Booking::whereHas('accommodation', function($q) use ($hostId) {
+            $q->where('host_id', $hostId);
+        })->whereDate('created_at', Carbon::today())->count();
+
+        $bookingsThisMonthHost = Booking::whereHas('accommodation', function($q) use ($hostId) {
+            $q->where('host_id', $hostId);
+        })->whereMonth('created_at', Carbon::now()->month)
+          ->whereYear('created_at', Carbon::now()->year)
+          ->count();
+
+        // Revenu annuel (année en cours)
+        $annualRevenueHost = (float) Booking::whereHas('accommodation', function($q) use ($hostId) {
+            $q->where('host_id', $hostId);
+        })->where('status', 'confirmed')
+          ->whereYear('created_at', Carbon::now()->year)
+          ->sum('total_price');
+
+        // Note moyenne des établissements de l'hôte
+        $averageRatingHost = (float) (Accommodation::where('host_id', $hostId)
+            ->whereNotNull('rating')
+            ->avg('rating') ?? 0);
+
+        // Revenus par type de chambre (room_category)
+        $revenueByRoomType = DB::table('bookings')
+            ->join('rooms', 'bookings.room_id', '=', 'rooms.id')
+            ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
+            ->where('accommodations.host_id', $hostId)
+            ->where('bookings.status', 'confirmed')
+            ->select('rooms.room_category', DB::raw('SUM(bookings.total_price) as revenue'))
+            ->groupBy('rooms.room_category')
+            ->orderByDesc('revenue')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'room_category' => $row->room_category ?? 'autre',
+                    'revenue' => (float) $row->revenue,
+                ];
+            });
+
+        // Taux d'occupation par semaine (4 dernières semaines)
+        $occupancyByWeek = [];
+        for ($i = 3; $i >= 0; $i--) {
+            $weekStart = Carbon::now()->subWeeks($i)->startOfWeek();
+            $weekEnd = (clone $weekStart)->endOfWeek();
+            $nightsSoldWeek = Booking::whereHas('accommodation', function($q) use ($hostId) {
+                    $q->where('host_id', $hostId);
+                })
+                ->where('status', 'confirmed')
+                ->where('check_in', '<=', $weekEnd)
+                ->where('check_out', '>=', $weekStart)
+                ->get()
+                ->sum(function ($b) use ($weekStart, $weekEnd) {
+                    $start = Carbon::parse($b->check_in)->max($weekStart);
+                    $end = Carbon::parse($b->check_out)->min($weekEnd);
+                    return max(0, $start->diffInDays($end));
+                });
+            $availableNightsWeek = $totalRooms * 7;
+            $occupancyByWeek[] = [
+                'week_label' => 'S' . (4 - $i),
+                'start_date' => $weekStart->toDateString(),
+                'occupancy_rate' => $availableNightsWeek > 0 ? round(($nightsSoldWeek / $availableNightsWeek) * 100, 2) : 0,
+            ];
+        }
+
+        // Chambres disponibles maintenant (actives et non occupées aujourd'hui)
+        $occupiedRoomsNow = DB::table('bookings')
+            ->join('rooms', 'bookings.room_id', '=', 'rooms.id')
+            ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
+            ->where('accommodations.host_id', $hostId)
+            ->where('bookings.status', 'confirmed')
+            ->where('bookings.check_in', '<=', Carbon::today())
+            ->where('bookings.check_out', '>', Carbon::today())
+            ->distinct('bookings.room_id')
+            ->count('bookings.room_id');
+        $activeRoomsNow = is_array($roomStats) ? ($roomStats['active_rooms'] ?? $totalRooms) : $totalRooms;
+        $availableRoomsNow = max(0, $activeRoomsNow - $occupiedRoomsNow);
+
+        // Score Bosejour — v1 heuristique (note/occupation/annulation). À valider avec le client.
+        $cancelledBookingsHost = Booking::whereHas('accommodation', function($q) use ($hostId) {
+            $q->where('host_id', $hostId);
+        })->where('status', 'cancelled')->count();
+        $cancellationRateHost = $totalBookings > 0 ? ($cancelledBookingsHost / $totalBookings) * 100 : 0;
+        $scoreBosejour = round(
+            (($averageRatingHost / 5) * 100 * 0.4) +
+            ($occupancyRate * 0.3) +
+            ((100 - $cancellationRateHost) * 0.3),
+            1
+        );
+
+        // Taux de conversion — v1 proxy sans tracking de vues. À valider avec le client.
+        $conversionAttemptsHost = $confirmedBookings + $pendingBookings + $cancelledBookingsHost;
+        $conversionRateHost = $conversionAttemptsHost > 0
+            ? round(($confirmedBookings / $conversionAttemptsHost) * 100, 2)
+            : 0;
+
         return response()->json([
             'total_bookings' => $totalBookings,
             'confirmed_bookings' => $confirmedBookings,
@@ -364,6 +462,15 @@ class AnalyticsController extends Controller
             'monthly_revenue' => $monthlyRevenue,
             'monthly_revenue_current' => $monthlyRevenueCurrent,
             'occupancy_rate' => round($occupancyRate, 2),
+            'annual_revenue' => $annualRevenueHost,
+            'bookings_today' => $bookingsTodayHost,
+            'bookings_this_month' => $bookingsThisMonthHost,
+            'average_rating' => round($averageRatingHost, 2),
+            'available_rooms_now' => $availableRoomsNow,
+            'revenue_by_room_type' => $revenueByRoomType,
+            'occupancy_by_week' => $occupancyByWeek,
+            'score_bosejour' => $scoreBosejour,
+            'conversion_rate' => $conversionRateHost,
             'top_accommodations' => $topAccommodations,
             'accommodations_stats' => $accommodationsStats,
             'rating_trend' => $ratingTrend,

@@ -7,6 +7,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomAvailabilityController;
+use App\Http\Controllers\RoomPricePeriodController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AppointmentController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Admin\AdminHostController;
 use App\Http\Controllers\Admin\AdminAccommodationController;
 use App\Http\Controllers\Admin\InspectionController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminBookingController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\OAuthController;
@@ -28,6 +30,7 @@ use App\Http\Controllers\Host\HostReviewController;
 use App\Http\Controllers\Host\HostInboxController;
 use App\Http\Controllers\Host\HostCheckInController;
 use App\Http\Controllers\Host\HostWithdrawalController;
+use App\Http\Controllers\Host\HostClientController;
 use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\BookingMessageController;
 use App\Http\Controllers\UserInboxController;
@@ -81,7 +84,7 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,
 
 // Email OTP & Password Reset (public)
 Route::post('/auth/send-otp', [AuthController::class, 'sendEmailOtp'])->middleware('throttle:3,1');
-Route::post('/auth/verify-otp', [AuthController::class, 'verifyEmailOtp']);
+Route::post('/auth/verify-otp', [AuthController::class, 'verifyEmailOtp'])->middleware('throttle:10,1');
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 
@@ -156,6 +159,12 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::put('/accommodations/{accommodationId}/rooms/{roomId}/availability/{id}', [RoomAvailabilityController::class, 'update']);
         Route::delete('/accommodations/{accommodationId}/rooms/{roomId}/availability/{id}', [RoomAvailabilityController::class, 'destroy']);
 
+        // Room Price Periods (tarification par période / saisonnière)
+        Route::get('/accommodations/{accommodationId}/rooms/{roomId}/price-periods', [RoomPricePeriodController::class, 'index']);
+        Route::post('/accommodations/{accommodationId}/rooms/{roomId}/price-periods', [RoomPricePeriodController::class, 'store']);
+        Route::put('/accommodations/{accommodationId}/rooms/{roomId}/price-periods/{id}', [RoomPricePeriodController::class, 'update']);
+        Route::delete('/accommodations/{accommodationId}/rooms/{roomId}/price-periods/{id}', [RoomPricePeriodController::class, 'destroy']);
+
         // Promotions
         Route::get('/accommodations/{accommodationId}/promotions', [PromotionController::class, 'index']);
         Route::post('/accommodations/{accommodationId}/promotions', [PromotionController::class, 'store']);
@@ -166,6 +175,9 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         // Commentaires clients (avis reçus + réponse)
         Route::get('/host/reviews', [HostReviewController::class, 'index']);
         Route::patch('/host/reviews/{id}/reply', [HostReviewController::class, 'reply'])->where('id', '[0-9]+');
+
+        // Clients (voyageurs ayant réservé chez l'hôte)
+        Route::get('/host/clients', [HostClientController::class, 'index']);
 
         // Boîte de réception (messages plateforme et voyageurs)
         Route::get('/host/inbox', [HostInboxController::class, 'index']);
@@ -204,6 +216,11 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
     // Payment callback (webhook, pas de rate limit - déjà publique, voir plus haut)
     Route::post('/payments/{paymentId}/callback', [PaymentController::class, 'callback']); // Webhook, pas de rate limit
+
+    // Réservations (vue globale admin, tous établissements confondus)
+    Route::get('/admin/bookings', [AdminBookingController::class, 'index'])->middleware('role:admin');
+    Route::get('/admin/bookings/cities', [AdminBookingController::class, 'cities'])->middleware('role:admin');
+    Route::get('/admin/bookings/{id}', [AdminBookingController::class, 'show'])->middleware('role:admin')->where('id', '[0-9]+');
 
     // Revenue
     Route::get('/revenue/admin', [RevenueController::class, 'adminRevenue'])->middleware('role:admin');
@@ -248,6 +265,14 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             ->middleware('permission:admin.dashboard.read');
         Route::get('/dashboard/accommodation-status', [AdminDashboardController::class, 'accommodationStatusDistribution'])
             ->middleware('permission:admin.dashboard.read');
+        Route::get('/dashboard/bookings-by-region', [AdminDashboardController::class, 'bookingsByRegion'])
+            ->middleware('permission:admin.dashboard.read');
+        Route::get('/dashboard/top-accommodations', [AdminDashboardController::class, 'topAccommodations'])
+            ->middleware('permission:admin.dashboard.read');
+        Route::get('/dashboard/monthly-revenue-trend', [AdminDashboardController::class, 'monthlyRevenueTrend'])
+            ->middleware('permission:admin.dashboard.read');
+        Route::get('/dashboard/occupancy-trend', [AdminDashboardController::class, 'occupancyTrend'])
+            ->middleware('permission:admin.dashboard.read');
 
         // Gestion des utilisateurs
         Route::prefix('users')->group(function () {
@@ -261,6 +286,8 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::post('/{id}/unblock', [AdminUserController::class, 'unblock'])->middleware('permission:users.unblock');
             Route::post('/{id}/roles', [AdminUserController::class, 'assignRoles'])->middleware('permission:users.manage_roles');
             Route::get('/{id}/activity-logs', [AdminUserController::class, 'activityLogs'])->middleware('permission:users.read');
+            Route::post('/{id}/reset-password', [AdminUserController::class, 'resetPassword'])->middleware('permission:users.update');
+            Route::delete('/{id}', [AdminUserController::class, 'destroy'])->middleware('permission:users.delete');
         });
 
         // Gestion des hôtes

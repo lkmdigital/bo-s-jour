@@ -16,6 +16,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'ngrok-skip-browser-warning': 'true', // Évite la page d'avertissement ngrok (gratuit) qui casse les appels API
   },
   // withCredentials removed - using Bearer tokens instead of cookies
 });

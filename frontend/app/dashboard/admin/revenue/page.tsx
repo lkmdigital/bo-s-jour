@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
+import { useToast } from '@/components/common/ToastContext';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import { formatPrice } from '@/lib/utils';
@@ -70,6 +70,7 @@ export default function AdminRevenuePage() {
   const [updatingRate, setUpdatingRate] = useState(false);
   const [showRateModal, setShowRateModal] = useState(false);
   const [newRate, setNewRate] = useState<string>('10');
+  const { showError, showWarning, showSuccess } = useToast();
   const defaultRange = useDefaultDateRange(30);
   const [dateRange, setDateRange] = useState(defaultRange);
 
@@ -114,7 +115,7 @@ export default function AdminRevenuePage() {
   const updateCommissionRate = async () => {
     const rate = parseFloat(newRate);
     if (isNaN(rate) || rate < 0 || rate > 100) {
-      alert('Le taux doit être entre 0 et 100');
+      showWarning('Le taux doit être entre 0 et 100');
       return;
     }
 
@@ -125,7 +126,7 @@ export default function AdminRevenuePage() {
       setShowRateModal(false);
       await fetchData(); // Rafraîchir les données
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors de la mise à jour');
+      showError(err.response?.data?.message || 'Erreur lors de la mise à jour');
     } finally {
       setUpdatingRate(false);
     }
@@ -134,7 +135,6 @@ export default function AdminRevenuePage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -148,7 +148,6 @@ export default function AdminRevenuePage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>

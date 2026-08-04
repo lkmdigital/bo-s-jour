@@ -161,7 +161,13 @@ export default function BookingPaymentPage() {
 
       const paymentOpts = bookingData.payment_options;
       if (paymentOpts) {
-        setPaymentType(paymentOpts.full_only ? 'full' : '');
+        // Définir le type de paiement par défaut: 'full' si disponible, sinon 'guarantee'
+        if (paymentOpts.full_only) {
+          setPaymentType('full');
+        } else {
+          // Par défaut, sélectionner 'full' si disponible, sinon 'guarantee'
+          setPaymentType('full');
+        }
       }
       
       // Essayer de récupérer le paiement existant seulement si on a déjà choisi un type
@@ -779,14 +785,13 @@ export default function BookingPaymentPage() {
                   )}
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm font-medium flex-shrink-0">
-                      {paymentType === 'full' ? 'Paiement intégral' :
-                       paymentType === 'guarantee' ? 'Garantie de réservation' : 'Total'}
+                      {paymentType === 'guarantee' ? 'Garantie de réservation' : 'Paiement intégral'}
                     </span>
                     <span className="text-lg font-bold text-primary text-right whitespace-nowrap">
-                      {paymentType === 'full' && booking.payment_options?.options?.full ? (
-                        formatPrice(booking.payment_options.options.full.amount) + ' FCFA'
-                      ) : paymentType === 'guarantee' && booking.payment_options?.options?.guarantee ? (
+                      {paymentType === 'guarantee' && booking.payment_options?.options?.guarantee ? (
                         formatPrice(booking.payment_options.options.guarantee.amount) + ' FCFA'
+                      ) : booking.payment_options?.options?.full ? (
+                        formatPrice(booking.payment_options.options.full.amount) + ' FCFA'
                       ) : (
                         formatPrice(booking.total_price) + ' FCFA'
                       )}

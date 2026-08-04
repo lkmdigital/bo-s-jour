@@ -26,12 +26,15 @@ class BookingConfirmation extends Mailable
      */
     public function build()
     {
-        return $this->subject('Confirmation de réservation #' . $this->booking->id)
+        $code = $this->booking->confirmation_code ?? '#' . $this->booking->id;
+
+        return $this->subject('Votre réservation Bosejour est confirmée — ' . $code)
                     ->view('emails.booking-confirmation')
                     ->with([
-                        'booking' => $this->booking,
+                        'booking'       => $this->booking,
                         'accommodation' => $this->booking->accommodation,
-                        'user' => $this->booking->user,
+                        'room'          => $this->booking->room,
+                        'user'          => $this->booking->user,
                     ]);
     }
 }

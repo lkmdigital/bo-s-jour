@@ -7,37 +7,49 @@ interface LogoProps {
   href?: string;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
-  useImage?: boolean; // Option pour utiliser l'image ou le texte
+  /** 'color' = fond clair (rond noir + bo rouge + séjour noir), 'white' = fond sombre */
+  variant?: 'color' | 'white';
+  /** false = rendu texte (Baloo) au lieu de l'image */
+  useImage?: boolean;
 }
 
-export default function Logo({ href = '/', className = '', size = 'md', useImage = true }: LogoProps) {
-  const sizeClasses = {
-    sm: 'h-8',
-    md: 'h-12',
-    lg: 'h-16',
-  };
+const SIZES = {
+  sm: { h: 'h-8', w: 121, hpx: 40 },
+  md: { h: 'h-12', w: 181, hpx: 60 },
+  lg: { h: 'h-16', w: 242, hpx: 80 },
+} as const;
+
+export default function Logo({
+  href = '/',
+  className = '',
+  size = 'md',
+  variant = 'color',
+  useImage = true,
+}: LogoProps) {
+  const s = SIZES[size];
 
   const logoContent = useImage ? (
     <Image
-      src="/images/payment-methods/logo/logo.png"
-      alt="Bosejour - Votre séjour commence ici..."
-      width={size === 'sm' ? 120 : size === 'md' ? 180 : 240}
-      height={size === 'sm' ? 40 : size === 'md' ? 60 : 80}
-      className={`${sizeClasses[size]} w-auto object-contain ${className}`}
+      src={variant === 'white' ? '/images/brand/logo-white.png' : '/images/brand/logo-black.png'}
+      alt="bo séjour — Votre séjour commence ici..."
+      width={s.w}
+      height={s.hpx}
+      className={`${s.h} w-auto object-contain ${className}`}
       priority
     />
   ) : (
-    // Fallback au logo texte si l'image n'est pas disponible
-    <span className={`font-logo font-bold flex items-center text-2xl ${className}`}>
-      <span className="text-primary">B</span>
-      <span className="text-accent">ose</span>
-      <span className="text-accent">jour</span>
+    // Fallback texte en Baloo (charte)
+    <span className={`font-logo inline-flex items-center gap-1.5 text-2xl leading-none ${className}`}>
+      <span className="inline-flex items-center justify-center rounded-full bg-black text-primary px-2 py-1">
+        bo
+      </span>
+      <span className={variant === 'white' ? 'text-white' : 'text-black'}>séjour</span>
     </span>
   );
 
   if (href) {
     return (
-      <Link href={href} className="flex items-center">
+      <Link href={href} className="flex items-center" aria-label="bo séjour — accueil">
         {logoContent}
       </Link>
     );
@@ -45,5 +57,3 @@ export default function Logo({ href = '/', className = '', size = 'md', useImage
 
   return logoContent;
 }
-
-

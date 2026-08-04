@@ -1,390 +1,275 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Search, Calendar, Users, Shield, Lock, Headphones, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Building2, Home, BedDouble, TreePalm, Tent, Castle, X, Minus, Plus } from 'lucide-react';
 import SearchInputWithAutocomplete from './SearchInputWithAutocomplete';
 import { useSearchStore } from '@/stores/searchStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import Link from 'next/link';
+import { cn } from '@/lib/utils';
+
+interface SearchParams {
+  search?: string;
+  checkIn?: string;
+  checkOut?: string;
+  guests?: number;
+  rooms?: number;
+  city?: string;
+  type?: string;
+}
 
 interface HeroSectionProps {
-  onSearch: (params: {
-    search?: string;
-    checkIn?: string;
-    checkOut?: string;
-    guests?: number;
-    city?: string;
-    type?: string;
-  }) => void;
-  initialValues?: {
-    search?: string;
-    checkIn?: string;
-    checkOut?: string;
-    guests?: number;
-    city?: string;
-    type?: string;
+  onSearch: (params: SearchParams) => void;
+  initialValues?: SearchParams;
+}
+
+const PROPERTY_TYPES = [
+  { key: 'hotel', label: 'Hôtel', icon: Building2 },
+  { key: 'maison', label: 'Maison', icon: Home },
+  { key: 'maison_hotes', label: "Maison d'hôtes", icon: BedDouble },
+  { key: 'cabine', label: 'Cabines', icon: TreePalm },
+  { key: 'glamping', label: 'Glamping', icon: Tent },
+  { key: 'dome', label: 'Doms', icon: Castle },
+];
+
+// Diaporama du hero (change toutes les 3 s)
+const unsplash = (id: string, w = 1600) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
+const SLIDES = [
+  '/images/bg.jpeg',
+  unsplash('1566073771259-6a8506099945'),
+  unsplash('1571003123894-1f0594d2b5d9'),
+  unsplash('1582719478250-c89cae4dc85b'),
+];
+
+/** Champ date façon maquette : affiche « Ajouter des dates » puis la date choisie */
+function DateField({ label, value, onChange, min, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; min?: string; disabled?: boolean;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const formatted = value
+    ? new Date(value).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+    : '';
+  const open = () => {
+    const el = ref.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+    if (el?.showPicker) el.showPicker();
+    else el?.focus();
   };
+  return (
+    <div className="relative flex-1 px-5 py-3 md:border-r border-gray-200">
+      <p className="text-[15px] font-semibold text-gray-900 mb-0.5">{label}</p>
+      <button type="button" onClick={open} disabled={disabled}
+        className={cn('text-sm text-left w-full', formatted ? 'text-gray-700' : 'text-gray-400', disabled && 'opacity-50')}>
+        {formatted || 'Ajouter des dates'}
+      </button>
+      <input ref={ref} type="date" value={value} min={min} disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className="absolute inset-0 opacity-0 pointer-events-none" tabIndex={-1} />
+    </div>
+  );
+}
+
+function GuestStepper({ label, sub, value, onChange, min = 0 }: { label: string; sub?: string; value: number; onChange: (v: number) => void; min?: number }) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <div>
+        <p className="font-medium text-gray-900">{label}</p>
+        {sub && <p className="text-xs text-gray-500">{sub}</p>}
+      </div>
+      <div className="flex items-center gap-3">
+        <button type="button" aria-label={`Retirer ${label}`} onClick={() => onChange(Math.max(min, value - 1))}
+          className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-primary hover:text-primary transition-colors disabled:opacity-40"
+          disabled={value <= min}>
+          <Minus className="w-4 h-4" />
+        </button>
+        <span className="min-w-[2ch] text-center font-semibold">{value}</span>
+        <button type="button" aria-label={`Ajouter ${label}`} onClick={() => onChange(value + 1)}
+          className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-primary hover:text-primary transition-colors">
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function HeroSection({ onSearch, initialValues }: HeroSectionProps) {
   const { session, setSearchSession } = useSearchStore();
   const [search, setSearch] = useState(initialValues?.search || session?.search || '');
+  const [city, setCity] = useState(initialValues?.city || session?.city || '');
   const [checkIn, setCheckIn] = useState(initialValues?.checkIn || session?.checkIn || '');
   const [checkOut, setCheckOut] = useState(initialValues?.checkOut || session?.checkOut || '');
-  const [guests, setGuests] = useState(initialValues?.guests ?? session?.guests ?? 1);
-  const [city, setCity] = useState(initialValues?.city || session?.city || '');
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [rooms, setRooms] = useState(initialValues?.rooms ?? session?.rooms ?? 1);
+  const [adults, setAdults] = useState(initialValues?.guests ?? session?.guests ?? 1);
+  const [children, setChildren] = useState(0);
+  const [type, setType] = useState(initialValues?.type || session?.type || 'hotel');
+  const [guestsOpen, setGuestsOpen] = useState(false);
+  const [slide, setSlide] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setSlide((s) => (s + 1) % SLIDES.length), 3000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (session && !initialValues?.checkIn) {
       setCheckIn(session.checkIn || '');
       setCheckOut(session.checkOut || '');
-      setGuests(session.guests ?? 1);
+      setRooms(session.rooms ?? 1);
+      setAdults(session.guests ?? 1);
       setSearch(session.search || '');
       setCity(session.city || '');
+      if (session.type) setType(session.type);
     }
   }, [session]);
 
+  const today = new Date().toISOString().split('T')[0];
+  const minCheckOut = checkIn || today;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const params = {
+    const params: SearchParams = {
       search: search.trim() || undefined,
+      city: city.trim() || undefined,
       checkIn: checkIn || undefined,
       checkOut: checkOut || undefined,
-      guests: guests > 0 ? guests : undefined,
-      city: city.trim() || undefined,
+      guests: adults + children > 0 ? adults + children : undefined,
+      rooms: rooms > 0 ? rooms : undefined,
+      type,
     };
     setSearchSession(params);
     onSearch(params);
   };
 
-  // Date minimale = aujourd'hui
-  const today = new Date().toISOString().split('T')[0];
-  // Date minimale pour check-out = check-in ou aujourd'hui
-  const minCheckOut = checkIn || today;
-
-  // Formater la date pour l'affichage
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
-  };
+  const guestsSummary = `${rooms} les chambres, ${adults} adultes, ${children} enfants`;
 
   return (
-    <div className="relative w-full h-[75vh] md:h-[90vh] min-h-[500px] md:min-h-[700px] flex items-center pt-16 md:pt-20">
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/bg.jpeg"
-          alt="Hero background"
-          fill
-          priority
-          className="object-cover"
-          quality={90}
-        />
-        {/* Overlay pour améliorer la lisibilité - gradient plus fort à gauche */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/60 to-black/30" />
+    <section className="relative bg-white dark:bg-gray-950 pb-16 pt-16">
+      {/* Image : diaporama + bords bas légèrement arrondis */}
+      <div className="relative h-[540px] md:h-[600px] rounded-b-[2.5rem] overflow-hidden">
+        {SLIDES.map((src, i) => (
+          <div
+            key={i}
+            className={cn('absolute inset-0 transition-opacity duration-1000 ease-in-out', i === slide ? 'opacity-100' : 'opacity-0')}
+          >
+            <Image src={src} alt="Hébergement en Côte d'Ivoire" fill priority={i === 0} className="object-cover" sizes="100vw" />
+          </div>
+        ))}
+        <div className="absolute inset-0 bg-black/35" />
+
+        {/* Titre centré */}
+        <div className="relative z-10 h-full flex flex-col items-center justify-center text-center text-white w-full px-4 pb-28">
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+            className="text-4xl md:text-6xl font-bold drop-shadow-lg md:whitespace-nowrap"
+          >
+            Votre voyage commence ici
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
+            className="mt-4 text-lg md:text-2xl font-medium drop-shadow md:whitespace-nowrap"
+          >
+            Trouvez des séjours uniques dans des hôtels, des villas et bien plus encore.
+          </motion.p>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 w-full">
-        {/* Contenu de gauche (logo, titre, description) */}
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 max-w-7xl">
-          <div className="max-w-2xl">
-            {/* Logo et Tagline */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="mb-8"
-            >
-              <Link href="/" className="inline-block mb-1">
-                <span className="text-3xl md:text-4xl font-bold text-red-600 font-logo tracking-tight">
-                  bosejour
-                </span>
-              </Link>
-              <p className="text-sm text-gray-300/90">Votre séjour commence ici...</p>
-            </motion.div>
-
-            {/* Titre principal */}
-            <motion.h1
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 md:mb-4 leading-tight"
-            >
-              Votre séjour commence ici...
-            </motion.h1>
-
-            {/* Description */}
-            <motion.p
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-base md:text-xl text-white mb-4 md:mb-8"
-            >
-              Trouvez et réservez votre hébergement idéal en Côte d'Ivoire.
-            </motion.p>
+      {/* Carte de recherche (chevauche le bord bas de l'image) */}
+      <motion.div
+        initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
+        className="relative z-20 -mt-28 md:-mt-24 w-full max-w-5xl mx-auto px-4"
+      >
+        {/* Onglets type de bien */}
+        <div className="flex justify-center relative z-20">
+          <div className="flex gap-1 overflow-x-auto max-w-full bg-gradient-to-r from-neutral-800 to-black rounded-full p-1.5 shadow-xl">
+            {PROPERTY_TYPES.map((t) => {
+              const Icon = t.icon;
+              const active = type === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setType(t.key)}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
+                    active ? 'bg-white text-black' : 'text-white/90 hover:bg-white/10'
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Bouton de recherche mobile - visible uniquement sur mobile */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="md:hidden mx-5 mb-4"
-        >
-          <button
-            type="button"
-            onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
-            className="w-full bg-white rounded-full shadow-xl px-5 py-3.5 flex items-center gap-3 text-left"
-          >
-            <Search className="w-5 h-5 text-primary flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {city || search || 'Où allez-vous ?'}
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                {checkIn ? formatDate(checkIn) : 'Dates'} · {guests} voyageur{guests > 1 ? 's' : ''}
-              </p>
+        {/* Formulaire (chevauche les onglets) */}
+        <form onSubmit={handleSubmit} className="-mt-6 bg-white rounded-3xl shadow-2xl px-2 pt-8 pb-2">
+          <div className="flex flex-col md:flex-row md:items-stretch">
+            {/* Emplacement */}
+            <div className="flex-[1.4] px-5 py-3 md:border-r border-gray-200">
+              <p className="text-[15px] font-semibold text-gray-900 mb-0.5">Emplacement</p>
+              <SearchInputWithAutocomplete
+                value={city || search}
+                onChange={(value, kind, extra) => {
+                  setSearch(value);
+                  if (kind === 'city') setCity(value);
+                  else if (kind === 'accommodation' && extra?.city) setCity(extra.city);
+                  else setCity(value);
+                }}
+                placeholder="Où vas-tu ?"
+                showIcon={false}
+                inputClassName="!border-0 !p-0 text-gray-500 placeholder-gray-400 focus:ring-0 focus:outline-none text-sm w-full"
+              />
             </div>
-          </button>
-        </motion.div>
 
-        {/* Panneau de recherche mobile dépliable */}
-        <AnimatePresence>
-          {mobileSearchOpen && (
-            <motion.div
-              className="md:hidden fixed inset-0 z-[60] bg-white dark:bg-gray-900"
-              initial={{ opacity: 0, y: '100%' }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            >
-              <div className="flex flex-col h-full">
-                {/* Header du panneau */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="text-lg font-bold">Rechercher</h2>
-                  <button
-                    onClick={() => setMobileSearchOpen(false)}
-                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-                  >
-                    <ArrowRight className="w-5 h-5 rotate-180" />
-                  </button>
-                </div>
+            {/* Enregistrement (arrivée) */}
+            <DateField label="Enregistrement" value={checkIn} min={today}
+              onChange={(v) => { setCheckIn(v); if (checkOut && v && checkOut < v) setCheckOut(''); }} />
 
-                {/* Champs de recherche empilés */}
-                <form onSubmit={(e) => { handleSubmit(e); setMobileSearchOpen(false); }} className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {/* Destination */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Où allez-vous ?</label>
-                    <SearchInputWithAutocomplete
-                      value={city || search}
-                      onChange={(value, type, extra) => {
-                        setSearch(value);
-                        if (type === 'city') setCity(value);
-                        else if (type === 'accommodation' && extra?.city) setCity(extra.city);
-                        else setCity(value);
-                      }}
-                      placeholder="Destination, ville, hébergement..."
-                      showIcon={true}
-                      inputClassName="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-base"
-                    />
-                  </div>
+            {/* Vérifier (départ) */}
+            <DateField label="Vérifier" value={checkOut} min={minCheckOut} disabled={!checkIn}
+              onChange={setCheckOut} />
 
-                  {/* Dates */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Arrivée</label>
-                      <input
-                        type="date"
-                        value={checkIn}
-                        onChange={(e) => {
-                          setCheckIn(e.target.value);
-                          if (checkOut && e.target.value && checkOut < e.target.value) {
-                            setCheckOut('');
-                          }
-                        }}
-                        min={today}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Départ</label>
-                      <input
-                        type="date"
-                        value={checkOut}
-                        onChange={(e) => setCheckOut(e.target.value)}
-                        min={minCheckOut}
-                        disabled={!checkIn}
-                        className={`w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-sm ${
-                          !checkIn ? 'opacity-50' : ''
-                        }`}
-                      />
-                    </div>
-                  </div>
+            {/* Chambres et invités */}
+            <div className="relative flex-[1.3] px-5 py-3 md:border-r border-gray-200">
+              <p className="text-[15px] font-semibold text-gray-900 mb-0.5">Chambres et invités</p>
+              <button type="button" onClick={() => setGuestsOpen((o) => !o)} className="w-full text-left text-sm text-gray-500 truncate">
+                {guestsSummary}
+              </button>
 
-                  {/* Voyageurs */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Voyageurs</label>
-                    <div className="flex items-center gap-4 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800">
-                      <button type="button" onClick={() => setGuests(Math.max(1, guests - 1))} className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-lg font-bold">−</button>
-                      <span className="flex-1 text-center text-base font-medium">{guests} {guests > 1 ? 'Voyageurs' : 'Voyageur'}</span>
-                      <button type="button" onClick={() => setGuests(Math.min(20, guests + 1))} className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-lg font-bold">+</button>
-                    </div>
-                  </div>
+              <AnimatePresence>
+                {guestsOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setGuestsOpen(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+                      className="absolute left-0 md:left-auto md:right-0 top-full mt-3 z-30 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold text-gray-900">Voyageurs</span>
+                        <button type="button" onClick={() => setGuestsOpen(false)} aria-label="Fermer"><X className="w-4 h-4 text-gray-400" /></button>
+                      </div>
+                      <GuestStepper label="Chambres" value={rooms} onChange={setRooms} min={1} />
+                      <GuestStepper label="Adultes" value={adults} onChange={setAdults} min={1} />
+                      <GuestStepper label="Enfants" sub="0 – 17 ans" value={children} onChange={setChildren} min={0} />
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
 
-                  {/* Bouton rechercher */}
-                  <button
-                    type="submit"
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-base"
-                  >
-                    <Search className="w-5 h-5" />
-                    Rechercher
-                  </button>
-                </form>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Barre de recherche desktop - cachée sur mobile */}
-        <motion.form
-          onSubmit={handleSubmit}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="hidden md:block mx-5 bg-white rounded-lg shadow-2xl mb-6"
-        >
-            <div className="flex flex-row">
-              {/* Où allez-vous - avec autocomplétion */}
-              <div className="flex-1 px-4 py-4 border-r border-gray-200">
-                <label className="block text-xs text-gray-500 mb-1 font-medium">Où allez-vous ?</label>
-                <SearchInputWithAutocomplete
-                  value={city || search}
-                  onChange={(value, type, extra) => {
-                    setSearch(value);
-                    if (type === 'city') setCity(value);
-                    else if (type === 'accommodation' && extra?.city) setCity(extra.city);
-                    else setCity(value);
-                  }}
-                  placeholder="Destination, ville, hébergement..."
-                  showIcon={false}
-                  inputClassName="!border-0 !p-0 text-gray-900 placeholder-gray-400 focus:ring-0 focus:outline-none text-base"
-                />
-              </div>
-
-              {/* Dates */}
-              <div className="flex-1 px-4 py-4 border-r border-gray-200">
-                <label className="block text-xs text-gray-500 mb-1 font-medium">Dates</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="date"
-                    value={checkIn}
-                    onChange={(e) => {
-                      setCheckIn(e.target.value);
-                      if (checkOut && e.target.value && checkOut < e.target.value) {
-                        setCheckOut('');
-                      }
-                    }}
-                    min={today}
-                    className="flex-1 text-gray-900 text-sm focus:outline-none border-none p-0"
-                  />
-                  <span className="text-gray-400">-</span>
-                  <input
-                    type="date"
-                    value={checkOut}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                    min={minCheckOut}
-                    disabled={!checkIn}
-                    className={`flex-1 text-gray-900 text-sm focus:outline-none border-none p-0 ${
-                      !checkIn ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* Voyageurs */}
-              <div className="flex-1 px-4 py-4 border-r border-gray-200">
-                <label className="block text-xs text-gray-500 mb-1 font-medium">Voyageurs</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={guests}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value) || 1;
-                      setGuests(Math.max(1, value));
-                    }}
-                    min={1}
-                    max={20}
-                    className="w-12 text-gray-900 focus:outline-none border-none p-0 text-base font-medium"
-                  />
-                  <span className="text-gray-600 text-sm flex-1">
-                    {guests} {guests > 1 ? 'Voyageurs' : 'Voyageur'}
-                  </span>
-                  <Users className="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
-
-              {/* Bouton Rechercher */}
+            {/* Bouton Rechercher */}
+            <div className="p-2 flex">
               <button
                 type="submit"
-                className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-10 py-4 transition-colors duration-200 flex items-center justify-center gap-2 whitespace-nowrap rounded-r-lg"
+                className="bg-primary hover:bg-primary-dark text-white font-semibold px-8 py-3.5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap transition-all hover:scale-[1.02] active:scale-95 w-full md:w-auto"
               >
                 <Search className="w-5 h-5" />
                 Rechercher
               </button>
             </div>
-          </motion.form>
-
-        {/* Contenu de gauche (fonctionnalités et CTA) */}
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 max-w-7xl">
-          <div className="max-w-2xl">
-            {/* Fonctionnalités */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="flex flex-wrap gap-6 md:gap-8 mb-8"
-            >
-              <div className="flex items-center gap-2 text-white">
-                <Shield className="w-5 h-5 text-red-600 flex-shrink-0" />
-                <span className="text-sm md:text-base font-medium">Hébergements contrôlés</span>
-              </div>
-              <div className="flex items-center gap-2 text-white">
-                <Lock className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm md:text-base font-medium">Paiement sécurisé</span>
-              </div>
-              <a
-                href="https://wa.me/2250705654775?text=Bonjour%2C%20j%27ai%20besoin%20d%27assistance."
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-white hover:text-green-300 transition-colors"
-              >
-                <Headphones className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm md:text-base font-medium">Assistance locale 7j/7</span>
-              </a>
-            </motion.div>
-
-            {/* Bouton CTA */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-            >
-              <Link
-                href="/accommodations"
-                className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200"
-              >
-                <span>Découvrir les meilleurs séjours</span>
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-            </motion.div>
           </div>
-        </div>
-      </div>
-    </div>
+        </form>
+      </motion.div>
+    </section>
   );
 }

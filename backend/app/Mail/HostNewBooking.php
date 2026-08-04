@@ -26,15 +26,15 @@ class HostNewBooking extends Mailable
      */
     public function build()
     {
-        $host = $this->booking->accommodation->host;
-        
-        return $this->subject('Nouvelle réservation - ' . $this->booking->accommodation->name)
+        $code = $this->booking->confirmation_code ?? '#' . $this->booking->id;
+
+        return $this->subject('Nouvelle réservation reçue — ' . $code)
                     ->view('emails.host-new-booking')
-                    ->to($host->email)
                     ->with([
-                        'booking' => $this->booking,
+                        'booking'       => $this->booking,
                         'accommodation' => $this->booking->accommodation,
-                        'guest' => $this->booking->user,
+                        'room'          => $this->booking->room,
+                        'guest'         => $this->booking->user,
                     ]);
     }
 }

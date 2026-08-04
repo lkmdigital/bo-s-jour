@@ -7,6 +7,8 @@ import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { ConfirmProvider } from '@/components/common/ConfirmContext';
+import { ValidationProvider } from '@/components/common/ValidationContext';
+import { ToastProvider } from '@/components/common/ToastContext';
 import ThemeBanner from '@/components/common/ThemeBanner';
 import MaintenancePage from '@/components/common/MaintenancePage';
 
@@ -54,8 +56,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ConfirmProvider>
-        <ThemeBanner theme={eventTheme} />
-        {children}
+        <ValidationProvider>
+          <ToastProvider>
+            <ThemeBanner theme={eventTheme} />
+            {children}
+          </ToastProvider>
+        </ValidationProvider>
       </ConfirmProvider>
     </QueryClientProvider>
   );

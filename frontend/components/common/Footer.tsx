@@ -1,162 +1,119 @@
 'use client';
 
 import Link from 'next/link';
-import { Facebook, Twitter, Instagram, Mail, Phone, MapPin, Heart } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Youtube, Apple, Play } from 'lucide-react';
+import Logo from './Logo';
+
+const COLUMNS = [
+  {
+    title: 'Explorer',
+    links: [
+      { label: 'Destinations tendances', href: '/accommodations' },
+      { label: "Points chauds de l'été", href: '/accommodations' },
+      { label: 'Escapades hivernales', href: '/accommodations' },
+      { label: 'Offres du week-end', href: '/accommodations' },
+      { label: 'Séjours en famille', href: '/accommodations' },
+    ],
+  },
+  {
+    title: 'Types de propriétés',
+    links: [
+      { label: 'Hôtels', href: '/accommodations?type=hotel' },
+      { label: 'Appartements', href: '/accommodations?type=apartment' },
+      { label: 'Villas', href: '/accommodations?type=villa' },
+      { label: 'Cabines', href: '/accommodations?type=cabine' },
+      { label: 'Glamping', href: '/accommodations?type=glamping' },
+      { label: 'Dômes', href: '/accommodations?type=dome' },
+    ],
+  },
+  {
+    title: 'Assistance',
+    links: [
+      { label: "Centre d'aide", href: '/help' },
+      { label: 'Assistance par chat en direct', href: 'https://wa.me/2250705654775' },
+      { label: 'FAQ', href: '/faq' },
+      { label: 'Contactez-nous', href: '/contact' },
+    ],
+  },
+];
+
+const PAYMENTS = ['Visa', 'Mastercard', 'Wave', 'Orange', 'MTN', 'Moov', 'Djamo'];
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gray-900 dark:bg-gray-950 text-gray-300 mt-auto">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* À propos */}
-          <div>
-            <h3 className="text-white font-bold text-lg mb-2">
-              <span className="text-primary">B</span>
-              <span className="text-accent">osejour</span>
-            </h3>
-            <p className="text-sm text-primary font-slogan mb-2">
-              Votre séjour commence ici...
+    <footer className="bg-black text-gray-300 mt-auto">
+      <div className="container mx-auto px-4 md:px-8 py-14 max-w-7xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+          {/* Marque */}
+          <div className="lg:col-span-2 max-w-sm">
+            <Logo href="/" variant="white" size="md" />
+            <p className="text-sm mt-4 mb-6 text-gray-400">
+              Nous vous aidons à trouver et réserver le séjour idéal — hôtels, résidences et villas — en toute
+              simplicité, en toute confiance et avec les meilleures offres.
             </p>
-            <p className="text-sm mb-4">
-              Votre plateforme de référence pour trouver et réserver le meilleur hébergement en Côte d'Ivoire.
-            </p>
-            <div className="flex space-x-4">
-              <a
-                href="https://facebook.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-primary transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook className="w-5 h-5" />
+            <p className="text-primary font-semibold text-sm mb-3">Téléchargez notre application</p>
+            <div className="flex gap-3">
+              <a href="#" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 transition-colors">
+                <Apple className="w-6 h-6" />
+                <span className="text-left leading-tight">
+                  <span className="block text-[10px] text-gray-400">Télécharger sur</span>
+                  <span className="block text-sm font-semibold text-white">App Store</span>
+                </span>
               </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-primary transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-primary transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram className="w-5 h-5" />
+              <a href="#" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 transition-colors">
+                <Play className="w-6 h-6" />
+                <span className="text-left leading-tight">
+                  <span className="block text-[10px] text-gray-400">Disponible sur</span>
+                  <span className="block text-sm font-semibold text-white">Google Play</span>
+                </span>
               </a>
             </div>
           </div>
 
-          {/* Liens rapides */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Liens rapides</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/" className="hover:text-primary transition-colors">
-                  Accueil
-                </Link>
-              </li>
-              <li>
-                <Link href="/accommodations" className="hover:text-primary transition-colors">
-                  Hébergements
-                </Link>
-              </li>
-              <li>
-                <Link href="/bookings" className="hover:text-primary transition-colors">
-                  Mes réservations
-                </Link>
-              </li>
-              <li>
-                <Link href="/auth/login" className="hover:text-primary transition-colors">
-                  Accéder à mon espace
-                </Link>
-              </li>
-              <li>
-                <Link href="/auth/register" className="hover:text-primary transition-colors">
-                  Créer mon espace
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Pour les hôtes */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Pour les hôtes</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/auth/register?role=host" className="hover:text-primary transition-colors">
-                  Devenir hôte
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard/host" className="hover:text-primary transition-colors">
-                  Espace hôte
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard/host/accommodations/new" className="hover:text-primary transition-colors">
-                  Ajouter un hébergement
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {/* Colonnes de liens */}
+          {COLUMNS.map((col) => (
+            <div key={col.title}>
+              <h3 className="text-primary font-semibold mb-4">{col.title}</h3>
+              <ul className="space-y-2.5 text-sm">
+                {col.links.map((l) => (
+                  <li key={l.label}>
+                    <Link href={l.href} className="text-gray-400 hover:text-white transition-colors">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
 
           {/* Contact */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Contact</h3>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-start gap-2">
-                <Mail className="w-4 h-4 mt-1 flex-shrink-0" />
-                <a href="mailto:contact@bosejour.com" className="hover:text-primary transition-colors">
-                  contact@bosejour.com
-                </a>
-              </li>
-              <li className="flex items-start gap-2">
-                <Phone className="w-4 h-4 mt-1 flex-shrink-0" />
-                <a href="tel:+2250000000000" className="hover:text-primary transition-colors">
-                  +225 00 00 00 00 00
-                </a>
-              </li>
-              <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
-                <span>Abidjan, Côte d'Ivoire</span>
-              </li>
+            <h3 className="text-primary font-semibold mb-4">Entrez en contact</h3>
+            <ul className="space-y-2.5 text-sm text-gray-400">
+              <li><a href="tel:+2250706402929" className="hover:text-white transition-colors">+225 07 06 40 29 29</a></li>
+              <li><a href="mailto:support@bosejour.ci" className="hover:text-white transition-colors">support@bosejour.ci</a></li>
             </ul>
+            <div className="flex gap-3 mt-4">
+              {[Facebook, Instagram, Youtube, Twitter].map((Icon, i) => (
+                <a key={i} href="#" className="w-9 h-9 rounded-full bg-white/10 hover:bg-primary flex items-center justify-center transition-colors" aria-label="Réseau social">
+                  <Icon className="w-4 h-4 text-white" />
+                </a>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Séparateur */}
-        <div className="border-t border-gray-800 mt-8 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-center md:text-left">
-              © {currentYear} Bosejour. Tous droits réservés.
-            </p>
-            <div className="flex flex-wrap justify-center md:justify-end gap-6 text-sm">
-              <Link href="/terms" className="hover:text-primary transition-colors">
-                Conditions d'utilisation
-              </Link>
-              <Link href="/privacy" className="hover:text-primary transition-colors">
-                Politique de confidentialité
-              </Link>
-              <Link href="/about" className="hover:text-primary transition-colors">
-                À propos
-              </Link>
-            </div>
-          </div>
-          <div className="mt-4 text-center text-xs text-gray-500">
-            <p className="flex items-center justify-center gap-1">
-              Fait par LKM Digital en Côte d'Ivoire
-            </p>
+        <div className="border-t border-white/10 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-gray-500">© {currentYear} bo séjour. Tous droits réservés.</p>
+          <div className="flex flex-wrap gap-2">
+            {PAYMENTS.map((p) => (
+              <span key={p} className="px-2.5 py-1 rounded-md bg-white text-gray-800 text-[11px] font-semibold">{p}</span>
+            ))}
           </div>
         </div>
       </div>
     </footer>
   );
 }
-

@@ -21,7 +21,7 @@ class PasswordResetMail extends Mailable
 
     public function build()
     {
-        return $this->subject('Réinitialisation de votre mot de passe BosEjour')
+        return $this->subject('Réinitialisation de votre mot de passe Bosejour')
                     ->view('emails.password-reset')
                     ->with([
                         'userName' => $this->userName,

@@ -6,7 +6,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { isController, isAdmin } from '@/lib/userUtils';
 import api from '@/lib/api';
 import AccommodationCreationWizard from '@/components/accommodations/AccommodationCreationWizard';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 interface HostOption {
@@ -55,7 +54,6 @@ export default function AdminNewAccommodationPage() {
   if (isLoading || loadingHosts) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>

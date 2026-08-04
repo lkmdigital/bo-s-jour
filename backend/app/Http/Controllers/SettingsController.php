@@ -23,6 +23,10 @@ class SettingsController extends Controller
             'app_support_email' => (string) Setting::get('app_support_email', ''),
             'app_support_phone' => (string) Setting::get('app_support_phone', ''),
             'app_currency' => (string) Setting::get('app_currency', 'XOF'),
+            // Intégrations carte (clés navigateur, non sensibles)
+            'maps_provider' => (string) Setting::get('maps_provider', 'osm'),
+            'mapbox_token' => (string) Setting::get('mapbox_token', ''),
+            'google_maps_api_key' => (string) Setting::get('google_maps_api_key', ''),
         ]);
     }
 
@@ -47,6 +51,10 @@ class SettingsController extends Controller
             'booking_min_nights' => (int) max(1, (int) Setting::get('booking_min_nights', 1)),
             'booking_max_nights' => (int) max(1, (int) Setting::get('booking_max_nights', 30)),
             'registration_hosts_enabled' => (bool) Setting::get('registration_hosts_enabled', true),
+            // Intégrations & API externes
+            'maps_provider' => (string) Setting::get('maps_provider', 'osm'),
+            'mapbox_token' => (string) Setting::get('mapbox_token', ''),
+            'google_maps_api_key' => (string) Setting::get('google_maps_api_key', ''),
         ]);
     }
 
@@ -71,6 +79,9 @@ class SettingsController extends Controller
             'booking_min_nights' => 'sometimes|integer|min:1|max:365',
             'booking_max_nights' => 'sometimes|integer|min:1|max:365',
             'registration_hosts_enabled' => 'sometimes|boolean',
+            'maps_provider' => 'sometimes|string|in:osm,mapbox',
+            'mapbox_token' => 'sometimes|nullable|string|max:255',
+            'google_maps_api_key' => 'sometimes|nullable|string|max:255',
         ]);
 
         if (array_key_exists('maintenance_enabled', $data)) {
@@ -125,6 +136,18 @@ class SettingsController extends Controller
                 'boolean',
                 'Inscription hôtes autorisée'
             );
+        }
+
+        if (array_key_exists('maps_provider', $data)) {
+            Setting::set('maps_provider', $data['maps_provider'], 'string', 'Fournisseur de fond de carte');
+        }
+
+        if (array_key_exists('mapbox_token', $data)) {
+            Setting::set('mapbox_token', $data['mapbox_token'] ?? '', 'string', 'Jeton public Mapbox');
+        }
+
+        if (array_key_exists('google_maps_api_key', $data)) {
+            Setting::set('google_maps_api_key', $data['google_maps_api_key'] ?? '', 'string', 'Clé API Google Maps');
         }
 
         return $this->getAdminSettings($request);

@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
+import { useToast } from '@/components/common/ToastContext';
+import { KeyRound, Trash2 } from 'lucide-react';
 import { isController, isAdmin } from '@/lib/userUtils';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import {
   User,
@@ -117,6 +118,7 @@ export default function UserDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const confirmAction = useConfirm();
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
@@ -179,7 +181,7 @@ export default function UserDetailPage() {
       });
       fetchUserDetail();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors du blocage');
+      showError(err.response?.data?.message || 'Erreur lors du blocage');
     } finally {
       setActionLoading(false);
     }
@@ -191,8 +193,49 @@ export default function UserDetailPage() {
       await api.post(`/admin/users/${userId}/unblock`);
       fetchUserDetail();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors du déblocage');
+      showError(err.response?.data?.message || 'Erreur lors du déblocage');
     } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const ok = await confirmAction({
+      title: 'Réinitialiser le mot de passe',
+      message: `Envoyer un lien de réinitialisation de mot de passe à ${userDetail?.email} ?`,
+      confirmLabel: 'Envoyer',
+      cancelLabel: 'Annuler',
+    });
+    if (!ok) return;
+
+    try {
+      setActionLoading(true);
+      const res = await api.post(`/admin/users/${userId}/reset-password`);
+      showSuccess(res.data?.message || 'Lien de réinitialisation envoyé');
+    } catch (err: any) {
+      showError(err.response?.data?.message || "Erreur lors de l'envoi du lien");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const ok = await confirmAction({
+      title: "Supprimer définitivement l'utilisateur",
+      message: `Êtes-vous sûr de vouloir supprimer définitivement ${userDetail?.name} ? Cette action est irréversible.`,
+      confirmLabel: 'Supprimer',
+      cancelLabel: 'Annuler',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
+    try {
+      setActionLoading(true);
+      await api.delete(`/admin/users/${userId}`);
+      showSuccess('Utilisateur supprimé définitivement');
+      router.push('/dashboard/admin/users');
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Erreur lors de la suppression');
       setActionLoading(false);
     }
   };
@@ -256,7 +299,6 @@ export default function UserDetailPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -271,7 +313,6 @@ export default function UserDetailPage() {
   if (!userDetail) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header />
         <main className="container mx-auto px-4 py-8">
           <div className="card">
             <p className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -288,7 +329,6 @@ export default function UserDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         {/* En-tête */}
         <div className="mb-6 flex items-center justify-between">
@@ -328,6 +368,22 @@ export default function UserDetailPage() {
                 Bloquer
               </button>
             )}
+            <button
+              onClick={handleResetPassword}
+              disabled={actionLoading}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <KeyRound className="w-4 h-4" />
+              Réinitialiser le mot de passe
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={actionLoading}
+              className="btn-secondary flex items-center gap-2 text-red-600 dark:text-red-400"
+            >
+              <Trash2 className="w-4 h-4" />
+              Supprimer
+            </button>
             <Link href="/dashboard/admin/users" className="btn-secondary">
               Retour à la liste
             </Link>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { useAuthStore } from '@/stores/authStore';
@@ -27,6 +27,16 @@ function LoginContent() {
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
+  const STAFF_MSG = "Ce portail est réservé aux voyageurs et aux partenaires. Le personnel bo séjour se connecte via le portail administrateur dédié.";
+
+  // Affiche le message si un compte staff a tenté de se connecter par ce portail
+  useEffect(() => {
+    if (searchParams.get('denied') === 'staff') {
+      setError(STAFF_MSG);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
     setError(null);
@@ -37,25 +47,29 @@ function LoginContent() {
       // Récupérer l'utilisateur connecté avec les rôles RBAC (déjà chargés par le store)
       const currentUser = useAuthStore.getState().user;
 
-      // Les contrôleurs sont toujours redirigés vers la page des inspections (vérification via RBAC)
-      if (isController(currentUser)) {
-        router.push('/dashboard/admin/inspections');
+      // Portail public réservé aux voyageurs et partenaires :
+      // le personnel bo séjour (admin / contrôleur) doit passer par le portail dédié.
+      if (isAdmin(currentUser) || isController(currentUser)) {
+        // Invalidation de la session locale
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+        useAuthStore.getState().setToken(null);
+        useAuthStore.getState().setUser(null);
+        useAuthStore.getState().logout().catch(() => {});
+        // Redirection dure vers ce même portail public avec le message (fiable)
+        window.location.href = '/auth/login?denied=staff';
         return;
       }
 
-      // Vérifier s'il y a un paramètre redirect (sauf pour les contrôleurs)
       const redirectPath = searchParams.get('redirect');
-
-      if (redirectPath) {
+      if (redirectPath && !redirectPath.startsWith('/dashboard/admin')) {
         router.push(decodeURIComponent(redirectPath));
+      } else if (currentUser?.role === 'host') {
+        router.push('/dashboard/host');
       } else {
-        if (currentUser?.role === 'host') {
-          router.push('/dashboard/host');
-        } else if (isAdmin(currentUser)) {
-          router.push('/dashboard/admin');
-        } else {
-          router.push('/');
-        }
+        router.push('/');
       }
     } catch (err: any) {
       if (err.requires_email_otp) {

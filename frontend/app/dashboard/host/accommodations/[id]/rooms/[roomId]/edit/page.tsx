@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import api from '@/lib/api';
@@ -99,7 +98,6 @@ export default function EditRoomPage() {
   if (loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <main className="container mx-auto px-4 py-12">
           <LoadingSpinner />
         </main>
@@ -110,7 +108,6 @@ export default function EditRoomPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <Link

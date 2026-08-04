@@ -1,4 +1,23 @@
 /**
+ * Concatène des classes conditionnelles (utilitaire léger type clsx).
+ * Ex: cn('base', isActive && 'active', error ? 'text-red' : undefined)
+ */
+export function cn(...inputs: Array<string | false | null | undefined>): string {
+  return inputs.filter(Boolean).join(' ');
+}
+
+/**
+ * Normalise une URL d'image renvoyée par l'API.
+ * En dev via tunnel, les images uploadées ont une URL `localhost:8000/storage`
+ * injoignable → on la fait passer par le proxy Next `/tunnel-storage`.
+ * En prod (URLs api.bosejour.ci), la valeur est laissée intacte.
+ */
+export function resolveImageUrl(url?: string | null): string {
+  if (!url) return '';
+  return url.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1):8000\/storage/, '/tunnel-storage');
+}
+
+/**
  * Formate un montant en entier (sans décimales) avec séparateurs de milliers
  * @param amount - Le montant à formater (peut être number, string ou decimal)
  * @returns Le montant formaté en entier avec séparateurs

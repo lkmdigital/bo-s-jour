@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { DM_Sans } from 'next/font/google';
+import { DM_Sans, Baloo_2, Dancing_Script } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
 import { Providers } from './providers';
@@ -8,36 +8,53 @@ import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import PagePadding from '@/components/common/PagePadding';
 import MobileBottomBar from '@/components/common/MobileBottomBar';
 
-const dmSans = DM_Sans({ 
+const dmSans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-dm-sans',
   display: 'swap',
 });
 
+// Police du logo (charte bo séjour)
+const baloo = Baloo_2({
+  subsets: ['latin'],
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-baloo',
+  display: 'swap',
+});
+
+// Police du slogan / des accroches (charte bo séjour)
+const dancingScript = Dancing_Script({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-dancing',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
-  title: 'Bosejour - Votre séjour commence ici...',
-  description: 'Bosejour : trouvez et réservez votre séjour, votre voyage commence ici.',
+  title: 'bo séjour - Votre séjour commence ici...',
+  description: 'bo séjour : trouvez et réservez votre hébergement idéal en Côte d\'Ivoire. Votre séjour commence ici.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Bosejour',
+    title: 'bo séjour',
   },
   icons: {
     icon: [
+      { url: '/icons/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/icons/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
-      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
 };
 
 // Next.js recommande d'exposer le viewport séparément
 export const viewport: Viewport = {
-  themeColor: '#C1121F',
+  themeColor: '#FF0000',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -56,13 +73,12 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#C1121F" />
+        <meta name="theme-color" content="#FF0000" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Bosejour" />
-        <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
+        <meta name="apple-mobile-web-app-title" content="bo séjour" />
       </head>
-      <body className={dmSans.variable}>
+      <body className={`${dmSans.variable} ${baloo.variable} ${dancingScript.variable}`}>
         <Providers>
           <PagePadding>{children}</PagePadding>
           <MobileBottomBar />

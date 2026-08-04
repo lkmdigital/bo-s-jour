@@ -222,6 +222,7 @@ class AdminAccommodationController extends Controller
             'auditLogs.user',
             'adminNotes.creator',
             'rooms',
+            'inspections.inspector',
         ])->findOrFail($id);
 
         $this->authorize('view', $accommodation);
@@ -240,22 +241,6 @@ class AdminAccommodationController extends Controller
     {
         $accommodation = Accommodation::with('host')->findOrFail($id);
         $this->authorize('approve', $accommodation);
-
-        $host = $accommodation->host;
-        if (!$host || $host->compliance_status !== 'conforme') {
-            $missing = $host
-                ? collect($host->compliance_requirements)
-                    ->filter(fn ($item) => empty($item['ok']))
-                    ->pluck('label')
-                    ->values()
-                : collect(['Hôte introuvable']);
-
-            return response()->json([
-                'message' => 'Établissement non conforme: le profil hôte est incomplet.',
-                'compliance_status' => 'non_conforme',
-                'missing_requirements' => $missing,
-            ], 422);
-        }
 
         $validated = $request->validate([
             'reason' => 'nullable|string|max:2000',
@@ -289,11 +274,13 @@ class AdminAccommodationController extends Controller
 
         if (!$host) {
             $accommodation->compliance_status = 'non_conforme';
+            $accommodation->compliance_requirements = [];
             return;
         }
 
         $host->compliance_status = $host->compliance_status;
         $accommodation->compliance_status = $host->compliance_status;
+        $accommodation->compliance_requirements = $host->compliance_requirements;
     }
 
     /**

@@ -1,0 +1,22 @@
+// BACKUP - Version sans vérification 2FA obligatoire
+// Si le 2FA cause des problèmes, vous pouvez temporairement utiliser cette version
+
+// Dans la méthode login(), remplacer la vérification 2FA par :
+// (Garder le reste du code identique)
+
+// Vérifier si le 2FA est activé (TEMPORAIREMENT DÉSACTIVÉ)
+// if ($user->two_factor_enabled) {
+//     $tempToken = $user->createToken('2fa-verification', ['verify-2fa'])->plainTextToken;
+//     
+//     return response()->json([
+//         'requires_2fa' => true,
+//         'user_id' => $user->id,
+//         'temp_token' => $tempToken,
+//         'message' => '2FA verification required',
+//     ], 200);
+// }
+
+// Continuer avec le login normal...
+
+
+

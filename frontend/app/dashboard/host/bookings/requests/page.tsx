@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Pagination from '@/components/common/Pagination';
@@ -176,7 +175,6 @@ export default function BookingRequestsPage() {
       await fetchBookings();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors de la mise à jour');
-      alert(err.response?.data?.message || 'Erreur lors de la mise à jour');
     } finally {
       setUpdatingId(null);
     }
@@ -233,7 +231,6 @@ export default function BookingRequestsPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -251,7 +248,6 @@ export default function BookingRequestsPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
       
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8">

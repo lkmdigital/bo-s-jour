@@ -10,8 +10,11 @@ use App\Models\BookingHistory;
 use App\Models\Room;
 use App\Models\RoomAvailability;
 use Carbon\Carbon;
+use App\Mail\BookingConfirmation;
+use App\Mail\HostNewBooking;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class BookingService
 {
@@ -103,17 +106,72 @@ class BookingService
 
     /**
      * Confirmer une réservation.
-     * Déclenche les notifications via queue.
+     * Envoie l'email de confirmation de façon synchrone (garantie de livraison)
+     * et dispatche les autres notifications en queue.
      */
     public function confirm(Booking $booking, ?int $actorId = null): Booking
     {
         $this->transition($booking, BookingStatus::Confirmed, 'confirmed', $actorId);
 
-        // Dispatch notifications en queue (non bloquant)
+        // Générer le code de confirmation si absent (doit exister avant l'envoi des emails)
+        if (empty($booking->confirmation_code)) {
+            $booking->confirmation_code = \App\Models\Booking::generateConfirmationCode();
+            $booking->save();
+        }
+
+        // Bloquer les dates uniquement lors de la confirmation (après paiement)
+        if ($booking->room_id) {
+            $this->blockDates(
+                $booking->room_id,
+                Carbon::parse($booking->check_in),
+                Carbon::parse($booking->check_out)
+            );
+        }
+
+        $booking->load(['user', 'accommodation', 'room']);
+
+        // Email de confirmation au client — synchrone, garanti
+        if ($booking->user?->email) {
+            try {
+                Mail::to($booking->user->email)->send(new BookingConfirmation($booking));
+            } catch (\Throwable $e) {
+                Log::error('Booking confirmation email (client) failed', [
+                    'booking_id' => $booking->id,
+                    'error'      => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Email de notification à l'hôte — synchrone, garanti
+        $hostEmail = $booking->accommodation?->host?->email;
+        if ($hostEmail) {
+            try {
+                Mail::to($hostEmail)->send(new HostNewBooking($booking));
+            } catch (\Throwable $e) {
+                Log::error('Booking confirmation email (host) failed', [
+                    'booking_id' => $booking->id,
+                    'error'      => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Confirmation par SMS (best-effort, en plus des emails)
+        try {
+            $sms = app(\App\Services\SmsService::class);
+            $sms->sendBookingConfirmationToClient($booking);
+            $sms->sendBookingNotificationToHost($booking);
+        } catch (\Throwable $e) {
+            Log::error('Booking confirmation SMS failed', [
+                'booking_id' => $booking->id,
+                'error'      => $e->getMessage(),
+            ]);
+        }
+
+        // Notification in-app (database) via queue
         dispatch(new \App\Jobs\SendBookingConfirmation($booking))
             ->onQueue('notifications');
 
-        // Programmer le rappel J-1
+        // Rappel J-1 via queue
         $reminderAt = Carbon::parse($booking->check_in)->subDay();
         if ($reminderAt->isFuture()) {
             dispatch(new \App\Jobs\SendBookingReminder($booking))

@@ -8,8 +8,12 @@ use App\Models\Commission;
 use App\Models\Message;
 use App\Models\Setting;
 use App\Services\PaymentOptionsService;
+use App\Mail\BookingConfirmation;
+use App\Mail\HostNewBooking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class PaymentController extends Controller
 {
@@ -137,7 +141,7 @@ class PaymentController extends Controller
             // Mettre à jour le booking avec payment_type et deposit_amount
             $booking->update([
                 'payment_type' => $paymentType,
-                'deposit_amount' => $paymentType === 'guarantee' ? $amountToPay : $amountToPay,
+                'deposit_amount' => $amountToPay,
             ]);
 
             \Log::info('Creating or retrieving payment', [
@@ -654,6 +658,8 @@ class PaymentController extends Controller
                     // Calculer et enregistrer la commission (released_at = null jusqu'au check-in)
                     $this->createCommission($payment);
                     $this->sendBookingCodeNotification($booking);
+                    // Envoyer les emails de confirmation hôte + client (avec le bon confirmation_code)
+                    $this->sendBookingEmails($booking);
                 }
 
                 \Log::info('Webhook malia-pay: Paiement confirmé', [
@@ -719,6 +725,8 @@ class PaymentController extends Controller
             if ($booking->payment_status === 'paid') {
                 $this->createCommission($payment);
                 $this->sendBookingCodeNotification($booking);
+                // Envoyer les emails de confirmation hôte + client (avec le bon confirmation_code)
+                $this->sendBookingEmails($booking);
             }
 
             return response()->json([
@@ -906,6 +914,50 @@ class PaymentController extends Controller
         ]);
 
         return $commission;
+    }
+
+    /**
+     * Envoyer les emails de confirmation au client et à l'hôte après paiement validé.
+     * Le confirmation_code doit déjà être généré à ce stade.
+     */
+    private function sendBookingEmails(Booking $booking): void
+    {
+        $booking->load(['user', 'accommodation.host', 'room']);
+
+        if ($booking->user?->email) {
+            try {
+                Mail::to($booking->user->email)->send(new BookingConfirmation($booking));
+            } catch (\Throwable $e) {
+                Log::error('Booking confirmation email (client) failed after payment', [
+                    'booking_id' => $booking->id,
+                    'error'      => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $hostEmail = $booking->accommodation?->host?->email;
+        if ($hostEmail) {
+            try {
+                Mail::to($hostEmail)->send(new HostNewBooking($booking));
+            } catch (\Throwable $e) {
+                Log::error('Booking confirmation email (host) failed after payment', [
+                    'booking_id' => $booking->id,
+                    'error'      => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Confirmation par SMS (best-effort, en plus des emails)
+        try {
+            $sms = app(\App\Services\SmsService::class);
+            $sms->sendBookingConfirmationToClient($booking);
+            $sms->sendBookingNotificationToHost($booking);
+        } catch (\Throwable $e) {
+            Log::error('Booking confirmation SMS failed after payment', [
+                'booking_id' => $booking->id,
+                'error'      => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

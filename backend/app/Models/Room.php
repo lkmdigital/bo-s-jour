@@ -117,6 +117,11 @@ class Room extends Model
         return $this->hasMany(RoomAvailability::class);
     }
 
+    public function pricePeriods()
+    {
+        return $this->hasMany(RoomPricePeriod::class);
+    }
+
     public function bookings()
     {
         return $this->hasMany(Booking::class);

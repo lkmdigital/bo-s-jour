@@ -59,6 +59,6 @@ enum BookingStatus: string
     /** Valeurs qui occupent une chambre (à exclure lors du calcul de disponibilité) */
     public static function occupying(): array
     {
-        return [self::Pending->value, self::Confirmed->value];
+        return [self::Confirmed->value];
     }
 }

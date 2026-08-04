@@ -1,0 +1,256 @@
+#!/bin/bash
+# =============================================================================
+# deployfront — Déploiement Zero-Downtime Frontend (Next.js)
+# Usage: ./deployfront [--build-local]
+#
+# Options:
+#   --build-local  Compiler localement sur le Mac avant envoi
+#
+# Stratégie zero-downtime :
+#   1. Build dans un dossier temporaire sur le serveur
+#   2. Swap atomique du dossier (mv) — aucune interruption de service
+#   3. pm2 reload (graceful) au lieu de restart brutal
+#   4. Rollback automatique si le nouveau build échoue
+# =============================================================================
+
+set -euo pipefail
+
+# ─── Couleurs ────────────────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+log()     { echo -e "${GREEN}[$(date '+%H:%M:%S')] ✓${NC} $*"; }
+info()    { echo -e "${BLUE}[$(date '+%H:%M:%S')] ℹ${NC} $*"; }
+warn()    { echo -e "${YELLOW}[$(date '+%H:%M:%S')] ⚠${NC} $*"; }
+error()   { echo -e "${RED}[$(date '+%H:%M:%S')] ✗ ERREUR:${NC} $*" >&2; }
+section() { echo -e "\n${BOLD}${CYAN}══ $* ══${NC}\n"; }
+die()     { error "$*"; exit 1; }
+
+# ─── Charger la configuration ─────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$(dirname "$SCRIPT_DIR")/deploy.config"
+
+[[ -f "$CONFIG_FILE" ]] || die "Fichier deploy.config introuvable."
+
+SERVER=""
+SERVER_PASS=""
+FRONTEND_DIR=""
+PM2_APP="monbeaupays-frontend"
+
+source "$CONFIG_FILE"
+
+[[ -n "$SERVER" ]]       || die "SERVER non défini dans deploy.config"
+[[ -n "$FRONTEND_DIR" ]] || die "FRONTEND_DIR non défini dans deploy.config"
+
+LOCAL_FRONTEND="$SCRIPT_DIR"
+BUILD_DIR="${FRONTEND_DIR}_build_tmp"
+
+# ─── Parsing arguments ───────────────────────────────────────────────────────
+BUILD_LOCAL=false
+for arg in "$@"; do
+    case $arg in
+        --build-local) BUILD_LOCAL=true ;;
+        *) die "Option inconnue: $arg" ;;
+    esac
+done
+
+# ─── Commandes SSH/Rsync ─────────────────────────────────────────────────────
+ssh_exec() {
+    if [[ -n "$SERVER_PASS" ]]; then
+        sshpass -p "$SERVER_PASS" ssh \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
+            -o PubkeyAuthentication=no \
+            -o PasswordAuthentication=yes \
+            "$SERVER" "$@"
+    else
+        ssh "$SERVER" "$@"
+    fi
+}
+
+rsync_exec() {
+    if [[ -n "$SERVER_PASS" ]]; then
+        sshpass -p "$SERVER_PASS" rsync \
+            -e "ssh -o StrictHostKeyChecking=no -o PubkeyAuthentication=no -o PasswordAuthentication=yes" \
+            "$@"
+    else
+        rsync "$@"
+    fi
+}
+
+# ─── Vérification SSH ─────────────────────────────────────────────────────────
+check_ssh() {
+    section "Vérification connexion SSH"
+    info "Connexion à $SERVER..."
+    if [[ -n "$SERVER_PASS" ]]; then
+        sshpass -p "$SERVER_PASS" ssh \
+            -o StrictHostKeyChecking=no -o ConnectTimeout=15 \
+            -o PubkeyAuthentication=no -o PasswordAuthentication=yes \
+            "$SERVER" "echo ok" > /dev/null 2>&1 \
+            || die "Connexion échouée. Vérifiez SERVER et SERVER_PASS"
+    else
+        ssh -o BatchMode=yes -o ConnectTimeout=10 "$SERVER" "echo ok" > /dev/null 2>&1 \
+            || die "Connexion SSH échouée. Vérifiez votre clé SSH."
+    fi
+    log "Connexion SSH OK"
+}
+
+# ─── FRONTEND ZERO-DOWNTIME ────────────────────────────────────────────────────
+deploy_frontend() {
+    section "Déploiement Frontend Zero-Downtime (Next.js)"
+    [[ -d "$LOCAL_FRONTEND" ]] || die "Dossier frontend introuvable: $LOCAL_FRONTEND"
+
+    local TIMESTAMP
+    TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+
+    if [ "$BUILD_LOCAL" = "true" ]; then
+        # ── Mode build local ──────────────────────────────────────────────────
+        section "Build local"
+        info "Installation des dépendances..."
+        (cd "$LOCAL_FRONTEND" && npm ci --prefer-offline 2>/dev/null || npm ci)
+
+        info "Configuration .env.production..."
+        echo 'NEXT_PUBLIC_API_URL=https://api.bosejour.ci/api' > "$LOCAL_FRONTEND/.env.production"
+        echo 'NODE_ENV=production' >> "$LOCAL_FRONTEND/.env.production"
+
+        info "Build Next.js..."
+        (cd "$LOCAL_FRONTEND" && npm run build)
+
+        info "Copie static → standalone..."
+        cp -r "$LOCAL_FRONTEND/.next/static" "$LOCAL_FRONTEND/.next/standalone/.next/static"
+        cp -r "$LOCAL_FRONTEND/public" "$LOCAL_FRONTEND/.next/standalone/public"
+        log "Build local terminé"
+
+        info "Transfert du build vers le serveur (dossier temporaire)..."
+        ssh_exec "rm -rf '$BUILD_DIR' && mkdir -p '$BUILD_DIR'"
+        rsync_exec -az --delete \
+            "$LOCAL_FRONTEND/.next/standalone/" "$SERVER:$BUILD_DIR/"
+
+        info "Ajout .env.production sur le serveur..."
+        ssh_exec "echo 'NEXT_PUBLIC_API_URL=https://api.bosejour.ci/api' > '$BUILD_DIR/.env.production' && echo 'NODE_ENV=production' >> '$BUILD_DIR/.env.production'"
+
+    else
+        # ── Mode build sur serveur ────────────────────────────────────────────
+        info "Transfert des sources vers dossier temporaire..."
+        ssh_exec "rm -rf '$BUILD_DIR' && mkdir -p '$BUILD_DIR'"
+        rsync_exec -az \
+            --exclude='node_modules/' \
+            --exclude='.next/' \
+            --exclude='.git/' \
+            --exclude='.DS_Store' \
+            --exclude='*.log' \
+            --exclude='.env.local' \
+            --exclude='.env.development' \
+            --exclude='*.tar.gz' \
+            "$LOCAL_FRONTEND/" "$SERVER:$BUILD_DIR/"
+        log "Sources transférées"
+
+        info "Build sur le serveur..."
+        ssh_exec bash << ENDSSH
+            set -e
+            cd '$BUILD_DIR'
+
+            echo '→ Vérification environnement...'
+            command -v node >/dev/null 2>&1 || { echo 'Node.js introuvable'; exit 1; }
+            command -v npm  >/dev/null 2>&1 || { echo 'npm introuvable';     exit 1; }
+            command -v pm2  >/dev/null 2>&1 || { echo 'pm2 introuvable';     exit 1; }
+
+            echo '→ .env.production...'
+            echo 'NEXT_PUBLIC_API_URL=https://api.bosejour.ci/api' > .env.production
+            echo 'NODE_ENV=production' >> .env.production
+
+            echo '→ Installation npm...'
+            npm ci --prefer-offline 2>/dev/null || npm install
+
+            echo '→ Build Next.js...'
+            npm run build
+
+            echo '→ Copie static → standalone...'
+            cp -r .next/static  .next/standalone/.next/static
+            cp -r public        .next/standalone/public
+            cp .env.production  .next/standalone/.env.production
+
+            echo '✓ Build terminé dans $BUILD_DIR'
+ENDSSH
+    fi
+
+    # ── Swap atomique + pm2 reload graceful ──────────────────────────────────
+    info "Swap atomique (zero-downtime)..."
+    ssh_exec bash << ENDSSH
+        set -e
+        FRONTEND_DIR='$FRONTEND_DIR'
+        BUILD_DIR='$BUILD_DIR'
+        BACKUP_DIR="${FRONTEND_DIR}_backup_$TIMESTAMP"
+        PM2_APP='$PM2_APP'
+        mkdir -p /var/log/pm2
+
+        # Choisir le dossier source final (standalone si build serveur)
+        if [ -d "\$BUILD_DIR/.next/standalone" ]; then
+            SWAP_SRC="\$BUILD_DIR/.next/standalone"
+        else
+            SWAP_SRC="\$BUILD_DIR"
+        fi
+
+        # Sauvegarder l'ancienne version
+        if [ -d "\$FRONTEND_DIR" ]; then
+            mv "\$FRONTEND_DIR" "\$BACKUP_DIR"
+        fi
+
+        # Swap atomique
+        mv "\$SWAP_SRC" "\$FRONTEND_DIR"
+
+        # Nettoyage dossier build temporaire
+        rm -rf "\$BUILD_DIR"
+
+        # pm2 reload graceful (sans downtime) ou start si absent
+        if pm2 describe "\$PM2_APP" > /dev/null 2>&1; then
+            pm2 reload "\$PM2_APP" --update-env
+        else
+            pm2 start "\$FRONTEND_DIR/server.js" --name "\$PM2_APP" \
+                -e /var/log/pm2/\$PM2_APP-error.log \
+                -o /var/log/pm2/\$PM2_APP-out.log
+        fi
+        pm2 save
+
+        # Vérification que le process est bien online
+        sleep 3
+        STATUS=\$(pm2 jlist | python3 -c "import sys,json; apps=json.load(sys.stdin); app=next((a for a in apps if a['name']=='\$PM2_APP'),None); print(app['pm2_env']['status'] if app else 'absent')" 2>/dev/null || echo 'unknown')
+        if [ "\$STATUS" != "online" ]; then
+            echo "ERREUR: pm2 status=\$STATUS — rollback..."
+            pm2 stop "\$PM2_APP" 2>/dev/null || true
+            rm -rf "\$FRONTEND_DIR" 2>/dev/null || true
+            mv "\$BACKUP_DIR" "\$FRONTEND_DIR"
+            pm2 start "\$FRONTEND_DIR/server.js" --name "\$PM2_APP" 2>/dev/null || \
+            pm2 reload "\$PM2_APP" --update-env 2>/dev/null || true
+            pm2 save
+            echo "✓ Rollback effectué — ancienne version restaurée"
+            exit 1
+        fi
+
+        # Nettoyer les anciens backups (garder les 3 derniers)
+        ls -dt ${FRONTEND_DIR}_backup_* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
+
+        echo "✓ Frontend live (status: \$STATUS)"
+ENDSSH
+
+    log "Frontend déployé sans downtime"
+}
+
+# ─── MAIN ─────────────────────────────────────────────────────────────────────
+echo -e "\n${BOLD}${CYAN}🚀 DeployFront Zero-Downtime [$(date '+%d/%m/%Y %H:%M')]${NC}\n"
+echo -e "  Serveur : ${BOLD}$SERVER${NC}"
+echo -e "  Source  : ${BOLD}$LOCAL_FRONTEND${NC}"
+echo -e "  Mode    : ${BOLD}$([ "$BUILD_LOCAL" = 'true' ] && echo 'Build local' || echo 'Build sur VPS')${NC}"
+echo ""
+
+check_ssh
+deploy_frontend
+
+echo ""
+echo -e "${GREEN}✅ Frontend déployé sans interruption de service !${NC}"
+echo ""

@@ -11,20 +11,34 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#C1121F', // rouge principal
-          dark: '#8F0D18',
-          light: '#D63B4A',
+          DEFAULT: '#FF0000', // rouge principal — charte bo séjour
+          dark: '#CC0000',
+          light: '#FF4D4D',
         },
         accent: {
           DEFAULT: '#0F0F0F', // noir profond
           dark: '#060606',
           light: '#1A1A1A',
         },
+        // Charte graphique Bosejour 2025 — tokens additifs, utilisés uniquement
+        // dans les nouveaux espaces (dashboard partenaire/admin) pour ne pas
+        // impacter la marque du reste du site.
+        bosejour: {
+          red: '#FF0000',
+          black: '#000000',
+          grayGreen: '#4B5F5A',
+          grayDark: '#343434',
+          beige: '#F7E8C6',
+          roseAccent: '#EE233C',
+        },
       },
       fontFamily: {
         sans: ['var(--font-dm-sans)', 'DM Sans', 'system-ui', 'sans-serif'],
-        logo: ['IBM Plex Sans Condensed', 'system-ui', 'sans-serif'],
-        slogan: ['Brush Script MT', 'Brush Script Std', 'cursive'],
+        logo: ['var(--font-baloo)', 'Baloo 2', 'system-ui', 'sans-serif'],
+        slogan: ['var(--font-dancing)', 'Dancing Script', 'cursive'],
+      },
+      borderRadius: {
+        pill: '9999px',
       },
       animation: {
         'slide-up': 'slide-up 0.3s ease-out',

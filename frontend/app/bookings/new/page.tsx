@@ -40,6 +40,7 @@ function NewBookingContent() {
   const [accommodation, setAccommodation] = useState<Accommodation | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingRoom, setLoadingRoom] = useState(!!roomId);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -74,10 +75,12 @@ function NewBookingContent() {
       }
     } catch (err: any) {
       console.error('Error fetching room:', err);
+    } finally {
+      setLoadingRoom(false);
     }
   };
 
-  if (loading) {
+  if (loading || loadingRoom) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />

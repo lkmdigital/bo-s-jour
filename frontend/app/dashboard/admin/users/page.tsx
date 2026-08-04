@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
+import { useToast } from '@/components/common/ToastContext';
 import { isController, isAdmin } from '@/lib/userUtils';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Pagination from '@/components/common/Pagination';
 import {
@@ -58,6 +58,7 @@ export default function AdminUsersPage() {
   });
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const confirmAction = useConfirm();
+  const { showError } = useToast();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
@@ -124,7 +125,7 @@ export default function AdminUsersPage() {
       });
       fetchUsers();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors du blocage');
+      showError(err.response?.data?.message || 'Erreur lors du blocage');
     } finally {
       setActionLoading(null);
     }
@@ -136,7 +137,7 @@ export default function AdminUsersPage() {
       await api.post(`/admin/users/${userId}/unblock`);
       fetchUsers();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors du déblocage');
+      showError(err.response?.data?.message || 'Erreur lors du déblocage');
     } finally {
       setActionLoading(null);
     }
@@ -197,7 +198,6 @@ export default function AdminUsersPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner />
         </div>
@@ -211,7 +211,6 @@ export default function AdminUsersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <div>

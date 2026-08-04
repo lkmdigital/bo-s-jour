@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useConfirm } from '@/components/common/ConfirmContext';
-import Header from '@/components/common/Header';
+import { useToast } from '@/components/common/ToastContext';
 import Footer from '@/components/common/Footer';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import api from '@/lib/api';
@@ -33,6 +33,7 @@ export default function RoomImagesPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const confirmAction = useConfirm();
+  const { showWarning, showError } = useToast();
 
   useEffect(() => {
     fetchRoom();
@@ -104,12 +105,12 @@ export default function RoomImagesPage() {
       
       // Afficher un avertissement si la chambre a été désactivée
       if (response.data.room_deactivated) {
-        alert(`Image supprimée. ⚠️ La chambre a été désactivée car il reste moins de 3 images (${response.data.remaining_images}).`);
+        showWarning(`Image supprimée. La chambre a été désactivée car il reste moins de 3 images (${response.data.remaining_images}).`);
       }
       
       await fetchRoom();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors de la suppression');
+      showError(err.response?.data?.message || 'Erreur lors de la suppression');
     }
   };
 
@@ -120,7 +121,7 @@ export default function RoomImagesPage() {
       );
       await fetchRoom();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors de la mise à jour');
+      showError(err.response?.data?.message || 'Erreur lors de la mise à jour');
     }
   };
 
@@ -129,7 +130,6 @@ export default function RoomImagesPage() {
   if (loading) {
     return (
       <div className="min-h-screen">
-        <Header />
         <main className="container mx-auto px-4 py-12">
           <LoadingSpinner />
         </main>
@@ -140,7 +140,6 @@ export default function RoomImagesPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <Link
