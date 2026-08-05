@@ -173,6 +173,16 @@ class User extends Authenticatable
         return $this->hasMany(Review::class);
     }
 
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
+    public function favoriteAccommodations()
+    {
+        return $this->belongsToMany(Accommodation::class, 'favorites')->withTimestamps();
+    }
+
     public function subscriptions()
     {
         return $this->hasMany(Subscription::class);

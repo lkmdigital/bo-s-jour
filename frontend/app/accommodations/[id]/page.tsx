@@ -592,7 +592,7 @@ export default function AccommodationDetailPage() {
             />
 
             {/* Galerie */}
-            <AccommodationGallery images={accommodation.images || []} name={accommodation.name} />
+            <AccommodationGallery images={accommodation.images || []} name={accommodation.name} accommodationId={accommodation.id} />
 
             {/* Bandeau confiance */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

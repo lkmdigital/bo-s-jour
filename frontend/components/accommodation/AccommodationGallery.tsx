@@ -1,22 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Grip, Heart, Share2 } from 'lucide-react';
 import ImageLightbox from '@/components/common/ImageLightbox';
 import { cn, resolveImageUrl } from '@/lib/utils';
+import { useAuthStore } from '@/stores/authStore';
+import { useFavoritesStore } from '@/stores/favoritesStore';
 
 interface Props {
   images: Array<{ url: string; is_primary?: boolean }>;
   name?: string;
+  accommodationId?: number;
 }
 
 const FALLBACK = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80';
 
-export default function AccommodationGallery({ images, name = 'Établissement' }: Props) {
+export default function AccommodationGallery({ images, name = 'Établissement', accommodationId }: Props) {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+  const { isFavorite, toggle, fetchIds, loaded } = useFavoritesStore();
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
-  const [fav, setFav] = useState(false);
+  const [localFav, setLocalFav] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && !loaded) fetchIds();
+  }, [isAuthenticated, loaded, fetchIds]);
+
+  const fav = accommodationId ? isFavorite(accommodationId) : localFav;
+
+  const handleFav = async () => {
+    if (!accommodationId) {
+      setLocalFav((f) => !f);
+      return;
+    }
+    if (!isAuthenticated) {
+      router.push(`/auth/login?redirect=${encodeURIComponent(`/accommodations/${accommodationId}`)}`);
+      return;
+    }
+    try {
+      await toggle(accommodationId);
+    } catch {
+      /* rollback géré par le store */
+    }
+  };
 
   const pics = (images && images.length ? images : [{ url: FALLBACK }]).map((i) => ({
     url: resolveImageUrl(i.url) || i.url || FALLBACK,
@@ -40,9 +69,10 @@ export default function AccommodationGallery({ images, name = 'Établissement' }
           <Share2 className="w-4 h-4 text-gray-800" />
         </button>
         <button
-          onClick={() => setFav((f) => !f)}
+          onClick={handleFav}
           className="w-10 h-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow hover:scale-110 transition-transform"
-          aria-label="Ajouter aux favoris"
+          aria-label={fav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+          aria-pressed={fav}
         >
           <Heart className={cn('w-4 h-4', fav ? 'fill-primary text-primary' : 'text-gray-800')} />
         </button>

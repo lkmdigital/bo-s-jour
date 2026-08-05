@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
 import { cn, formatPrice, resolveImageUrl } from '@/lib/utils';
+import { useAuthStore } from '@/stores/authStore';
+import { useFavoritesStore } from '@/stores/favoritesStore';
 
 export interface PropertyCardData {
   id: number | string;
@@ -27,8 +30,29 @@ function ratingLabel(r: number) {
 }
 
 export default function PropertyCard({ data }: { data: PropertyCardData }) {
-  const [fav, setFav] = useState(false);
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+  const { isFavorite, toggle, fetchIds, loaded } = useFavoritesStore();
   const href = data.href || `/accommodations/${data.id}`;
+  const fav = isFavorite(data.id);
+
+  useEffect(() => {
+    if (isAuthenticated && !loaded) fetchIds();
+  }, [isAuthenticated, loaded, fetchIds]);
+
+  const handleFav = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      router.push(`/auth/login?redirect=${encodeURIComponent(href)}`);
+      return;
+    }
+    try {
+      await toggle(data.id);
+    } catch {
+      /* rollback géré par le store */
+    }
+  };
 
   return (
     <div className="group bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
@@ -44,8 +68,9 @@ export default function PropertyCard({ data }: { data: PropertyCardData }) {
         </Link>
         <button
           type="button"
-          onClick={() => setFav((f) => !f)}
-          aria-label="Ajouter aux favoris"
+          onClick={handleFav}
+          aria-label={fav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+          aria-pressed={fav}
           className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow hover:scale-110 transition-transform"
         >
           <Heart className={cn('w-4 h-4', fav ? 'fill-primary text-primary' : 'text-gray-700')} />

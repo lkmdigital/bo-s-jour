@@ -25,6 +25,7 @@ use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\OAuthController;
 use App\Http\Controllers\ClientCreditController;
+use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Host\HostReviewController;
 use App\Http\Controllers\Host\HostInboxController;
@@ -215,6 +216,12 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     // Avoirs client (espace client)
     Route::get('/credits', [ClientCreditController::class, 'index']);
     Route::get('/credits/balance', [ClientCreditController::class, 'balance']);
+
+    // Favoris (espace client)
+    Route::get('/favorites', [FavoriteController::class, 'index']);
+    Route::get('/favorites/ids', [FavoriteController::class, 'ids']);
+    Route::post('/favorites', [FavoriteController::class, 'store'])->middleware('throttle:60,1');
+    Route::delete('/favorites/{accommodationId}', [FavoriteController::class, 'destroy'])->where('accommodationId', '[0-9]+');
 
     // Payment Methods (détails nécessitent authentification)
     Route::get('/payment-methods/{id}', [PaymentMethodController::class, 'show']);

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { User, authService } from '@/lib/auth';
 import { oneSignal } from '@/lib/oneSignal';
+import { useFavoritesStore } from '@/stores/favoritesStore';
 
 interface AuthState {
   user: User | null;
@@ -87,6 +88,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     oneSignal.logoutUser();
     await authService.logout();
+    useFavoritesStore.getState().reset();
     set({ user: null, token: null, isAuthenticated: false });
   },
 

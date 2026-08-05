@@ -11,7 +11,7 @@ import Pagination from '@/components/common/Pagination';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
-import { Calendar, Users, TrendingUp, Star, ArrowRight, CreditCard, FileText, Wallet, RefreshCw, MessageSquare, Compass } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Star, ArrowRight, CreditCard, FileText, Wallet, RefreshCw, MessageSquare, Compass, Heart } from 'lucide-react';
 
 interface Booking {
   id: number;
@@ -225,6 +225,9 @@ export default function UserDashboardPage() {
         <div className="flex flex-wrap gap-2 mb-8">
           <Link href="/bookings" className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors">
             <Calendar className="w-4 h-4" /> Mes réservations
+          </Link>
+          <Link href="/favorites" className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border border-gray-200 dark:border-gray-700 hover:border-primary hover:text-primary transition-colors">
+            <Heart className="w-4 h-4" /> Mes favoris
           </Link>
           <Link href="/dashboard/user/inbox" className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border border-gray-200 dark:border-gray-700 hover:border-primary hover:text-primary transition-colors">
             <MessageSquare className="w-4 h-4" /> Messages
