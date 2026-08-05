@@ -7,6 +7,7 @@ use App\Exceptions\InvalidBookingTransitionException;
 use App\Exceptions\RoomNotAvailableException;
 use App\Models\Booking;
 use App\Models\BookingHistory;
+use App\Models\ClientCredit;
 use App\Models\Room;
 use App\Models\RoomAvailability;
 use Carbon\Carbon;
@@ -167,6 +168,16 @@ class BookingService
             ]);
         }
 
+        // Double confirmation : WhatsApp (best-effort, en plus de l'e-mail)
+        try {
+            app(\App\Services\WhatsAppService::class)->sendBookingConfirmation($booking);
+        } catch (\Throwable $e) {
+            Log::error('Booking confirmation WhatsApp failed', [
+                'booking_id' => $booking->id,
+                'error'      => $e->getMessage(),
+            ]);
+        }
+
         // Notification in-app (database) via queue
         dispatch(new \App\Jobs\SendBookingConfirmation($booking))
             ->onQueue('notifications');
@@ -206,6 +217,55 @@ class BookingService
 
         dispatch(new \App\Jobs\SendBookingCancellation($booking, $reason))
             ->onQueue('notifications');
+
+        return $booking->fresh();
+        // NB : l'avoir voyageur est généré par CancellationPolicyService::onBookingCancelled (appelé par le contrôleur).
+    }
+
+    /**
+     * Refus d'une réservation par l'établissement (mode "sur demande").
+     * -> Remboursement intégral automatique (le voyageur n'est pas fautif) ; PAS d'avoir.
+     */
+    public function refuse(Booking $booking, string $reason = '', ?int $actorId = null): Booking
+    {
+        DB::transaction(function () use ($booking, $reason, $actorId) {
+            $this->transition($booking, BookingStatus::Cancelled, 'cancelled', $actorId, $reason ?: "Demande refusée par l'établissement");
+
+            if ($booking->room_id) {
+                $this->releaseDates($booking->room_id, Carbon::parse($booking->check_in), Carbon::parse($booking->check_out));
+            }
+
+            $refund = (float) $booking->amount_paid;
+            $booking->update([
+                'refund_amount' => $refund,
+                'refunded_at' => $refund > 0 ? now() : null,
+                'payment_status' => $refund > 0 ? 'refunded' : $booking->payment_status,
+            ]);
+
+            if ($refund > 0) {
+                // Remboursement automatique (≤ 24h) via la passerelle : hook (dépend du client).
+                Log::info('Auto refund to process (host refusal)', ['booking_id' => $booking->id, 'amount' => $refund]);
+                // TODO: app(\App\Services\PaymentRefundService::class)->refund($booking, $refund);
+            }
+        });
+
+        dispatch(new \App\Jobs\SendBookingCancellation($booking, $reason))->onQueue('notifications');
+
+        return $booking->fresh();
+    }
+
+    /**
+     * Marquer une réservation comme No Show (absence de check-in).
+     * L'établissement conserve l'acompte : aucun remboursement ni avoir.
+     */
+    public function markNoShow(Booking $booking, ?int $actorId = null): Booking
+    {
+        $booking->update([
+            'no_show_at' => now(),
+            'refund_amount' => 0,
+            'credit_amount' => 0,
+        ]);
+        $this->logHistory($booking, $booking->status, $booking->status, 'no_show', $actorId, 'Absence de check-in détectée — acompte conservé');
 
         return $booking->fresh();
     }

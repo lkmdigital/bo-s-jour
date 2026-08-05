@@ -31,7 +31,7 @@ export default function PropertyCard({ data }: { data: PropertyCardData }) {
   const href = data.href || `/accommodations/${data.id}`;
 
   return (
-    <div className="group bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl">
+    <div className="group bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
       <div className="relative aspect-[4/3] overflow-hidden">
         <Link href={href}>
           <Image

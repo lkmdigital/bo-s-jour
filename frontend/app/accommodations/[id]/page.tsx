@@ -14,14 +14,17 @@ import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
 import { useToast } from '@/components/common/ToastContext';
 import { isAdmin } from '@/lib/userUtils';
-import { MapPin, Star, Users, Bed, Bath, Clock, CheckCircle, XCircle, EyeOff, Wrench, Edit, Trash2, Calendar, ExternalLink } from 'lucide-react';
-import MediaCarousel from '@/components/media/MediaCarousel';
-import AccommodationCard from '@/components/accommodation/AccommodationCard';
+import { MapPin, Star, Users, Bed, Bath, Clock, CheckCircle, XCircle, EyeOff, Wrench, Edit, Trash2, Calendar, ExternalLink, Wifi, Car, Waves, Snowflake, Coffee, Utensils, Dumbbell, PawPrint, CreditCard, ShieldCheck, Lock, CigaretteOff, LogIn as LogInIcon, LogOut as LogOutIcon } from 'lucide-react';
+import AccommodationGallery from '@/components/accommodation/AccommodationGallery';
+import { PromoBadge, VerifiedBadge } from '@/components/ui';
+import PropertyCard, { PropertyCardData } from '@/components/home/PropertyCard';
+import ResultsMap, { MapItem } from '@/components/accommodations/ResultsMap';
 import HorizontalScrollCarousel from '@/components/common/HorizontalScrollCarousel';
 import { StaggerContainer, StaggerItem } from '@/components/common/animations';
 import RoomsList from '@/components/accommodation/RoomsList';
-import ReportReviewButton from '@/components/review/ReportReviewButton';
-import DateSelector from '@/components/booking/DateSelector';
+import BookingSidebar, { PriceQuote } from '@/components/accommodation/BookingSidebar';
+import ReviewsSection from '@/components/accommodation/ReviewsSection';
+import AccommodationTabs from '@/components/accommodation/AccommodationTabs';
 import Link from 'next/link';
 
 interface RoomTypePricing {
@@ -104,13 +107,52 @@ interface Accommodation {
       bed?: number;
       breakfast?: number;
     };
-    user: { name: string };
+    user: { name: string; avatar?: string | null };
     created_at: string;
     admin_reply?: string | null;
   }>;
   rooms?: Room[];
   // Optionnel : certains établissements peuvent être mis en avant comme promotion
   is_featured?: boolean;
+  // Politiques & paiement (brief voyageur)
+  cancellation_policy_hours?: number | null;
+  deposit_required?: boolean;
+  deposit_amount?: 'first_night' | 'percentage' | 'fixed' | null;
+  deposit_percentage?: number | null;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
+  smoking_area?: boolean | null;
+  pets_allowed?: boolean | null;
+}
+
+/* ---- Helpers d'affichage (services / politiques / paiement) ---- */
+const AMENITY_ICONS: Record<string, typeof Wifi> = {
+  wifi: Wifi, 'wi-fi': Wifi, parking: Car, piscine: Waves, pool: Waves,
+  climatisation: Snowflake, clim: Snowflake, 'petit-déjeuner': Coffee, 'petit déjeuner': Coffee,
+  breakfast: Coffee, restaurant: Utensils, 'salle de sport': Dumbbell, sport: Dumbbell, gym: Dumbbell,
+  'animaux acceptés': PawPrint, animaux: PawPrint,
+};
+function amenityIcon(name: string) {
+  return AMENITY_ICONS[name.toLowerCase().trim()] || CheckCircle;
+}
+function cancellationPolicy(hours?: number | null) {
+  const h = typeof hours === 'number' ? hours : 48;
+  if (h === 0) return { label: 'Stricte', color: 'text-[#EE233C]', bg: 'bg-red-50 dark:bg-red-900/20', desc: "Réservation non remboursable. Aucune annulation gratuite." };
+  if (h <= 24) return { label: 'Modérée', color: 'text-amber-700', bg: 'bg-amber-50 dark:bg-amber-900/20', desc: `Annulation gratuite jusqu'à ${h}h avant l'arrivée. Passé ce délai : 50 % conservé, 50 % en avoir.` };
+  return { label: 'Flexible', color: 'text-green-700', bg: 'bg-green-50 dark:bg-green-900/20', desc: `Annulation gratuite jusqu'à ${h}h avant l'arrivée. Ensuite, l'acompte est transformé en avoir.` };
+}
+function paymentMode(acc: Accommodation) {
+  if (acc.deposit_required === false) {
+    return { title: 'Paiement intégral', desc: 'Le montant total du séjour est réglé en ligne au moment de la réservation.' };
+  }
+  const amt = acc.deposit_amount;
+  const desc =
+    amt === 'percentage'
+      ? `Un acompte de ${acc.deposit_percentage ?? ''} % est réglé en ligne ; le solde directement à l'établissement.`
+      : amt === 'fixed'
+      ? "Un acompte fixe est réglé en ligne ; le solde directement à l'établissement."
+      : "Un acompte correspondant à la première nuitée est réglé en ligne ; le solde à l'arrivée.";
+  return { title: 'Réservation garantie par acompte', desc };
 }
 
 export default function AccommodationDetailPage() {
@@ -127,8 +169,9 @@ export default function AccommodationDetailPage() {
   const [allRooms, setAllRooms] = useState<Room[]>([]); // Toutes les chambres (sans filtre)
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [sortBy, setSortBy] = useState<'price' | 'capacity' | 'name'>('price');
-  const [pricingVariants, setPricingVariants] = useState<PricingVariantsData | null>(null);
+  const [priceQuote, setPriceQuote] = useState<(PriceQuote & { variants: PricingVariantsData }) | null>(null);
   const [loadingPricing, setLoadingPricing] = useState(false);
+  const [mapCfg, setMapCfg] = useState<{ provider: string; token: string }>({ provider: 'osm', token: '' });
   const urlCheckIn = searchParams?.get('check_in');
   const urlCheckOut = searchParams?.get('check_out');
   const urlGuests = searchParams?.get('guests');
@@ -167,6 +210,12 @@ export default function AccommodationDetailPage() {
   useEffect(() => {
     fetchAccommodation();
   }, [params.id]);
+
+  useEffect(() => {
+    api.get('/settings/public')
+      .then((r) => setMapCfg({ provider: r.data?.maps_provider || 'osm', token: r.data?.mapbox_token || '' }))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (session?.checkIn && session?.checkOut && !selectedDates.checkIn) {
@@ -277,30 +326,38 @@ export default function AccommodationDetailPage() {
     }
   }, [accommodation]);
 
-  // Charger les plans tarifaires (variantes) pour affichage dans la fiche établissement
+  // Aperçu tarifaire (plans tarifaires + encart réservation) : utilise les dates
+  // sélectionnées par le voyageur si disponibles, sinon une fenêtre indicative (J+1/J+2)
   useEffect(() => {
     if (!accommodation?.id) return;
     let cancelled = false;
     setLoadingPricing(true);
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dayAfter = new Date(tomorrow);
-    dayAfter.setDate(dayAfter.getDate() + 1);
-    const checkIn = tomorrow.toISOString().split('T')[0];
-    const checkOut = dayAfter.toISOString().split('T')[0];
+    let checkIn: string;
+    let checkOut: string;
+    if (selectedDates.checkIn && selectedDates.checkOut) {
+      checkIn = selectedDates.checkIn.toISOString().split('T')[0];
+      checkOut = selectedDates.checkOut.toISOString().split('T')[0];
+    } else {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dayAfter = new Date(tomorrow);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+      checkIn = tomorrow.toISOString().split('T')[0];
+      checkOut = dayAfter.toISOString().split('T')[0];
+    }
     api
       .get(`/accommodations/${accommodation.id}/price-preview?check_in=${checkIn}&check_out=${checkOut}`)
       .then((res) => {
-        if (!cancelled && res.data?.variants) setPricingVariants(res.data.variants);
+        if (!cancelled) setPriceQuote(res.data);
       })
       .catch(() => {
-        if (!cancelled) setPricingVariants(null);
+        if (!cancelled) setPriceQuote(null);
       })
       .finally(() => {
         if (!cancelled) setLoadingPricing(false);
       });
     return () => { cancelled = true; };
-  }, [accommodation?.id]);
+  }, [accommodation?.id, selectedDates.checkIn?.getTime(), selectedDates.checkOut?.getTime()]);
 
   const fetchAccommodation = async () => {
     try {
@@ -459,7 +516,7 @@ export default function AccommodationDetailPage() {
       <Header />
       
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6">
           {error && (
             <ErrorDisplay error={error} onDismiss={() => setError(null)} />
           )}
@@ -494,79 +551,83 @@ export default function AccommodationDetailPage() {
             </div>
           )}
 
-          {/* Bandeau festif de promotion si l'établissement est mis en avant */}
-          {accommodation.is_featured && (
-              <div className="relative overflow-hidden rounded-2xl border-2 border-primary/70 bg-gradient-to-r from-primary via-red-500 to-orange-400 text-white px-6 py-4 shadow-xl mb-4">
-                <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-                <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-black/20 rounded-full blur-2xl" />
-                <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-widest opacity-80">
-                      Offre spéciale Bosejour
-                    </p>
-                    <h2 className="text-2xl sm:text-3xl font-extrabold mt-1 flex items-center gap-2">
-                      ✨ Promotion exceptionnelle sur cet établissement
-                    </h2>
-                    <p className="text-sm sm:text-base mt-1 opacity-90">
-                      Profitez d&apos;une ambiance festive et de conditions avantageuses pour votre prochain séjour.
-                      Les meilleurs tarifs sont actuellement proposés par cet hôte.
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="px-3 py-1 rounded-full bg-black/30 text-xs font-semibold uppercase tracking-wide">
-                      Établissement en promotion
-                    </div>
-                    <div className="px-4 py-2 rounded-full bg-white text-primary font-bold text-sm shadow-sm">
-                      🎁 Offre spéciale voyageur
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
+            {/* En-tête */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <h1 className="text-3xl font-bold">{accommodation.name}</h1>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <VerifiedBadge />
+                {accommodation.is_featured && <PromoBadge>Promo</PromoBadge>}
                 {isHost && accommodation.status && (
-                  <span className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 ${statusLabels[currentStatus as keyof typeof statusLabels]?.color || 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>
-                    <StatusIcon className="w-4 h-4" />
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5 ${statusLabels[currentStatus as keyof typeof statusLabels]?.color || 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>
+                    <StatusIcon className="w-3.5 h-3.5" />
                     {statusLabels[currentStatus as keyof typeof statusLabels]?.label || currentStatus}
                   </span>
                 )}
               </div>
-              <div className="flex items-center space-x-4 text-gray-600 dark:text-gray-400">
-                <div className="flex items-center">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  {accommodation.city}, {accommodation.address}
-                </div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{accommodation.name}</h1>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-gray-600 dark:text-gray-400">
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  {accommodation.city}{accommodation.address ? `, ${accommodation.address}` : ''}
+                </span>
                 {accommodation.rating && typeof accommodation.rating === 'number' && accommodation.rating > 0 && (
-                  <div className="flex items-center">
-                    <Star className="w-4 h-4 fill-accent text-accent mr-1" />
-                    <span className="font-semibold">{Number(accommodation.rating).toFixed(1)}</span>
-                    <span className="ml-1">({accommodation.total_reviews || 0} avis)</span>
-                  </div>
+                  <span className="inline-flex items-center gap-1">
+                    <Star className="w-4 h-4 fill-[#F7C948] text-[#F7C948]" />
+                    <span className="font-semibold text-gray-900 dark:text-white">{Number(accommodation.rating).toFixed(1)}</span>
+                    <span className="text-gray-400">({accommodation.total_reviews || 0} avis)</span>
+                  </span>
                 )}
               </div>
             </div>
 
-            <MediaCarousel items={(accommodation.images || []).map(i => ({ url: i.url }))} />
+            <AccommodationTabs
+              tabs={[
+                { id: 'apercu', label: 'Aperçu' },
+                { id: 'commodites', label: 'Commodités' },
+                { id: 'emplacement', label: 'Emplacement' },
+                { id: 'chambres', label: 'Chambres' },
+                { id: 'avis', label: 'Avis' },
+              ]}
+            />
 
-            <div className="card">
+            {/* Galerie */}
+            <AccommodationGallery images={accommodation.images || []} name={accommodation.name} />
+
+            {/* Bandeau confiance */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-gray-700 p-4">
+                <ShieldCheck className="w-6 h-6 text-primary flex-shrink-0" />
+                <p className="text-sm text-gray-700 dark:text-gray-300">Confirmation instantanée par <strong>E-mail + WhatsApp</strong></p>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-gray-700 p-4">
+                <Lock className="w-6 h-6 text-primary flex-shrink-0" />
+                <p className="text-sm text-gray-700 dark:text-gray-300">Paiement sécurisé — <strong>remboursement 24h</strong> si l'établissement refuse</p>
+              </div>
+            </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+
+            <div id="apercu" className="card scroll-mt-40">
               <h2 className="text-2xl font-bold mb-4">Description</h2>
               <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
                 {accommodation.description}
               </p>
             </div>
 
-            <div className="card">
-              <h2 className="text-2xl font-bold mb-4">Équipements</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {accommodation.amenities?.map((amenity, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <span className="text-primary">✓</span>
-                    <span className="capitalize">{amenity}</span>
-                  </div>
-                ))}
+            <div id="commodites" className="card scroll-mt-40">
+              <h2 className="text-2xl font-bold mb-4">Ce que propose ce logement</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {accommodation.amenities?.map((amenity, index) => {
+                  const Icon = amenityIcon(amenity);
+                  return (
+                    <div key={index} className="flex items-center gap-3">
+                      <span className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-5 h-5 text-gray-700 dark:text-gray-200" />
+                      </span>
+                      <span className="capitalize text-gray-800 dark:text-gray-200">{amenity}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -588,55 +649,103 @@ export default function AccommodationDetailPage() {
               </div>
             </div>
 
+            {/* Politiques, paiement & horaires */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Politique d'annulation */}
+              {(() => { const p = cancellationPolicy(accommodation.cancellation_policy_hours); return (
+                <div className="card">
+                  <div className="flex items-center gap-2 mb-2">
+                    <XCircle className={`w-5 h-5 ${p.color}`} />
+                    <h3 className="font-bold text-gray-900 dark:text-white">Politique d'annulation</h3>
+                    <span className={`ml-auto text-xs font-semibold px-2.5 py-1 rounded-full ${p.bg} ${p.color}`}>{p.label}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{p.desc}</p>
+                </div>
+              ); })()}
+
+              {/* Mode de paiement */}
+              {(() => { const m = paymentMode(accommodation); return (
+                <div className="card">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    <h3 className="font-bold text-gray-900 dark:text-white">Mode de paiement</h3>
+                  </div>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{m.title}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{m.desc}</p>
+                  <p className="text-xs text-gray-500 mt-2">Visa · Mastercard · Djamo · Wave · Orange Money · MTN · Moov</p>
+                </div>
+              ); })()}
+
+              {/* Horaires */}
+              <div className="card md:col-span-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-5 h-5 text-primary" />
+                  <h3 className="font-bold text-gray-900 dark:text-white">Horaires</h3>
+                </div>
+                <div className="flex flex-wrap gap-8 text-sm">
+                  <div className="flex items-center gap-2">
+                    <LogInIcon className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-600 dark:text-gray-400">Arrivée</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{(accommodation.check_in_time || '14:00').slice(0, 5)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <LogOutIcon className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-600 dark:text-gray-400">Départ</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{(accommodation.check_out_time || '12:00').slice(0, 5)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Plans tarifaires (variantes selon politique d'annulation et durée) */}
             <div className="card">
               <h2 className="text-2xl font-bold mb-4">Plans tarifaires</h2>
               {loadingPricing ? (
                 <p className="text-gray-600 dark:text-gray-400">Chargement des tarifs...</p>
-              ) : pricingVariants ? (
+              ) : priceQuote?.variants ? (
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2 items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-                    <span className="font-medium text-gray-900 dark:text-white">{pricingVariants.base.label}</span>
-                    <span className="text-primary font-semibold">{formatPrice(pricingVariants.base.price_per_night)} FCFA / nuit</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{priceQuote.variants.base.label}</span>
+                    <span className="text-primary font-semibold">{formatPrice(priceQuote.variants.base.price_per_night)} FCFA / nuit</span>
                   </div>
-                  {pricingVariants.enabled && (
+                  {priceQuote.variants.enabled && (
                     <>
-                      {pricingVariants.non_refundable && (
+                      {priceQuote.variants.non_refundable && (
                         <div className="flex flex-wrap gap-2 items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-                          <span className="text-gray-700 dark:text-gray-300">{pricingVariants.non_refundable.label}</span>
+                          <span className="text-gray-700 dark:text-gray-300">{priceQuote.variants.non_refundable.label}</span>
                           <span className="text-gray-900 dark:text-white font-medium">
-                            {formatPrice(pricingVariants.non_refundable.price_per_night)} FCFA / nuit
-                            {pricingVariants.non_refundable.adjustment_label && (
-                              <span className="text-sm text-green-600 dark:text-green-400 ml-1">({pricingVariants.non_refundable.adjustment_label})</span>
+                            {formatPrice(priceQuote.variants.non_refundable.price_per_night)} FCFA / nuit
+                            {priceQuote.variants.non_refundable.adjustment_label && (
+                              <span className="text-sm text-green-600 dark:text-green-400 ml-1">({priceQuote.variants.non_refundable.adjustment_label})</span>
                             )}
                           </span>
                         </div>
                       )}
-                      {pricingVariants.modifiable && (
+                      {priceQuote.variants.modifiable && (
                         <div className="flex flex-wrap gap-2 items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-                          <span className="text-gray-700 dark:text-gray-300">{pricingVariants.modifiable.label}</span>
+                          <span className="text-gray-700 dark:text-gray-300">{priceQuote.variants.modifiable.label}</span>
                           <span className="text-gray-900 dark:text-white font-medium">
-                            {formatPrice(pricingVariants.modifiable.price_per_night)} FCFA / nuit
-                            {pricingVariants.modifiable.adjustment_label && (
-                              <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">({pricingVariants.modifiable.adjustment_label})</span>
+                            {formatPrice(priceQuote.variants.modifiable.price_per_night)} FCFA / nuit
+                            {priceQuote.variants.modifiable.adjustment_label && (
+                              <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">({priceQuote.variants.modifiable.adjustment_label})</span>
                             )}
                           </span>
                         </div>
                       )}
-                      {pricingVariants.long_stay && (
+                      {priceQuote.variants.long_stay && (
                         <div className="flex flex-wrap gap-2 items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-                          <span className="text-gray-700 dark:text-gray-300">{pricingVariants.long_stay.label}</span>
+                          <span className="text-gray-700 dark:text-gray-300">{priceQuote.variants.long_stay.label}</span>
                           <span className="text-gray-900 dark:text-white font-medium">
-                            {formatPrice(pricingVariants.long_stay.price_per_night)} FCFA / nuit
-                            {pricingVariants.long_stay.adjustment_label && (
-                              <span className="text-sm text-green-600 dark:text-green-400 ml-1">({pricingVariants.long_stay.adjustment_label})</span>
+                            {formatPrice(priceQuote.variants.long_stay.price_per_night)} FCFA / nuit
+                            {priceQuote.variants.long_stay.adjustment_label && (
+                              <span className="text-sm text-green-600 dark:text-green-400 ml-1">({priceQuote.variants.long_stay.adjustment_label})</span>
                             )}
                           </span>
                         </div>
                       )}
                     </>
                   )}
-                  {!pricingVariants.enabled && (
+                  {!priceQuote.variants.enabled && (
                     <p className="text-sm text-gray-500 dark:text-gray-400">Tarif unique appliqué à toutes les réservations.</p>
                   )}
                 </div>
@@ -645,15 +754,8 @@ export default function AccommodationDetailPage() {
               )}
             </div>
 
-            {/* Sélecteur de dates et chambres */}
-            <div className="space-y-6">
-              <DateSelector
-                onDatesSelected={handleDatesSelected}
-                initialCheckIn={selectedDates.checkIn || undefined}
-                initialCheckOut={selectedDates.checkOut || undefined}
-                initialGuests={selectedDates.guests}
-              />
-              
+            {/* Chambres (dates sélectionnées depuis l'encart de réservation) */}
+            <div id="chambres" className="space-y-6 scroll-mt-40">
               {/* Tri et filtres */}
               {(rooms.length > 0 || loadingRooms) && (
                 <div className="card">
@@ -735,8 +837,8 @@ export default function AccommodationDetailPage() {
             </div>
 
             {hasCoordinates && mapEmbedUrl && (
-              <div className="card">
-                <div className="flex items-center justify-between mb-4">
+              <div id="emplacement" className="card scroll-mt-40">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mb-4">
                   <h2 className="text-2xl font-bold">Localisation</h2>
                   <span className="text-sm text-gray-500 dark:text-gray-400">
                     {hasValidCoordinates ? 'Coordonnées approximatives' : 'Localisation par défaut (Abidjan)'}
@@ -769,21 +871,88 @@ export default function AccommodationDetailPage() {
                       Ouvrir dans Google Maps
                     </a>
                   </div>
-                  <div className="relative w-full h-64 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                    <iframe
-                      title="Carte de localisation"
-                      src={mapEmbedUrl}
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      className="absolute inset-0 w-full h-full"
-                    />
-                  </div>
+                  <ResultsMap
+                    items={[{
+                      id: accommodation.id,
+                      title: accommodation.name,
+                      price: accommodation.price_per_night,
+                      lat: finalLat,
+                      lng: finalLng,
+                    } satisfies MapItem]}
+                    provider={mapCfg.provider}
+                    mapboxToken={mapCfg.token}
+                    className="!h-64 lg:!h-full"
+                  />
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-500 mt-3">
                   Les coordonnées affichées sont approximatives et servent uniquement à guider les voyageurs.
                 </p>
               </div>
             )}
+
+            <ReviewsSection
+              id="avis"
+              reviews={accommodation.reviews}
+              averageRating={accommodation.rating}
+              totalReviews={accommodation.total_reviews}
+              isAuthenticated={isAuthenticated}
+            />
+
+            {/* Politiques */}
+            <div className="card">
+              <h2 className="text-2xl font-bold mb-4">Politiques</h2>
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                <div className="flex items-start justify-between gap-4 py-4 first:pt-0">
+                  <div className="flex items-center gap-3 font-semibold text-gray-900 dark:text-white">
+                    <LogInIcon className="w-5 h-5 text-primary" />
+                    Enregistrement
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-right">
+                    À partir de {(accommodation.check_in_time || '14:00').slice(0, 5)}
+                  </p>
+                </div>
+                <div className="flex items-start justify-between gap-4 py-4">
+                  <div className="flex items-center gap-3 font-semibold text-gray-900 dark:text-white">
+                    <LogOutIcon className="w-5 h-5 text-primary" />
+                    Départ
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-right">
+                    Avant {(accommodation.check_out_time || '12:00').slice(0, 5)}
+                  </p>
+                </div>
+                {(() => { const p = cancellationPolicy(accommodation.cancellation_policy_hours); return (
+                  <div className="flex items-start justify-between gap-4 py-4">
+                    <div className="flex items-center gap-3 font-semibold text-gray-900 dark:text-white">
+                      <XCircle className="w-5 h-5 text-primary" />
+                      Annulation/paiement anticipé
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 text-right max-w-sm">{p.desc}</p>
+                  </div>
+                ); })()}
+                {accommodation.smoking_area != null && (
+                  <div className="flex items-start justify-between gap-4 py-4">
+                    <div className="flex items-center gap-3 font-semibold text-gray-900 dark:text-white">
+                      <CigaretteOff className="w-5 h-5 text-primary" />
+                      Fumer
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 text-right">
+                      {accommodation.smoking_area ? 'Un espace fumeur est disponible.' : "Il est interdit de fumer."}
+                    </p>
+                  </div>
+                )}
+                {accommodation.pets_allowed != null && (
+                  <div className="flex items-start justify-between gap-4 py-4 last:pb-0">
+                    <div className="flex items-center gap-3 font-semibold text-gray-900 dark:text-white">
+                      <PawPrint className="w-5 h-5 text-primary" />
+                      Animaux de compagnie
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 text-right">
+                      {accommodation.pets_allowed ? 'Les animaux sont autorisés.' : 'Les animaux ne sont pas autorisés.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Autres établissements de la même ville */}
             <div className="card">
@@ -795,32 +964,31 @@ export default function AccommodationDetailPage() {
                   </p>
                 </div>
               </div>
-              
+
               {loadingSimilar ? (
                 <div className="text-center py-8">
                   <p className="text-gray-600 dark:text-gray-400">Chargement des suggestions...</p>
                 </div>
               ) : similarAccommodations.length > 0 ? (
-                <HorizontalScrollCarousel 
+                <HorizontalScrollCarousel
                   autoScroll={false}
                   showControls={similarAccommodations.length > 3}
                 >
-                  {similarAccommodations.map((similarAcc) => (
-                    <AccommodationCard 
-                      key={similarAcc.id} 
-                      accommodation={{
-                        id: similarAcc.id,
-                        name: similarAcc.name,
-                        slug: '',
-                        type: similarAcc.type,
-                        city: similarAcc.city,
-                        price_per_night: similarAcc.price_per_night,
-                        rating: similarAcc.rating,
-                        total_reviews: similarAcc.total_reviews,
-                        images: similarAcc.images || [],
-                      }}
-                    />
-                  ))}
+                  {similarAccommodations.map((similarAcc) => {
+                    const primary = similarAcc.images?.find((img) => img.is_primary)?.url || similarAcc.images?.[0]?.url || '';
+                    // rating/total_reviews arrivent parfois en string depuis l'API (cast decimal Laravel)
+                    const numericRating = similarAcc.rating != null ? Number(similarAcc.rating) : undefined;
+                    const cardData: PropertyCardData = {
+                      id: similarAcc.id,
+                      title: similarAcc.name,
+                      location: similarAcc.city,
+                      image: primary,
+                      rating: numericRating && numericRating > 0 ? numericRating : undefined,
+                      reviews: similarAcc.total_reviews != null ? Number(similarAcc.total_reviews) : undefined,
+                      price: similarAcc.price_per_night,
+                    };
+                    return <PropertyCard key={similarAcc.id} data={cardData} />;
+                  })}
                 </HorizontalScrollCarousel>
               ) : (
                 <div className="text-center py-8">
@@ -830,100 +998,20 @@ export default function AccommodationDetailPage() {
                 </div>
               )}
             </div>
+            </div>
 
-            {accommodation.reviews && accommodation.reviews.length > 0 && (
-              <div className="card">
-                <h2 className="text-2xl font-bold mb-4">Avis ({accommodation.total_reviews})</h2>
-                <div className="space-y-6">
-                  {accommodation.reviews.map((review) => {
-                    const categoryLabels: { [key: string]: string } = {
-                      cleanliness: 'Propreté',
-                      equipment: 'Equipements',
-                      staff: 'Personnel',
-                      value_for_money: 'Rapport qualité/prix',
-                      location: 'Situation géographique',
-                      comfort: 'Confort',
-                      wifi: 'Wi-Fi',
-                      bed: 'Evaluation du lit',
-                      breakfast: 'Petit déjeuner',
-                    };
-
-                    return (
-                      <div key={review.id} className="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-0">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="font-semibold">{review.user.name}</span>
-                          <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-4 h-4 ${
-                                  i < review.rating
-                                    ? 'fill-yellow-400 text-yellow-400'
-                                    : 'text-gray-300 dark:text-gray-600'
-                                }`}
-                              />
-                            ))}
-                            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                              {review.rating}/5
-                            </span>
-                          </div>
-                        </div>
-
-                        {review.category_ratings && Object.keys(review.category_ratings).length > 0 && (
-                          <div className="mb-3 space-y-2">
-                            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                              Détails de l'évaluation :
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                              {Object.entries(review.category_ratings).map(([key, value]) => (
-                                <div key={key} className="flex items-center justify-between">
-                                  <span className="text-gray-600 dark:text-gray-400">
-                                    {categoryLabels[key] || key}:
-                                  </span>
-                                  <div className="flex items-center gap-1">
-                                    {[...Array(5)].map((_, i) => (
-                                      <Star
-                                        key={i}
-                                        className={`w-3 h-3 ${
-                                          i < (value as number)
-                                            ? 'fill-yellow-400 text-yellow-400'
-                                            : 'text-gray-300 dark:text-gray-600'
-                                        }`}
-                                      />
-                                    ))}
-                                    <span className="ml-1 text-xs text-gray-500">
-                                      {value}/5
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <p className="text-gray-700 dark:text-gray-300 mb-2">{review.comment}</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(review.created_at).toLocaleDateString('fr-FR', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
-                        </p>
-                        {isAuthenticated && (
-                          <ReportReviewButton reviewId={review.id} />
-                        )}
-                        {review.admin_reply && (
-                          <div className="mt-3 pl-4 border-l-2 border-primary/30 bg-gray-50 dark:bg-gray-800/50 rounded-r-lg py-2 pr-3">
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Réponse de l&#39;établissement</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{review.admin_reply}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            <div className="lg:col-span-1">
+              <BookingSidebar
+                accommodationId={accommodation.id}
+                priceRangeMin={allRooms.length > 0 ? Math.min(...allRooms.map((r) => r.price_per_night)) : accommodation.price_per_night}
+                priceRangeMax={allRooms.length > 0 ? Math.max(...allRooms.map((r) => r.price_per_night)) : accommodation.price_per_night}
+                selectedDates={selectedDates}
+                onDatesSelected={handleDatesSelected}
+                priceQuote={priceQuote}
+                loadingQuote={loadingPricing}
+              />
+            </div>
+          </div>
         </div>
       </main>
 

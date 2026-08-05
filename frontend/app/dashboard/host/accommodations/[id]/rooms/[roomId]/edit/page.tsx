@@ -51,7 +51,7 @@ export default function EditRoomPage() {
 
   const fetchRoom = async () => {
     try {
-      const response = await api.get(`/accommodations/${accommodationId}/rooms/${roomId}`);
+      const response = await api.get(`/accommodations/${accommodationId}/rooms/manage/${roomId}`);
       const roomData = response.data;
       setRoom(roomData);
 

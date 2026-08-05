@@ -41,7 +41,7 @@ export default function RoomImagesPage() {
 
   const fetchRoom = async () => {
     try {
-      const response = await api.get(`/accommodations/${accommodationId}/rooms/${roomId}`);
+      const response = await api.get(`/accommodations/${accommodationId}/rooms/manage/${roomId}`);
       setRoom(response.data);
       setImages(response.data.images || []);
     } catch (err: any) {

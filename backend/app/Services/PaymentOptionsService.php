@@ -32,15 +32,37 @@ class PaymentOptionsService
     public static function getPaymentOptions(Booking $booking): array
     {
         $accommodation = $booking->accommodation;
-        $checkIn = Carbon::parse($booking->check_in);
-        $nights = $checkIn->diffInDays(Carbon::parse($booking->check_out));
+        return self::computeOptions(
+            (float) $booking->total_price,
+            Carbon::parse($booking->check_in),
+            Carbon::parse($booking->check_out),
+            (int) ($accommodation->cancellation_policy_hours ?? 48)
+        );
+    }
+
+    /**
+     * Aperçu des options de paiement avant création de la réservation
+     * (fiche établissement / price-preview) — même règles métier que
+     * getPaymentOptions(), sans nécessiter de Booking persistée.
+     */
+    public static function previewPaymentOptions(float $totalPrice, string $checkIn, string $checkOut, ?int $cancellationPolicyHours = null): array
+    {
+        return self::computeOptions(
+            $totalPrice,
+            Carbon::parse($checkIn),
+            Carbon::parse($checkOut),
+            $cancellationPolicyHours ?? 48
+        );
+    }
+
+    private static function computeOptions(float $totalPrice, Carbon $checkIn, Carbon $checkOut, int $cancellationHours): array
+    {
+        $nights = $checkIn->diffInDays($checkOut);
         $hoursUntilCheckIn = now()->diffInHours($checkIn, false);
-        $cancellationHours = $accommodation->cancellation_policy_hours ?? 48;
 
         $commissionRate = max(8.0, min(10.0, (float) Setting::get('commission_rate', 10.00)));
         $fullDiscountPercent = (float) Setting::get('full_payment_discount_percent', self::DEFAULT_FULL_DISCOUNT_PERCENT);
 
-        $totalPrice = (float) $booking->total_price;
         $pricePerNight = $totalPrice / max(1, $nights);
         $firstNight = round($pricePerNight, 2);
         $commissionAmount = round($totalPrice * $commissionRate / 100, 2);

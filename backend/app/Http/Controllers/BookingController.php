@@ -143,6 +143,16 @@ class BookingController extends Controller
             'traveler_name' => 'nullable|string|max:255|required_if:booked_for_third_party,true',
             'traveler_phone' => 'nullable|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/|required_if:booked_for_third_party,true',
             'traveler_email' => 'nullable|string|email|max:255',
+            // Type de voyageur + données statistiques
+            'traveler_type' => 'nullable|string|in:individual,corporate',
+            'residence_country' => 'nullable|string|max:255',
+            'residence_city' => 'nullable|string|max:255',
+            // Corporate (voyageur d'entreprise)
+            'company_name' => 'nullable|string|max:255|required_if:traveler_type,corporate',
+            'company_vat' => 'nullable|string|max:100',
+            'company_address' => 'nullable|string|max:500',
+            'company_billing_email' => 'nullable|string|email|max:255|required_if:traveler_type,corporate',
+            'deferred_payment' => 'nullable|boolean',
         ];
 
         // Si l'utilisateur n'est pas authentifié, valider les informations utilisateur
@@ -221,11 +231,13 @@ class BookingController extends Controller
                     'password' => Hash::make($randomPassword),
                     'phone' => $request->phone,
                     // Nationalité et pièces peuvent rester nulles si non fournies
-                    'country' => $request->nationality,
+                    'country' => $request->residence_country ?? $request->nationality,
+                    'city' => $request->residence_city,
                     'id_type' => $request->id_type,
                     'id_number' => $request->id_number,
                     'role' => 'user',
                     'status' => 'active',
+                    'is_guest' => true, // compte à activer par le voyageur après réservation
                 ]);
             }
         }
@@ -362,7 +374,20 @@ class BookingController extends Controller
                 'traveler_name' => $bookedForThirdParty ? $request->traveler_name : null,
                 'traveler_phone' => $bookedForThirdParty ? $request->traveler_phone : null,
                 'traveler_email' => $bookedForThirdParty ? $request->traveler_email : null,
-                'expires_at' => now()->addHours(48),
+                // Type de voyageur + stats
+                'traveler_type' => $request->input('traveler_type', 'individual'),
+                'residence_country' => $request->residence_country,
+                'residence_city' => $request->residence_city,
+                // Corporate
+                'company_name' => $request->traveler_type === 'corporate' ? $request->company_name : null,
+                'company_vat' => $request->traveler_type === 'corporate' ? $request->company_vat : null,
+                'company_address' => $request->traveler_type === 'corporate' ? $request->company_address : null,
+                'company_billing_email' => $request->traveler_type === 'corporate' ? $request->company_billing_email : null,
+                'deferred_payment' => $request->traveler_type === 'corporate' && $request->boolean('deferred_payment'),
+                // Paiement différé Corporate : la réservation est validée sur facture (pas d'expiration 48h)
+                'expires_at' => ($request->traveler_type === 'corporate' && $request->boolean('deferred_payment'))
+                    ? null
+                    : now()->addHours(48),
             ]);
 
             // NOTE: Les dates ne sont bloquées que lors de la confirmation (après paiement)
@@ -416,6 +441,39 @@ class BookingController extends Controller
                 'amount'  => (float) $credit->amount,
                 'message' => 'Un avoir a été crédité sur votre compte.',
             ] : null,
+        ]);
+    }
+
+    /**
+     * Refus d'une demande de réservation par l'établissement (mode "sur demande").
+     * -> Remboursement intégral automatique (≤ 24h) ; pas d'avoir.
+     */
+    public function refuse(Request $request, Booking $booking): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->isAdmin() && $booking->accommodation?->host_id !== $user->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if (!in_array($booking->status, ['pending', 'confirmed'])) {
+            return response()->json(['message' => 'Cette réservation ne peut pas être refusée.'], 422);
+        }
+
+        $request->validate(['reason' => 'nullable|string|max:500']);
+
+        $booking = $this->bookingService->refuse(
+            $booking,
+            $request->input('reason', ''),
+            $user->id
+        );
+
+        return response()->json([
+            'booking' => $booking,
+            'refund' => (float) $booking->refund_amount,
+            'message' => $booking->refund_amount > 0
+                ? 'Demande refusée. Le voyageur sera remboursé automatiquement sous 24h.'
+                : 'Demande refusée.',
         ]);
     }
 

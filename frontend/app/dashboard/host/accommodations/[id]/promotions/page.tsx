@@ -77,7 +77,7 @@ export default function AccommodationPromotionsPage() {
       
       const [promotionsRes, roomsRes, accRes] = await Promise.all([
         api.get(`/accommodations/${params.id}/promotions`),
-        api.get(`/accommodations/${params.id}/rooms`),
+        api.get(`/accommodations/${params.id}/rooms/manage`),
         api.get(`/accommodations/${params.id}`),
       ]);
 

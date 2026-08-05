@@ -42,6 +42,7 @@ class User extends Authenticatable
         'profile_verified',
         'profile_verified_at',
         'verification_notes',
+        'is_guest', // Compte auto-créé lors d'une réservation invité (à activer)
         // Champs spécifiques aux hôtes
         'establishment_name',
         'accommodation_type',
@@ -87,6 +88,7 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'login_count' => 'integer',
             'two_factor_enabled' => 'boolean',
+            'is_guest' => 'boolean',
             'two_factor_enabled_at' => 'datetime',
             'email_otp_expires_at' => 'datetime',
         ];

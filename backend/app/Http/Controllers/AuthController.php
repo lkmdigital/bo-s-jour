@@ -20,6 +20,46 @@ use App\Http\Controllers\NotificationController;
 
 class AuthController extends Controller
 {
+    /**
+     * Activation d'un compte "invité" (auto-créé lors d'une réservation).
+     * Le voyageur définit son mot de passe ; ses réservations sont déjà rattachées.
+     */
+    public function activateGuest(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|string|email|max:255',
+            'password' => 'required|string|min:8|confirmed',
+            'name' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !$user->is_guest) {
+            return response()->json([
+                'message' => "Aucun compte à activer pour cet e-mail. Connectez-vous ou créez un compte.",
+            ], 422);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->is_guest = false;
+        if ($request->filled('name')) {
+            $user->name = strip_tags($request->name);
+        }
+        if ($request->filled('phone')) {
+            $user->phone = $request->phone;
+        }
+        $user->save();
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Compte activé avec succès.',
+            'user' => $user,
+            'token' => $token,
+        ]);
+    }
+
     public function register(Request $request)
     {
         $role = $request->input('role', 'user');

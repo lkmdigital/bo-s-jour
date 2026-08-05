@@ -33,6 +33,18 @@ class Booking extends Model
         'traveler_name',
         'traveler_phone',
         'traveler_email',
+        'traveler_type',
+        'company_name',
+        'company_vat',
+        'company_address',
+        'company_billing_email',
+        'deferred_payment',
+        'residence_country',
+        'residence_city',
+        'no_show_at',
+        'refund_amount',
+        'credit_amount',
+        'refunded_at',
         'deposit_paid_at',
         'expires_at',
         'review_token',
@@ -53,6 +65,7 @@ class Booking extends Model
             'checked_in_at'           => 'datetime',
             'status'                  => BookingStatus::class,
             'booked_for_third_party'  => 'boolean',
+            'deferred_payment'        => 'boolean',
         ];
     }
 

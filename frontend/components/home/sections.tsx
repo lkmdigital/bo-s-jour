@@ -19,6 +19,21 @@ const img = (id: string, w = 800) =>
 const portrait = (id: string, w = 200) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=facearea&facepad=3&w=${w}&h=${w}&q=80`;
 
+/** Révélation douce à l'entrée dans le viewport (réutilisable) */
+export function Reveal({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.55, ease: 'easeOut', delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* 1. Pourquoi faire confiance                                         */
 /* ------------------------------------------------------------------ */
@@ -119,9 +134,9 @@ export function TrendingDestinations({ photos = [] }: { photos?: string[] }) {
           );
         })}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <Reveal className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {DESTINATIONS.map((d, i) => <DestinationCard key={d.name} data={{ ...d, image: photos[i] || d.image }} />)}
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -137,22 +152,28 @@ const SAVE_OFFERS = [
   { title: 'Gagnez des récompenses', text: 'Bénéficiez d\'avantages en tant que membre bo séjour.' },
 ];
 
+function SaveCard({ o }: { o: { title: string; text: string } }) {
+  return (
+    <div className="min-w-[260px] w-[260px] flex-shrink-0 rounded-2xl border-2 border-primary/40 p-5 bg-white dark:bg-gray-900 transition-all duration-300 hover:border-primary hover:shadow-lg hover:-translate-y-1">
+      <h3 className="font-bold text-gray-900 dark:text-white mb-2">{o.title}</h3>
+      <p className="text-sm text-gray-500">{o.text}</p>
+    </div>
+  );
+}
+
 export function SaveMore() {
-  // On duplique la liste pour un défilement en boucle sans couture
-  const loop = [...SAVE_OFFERS, ...SAVE_OFFERS];
+  // Deux groupes identiques qui défilent chacun de -100% : boucle parfaitement continue
   return (
     <section className="py-12 overflow-hidden">
       <div className="container mx-auto px-4 md:px-8 max-w-7xl">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Voyagez plus, dépensez moins</h2>
       </div>
-      <div className="group relative overflow-hidden">
-        <div className="flex gap-5 w-max animate-marquee group-hover:[animation-play-state:paused] px-4">
-          {loop.map((o, i) => (
-            <div key={`${o.title}-${i}`} className="min-w-[260px] w-[260px] flex-shrink-0 rounded-2xl border-2 border-primary/40 p-5 hover:border-primary transition-colors bg-white dark:bg-gray-900">
-              <h3 className="font-bold text-gray-900 dark:text-white mb-2">{o.title}</h3>
-              <p className="text-sm text-gray-500">{o.text}</p>
-            </div>
-          ))}
+      <div className="marquee-track relative flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
+        <div className="flex gap-5 pr-5 animate-marquee shrink-0">
+          {SAVE_OFFERS.map((o, i) => <SaveCard key={`a-${i}`} o={o} />)}
+        </div>
+        <div className="flex gap-5 pr-5 animate-marquee shrink-0" aria-hidden>
+          {SAVE_OFFERS.map((o, i) => <SaveCard key={`b-${i}`} o={o} />)}
         </div>
       </div>
     </section>
@@ -187,15 +208,15 @@ export function TopSites({ photos = [] }: { photos?: string[] }) {
   return (
     <section className="container mx-auto px-4 md:px-8 max-w-7xl py-12">
       <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Principaux sites à voir</h2>
-      <div className="grid grid-cols-2 gap-5 mb-5">
+      <Reveal className="grid grid-cols-2 gap-5 mb-5">
         <SiteCard s={sites[0]} className="h-56" />
         <SiteCard s={sites[1]} className="h-56" />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      </Reveal>
+      <Reveal className="grid grid-cols-1 sm:grid-cols-3 gap-5" delay={0.1}>
         <SiteCard s={sites[2]} className="h-52" />
         <SiteCard s={sites[3]} className="h-52" />
         <SiteCard s={sites[4]} className="h-52" />
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -237,7 +258,7 @@ export function Activities({ photos = [] }: { photos?: string[] }) {
           );
         })}
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <Reveal className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {ACTIVITIES.map((a, i) => (
           <Link key={a.name} href="/accommodations" className="group">
             <div className="relative aspect-square rounded-xl overflow-hidden mb-2">
@@ -246,7 +267,7 @@ export function Activities({ photos = [] }: { photos?: string[] }) {
             <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{a.name}</p>
           </Link>
         ))}
-      </div>
+      </Reveal>
     </section>
   );
 }

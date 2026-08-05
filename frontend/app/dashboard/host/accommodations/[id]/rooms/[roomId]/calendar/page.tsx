@@ -77,7 +77,7 @@ export default function RoomCalendarPage() {
   const maxMonthStr = `${new Date().getFullYear() + 1}-12`;
 
   const fetchRoom = useCallback(async () => {
-    const { data } = await api.get(`/accommodations/${accommodationId}/rooms/${roomId}`);
+    const { data } = await api.get(`/accommodations/${accommodationId}/rooms/manage/${roomId}`);
     setRoom(data);
   }, [accommodationId, roomId]);
 

@@ -47,6 +47,9 @@ export default function AdminSettingsPage() {
   const [mapsProvider, setMapsProvider] = useState<'osm' | 'mapbox'>('osm');
   const [mapboxToken, setMapboxToken] = useState('');
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [whatsappToken, setWhatsappToken] = useState('');
+  const [whatsappPhoneId, setWhatsappPhoneId] = useState('');
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || user?.role !== 'admin')) {
@@ -78,6 +81,9 @@ export default function AdminSettingsPage() {
       setMapsProvider(s.maps_provider === 'mapbox' ? 'mapbox' : 'osm');
       setMapboxToken(s.mapbox_token ?? '');
       setGoogleMapsApiKey(s.google_maps_api_key ?? '');
+      setWhatsappEnabled(!!s.whatsapp_enabled);
+      setWhatsappToken(s.whatsapp_token ?? '');
+      setWhatsappPhoneId(s.whatsapp_phone_id ?? '');
 
       try {
         const commissionRes = await api.get('/revenue/commission-rate');
@@ -167,6 +173,9 @@ export default function AdminSettingsPage() {
       payload.maps_provider = mapsProvider;
       payload.mapbox_token = mapboxToken.trim() || null;
       payload.google_maps_api_key = googleMapsApiKey.trim() || null;
+      payload.whatsapp_enabled = whatsappEnabled;
+      payload.whatsapp_token = whatsappToken.trim() || null;
+      payload.whatsapp_phone_id = whatsappPhoneId.trim() || null;
 
       await api.put('/settings/admin', payload);
       await api.put('/revenue/commission-rate', { commission_rate: rate });
@@ -464,6 +473,43 @@ export default function AdminSettingsPage() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono"
                 />
                 <p className="text-xs text-gray-400 mt-1">Pour la géolocalisation des adresses (géocodage) côté partenaire.</p>
+              </div>
+
+              <div className="pt-4 mt-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium">WhatsApp Business API (double confirmation)</span>
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappEnabled((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full ${whatsappEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}
+                    aria-label="Activer WhatsApp"
+                  >
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${whatsappEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Token WhatsApp (Meta)</label>
+                    <input
+                      type="password"
+                      value={whatsappToken}
+                      onChange={(e) => setWhatsappToken(e.target.value)}
+                      placeholder="EAAG..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Phone Number ID</label>
+                    <input
+                      type="text"
+                      value={whatsappPhoneId}
+                      onChange={(e) => setWhatsappPhoneId(e.target.value)}
+                      placeholder="1234567890"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Confirmation des réservations envoyée par WhatsApp en plus de l'e-mail. Nécessite des templates approuvés par Meta.</p>
+                  </div>
+                </div>
               </div>
             </div>
           </section>

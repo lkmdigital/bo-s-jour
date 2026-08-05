@@ -88,16 +88,27 @@ body {
   animation: slide-up 0.3s ease-out;
 }
 
-/* Défilement continu droite -> gauche (marquee) */
+/* Défilement continu et sans couture (marquee) — technique "deux groupes" */
 @keyframes marquee {
   from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  to { transform: translateX(-100%); }
 }
 .animate-marquee {
-  animation: marquee 32s linear infinite;
+  animation: marquee 40s linear infinite;
+  will-change: transform;
 }
-.animate-marquee:hover {
+/* pause au survol (facultatif, n'interrompt pas la boucle) */
+.marquee-track:hover .animate-marquee {
   animation-play-state: paused;
+}
+
+/* Révélation douce à l'apparition (scroll) */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.reveal-up {
+  animation: reveal-up 0.6s ease-out both;
 }
 
 /* Smooth scroll behavior */

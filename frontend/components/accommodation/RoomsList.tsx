@@ -2,9 +2,10 @@
 
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
-import { Bed, Users, Expand, Image as ImageIcon, Star, CheckCircle, XCircle, Calendar } from 'lucide-react';
-import { useState } from 'react';
+import { Bed, Users, Expand, Image as ImageIcon, CheckCircle, XCircle, Calendar, Wifi, Coffee, Eye, Wind } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { differenceInDays } from 'date-fns';
 
 interface RoomImage {
   id: number;
@@ -47,15 +48,28 @@ interface RoomsListProps {
   guests?: number;
 }
 
+const AMENITY_ICON: Record<string, typeof Wifi> = {
+  wifi: Wifi, 'wi-fi': Wifi, 'wifi gratuit': Wifi,
+  climatisation: Wind, clim: Wind, climatiseur: Wind,
+  breakfast: Coffee, 'petit-déjeuner': Coffee, 'petit déjeuner': Coffee,
+};
+
 export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, checkOut: propCheckOut, guests }: RoomsListProps) {
-  const [selectedImageRoom, setSelectedImageRoom] = useState<number | null>(null);
   const searchParams = useSearchParams();
   const urlCheckIn = searchParams?.get('check_in');
   const urlCheckOut = searchParams?.get('check_out');
-  
+  const [bedroomFilter, setBedroomFilter] = useState<number | null>(null);
+
   // Utiliser les props en priorité, sinon les paramètres URL
-  const checkIn = propCheckIn ? propCheckIn.toISOString().split('T')[0] : urlCheckIn;
-  const checkOut = propCheckOut ? propCheckOut.toISOString().split('T')[0] : urlCheckOut;
+  const checkInStr = propCheckIn ? propCheckIn.toISOString().split('T')[0] : urlCheckIn;
+  const checkOutStr = propCheckOut ? propCheckOut.toISOString().split('T')[0] : urlCheckOut;
+  const nights = propCheckIn && propCheckOut ? differenceInDays(propCheckOut, propCheckIn) : 0;
+
+  const bedroomCounts = useMemo(
+    () => Array.from(new Set(rooms.map((r) => r.bedrooms))).filter((n) => n > 0).sort((a, b) => a - b),
+    [rooms]
+  );
+  const filteredRooms = bedroomFilter ? rooms.filter((r) => r.bedrooms === bedroomFilter) : rooms;
 
   if (!rooms || rooms.length === 0) {
     return (
@@ -69,10 +83,9 @@ export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, c
     if (onSelectRoom) {
       onSelectRoom(room);
     } else {
-      // Rediriger vers la page de détails de la chambre avec les dates et voyageurs
       const params = new URLSearchParams();
-      if (checkIn) params.set('check_in', checkIn);
-      if (checkOut) params.set('check_out', checkOut);
+      if (checkInStr) params.set('check_in', checkInStr);
+      if (checkOutStr) params.set('check_out', checkOutStr);
       if (guests != null && guests > 0) params.set('guests', String(guests));
       const queryString = params.toString();
       window.location.href = `/rooms/${room.id}${queryString ? `?${queryString}` : ''}`;
@@ -81,117 +94,95 @@ export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, c
 
   const getCategoryLabel = (category?: string) => {
     const labels: Record<string, string> = {
-      single: 'Single',
-      double: 'Double',
-      twin: 'Twin',
-      triple: 'Triple',
-      pmr: 'PMR',
-      suite: 'Suite',
-      other: 'Autre',
+      single: 'Single', double: 'Double', twin: 'Twin', triple: 'Triple',
+      pmr: 'PMR', suite: 'Suite', other: 'Autre',
     };
     return category ? labels[category] || category : '';
   };
 
   const getViewLabel = (view?: string) => {
     const labels: Record<string, string> = {
-      city: 'Vue ville',
-      garden: 'Vue jardin',
-      pool: 'Vue piscine',
-      sea: 'Vue mer',
-      mountain: 'Vue montagne',
-      parking: 'Vue parking',
+      city: 'Vue ville', garden: 'Vue jardin', pool: 'Vue piscine',
+      sea: 'Vue mer', mountain: 'Vue montagne', parking: 'Vue parking',
     };
     return view ? labels[view] || '' : '';
   };
 
   return (
-      <div className="space-y-6">
-        {checkIn && checkOut && (
-          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span>
-                Disponibilité vérifiée pour : <strong>{new Date(checkIn).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong> - <strong>{new Date(checkOut).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
-              </span>
-            </p>
-          </div>
-        )}
-        
-        {!checkIn && !checkOut && (
-          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              💡 <strong>Astuce :</strong> Sélectionnez vos dates ci-dessus pour vérifier la disponibilité et les prix exacts pour votre séjour.
-            </p>
-          </div>
-        )}
+    <div className="space-y-4">
+      {checkInStr && checkOutStr && (
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            <span>
+              Disponibilité vérifiée pour : <strong>{new Date(checkInStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong> - <strong>{new Date(checkOutStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+            </span>
+          </p>
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rooms.map((room) => {
-          const primaryImage = room.images?.find(img => img.is_primary);
+      {!checkInStr && !checkOutStr && (
+        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            💡 <strong>Astuce :</strong> Sélectionnez vos dates dans l&apos;encart de réservation pour vérifier la disponibilité et les prix exacts.
+          </p>
+        </div>
+      )}
+
+      {bedroomCounts.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setBedroomFilter(null)}
+            className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+              bedroomFilter === null
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-transparent'
+                : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400'
+            }`}
+          >
+            Toutes les chambres
+          </button>
+          {bedroomCounts.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setBedroomFilter(n)}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                bedroomFilter === n
+                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-transparent'
+                  : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400'
+              }`}
+            >
+              {n} chambre{n > 1 ? 's' : ''}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {filteredRooms.map((room) => {
+          const primaryImage = room.images?.find((img) => img.is_primary);
           const imageUrl = primaryImage?.full_url || room.primary_image_url || room.images?.[0]?.full_url;
-
-          // Si pas de dates sélectionnées, toutes les chambres sont considérées comme "à vérifier"
-          const isAvailable = checkIn && checkOut 
-            ? (room.is_available !== false) 
-            : true; // Sans dates, on affiche toutes les chambres mais on indique qu'il faut vérifier
+          const isAvailable = checkInStr && checkOutStr ? room.is_available !== false : true;
+          const total = nights > 0 ? room.price_per_night * nights : null;
+          const amenityList = (room.basic_amenities || room.amenities || []).slice(0, 3);
 
           return (
             <div
               key={room.id}
-              className={`card hover:shadow-lg transition-all cursor-pointer group relative ${
-                !isAvailable ? 'opacity-75' : ''
+              className={`flex flex-col sm:flex-row gap-4 rounded-2xl border border-gray-200 dark:border-gray-700 p-3 transition-shadow hover:shadow-lg ${
+                !isAvailable ? 'opacity-60' : ''
               }`}
-              onClick={() => isAvailable && handleRoomClick(room)}
             >
-              {/* Badge disponibilité */}
-              {checkIn && checkOut && room.is_available !== undefined && (
-                <div className={`absolute top-3 right-3 z-10 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
-                  isAvailable 
-                    ? 'bg-green-500 text-white' 
-                    : 'bg-red-500 text-white'
-                }`}>
-                  {isAvailable ? (
-                    <>
-                      <CheckCircle className="w-3 h-3" />
-                      {room.quantity && room.quantity > 1 && room.available_quantity !== undefined
-                        ? `${room.available_quantity}/${room.quantity} disponibles`
-                        : 'Disponible'}
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="w-3 h-3" />
-                      {room.quantity && room.quantity > 1 ? 'Complet' : 'Occupée'}
-                    </>
-                  )}
-                </div>
-              )}
-              
-              {!checkIn && !checkOut && (
-                <div className="absolute top-3 right-3 z-10 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 bg-blue-500 text-white">
-                  <Calendar className="w-3 h-3" />
-                  Vérifier disponibilité
-                </div>
-              )}
-              
-              {/* Badge quantité si plusieurs chambres */}
-              {room.quantity && room.quantity > 1 && !checkIn && !checkOut && (
-                <div className="absolute top-12 right-3 z-10 px-2 py-1 rounded-full text-xs font-medium bg-gray-800/70 text-white">
-                  {room.quantity} chambres
-                </div>
-              )}
-
               {/* Image */}
-              <div className="relative h-48 bg-gray-200 dark:bg-gray-700 rounded-t-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => isAvailable && handleRoomClick(room)}
+                className="relative w-full sm:w-48 h-40 sm:h-auto flex-shrink-0 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700"
+              >
                 {imageUrl ? (
                   <>
-                    <Image
-                      src={imageUrl}
-                      alt={room.name}
-                      fill
-                      className={`object-cover transition-transform duration-300 ${
-                        isAvailable ? 'group-hover:scale-105' : 'grayscale'
-                      }`}
-                    />
+                    <Image src={imageUrl} alt={room.name} fill className={`object-cover ${!isAvailable ? 'grayscale' : ''}`} />
                     {room.images && room.images.length > 1 && (
                       <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
                         <ImageIcon className="w-3 h-3" />
@@ -201,83 +192,76 @@ export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, c
                   </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Bed className="w-12 h-12 text-gray-400" />
+                    <Bed className="w-8 h-8 text-gray-400" />
                   </div>
                 )}
-              </div>
+              </button>
 
-              {/* Détails */}
-              <div className="p-4">
-                <div className="mb-3">
-                  <h3 className="text-lg font-semibold mb-1 group-hover:text-primary transition-colors">
-                    {room.name}
-                  </h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                    {room.room_category && (
-                      <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
-                        {getCategoryLabel(room.room_category)}
+              {/* Contenu */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                      {room.name}
+                      {room.room_category && (
+                        <span className="ml-2 text-xs font-normal text-primary">{getCategoryLabel(room.room_category)}</span>
+                      )}
+                    </h3>
+                    {checkInStr && checkOutStr && room.is_available !== undefined && (
+                      <span className={`inline-flex items-center gap-1 mt-1 text-xs font-medium ${isAvailable ? 'text-green-600' : 'text-red-500'}`}>
+                        {isAvailable ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                        {isAvailable
+                          ? room.quantity && room.quantity > 1 && room.available_quantity !== undefined
+                            ? `${room.available_quantity}/${room.quantity} disponibles`
+                            : 'Disponible'
+                          : 'Complet'}
                       </span>
                     )}
-                    {room.view_type && (
-                      <span className="text-xs">• {getViewLabel(room.view_type)}</span>
-                    )}
                   </div>
                 </div>
 
-                {room.description && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
-                    {room.description}
-                  </p>
-                )}
-
-                {/* Caractéristiques */}
-                <div className="flex items-center gap-4 text-sm mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4 text-gray-500" />
-                    <span>{room.capacity} pers.</span>
-                  </div>
+                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  <span className="flex items-center gap-1"><Bed className="w-4 h-4" /> {room.bedrooms}</span>
+                  <span className="flex items-center gap-1"><Users className="w-4 h-4" /> {room.capacity} pers.</span>
                   {room.surface_area && (
-                    <div className="flex items-center gap-1">
-                      <Expand className="w-4 h-4 text-gray-500" />
-                      <span>{room.surface_area} m²</span>
-                    </div>
+                    <span className="flex items-center gap-1"><Expand className="w-4 h-4" /> {room.surface_area} m²</span>
                   )}
-                  <div className="flex items-center gap-1">
-                    <Bed className="w-4 h-4 text-gray-500" />
-                    <span>{room.bedrooms}</span>
-                  </div>
                 </div>
 
-                {/* Prix et disponibilité */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-2xl font-bold text-primary">
-                      {formatPrice(room.price_per_night)} FCFA
-                    </p>
-                    <p className="text-xs text-gray-500">par nuit</p>
-                    {checkIn && checkOut && room.quantity && room.quantity > 1 && room.available_quantity !== undefined && (
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        {room.available_quantity} disponible{room.available_quantity > 1 ? 's' : ''} sur {room.quantity}
-                      </p>
-                    )}
-                  </div>
-                  <button 
-                    className={`text-sm ${
-                      isAvailable 
-                        ? 'btn-primary' 
-                        : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isAvailable) {
-                        handleRoomClick(room);
-                      }
-                    }}
-                    disabled={!isAvailable}
-                  >
-                    {isAvailable ? 'Voir détails' : 'Indisponible'}
-                  </button>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  {amenityList.map((a, i) => {
+                    const Icon = AMENITY_ICON[a.toLowerCase().trim()] || CheckCircle;
+                    return (
+                      <span key={i} className="flex items-center gap-1 capitalize">
+                        <Icon className="w-3.5 h-3.5" /> {a}
+                      </span>
+                    );
+                  })}
+                  {room.view_type && (
+                    <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {getViewLabel(room.view_type)}</span>
+                  )}
                 </div>
+              </div>
+
+              {/* Prix + CTA */}
+              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 sm:w-40 flex-shrink-0 sm:border-l sm:border-gray-200 dark:sm:border-gray-700 sm:pl-4">
+                <div className="text-right">
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">{formatPrice(room.price_per_night)} fcfa</p>
+                  <p className="text-xs text-gray-500">par nuit</p>
+                  {total != null && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      x {nights} nuit{nights > 1 ? 's' : ''} · <span className="font-medium text-gray-700 dark:text-gray-300">{formatPrice(total)} fcfa</span>
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => isAvailable && handleRoomClick(room)}
+                  disabled={!isAvailable}
+                  className={isAvailable ? 'btn-primary text-sm py-2 px-4' : 'bg-gray-300 dark:bg-gray-600 text-gray-500 text-sm py-2 px-4 rounded-full cursor-not-allowed'}
+                >
+                  {isAvailable ? 'Réserver' : 'Indisponible'}
+                </button>
               </div>
             </div>
           );

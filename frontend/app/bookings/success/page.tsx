@@ -6,15 +6,23 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import Header from '@/components/common/Header';
 import { useSearchStore } from '@/stores/searchStore';
+import { useAuthStore } from '@/stores/authStore';
 import { useNotificationPermission } from '@/hooks/useNotificationPermission';
-import { CheckCircle, Calendar, Sparkles, Home, List, FileText, KeyRound } from 'lucide-react';
+import { CheckCircle, Calendar, Sparkles, Home, List, FileText, KeyRound, UserPlus } from 'lucide-react';
+
+interface SuccessBooking {
+  confirmation_code?: string;
+  accommodation?: { name: string };
+  user?: { email?: string; name?: string; is_guest?: boolean };
+}
 
 function BookingSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { clearSearchSession } = useSearchStore();
+  const { isAuthenticated } = useAuthStore();
   const bookingId = searchParams.get('id');
-  const [booking, setBooking] = useState<{ confirmation_code?: string; accommodation?: { name: string } } | null>(null);
+  const [booking, setBooking] = useState<SuccessBooking | null>(null);
   const [bookingLoaded, setBookingLoaded] = useState(false);
 
   // Demande permission push 3s après la confirmation de paiement
@@ -88,6 +96,26 @@ function BookingSuccessContent() {
               </div>
             </div>
           </div>
+
+          {/* Créer son espace (invité non connecté) */}
+          {!isAuthenticated && booking?.user?.is_guest && booking.user.email && (
+            <div className="max-w-2xl mx-auto mb-8 rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1">
+                <p className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-primary" /> Activez votre espace bo séjour
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Créez un mot de passe pour retrouver cette réservation et toutes les suivantes, gérer vos avoirs et recevoir des offres.
+                </p>
+              </div>
+              <Link
+                href={`/auth/activate?email=${encodeURIComponent(booking.user.email)}${booking.user.name ? `&name=${encodeURIComponent(booking.user.name)}` : ''}`}
+                className="btn-primary whitespace-nowrap"
+              >
+                Créer mon espace
+              </Link>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

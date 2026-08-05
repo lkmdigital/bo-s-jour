@@ -55,6 +55,10 @@ class SettingsController extends Controller
             'maps_provider' => (string) Setting::get('maps_provider', 'osm'),
             'mapbox_token' => (string) Setting::get('mapbox_token', ''),
             'google_maps_api_key' => (string) Setting::get('google_maps_api_key', ''),
+            // WhatsApp Business API (Meta) — sensible, jamais exposé publiquement
+            'whatsapp_enabled' => (bool) Setting::get('whatsapp_enabled', false),
+            'whatsapp_token' => (string) Setting::get('whatsapp_token', ''),
+            'whatsapp_phone_id' => (string) Setting::get('whatsapp_phone_id', ''),
         ]);
     }
 
@@ -82,6 +86,9 @@ class SettingsController extends Controller
             'maps_provider' => 'sometimes|string|in:osm,mapbox',
             'mapbox_token' => 'sometimes|nullable|string|max:255',
             'google_maps_api_key' => 'sometimes|nullable|string|max:255',
+            'whatsapp_enabled' => 'sometimes|boolean',
+            'whatsapp_token' => 'sometimes|nullable|string|max:1000',
+            'whatsapp_phone_id' => 'sometimes|nullable|string|max:100',
         ]);
 
         if (array_key_exists('maintenance_enabled', $data)) {
@@ -148,6 +155,16 @@ class SettingsController extends Controller
 
         if (array_key_exists('google_maps_api_key', $data)) {
             Setting::set('google_maps_api_key', $data['google_maps_api_key'] ?? '', 'string', 'Clé API Google Maps');
+        }
+
+        if (array_key_exists('whatsapp_enabled', $data)) {
+            Setting::set('whatsapp_enabled', $data['whatsapp_enabled'], 'boolean', 'WhatsApp Business activé');
+        }
+        if (array_key_exists('whatsapp_token', $data)) {
+            Setting::set('whatsapp_token', $data['whatsapp_token'] ?? '', 'string', 'Token WhatsApp Business API');
+        }
+        if (array_key_exists('whatsapp_phone_id', $data)) {
+            Setting::set('whatsapp_phone_id', $data['whatsapp_phone_id'] ?? '', 'string', 'Phone Number ID WhatsApp');
         }
 
         return $this->getAdminSettings($request);

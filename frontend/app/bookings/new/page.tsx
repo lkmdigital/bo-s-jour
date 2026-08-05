@@ -6,14 +6,17 @@ import api from '@/lib/api';
 import { useSearchStore } from '@/stores/searchStore';
 import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
-import EnhancedBookingForm from '@/components/booking/EnhancedBookingForm';
+import BookingWizard from '@/components/booking/BookingWizard';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 
 interface Accommodation {
   id: number;
   name: string;
+  city?: string;
   price_per_night: number;
+  cancellation_policy_hours?: number | null;
+  images?: Array<{ url: string; is_primary: boolean }>;
   room_type_pricing?: Array<{
     type: string;
     price_per_night: number;
@@ -109,24 +112,25 @@ function NewBookingContent() {
       <Header />
       
       <main className="flex-grow bg-gray-50 dark:bg-gray-900">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-2">Nouvelle réservation</h1>
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          <h1 className="text-2xl md:text-3xl font-bold mb-1">Finaliser votre réservation</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-8">
-            {accommodation.name}
-            {room && <span> • {room.name}</span>}
+            {accommodation.name}{room && <span> • {room.name}</span>}
           </p>
 
-          <div className="max-w-4xl mx-auto">
-            <EnhancedBookingForm
-              accommodationId={accommodation.id}
-              pricePerNight={room?.price_per_night || accommodation.price_per_night}
-              roomTypePricing={accommodation.room_type_pricing}
-              preSelectedRoomId={room?.id}
-              initialCheckIn={initialCheckIn}
-              initialCheckOut={initialCheckOut}
-              initialGuests={initialGuests}
-            />
-          </div>
+          <BookingWizard
+            accommodationId={accommodation.id}
+            accommodationName={accommodation.name}
+            accommodationImage={accommodation.images?.find((i) => i.is_primary)?.url || accommodation.images?.[0]?.url}
+            city={accommodation.city}
+            pricePerNight={room?.price_per_night || accommodation.price_per_night}
+            cancellationPolicyHours={accommodation.cancellation_policy_hours}
+            roomId={room?.id}
+            roomName={room?.name}
+            initialCheckIn={initialCheckIn}
+            initialCheckOut={initialCheckOut}
+            initialGuests={initialGuests}
+          />
         </div>
       </main>
 

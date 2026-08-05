@@ -16,7 +16,7 @@ export default function DestinationCard({ data }: { data: DestinationCardData })
   return (
     <Link
       href={data.href || '/accommodations'}
-      className="group relative block h-[440px] rounded-2xl overflow-hidden shadow-md"
+      className="group relative block h-[440px] rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
     >
       <Image
         src={data.image}

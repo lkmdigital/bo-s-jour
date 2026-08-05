@@ -81,6 +81,7 @@ Route::get('/payments/{paymentId}', [PaymentController::class, 'show']);
 // Auth routes avec rate limiting strict pour prévenir les attaques de force brute
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1'); // 5 tentatives par minute
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1'); // 5 tentatives par minute
+Route::post('/auth/activate-guest', [AuthController::class, 'activateGuest'])->middleware('throttle:5,1'); // activation compte invité
 
 // Email OTP & Password Reset (public)
 Route::post('/auth/send-otp', [AuthController::class, 'sendEmailOtp'])->middleware('throttle:3,1');
@@ -138,9 +139,12 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::put('/accommodations/{id}', [AccommodationController::class, 'update'])->where('id', '[0-9]+');
         Route::delete('/accommodations/{id}', [AccommodationController::class, 'destroy'])->where('id', '[0-9]+');
 
-        // Rooms
-        Route::get('/accommodations/{accommodationId}/rooms', [RoomController::class, 'index']);
-        Route::get('/accommodations/{accommodationId}/rooms/{id}', [RoomController::class, 'show']);
+        // Rooms (gestion hôte)
+        // Chemin distinct de /accommodations/{id}/rooms (public, cf. ligne ~53) pour éviter
+        // que Laravel n'écrase la route publique — deux Route::get() sur la même URI+méthode
+        // se remplacent silencieusement, seule la dernière déclarée reste joignable.
+        Route::get('/accommodations/{accommodationId}/rooms/manage', [RoomController::class, 'index']);
+        Route::get('/accommodations/{accommodationId}/rooms/manage/{id}', [RoomController::class, 'show']);
         Route::post('/accommodations/{accommodationId}/rooms', [RoomController::class, 'store']);
         Route::put('/accommodations/{accommodationId}/rooms/{id}', [RoomController::class, 'update']);
         Route::delete('/accommodations/{accommodationId}/rooms/{id}', [RoomController::class, 'destroy']);
@@ -198,6 +202,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     Route::get('/bookings/host/overview', [BookingController::class, 'hostReservations'])->middleware('role:host');
     Route::put('/bookings/{id}', [BookingController::class, 'update']);
     Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('throttle:5,1');
+    Route::post('/bookings/{booking}/refuse', [BookingController::class, 'refuse'])->middleware(['role:host,admin', 'throttle:10,1']);
     Route::post('/bookings/{booking}/complete', [BookingController::class, 'complete'])->middleware('role:host,admin');
     Route::get('/bookings/{booking}/history', [BookingController::class, 'history']);
     Route::get('/bookings/{id}/messages', [BookingMessageController::class, 'index'])->where('id', '[0-9]+');

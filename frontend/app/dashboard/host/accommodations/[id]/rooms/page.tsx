@@ -52,7 +52,7 @@ export default function AccommodationRoomsPage() {
     setError(null);
     try {
       const [roomsRes, accomRes] = await Promise.all([
-        api.get(`/accommodations/${accommodationId}/rooms`),
+        api.get(`/accommodations/${accommodationId}/rooms/manage`),
         api.get(`/accommodations/${accommodationId}`),
       ]);
       

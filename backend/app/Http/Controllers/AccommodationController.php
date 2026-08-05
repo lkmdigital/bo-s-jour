@@ -229,6 +229,9 @@ class AccommodationController extends Controller
 
         $total = round($effectivePricePerNight * $nights, 2);
         $variants = RoomPricingService::getPriceVariants((float) $basePricePerNight, $accommodation);
+        $paymentOptions = \App\Services\PaymentOptionsService::previewPaymentOptions(
+            $total, $checkIn, $checkOut, (int) $cancellationHours
+        );
 
         return response()->json([
             'base_price_per_night' => (float) $basePricePerNight,
@@ -238,6 +241,7 @@ class AccommodationController extends Controller
             'rate_type' => $rateType,
             'cancellation_policy_hours' => $cancellationHours,
             'variants' => $variants,
+            'payment_options' => $paymentOptions,
         ]);
     }
 

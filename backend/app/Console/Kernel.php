@@ -26,6 +26,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('bookings:cancel-expired')->everyFifteenMinutes();
         $schedule->command('bookings:remind-cancel-unpaid')->hourly();
         $schedule->command('reviews:send-post-stay-links')->dailyAt('09:00');
+        $schedule->command('bookings:detect-no-show')->dailyAt('11:00');
     }
 
     /**
