@@ -244,24 +244,37 @@ export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, c
               </div>
 
               {/* Prix + CTA */}
-              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 sm:w-40 flex-shrink-0 sm:border-l sm:border-gray-200 dark:sm:border-gray-700 sm:pl-4">
+              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 sm:w-44 flex-shrink-0 sm:border-l sm:border-gray-200 dark:sm:border-gray-700 sm:pl-4">
                 <div className="text-right">
                   <p className="text-lg font-bold text-gray-900 dark:text-white">{formatPrice(room.price_per_night)} fcfa</p>
                   <p className="text-xs text-gray-500">par nuit</p>
                   {total != null && (
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      x {nights} nuit{nights > 1 ? 's' : ''} · <span className="font-medium text-gray-700 dark:text-gray-300">{formatPrice(total)} fcfa</span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      x {nights} nuit{nights > 1 ? 's' : ''}<br />
+                      <span className="text-gray-600 dark:text-gray-400">Prix total : </span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(total)} fcfa</span>
                     </p>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => isAvailable && handleRoomClick(room)}
-                  disabled={!isAvailable}
-                  className={isAvailable ? 'btn-primary text-sm py-2 px-4' : 'bg-gray-300 dark:bg-gray-600 text-gray-500 text-sm py-2 px-4 rounded-full cursor-not-allowed'}
-                >
-                  {isAvailable ? 'Réserver' : 'Indisponible'}
-                </button>
+                <div className="flex flex-col items-end gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => isAvailable && handleRoomClick(room)}
+                    disabled={!isAvailable}
+                    className={isAvailable ? 'btn-primary text-sm py-2 px-5' : 'bg-gray-300 dark:bg-gray-600 text-gray-500 text-sm py-2 px-5 rounded-full cursor-not-allowed'}
+                  >
+                    {isAvailable ? 'Réserver' : 'Indisponible'}
+                  </button>
+                  {isAvailable && (
+                    <button
+                      type="button"
+                      onClick={() => handleRoomClick(room)}
+                      className="text-xs text-primary hover:underline font-medium"
+                    >
+                      Plus de détails
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           );

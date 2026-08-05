@@ -172,6 +172,8 @@ export default function AccommodationDetailPage() {
   const [priceQuote, setPriceQuote] = useState<(PriceQuote & { variants: PricingVariantsData }) | null>(null);
   const [loadingPricing, setLoadingPricing] = useState(false);
   const [mapCfg, setMapCfg] = useState<{ provider: string; token: string }>({ provider: 'osm', token: '' });
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [amenitiesExpanded, setAmenitiesExpanded] = useState(false);
   const urlCheckIn = searchParams?.get('check_in');
   const urlCheckOut = searchParams?.get('check_out');
   const urlGuests = searchParams?.get('guests');
@@ -608,16 +610,27 @@ export default function AccommodationDetailPage() {
             <div className="lg:col-span-2 space-y-6">
 
             <div id="apercu" className="card scroll-mt-40">
-              <h2 className="text-2xl font-bold mb-4">Description</h2>
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
+              <h2 className="text-2xl font-bold mb-4">Descriptif</h2>
+              {(accommodation.bedrooms > 0 || accommodation.max_guests > 0) && (
+                <p className="font-semibold text-gray-900 dark:text-white mb-3">
+                  {accommodation.bedrooms > 0 && `${accommodation.bedrooms} chambre${accommodation.bedrooms > 1 ? 's' : ''}`}
+                  {accommodation.max_guests > 0 && `${accommodation.bedrooms > 0 ? ' · ' : ''}jusqu'à ${accommodation.max_guests} voyageur${accommodation.max_guests > 1 ? 's' : ''}`}
+                </p>
+              )}
+              <p className={`text-gray-700 dark:text-gray-300 whitespace-pre-line ${!descExpanded ? 'line-clamp-4' : ''}`}>
                 {accommodation.description}
               </p>
+              {accommodation.description && accommodation.description.length > 220 && (
+                <button onClick={() => setDescExpanded((v) => !v)} className="btn-outline mt-4 text-sm">
+                  {descExpanded ? 'Afficher moins' : 'Afficher plus'}
+                </button>
+              )}
             </div>
 
             <div id="commodites" className="card scroll-mt-40">
-              <h2 className="text-2xl font-bold mb-4">Ce que propose ce logement</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {accommodation.amenities?.map((amenity, index) => {
+              <h2 className="text-2xl font-bold mb-4">Commodités</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {(amenitiesExpanded ? accommodation.amenities : accommodation.amenities?.slice(0, 6))?.map((amenity, index) => {
                   const Icon = amenityIcon(amenity);
                   return (
                     <div key={index} className="flex items-center gap-3">
@@ -629,6 +642,11 @@ export default function AccommodationDetailPage() {
                   );
                 })}
               </div>
+              {accommodation.amenities && accommodation.amenities.length > 6 && (
+                <button onClick={() => setAmenitiesExpanded((v) => !v)} className="btn-outline mt-4 text-sm">
+                  {amenitiesExpanded ? 'Afficher moins' : `Afficher les ${accommodation.amenities.length} équipements`}
+                </button>
+              )}
             </div>
 
             <div className="card">
