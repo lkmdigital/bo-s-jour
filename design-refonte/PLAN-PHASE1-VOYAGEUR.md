@@ -53,14 +53,14 @@ Notes : contenu localisé Côte d'Ivoire (destinations, activités Abidjan) au l
 - [~] **WhatsApp** : service prêt, **en veille** tant que le client ne fournit pas WhatsApp Business + templates.
 - [x] Cas Confirmation auto vs Sur demande + remboursement auto si refus (back, Lot 3.5).
 
-## LOT 5 — Compte post-réservation & profilage ⚙️ 🟢 Partiel
+## LOT 5 — Compte post-réservation & profilage ⚙️ 🟢 FAIT (hors profilage)
 - [x] **Activation compte** : page `/auth/activate` (données préremplies) + CTA « Créer mon espace » sur la page succès. Rattachement des résas par e-mail.
-- [ ] Relances création de compte (H+2 / H+24 / H+72) — envois back à planifier.
-- [ ] Profilage progressif (facultatif).
+- [x] **Relances création de compte (2026-08-05)** : commande `users:remind-guest-activation` (planifiée hourly) → e-mails **H+2 / H+24 / H+72** aux comptes invités non activés (`users.activation_reminder_stage`), un e-mail par run, idempotent. Mailable + vue email à la charte. Vérifié.
+- [ ] Profilage progressif (préférences, motif de voyage) — **facultatif**, non fait.
 
 ## LOT 6 — Espace membre voyageur (pont vers Phase 3) 🟢 FAIT (charte)
-- [x] **`app/dashboard/user` refondu charte (2026-08-05)** : titre « Mon espace », **nav membre** (Mes réservations / Messages / Explorer), cartes stats (réservations, **avoirs**, à venir, passées, total dépensé), liste réservations + paiement/reçu, pagination.
-- [~] **Favoris** : pas de page dédiée (le cœur est un état local non persisté, pas de back) → non ajouté (pas de lien mort). À créer avec persistance back en Phase 3.
+- [x] **`app/dashboard/user` refondu charte (2026-08-05)** : titre « Mon espace », **nav membre** (Mes réservations / **Mes favoris** / Messages / Explorer), cartes stats (réservations, **avoirs**, à venir, passées, total dépensé), liste réservations + paiement/reçu, pagination.
+- [x] **Favoris persistés (2026-08-05)** : table `favorites` + API (`/favorites`, `/favorites/ids`), store Zustand (toggle optimiste), cœurs branchés (cartes + fiche), page **`/favorites`**. Vérifié bout-en-bout.
 - (Fidélité Bronze/Argent/Or/Platine, « Mon Voyage », découvrir la CI → Phase 3.)
 
 ---
