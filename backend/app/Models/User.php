@@ -43,6 +43,7 @@ class User extends Authenticatable
         'profile_verified_at',
         'verification_notes',
         'is_guest', // Compte auto-créé lors d'une réservation invité (à activer)
+        'activation_reminder_stage', // Étape de relance d'activation (0..3)
         // Champs spécifiques aux hôtes
         'establishment_name',
         'accommodation_type',

@@ -31,6 +31,8 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'frontend_url' => env('FRONTEND_URL', 'https://bosejour.ci'),
+
     'malia_pay' => [
         'api_url' => env('MALIA_PAY_API_URL', 'https://malia-pay.com/api/v1/OnlinePaymentService/add_payer'),
         'merchant_id' => env('MALIA_PAY_MERCHANT_ID', 'MI_AOXBNNUD2J'),
