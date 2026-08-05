@@ -1,14 +1,14 @@
 'use client';
 
-import { UserCog } from 'lucide-react';
-import ComingSoon from '@/components/dashboard/host/ComingSoon';
+import EstablishmentHubList from '@/components/dashboard/host/EstablishmentHubList';
 
-export default function HostStaffPage() {
+export default function HostStaffHubPage() {
   return (
-    <ComingSoon
-      icon={UserCog}
+    <EstablishmentHubList
       title="Personnel"
-      description="La gestion des collaborateurs (réceptionniste, comptabilité, commercial, housekeeping, maintenance) arrive prochainement."
+      description="Choisissez un établissement pour gérer son équipe"
+      actionHref={(id) => `/dashboard/host/accommodations/${id}/staff`}
+      actionLabel="Gérer le personnel"
     />
   );
 }

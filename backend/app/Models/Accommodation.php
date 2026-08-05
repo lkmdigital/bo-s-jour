@@ -143,6 +143,11 @@ class Accommodation extends Model
         return $this->hasMany(Promotion::class)->where('is_active', true);
     }
 
+    public function staff()
+    {
+        return $this->hasMany(Staff::class);
+    }
+
     public function scopePublished($query)
     {
         return $query->where('status', 'published');

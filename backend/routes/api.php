@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\InspectionController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminBookingController;
 use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\OAuthController;
 use App\Http\Controllers\ClientCreditController;
@@ -171,6 +172,12 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::put('/accommodations/{accommodationId}/promotions/{promotionId}', [PromotionController::class, 'update']);
         Route::delete('/accommodations/{accommodationId}/promotions/{promotionId}', [PromotionController::class, 'destroy']);
         Route::post('/accommodations/{accommodationId}/promotions/{promotionId}/toggle', [PromotionController::class, 'toggle']);
+
+        // Personnel
+        Route::get('/accommodations/{accommodationId}/staff', [StaffController::class, 'index']);
+        Route::post('/accommodations/{accommodationId}/staff', [StaffController::class, 'store']);
+        Route::put('/accommodations/{accommodationId}/staff/{id}', [StaffController::class, 'update']);
+        Route::delete('/accommodations/{accommodationId}/staff/{id}', [StaffController::class, 'destroy']);
 
         // Commentaires clients (avis reçus + réponse)
         Route::get('/host/reviews', [HostReviewController::class, 'index']);
