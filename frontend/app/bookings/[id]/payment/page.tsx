@@ -9,14 +9,14 @@ import Header from '@/components/common/Header';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { formatPrice } from '@/lib/utils';
-import { 
+import {
   ArrowLeft,
-  CreditCard,
   CheckCircle,
   XCircle,
   Clock,
-  AlertCircle,
-  FileText
+  ShieldCheck,
+  Lock,
+  FileText,
 } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -55,6 +55,7 @@ interface Booking {
   total_price: number;
   status: string;
   payment_status: string;
+  user_id?: number;
   deposit_amount?: number;
   amount_paid?: number;
   payment_options?: PaymentOptions;
@@ -72,15 +73,6 @@ interface Booking {
   };
 }
 
-interface Payment {
-  id: number;
-  amount: number;
-  status: string;
-  payment_method: string;
-  payment_reference: string;
-  transaction_id?: string;
-}
-
 interface PaymentMethod {
   id: number;
   name: string;
@@ -94,9 +86,8 @@ export default function BookingPaymentPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, isLoading: authLoading, user } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [booking, setBooking] = useState<Booking | null>(null);
-  const [payment, setPayment] = useState<Payment | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMethods, setLoadingMethods] = useState(true);
@@ -107,33 +98,26 @@ export default function BookingPaymentPage() {
   const [paymentType, setPaymentType] = useState<'full' | 'guarantee' | ''>('');
 
   useEffect(() => {
-    // Vérifier si on vient d'un échec de paiement
     const errorParam = searchParams?.get('error');
     if (errorParam === '1' || errorParam === 'true') {
-      setPaymentError('Le paiement a échoué. Veuillez réessayer ou contacter le support si le problème persiste.');
+      setPaymentError('Le paiement a échoué ou a été annulé. Vous pouvez réessayer ci-dessous.');
     }
-
-    // Charger les méthodes de paiement et la réservation même sans authentification
     fetchPaymentMethods();
     fetchBooking();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id, searchParams]);
 
   const fetchPaymentMethods = async () => {
     try {
       setLoadingMethods(true);
       const response = await api.get('/payment-methods');
-      const methods = response.data || [];
-      console.log('Payment methods loaded:', methods);
+      const methods: PaymentMethod[] = response.data || [];
       setPaymentMethods(methods);
       if (methods.length > 0) {
         setSelectedPaymentMethod(methods[0].slug);
-      } else {
-        setError('Aucune méthode de paiement disponible. Veuillez contacter le support.');
       }
-    } catch (err: any) {
-      console.error('Error fetching payment methods:', err);
-      // Message d'erreur simple pour l'utilisateur
-      setError('Impossible de charger les méthodes de paiement. Veuillez réessayer.');
+    } catch (err) {
+      // silencieux : géré par l'écran (aucune méthode dispo)
     } finally {
       setLoadingMethods(false);
     }
@@ -143,113 +127,62 @@ export default function BookingPaymentPage() {
     try {
       setError(null);
       const response = await api.get(`/bookings/${params.id}`);
-      const bookingData = response.data;
-      
-      // Vérifier que c'est bien la réservation de l'utilisateur (si authentifié)
+      const bookingData: Booking = response.data;
+
       if (isAuthenticated && user && bookingData.user_id !== user.id) {
         router.push('/bookings');
         return;
       }
-
-      // Si déjà payé, rediriger vers la page de détails
       if (bookingData.payment_status === 'paid') {
         router.push(`/bookings/${params.id}`);
         return;
       }
 
       setBooking(bookingData);
-
-      const paymentOpts = bookingData.payment_options;
-      if (paymentOpts) {
-        // Définir le type de paiement par défaut: 'full' si disponible, sinon 'guarantee'
-        if (paymentOpts.full_only) {
-          setPaymentType('full');
-        } else {
-          // Par défaut, sélectionner 'full' si disponible, sinon 'guarantee'
-          setPaymentType('full');
-        }
-      }
-      
-      // Essayer de récupérer le paiement existant seulement si on a déjà choisi un type
-      // (on ne le fait plus automatiquement)
-    } catch (err: any) {
-      // Message d'erreur simple pour l'utilisateur
+      setPaymentType('full');
+    } catch (err) {
       setError('Impossible de charger les informations de la réservation. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
   };
 
-  const initiatePayment = async () => {
+  // Un seul clic : on initie le paiement (Malia Pay renvoie le lien) puis on redirige.
+  const handlePay = async () => {
     if (!booking || !selectedPaymentMethod || !paymentType) {
-      setError('Veuillez sélectionner le type de paiement et la méthode de paiement');
+      setError('Veuillez sélectionner un mode et un moyen de paiement.');
       return;
     }
-
     setProcessing(true);
     setError(null);
-
     try {
-      console.log('Initiating payment...', {
-        bookingId: booking.id,
-        paymentMethod: selectedPaymentMethod,
-        purpose: paymentType
-      });
-
-      const response = await api.post(`/bookings/${booking.id}/payment/initiate`, {
+      const res = await api.post(`/bookings/${booking.id}/payment/initiate`, {
         payment_method: selectedPaymentMethod,
-        payment_type: paymentType
-      });
-      
-      console.log('Payment initiated successfully', response.data);
-      
-      if (response.data.payment) {
-        setPayment(response.data.payment);
-      }
-      
-      // Si un lien est retourné, on peut l'afficher
-      if (response.data.link || response.data.payment_url) {
-        console.log('Payment link received:', response.data.link || response.data.payment_url);
-      }
-    } catch (err: any) {
-      console.error('Payment initiation error:', err);
-      console.error('Error response:', err.response);
-      
-      // Message d'erreur simple pour l'utilisateur (sans détails techniques)
-      const errorMessage = err.response?.data?.error || 
-                          err.response?.data?.message || 
-                          'Une erreur est survenue lors de l\'initialisation du paiement. Veuillez réessayer.';
-      
-      setError(errorMessage);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const processPayment = async () => {
-    if (!payment) return;
-
-    setProcessing(true);
-    setError(null);
-
-    try {
-      const response = await api.post(`/payments/${payment.id}/process`, {
-        payment_method: selectedPaymentMethod
+        payment_type: paymentType,
       });
 
-      // Rediriger vers le lien de paiement externe
-      if (response.data.link || response.data.payment_url || response.data.redirect_url) {
-        const paymentLink = response.data.link || response.data.payment_url || response.data.redirect_url;
-        window.location.href = paymentLink;
-      } else {
-        throw new Error('Lien de paiement non disponible');
+      let link: string | undefined = res.data.link || res.data.payment_url;
+
+      // Repli : si le lien n'est pas renvoyé, on le récupère via /process
+      if (!link && res.data.payment?.id) {
+        const proc = await api.post(`/payments/${res.data.payment.id}/process`, {
+          payment_method: selectedPaymentMethod,
+        });
+        link = proc.data.link || proc.data.payment_url || proc.data.redirect_url;
       }
+
+      if (link) {
+        window.location.href = link; // redirection vers la passerelle
+        return; // la page navigue : on garde l'état "processing"
+      }
+      throw new Error('Le lien de paiement est indisponible. Veuillez réessayer.');
     } catch (err: any) {
-      // Message d'erreur simple pour l'utilisateur
-      const errorMessage = err.response?.data?.error || 
-                          err.response?.data?.message || 
-                          'Une erreur est survenue lors du traitement du paiement. Veuillez réessayer.';
-      setError(errorMessage);
+      const message =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        'Une erreur est survenue lors du paiement. Veuillez réessayer.';
+      setError(message);
       setProcessing(false);
     }
   };
@@ -270,11 +203,7 @@ export default function BookingPaymentPage() {
       <div className="min-h-screen">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <ErrorDisplay 
-            error={error} 
-            onRetry={fetchBooking}
-            type="error"
-          />
+          <ErrorDisplay error={error} onRetry={fetchBooking} type="error" />
           <div className="text-center mt-8">
             <Link href="/bookings" className="btn-primary">
               Retour aux réservations
@@ -285,13 +214,11 @@ export default function BookingPaymentPage() {
     );
   }
 
-  if (!booking) {
-    return null;
-  }
+  if (!booking) return null;
 
   const nights = Math.ceil(
-    (new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) / 
-    (1000 * 60 * 60 * 24)
+    (new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) /
+      (1000 * 60 * 60 * 24)
   );
 
   const fallbackPaymentOpts: PaymentOptions = (() => {
@@ -305,7 +232,7 @@ export default function BookingPaymentPage() {
     const isLongStay = safeNights >= 7;
     const fullOnly = isNonRefundable || isLastMinute || isLongStay;
     const reason = isLastMinute
-      ? 'réservation moins de 48h avant l\'arrivée'
+      ? "réservation à moins de 48h de l'arrivée"
       : isLongStay
       ? `séjour long (${safeNights} nuits)`
       : isNonRefundable
@@ -321,527 +248,309 @@ export default function BookingPaymentPage() {
           amount: total,
           original_amount: total,
           discount_percent: 0,
-          description: 'Payez 100% du montant pour confirmer votre réservation immédiatement.',
+          description: 'Payez la totalité maintenant : réservation confirmée immédiatement.',
         },
-        guarantee: fullOnly ? undefined : {
-          label: 'Garantir ma réservation (paiement de la première nuitée)',
-          amount: Math.round(firstNight),
-          percent_of_total: total > 0 ? Math.round((firstNight / total) * 100) : 0,
-          description: 'Payez la première nuitée sur la plateforme. Le solde est payable directement à l\'hôtel à l\'arrivée.',
-          balance_at_hotel: Math.max(0, Math.round(total - firstNight)),
-        },
+        guarantee: fullOnly
+          ? undefined
+          : {
+              label: '1ère nuitée garantie',
+              amount: Math.round(firstNight),
+              percent_of_total: total > 0 ? Math.round((firstNight / total) * 100) : 0,
+              description:
+                "Payez la première nuitée en ligne. Le solde se règle à l'établissement à l'arrivée.",
+              balance_at_hotel: Math.max(0, Math.round(total - firstNight)),
+            },
       },
     };
   })();
 
   const paymentOpts = booking.payment_options ?? fallbackPaymentOpts;
-  const totalPrice = booking.total_price || 0;
-  const amountPaid = booking.amount_paid || 0;
+
+  const activeOption =
+    paymentType === 'guarantee' && paymentOpts.options.guarantee
+      ? paymentOpts.options.guarantee
+      : paymentOpts.options.full;
+  const amountToPay = activeOption?.amount ?? booking.total_price ?? 0;
 
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="container mx-auto px-4 py-8 max-w-3xl">
-        {/* Header */}
+      <main className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* En-tête */}
         <div className="mb-6">
-          <Link 
+          <Link
             href={`/bookings/${booking.id}`}
             className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary transition mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Retour à la réservation
           </Link>
-          <h1 className="text-3xl font-bold">Paiement de la réservation</h1>
+          <h1 className="text-3xl font-bold">Paiement</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Complétez votre paiement pour finaliser votre réservation
+            Réglez en toute sécurité pour confirmer votre séjour.
           </p>
         </div>
 
-        {/* Message d'erreur de paiement */}
+        {/* Échec de paiement (retour passerelle) */}
         {paymentError && (
-          <div className="mb-6 card bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-600">
+          <div className="mb-6 card bg-red-50 dark:bg-red-900/20 border-2 border-primary">
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0">
-                <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-              </div>
+              <XCircle className="w-6 h-6 text-primary flex-shrink-0" />
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-red-800 dark:text-red-300 mb-2">
-                  Échec du paiement
+                <h3 className="text-lg font-bold text-red-800 dark:text-red-300 mb-1">
+                  Paiement non abouti
                 </h3>
-                <p className="text-red-700 dark:text-red-400 mb-4">
-                  {paymentError}
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href="/bookings"
-                    className="btn-primary inline-flex items-center justify-center gap-2"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    Retour aux réservations
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setPaymentError(null);
-                      // Nettoyer l'URL
-                      router.replace(`/bookings/${booking.id}/payment`);
-                    }}
-                    className="btn-outline inline-flex items-center justify-center gap-2"
-                  >
-                    Réessayer le paiement
-                  </button>
-                </div>
+                <p className="text-red-700 dark:text-red-400">{paymentError}</p>
               </div>
             </div>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Formulaire de paiement */}
+          {/* Colonne principale */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Mode de paiement */}
             <div className="card">
-              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                <CreditCard className="w-6 h-6" />
-                Informations de paiement
-              </h2>
-
-              {!payment ? (
-                <div className="space-y-4">
-                  {/* Options de paiement : A (intégral) et B (garantie) */}
-                  {!paymentOpts ? (
-                    <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                        <Clock className="w-4 h-4 animate-spin" />
-                        Chargement des options de paiement...
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="block text-sm font-medium mb-3">
-                        Choisissez votre mode de paiement
-                      </label>
-                      {paymentOpts.full_only && paymentOpts.reason && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
-                          Paiement intégral obligatoire ({paymentOpts.reason})
-                        </p>
-                      )}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                        {/* Option A - Paiement intégral */}
-                        <button
-                          type="button"
-                          onClick={() => setPaymentType('full')}
-                          className={`p-4 border-2 rounded-lg transition-all text-left ${
-                            paymentType === 'full'
-                              ? 'border-primary bg-primary/10'
-                              : 'border-gray-300 dark:border-gray-600 hover:border-primary/50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-semibold text-sm">{paymentOpts.options.full.label}</p>
-                              <p className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                                {formatPrice(paymentOpts.options.full.amount)} FCFA
-                                {paymentOpts.options.full.discount_percent > 0 && (
-                                  <span className="text-green-600 dark:text-green-400 ml-1">
-                                    (-{paymentOpts.options.full.discount_percent}%)
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                            {paymentType === 'full' && (
-                              <CheckCircle className="w-5 h-5 text-primary" />
-                            )}
-                          </div>
-                          <p className="text-xs mt-2 text-gray-500 dark:text-gray-400">
-                            {paymentOpts.options.full.description}
-                          </p>
-                        </button>
-
-                        {/* Option B - Garantie de réservation */}
-                        {!paymentOpts.full_only && paymentOpts.options.guarantee && (
-                          <button
-                            type="button"
-                            onClick={() => setPaymentType('guarantee')}
-                            className={`p-4 border-2 rounded-lg transition-all text-left ${
-                              paymentType === 'guarantee'
-                                ? 'border-primary bg-primary/10'
-                                : 'border-gray-300 dark:border-gray-600 hover:border-primary/50'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-semibold text-sm">{paymentOpts.options.guarantee.label}</p>
-                                <p className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                                  {formatPrice(paymentOpts.options.guarantee.amount)} FCFA
-                                  {paymentOpts.options.guarantee.percent_of_total && (
-                                    <span className="ml-1">
-                                      ({paymentOpts.options.guarantee.percent_of_total}% du séjour)
-                                    </span>
-                                  )}
-                                </p>
-                              </div>
-                              {paymentType === 'guarantee' && (
-                                <CheckCircle className="w-5 h-5 text-primary" />
-                              )}
-                            </div>
-                            <p className="text-xs mt-2 text-gray-500 dark:text-gray-400">
-                              {paymentOpts.options.guarantee.description}
-                            </p>
-                          </button>
-                        )}
-                      </div>
-                      {paymentType && paymentOpts.options[paymentType as 'full' | 'guarantee'] && (
-                        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                          <p className="text-sm text-blue-800 dark:text-blue-300">
-                            {paymentType === 'full' ? (
-                              <>
-                                Vous allez payer <strong>{formatPrice(paymentOpts.options.full.amount)} FCFA</strong> (paiement intégral avec {paymentOpts.options.full.discount_percent}% de réduction). Réservation confirmée immédiatement.
-                              </>
-                            ) : paymentOpts.options.guarantee ? (
-                              <>
-                                Vous allez payer <strong>{formatPrice(paymentOpts.options.guarantee.amount)} FCFA</strong> pour garantir votre réservation. Le solde de <strong>{formatPrice(paymentOpts.options.guarantee.balance_at_hotel)} FCFA</strong> sera payable à l&apos;hôtel à l&apos;arrivée.
-                              </>
-                            ) : null}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium mb-3">
-                      Choisissez votre méthode de paiement
-                    </label>
-                    {loadingMethods ? (
-                      <div className="p-4 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                        <p className="text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
-                          <Clock className="w-4 h-4 animate-spin" />
-                          Chargement des méthodes de paiement...
-                        </p>
-                      </div>
-                    ) : paymentMethods.length === 0 ? (
-                      <div className="p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20">
-                        <p className="text-sm text-red-800 dark:text-red-300">
-                          Aucune méthode de paiement disponible. Veuillez contacter le support.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-3">
-                        {paymentMethods.map((method) => (
-                        <button
-                          key={method.id}
-                          type="button"
-                          onClick={() => setSelectedPaymentMethod(method.slug)}
-                          className={`p-4 border-2 rounded-lg transition-all ${
-                            selectedPaymentMethod === method.slug
-                              ? 'border-primary bg-primary/10'
-                              : 'border-gray-300 dark:border-gray-600 hover:border-primary/50'
-                          }`}
-                        >
-                          <div className="flex flex-col items-center gap-2">
-                            {method.icon && (
-                              <div className="relative w-16 h-16">
-                                <Image
-                                  src={method.icon}
-                                  alt={method.name}
-                                  fill
-                                  className="object-contain"
-                                />
-                              </div>
-                            )}
-                            <span className="text-sm font-medium text-center">
-                              {method.name}
-                            </span>
-                          </div>
-                        </button>
-                        ))}
-                      </div>
-                    )}
+              <h2 className="text-xl font-bold mb-1">Comment souhaitez-vous payer&nbsp;?</h2>
+              {paymentOpts.full_only && paymentOpts.reason && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mb-4">
+                  Paiement intégral requis pour cette réservation ({paymentOpts.reason}).
+                </p>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                {/* Intégral */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentType('full')}
+                  className={`p-4 border-2 rounded-2xl text-left transition-all ${
+                    paymentType === 'full'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-sm">{paymentOpts.options.full.label}</p>
+                    {paymentType === 'full' && <CheckCircle className="w-5 h-5 text-primary" />}
                   </div>
+                  <p className="text-base font-bold text-gray-900 dark:text-white mt-1">
+                    {formatPrice(paymentOpts.options.full.amount)} FCFA
+                    {paymentOpts.options.full.discount_percent > 0 && (
+                      <span className="text-green-600 dark:text-green-400 text-xs font-medium ml-1">
+                        -{paymentOpts.options.full.discount_percent}%
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {paymentOpts.options.full.description}
+                  </p>
+                </button>
 
-                  {error && (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="font-semibold text-red-800 dark:text-red-300 mb-1">
-                            Erreur lors de l'initialisation
-                          </p>
-                          <p className="text-sm text-red-700 dark:text-red-400 whitespace-pre-wrap">
-                            {error}
-                          </p>
-                          <button
-                            onClick={() => setError(null)}
-                            className="mt-2 text-sm text-red-600 dark:text-red-400 hover:underline"
-                          >
-                            Fermer
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
+                {/* Garantie 1ère nuitée */}
+                {!paymentOpts.full_only && paymentOpts.options.guarantee && (
                   <button
-                    onClick={initiatePayment}
-                    disabled={processing || !selectedPaymentMethod || !paymentType || !paymentOpts}
-                    className="w-full btn-primary disabled:opacity-50"
+                    type="button"
+                    onClick={() => setPaymentType('guarantee')}
+                    className={`p-4 border-2 rounded-2xl text-left transition-all ${
+                      paymentType === 'guarantee'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
+                    }`}
                   >
-                    {processing ? 'Initialisation...' : 'Initialiser le paiement'}
-                  </button>
-                  {!paymentType && (
-                    <p className="text-sm text-red-600 dark:text-red-400 text-center">
-                      Veuillez sélectionner un type de paiement
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-sm">{paymentOpts.options.guarantee.label}</p>
+                      {paymentType === 'guarantee' && (
+                        <CheckCircle className="w-5 h-5 text-primary" />
+                      )}
+                    </div>
+                    <p className="text-base font-bold text-gray-900 dark:text-white mt-1">
+                      {formatPrice(paymentOpts.options.guarantee.amount)} FCFA
+                      {paymentOpts.options.guarantee.percent_of_total ? (
+                        <span className="text-xs font-medium text-gray-500 ml-1">
+                          ({paymentOpts.options.guarantee.percent_of_total}%)
+                        </span>
+                      ) : null}
                     </p>
-                  )}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {paymentOpts.options.guarantee.description}
+                    </p>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Moyen de paiement */}
+            <div className="card">
+              <h2 className="text-xl font-bold mb-4">Moyen de paiement</h2>
+              {loadingMethods ? (
+                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-900 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                  <Clock className="w-4 h-4 animate-spin" />
+                  Chargement des moyens de paiement...
+                </div>
+              ) : paymentMethods.length === 0 ? (
+                <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
+                  Aucun moyen de paiement disponible pour le moment. Veuillez contacter le support.
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Référence de paiement
-                      </span>
-                      <span className="font-mono font-semibold">
-                        {payment.payment_reference}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Statut
-                      </span>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        payment.status === 'completed' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                          : payment.status === 'failed'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                      }`}>
-                        {payment.status === 'completed' ? 'Payé' : 
-                         payment.status === 'failed' ? 'Échoué' : 
-                         'En attente'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {payment.status === 'pending' && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium mb-3">
-                          Méthode de paiement
-                        </label>
-                        {loadingMethods ? (
-                          <div className="p-4 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                            <p className="text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
-                              <Clock className="w-4 h-4 animate-spin" />
-                              Chargement des méthodes de paiement...
-                            </p>
-                          </div>
-                        ) : paymentMethods.length === 0 ? (
-                          <div className="p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20">
-                            <p className="text-sm text-red-800 dark:text-red-300">
-                              Aucune méthode de paiement disponible. Veuillez contacter le support.
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-2 gap-3">
-                            {paymentMethods.map((method) => (
-                            <button
-                              key={method.id}
-                              type="button"
-                              onClick={() => setSelectedPaymentMethod(method.slug)}
-                              className={`p-4 border-2 rounded-lg transition-all ${
-                                selectedPaymentMethod === method.slug
-                                  ? 'border-primary bg-primary/10'
-                                  : 'border-gray-300 dark:border-gray-600 hover:border-primary/50'
-                              }`}
-                            >
-                              <div className="flex flex-col items-center gap-2">
-                                {method.icon && (
-                                  <div className="relative w-16 h-16">
-                                    <Image
-                                      src={method.icon}
-                                      alt={method.name}
-                                      fill
-                                      className="object-contain"
-                                    />
-                                  </div>
-                                )}
-                                <span className="text-sm font-medium text-center">
-                                  {method.name}
-                                </span>
-                              </div>
-                            </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                        <div className="flex items-start gap-3">
-                          <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-                          <div className="text-sm text-blue-800 dark:text-blue-300">
-                            <p className="font-semibold mb-1">Note importante</p>
-                            <p>
-                              Cette simulation traite le paiement immédiatement. 
-                              Dans un environnement de production, vous seriez redirigé vers 
-                              la plateforme de paiement (Stripe, PayPal, Mobile Money, etc.).
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {error && (
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                          <div className="flex items-start gap-3">
-                            <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                            <div className="flex-1">
-                              <p className="font-semibold text-red-800 dark:text-red-300 mb-1">
-                                Erreur lors du traitement
-                              </p>
-                              <p className="text-sm text-red-700 dark:text-red-400 whitespace-pre-wrap">
-                                {error}
-                              </p>
-                              <button
-                                onClick={() => setError(null)}
-                                className="mt-2 text-sm text-red-600 dark:text-red-400 hover:underline"
-                              >
-                                Fermer
-                              </button>
-                            </div>
-                          </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {paymentMethods.map((method) => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod(method.slug)}
+                      className={`p-4 border-2 rounded-2xl transition-all flex flex-col items-center gap-2 ${
+                        selectedPaymentMethod === method.slug
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
+                      }`}
+                    >
+                      {method.icon && (
+                        <div className="relative w-12 h-12">
+                          <Image src={method.icon} alt={method.name} fill className="object-contain" />
                         </div>
                       )}
-
-                      <button
-                        onClick={processPayment}
-                        disabled={processing || !selectedPaymentMethod}
-                        className="w-full btn-primary disabled:opacity-50"
-                      >
-                        {processing ? 'Traitement du paiement...' : 'Payer maintenant'}
-                      </button>
-                    </>
-                  )}
-
-                  {payment.status === 'completed' && (
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                        <div>
-                          <p className="font-semibold text-green-800 dark:text-green-300">
-                            Paiement effectué avec succès
-                          </p>
-                          {payment.transaction_id && (
-                            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                              Transaction: {payment.transaction_id}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                      <span className="text-xs font-medium text-center leading-tight">
+                        {method.name}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               )}
+
+              {/* Réassurance sécurité */}
+              <div className="flex items-center gap-2 mt-4 text-xs text-gray-500 dark:text-gray-400">
+                <Lock className="w-4 h-4 text-bosejour-grayGreen" />
+                Paiement 100&nbsp;% sécurisé — vous êtes redirigé vers la passerelle bancaire.
+              </div>
+
+              {error && (
+                <div className="mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4">
+                  <div className="flex items-start gap-3">
+                    <XCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm text-red-700 dark:text-red-400 whitespace-pre-wrap">{error}</p>
+                      <button
+                        onClick={() => setError(null)}
+                        className="mt-1 text-xs text-red-600 dark:text-red-400 hover:underline"
+                      >
+                        Fermer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handlePay}
+                disabled={processing || !selectedPaymentMethod || !paymentType}
+                className="w-full btn-primary mt-5 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+              >
+                {processing ? (
+                  <>
+                    <Clock className="w-4 h-4 animate-spin" />
+                    Redirection vers le paiement...
+                  </>
+                ) : (
+                  `Payer ${formatPrice(amountToPay)} FCFA`
+                )}
+              </button>
             </div>
           </div>
 
           {/* Récapitulatif */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="card min-w-[280px]">
+            <div className="card">
               <h3 className="text-lg font-semibold mb-4">Récapitulatif</h3>
               <div className="space-y-3">
                 <div>
                   <p className="font-medium text-sm">{booking.accommodation.name}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {booking.accommodation.city}
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{booking.accommodation.city}</p>
+                </div>
+
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-1.5 text-sm text-gray-600 dark:text-gray-400">
+                  <p>
+                    {format(new Date(booking.check_in), 'dd MMM yyyy', { locale: fr })} —{' '}
+                    {format(new Date(booking.check_out), 'dd MMM yyyy', { locale: fr })}
+                  </p>
+                  <p>{nights} nuit{nights > 1 ? 's' : ''}</p>
+                  <p>
+                    {booking.guests} {booking.guests > 1 ? 'voyageurs' : 'voyageur'}
                   </p>
                 </div>
 
                 <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {format(new Date(booking.check_in), 'dd MMM yyyy', { locale: fr })} - {' '}
-                      {format(new Date(booking.check_out), 'dd MMM yyyy', { locale: fr })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {nights} nuit{nights > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {booking.guests} {booking.guests > 1 ? 'voyageurs' : 'voyageur'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                  {booking.amount_paid && booking.amount_paid > 0 && (
+                  {booking.amount_paid && booking.amount_paid > 0 ? (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Déjà payé:</span>
+                      <span className="text-gray-600 dark:text-gray-400">Déjà payé</span>
                       <span className="font-medium text-green-600 dark:text-green-400">
                         {formatPrice(booking.amount_paid)} FCFA
                       </span>
                     </div>
-                  )}
+                  ) : null}
                   <div className="flex justify-between items-center gap-2">
-                    <span className="text-sm font-medium flex-shrink-0">
-                      {paymentType === 'guarantee' ? 'Garantie de réservation' : 'Paiement intégral'}
+                    <span className="text-sm font-medium">
+                      {paymentType === 'guarantee' ? '1ère nuitée garantie' : 'Paiement intégral'}
                     </span>
                     <span className="text-lg font-bold text-primary text-right whitespace-nowrap">
-                      {paymentType === 'guarantee' && booking.payment_options?.options?.guarantee ? (
-                        formatPrice(booking.payment_options.options.guarantee.amount) + ' FCFA'
-                      ) : booking.payment_options?.options?.full ? (
-                        formatPrice(booking.payment_options.options.full.amount) + ' FCFA'
-                      ) : (
-                        formatPrice(booking.total_price) + ' FCFA'
-                      )}
+                      {formatPrice(amountToPay)} FCFA
                     </span>
                   </div>
-                  {paymentType === 'guarantee' && booking.payment_options?.options?.guarantee && (
-                    <div className="text-xs text-gray-500 dark:text-gray-500 pt-2 border-t border-gray-200 dark:border-gray-700">
-                      <p>Solde à payer à l&apos;hôtel : {formatPrice(booking.payment_options.options.guarantee.balance_at_hotel)} FCFA</p>
-                    </div>
+                  {paymentType === 'guarantee' && paymentOpts.options.guarantee && (
+                    <p className="text-xs text-gray-500 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      Solde à régler à l&apos;établissement :{' '}
+                      {formatPrice(paymentOpts.options.guarantee.balance_at_hotel)} FCFA
+                    </p>
                   )}
                 </div>
               </div>
             </div>
 
+            {/* 1ère nuitée garantie */}
+            <div className="card bg-bosejour-grayGreen/5 border border-bosejour-grayGreen/20">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-bosejour-grayGreen mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-semibold text-gray-900 dark:text-white mb-1">Réservation protégée</p>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    En cas de refus de l&apos;établissement, vous êtes intégralement remboursé sous 24h.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Politique d'annulation */}
             {booking.cancellation_policy && (
-              <div className={`card ${booking.cancellation_policy.is_non_refundable ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'}`}>
+              <div
+                className={`card ${
+                  booking.cancellation_policy.is_non_refundable
+                    ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                    : 'bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
                 <div className="flex items-start gap-3">
-                  <FileText className={`w-5 h-5 mt-0.5 ${booking.cancellation_policy.is_non_refundable ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`} />
+                  <FileText
+                    className={`w-5 h-5 mt-0.5 ${
+                      booking.cancellation_policy.is_non_refundable ? 'text-primary' : 'text-bosejour-grayGreen'
+                    }`}
+                  />
                   <div className="text-sm">
-                    <p className={`font-semibold mb-1 ${booking.cancellation_policy.is_non_refundable ? 'text-red-800 dark:text-red-300' : 'text-blue-800 dark:text-blue-300'}`}>
-                      {booking.cancellation_policy.is_non_refundable ? 'Non remboursable' : 'Réservation modifiable'}
+                    <p className="font-semibold text-gray-900 dark:text-white mb-1">
+                      {booking.cancellation_policy.is_non_refundable
+                        ? 'Non remboursable'
+                        : 'Réservation modifiable'}
                     </p>
-                    <p className={booking.cancellation_policy.is_non_refundable ? 'text-red-700 dark:text-red-400' : 'text-blue-700 dark:text-blue-400'}>
-                      {booking.cancellation_policy.label}
-                    </p>
+                    <p className="text-gray-600 dark:text-gray-400">{booking.cancellation_policy.label}</p>
                     {booking.cancellation_policy.modification_deadline_info && (
-                      <p className="text-blue-600 dark:text-blue-400 mt-1">{booking.cancellation_policy.modification_deadline_info}</p>
+                      <p className="text-gray-500 mt-1">
+                        {booking.cancellation_policy.modification_deadline_info}
+                      </p>
                     )}
                   </div>
                 </div>
               </div>
             )}
-
-            <div className="card bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-semibold text-yellow-800 dark:text-yellow-300 mb-1">
-                    Réservation en attente
-                  </p>
-                  <p className="text-yellow-700 dark:text-yellow-400">
-                    Votre réservation sera confirmée une fois le paiement validé.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </main>
     </div>
   );
 }
-

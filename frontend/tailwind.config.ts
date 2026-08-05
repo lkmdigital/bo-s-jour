@@ -20,6 +20,11 @@ const config: Config = {
           dark: '#060606',
           light: '#1A1A1A',
         },
+        secondary: {
+          DEFAULT: '#4B5F5A', // gris-vert — couleur secondaire charte bo séjour
+          dark: '#3A4A46',
+          light: '#6B7F7A',
+        },
         // Charte graphique Bosejour 2025 — tokens additifs, utilisés uniquement
         // dans les nouveaux espaces (dashboard partenaire/admin) pour ne pas
         // impacter la marque du reste du site.

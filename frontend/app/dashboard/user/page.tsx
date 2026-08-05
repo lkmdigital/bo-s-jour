@@ -11,7 +11,7 @@ import Pagination from '@/components/common/Pagination';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
-import { Calendar, Users, TrendingUp, Star, ArrowRight, CreditCard, FileText, Wallet } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Star, ArrowRight, CreditCard, FileText, Wallet, RefreshCw, MessageSquare, Compass } from 'lucide-react';
 
 interface Booking {
   id: number;
@@ -204,20 +204,34 @@ export default function UserDashboardPage() {
     <div className="min-h-screen">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Tableau de bord</h1>
+            <h1 className="text-3xl font-bold mb-2">Mon espace</h1>
             <p className="text-gray-600 dark:text-gray-400">
               Bienvenue, {user?.name} ! 👋
             </p>
           </div>
           <button
             onClick={fetchBookings}
-            className="btn-outline text-sm"
+            className="btn-outline text-sm inline-flex items-center gap-2"
             title="Recharger les données"
           >
-            🔄 Actualiser
+            <RefreshCw className="w-4 h-4" />
+            <span className="hidden sm:inline">Actualiser</span>
           </button>
+        </div>
+
+        {/* Navigation espace membre */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          <Link href="/bookings" className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors">
+            <Calendar className="w-4 h-4" /> Mes réservations
+          </Link>
+          <Link href="/dashboard/user/inbox" className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border border-gray-200 dark:border-gray-700 hover:border-primary hover:text-primary transition-colors">
+            <MessageSquare className="w-4 h-4" /> Messages
+          </Link>
+          <Link href="/accommodations" className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border border-gray-200 dark:border-gray-700 hover:border-primary hover:text-primary transition-colors">
+            <Compass className="w-4 h-4" /> Explorer la Côte d&apos;Ivoire
+          </Link>
         </div>
 
         {error && (

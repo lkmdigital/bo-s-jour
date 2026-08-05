@@ -8,12 +8,27 @@ import Header from '@/components/common/Header';
 import { useSearchStore } from '@/stores/searchStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationPermission } from '@/hooks/useNotificationPermission';
-import { CheckCircle, Calendar, Sparkles, Home, List, FileText, KeyRound, UserPlus } from 'lucide-react';
+import { CheckCircle, Calendar, CalendarPlus, Sparkles, Home, List, FileText, KeyRound, UserPlus, Mail } from 'lucide-react';
 
 interface SuccessBooking {
   confirmation_code?: string;
-  accommodation?: { name: string };
+  check_in?: string;
+  check_out?: string;
+  accommodation?: { name: string; city?: string };
   user?: { email?: string; name?: string; is_guest?: boolean };
+}
+
+// Lien "Ajouter à Google Agenda" (événement journée entière check-in → check-out)
+function googleCalendarUrl(b: SuccessBooking, bookingId?: string | null): string | null {
+  if (!b.check_in || !b.check_out) return null;
+  // Format Google Agenda journée entière : YYYYMMDD (on garde la partie date de l'ISO).
+  const d = (s: string) => s.slice(0, 10).replace(/-/g, '');
+  const text = encodeURIComponent(`Séjour — ${b.accommodation?.name ?? 'bo séjour'}`);
+  const details = encodeURIComponent(
+    `Réservation bo séjour${bookingId ? ` #${bookingId}` : ''}${b.confirmation_code ? ` · Code : ${b.confirmation_code}` : ''}`
+  );
+  const location = encodeURIComponent(b.accommodation?.city ?? '');
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${d(b.check_in)}/${d(b.check_out)}&details=${details}&location=${location}`;
 }
 
 function BookingSuccessContent() {
@@ -89,10 +104,23 @@ function BookingSuccessContent() {
                 <span className="font-semibold">Réservation #{bookingId}</span>
               </div>
               
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Vous recevrez un message sur la plateforme avec le code de réservation. Consultez aussi le détail de votre réservation pour le retrouver.
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-2">
+                  <Mail className="w-4 h-4 text-secondary flex-shrink-0" />
+                  Un e-mail de confirmation avec votre code vous est envoyé
+                  {booking?.user?.email ? <> à <strong>{booking.user.email}</strong></> : null}.
                 </p>
+                {googleCalendarUrl(booking ?? {}, bookingId) && (
+                  <a
+                    href={googleCalendarUrl(booking ?? {}, bookingId)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-outline inline-flex items-center justify-center gap-2 text-sm"
+                  >
+                    <CalendarPlus className="w-4 h-4" />
+                    Ajouter à mon calendrier
+                  </a>
+                )}
               </div>
             </div>
           </div>

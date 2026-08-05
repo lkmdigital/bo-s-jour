@@ -38,27 +38,29 @@ Notes : contenu localisé Côte d'Ivoire (destinations, activités Abidjan) au l
 - ➕ Affichage clair : **politique d'annulation** (Flexible/Modérée/Stricte) + **mode de paiement** (Acompte ≥ 1 nuitée / Intégral).
 - ➕ Encart réservation : récap temps réel (nuits, taxes, total, **montant à payer en ligne**, solde sur place) + message **« 1ère nuitée garantie »**.
 
-## LOT 3 — Tunnel de réservation (cœur du brief) ⚙️
-**Écrans** : `app/bookings/new` → identification → paiement.
-- ➕ **Étape identification** : « Se connecter » OU **« Continuer sans compte »** (mis en avant). ⚙️ résa invité côté back.
-- ➕ **Choix type voyageur** : Particulier / **Corporate** (champs entreprise : raison sociale, TVA, adresse, email facturation…). ⚙️ modèle Corporate.
-- ➕ **Infos voyageur** : nom, prénoms, tél, email, **confirmation WhatsApp** (code) + données statistiques (pays/ville résidence, nationalité). ⚙️ vérif WhatsApp/SMS.
-- ✏️ **Vérification finale** : récap complet + CGV (case) + mention 1ère nuitée + **bandeau sécurité** « remboursement auto 24h si refus ».
-- ✏️ `app/bookings/[id]/payment` : moyens **Visa/Mastercard/Djamo/Wave/Orange/MTN/Moov** au design charte ; montant selon Acompte/Intégral. ⚙️ paiement différé Corporate (option).
+## LOT 3 — Tunnel de réservation (cœur du brief) ⚙️ ✅ FAIT
+**Écrans** : `app/bookings/new` (wizard 5 étapes) → `app/bookings/[id]/payment`.
+- [x] Identification « Continuer sans compte » / Se connecter.
+- [x] Type voyageur Particulier / Corporate (paiement différé sur facture).
+- [x] Infos voyageur + résidence/nationalité (stats). WhatsApp = vérif reportée (dépend API).
+- [x] Vérification finale : CGV + bandeau sécurité « remboursement 24h ».
+- [x] **Paiement refondu charte (2026-08-05)** : `app/bookings/[id]/payment` — passerelle **Malia Pay** (existante) ; moyens réels **Wave / Visa-Mastercard / Orange Money / Djamo** (logos) ; modes **Intégral / 1ère nuitée garantie** ; **paiement en 1 clic** (initiate → redirection) ; encart « Réservation protégée ». Vérifié live (#13).
+  - ⚠️ MTN/Moov **non proposés** : non supportés par la passerelle Malia Pay (channels OMCI/WAVECI/CARD/DJAMO). À rajouter si le prestataire les ouvre.
 
-## LOT 4 — Confirmation & double canal ⚙️
-**Écran** : `app/bookings/success` + statut résa.
-- ✏️ Page confirmation charte : code résa, récap, ajouter au calendrier.
-- ⚙️ **Double confirmation E-mail + WhatsApp** (WhatsApp Business API — chantier back).
-- ➕ Gestion des 2 cas : **Confirmation auto** vs **Sur demande** (statut « en attente » + remboursement auto si refus).
+## LOT 4 — Confirmation & double canal ⚙️ 🟢 FAIT (front)
+**Écran** : `app/bookings/success`.
+- [x] **Page confirmation charte (2026-08-05)** : code résa, réassurance **e-mail de confirmation**, **« Ajouter à mon calendrier »** (Google Agenda, dates réelles), CTA reçu / réservations / accueil, activation invité.
+- [~] **WhatsApp** : service prêt, **en veille** tant que le client ne fournit pas WhatsApp Business + templates.
+- [x] Cas Confirmation auto vs Sur demande + remboursement auto si refus (back, Lot 3.5).
 
-## LOT 5 — Compte post-réservation & profilage ⚙️
-- ➕ Relances création de compte (H+2 / H+24 / H+72) — front = pages d'activation ; ⚙️ envois back.
-- ➕ **Activation compte** : données préremplies (résa), l'utilisateur ne saisit que le mot de passe ; rattachement des résas.
-- ➕ **Profilage progressif** (facultatif) : infos perso, préférences, motif voyage.
+## LOT 5 — Compte post-réservation & profilage ⚙️ 🟢 Partiel
+- [x] **Activation compte** : page `/auth/activate` (données préremplies) + CTA « Créer mon espace » sur la page succès. Rattachement des résas par e-mail.
+- [ ] Relances création de compte (H+2 / H+24 / H+72) — envois back à planifier.
+- [ ] Profilage progressif (facultatif).
 
-## LOT 6 — Espace membre voyageur (pont vers Phase 3)
-- ✏️ `app/dashboard/user` + `app/bookings` : dashboard membre (réservations, favoris, avoirs, messagerie), au design charte.
+## LOT 6 — Espace membre voyageur (pont vers Phase 3) 🟢 FAIT (charte)
+- [x] **`app/dashboard/user` refondu charte (2026-08-05)** : titre « Mon espace », **nav membre** (Mes réservations / Messages / Explorer), cartes stats (réservations, **avoirs**, à venir, passées, total dépensé), liste réservations + paiement/reçu, pagination.
+- [~] **Favoris** : pas de page dédiée (le cœur est un état local non persisté, pas de back) → non ajouté (pas de lien mort). À créer avec persistance back en Phase 3.
 - (Fidélité Bronze/Argent/Or/Platine, « Mon Voyage », découvrir la CI → Phase 3.)
 
 ---
