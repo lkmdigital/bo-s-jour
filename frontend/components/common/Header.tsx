@@ -454,7 +454,7 @@ export default function Header() {
                   <Headphones className="w-5 h-5" />
                 </a>
                 {/* Connexion */}
-                <Link href="/auth/login" className="btn-primary text-sm inline-flex items-center gap-1.5">
+                <Link href="/acces" className="btn-primary text-sm inline-flex items-center gap-1.5">
                   <LogIn className="w-4 h-4" />
                   Connexion
                 </Link>
@@ -481,7 +481,7 @@ export default function Header() {
                 </button>
               </>
             ) : (
-              <Link href="/auth/login" className="btn-primary text-sm inline-flex items-center gap-1.5">
+              <Link href="/acces" className="btn-primary text-sm inline-flex items-center gap-1.5">
                 <LogIn className="w-4 h-4" />
                 Connexion
               </Link>
