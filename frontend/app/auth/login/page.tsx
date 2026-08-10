@@ -205,10 +205,21 @@ function LoginContent() {
 
                 <div className="text-center">
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 break-words">
-                    Pas encore de compte ?{' '}
-                    <Link href="/auth/register" className="text-primary hover:underline transition-colors">
-                      Créer mon espace
-                    </Link>
+                    {searchParams.get('type') === 'partenaire' ? (
+                      <>
+                        Pas encore partenaire ?{' '}
+                        <Link href="/auth/register-partenaire" className="text-primary hover:underline transition-colors">
+                          Inscrire mon établissement
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        Pas encore de compte ?{' '}
+                        <Link href="/auth/register" className="text-primary hover:underline transition-colors">
+                          Créer mon espace
+                        </Link>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>

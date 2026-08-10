@@ -103,9 +103,10 @@ function RegisterContent() {
     }
   };
 
-  // À l'arrivée : email éventuel passé en query (lien d'activation / login)
+  // À l'arrivée : email éventuel passé en query (lien d'activation / login), et type
   useEffect(() => {
     const email = params.get('email');
+    if (params.get('type') === 'corporate') set('traveler_type', 'corporate');
     if (email) {
       set('email', email);
       tryPrefill(email);
@@ -179,14 +180,113 @@ function RegisterContent() {
 
   const isCorporate = form.traveler_type === 'corporate';
 
+  // Bloc "Personne / coordonnées" réutilisé, avec libellés adaptés au contexte.
+  const contactBlock = (personLabel: string) => (
+    <div className="card space-y-4">
+      <h2 className="text-lg font-bold">{personLabel}</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="Prénoms" required>
+          <input className={inputCls} value={form.first_name} onChange={(e) => set('first_name', e.target.value)} required />
+        </Field>
+        <Field label="Nom" required>
+          <input className={inputCls} value={form.last_name} onChange={(e) => set('last_name', e.target.value)} required />
+        </Field>
+      </div>
+      <Field label="Adresse e-mail" required>
+        <input
+          type="email"
+          className={inputCls}
+          value={form.email}
+          onChange={(e) => set('email', e.target.value)}
+          onBlur={(e) => tryPrefill(e.target.value)}
+          required
+        />
+      </Field>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="Téléphone" required hint="Utilisé pour WhatsApp et SMS">
+          <input className={inputCls} value={form.phone} onChange={(e) => set('phone', e.target.value)} required />
+        </Field>
+        <div>
+          <Field label="Numéro WhatsApp">
+            <input
+              className={inputCls}
+              value={form.whatsappSame ? form.phone : form.whatsapp}
+              onChange={(e) => set('whatsapp', e.target.value)}
+              disabled={form.whatsappSame}
+            />
+          </Field>
+          <label className="flex items-center gap-2 mt-1.5 text-xs text-gray-500 cursor-pointer">
+            <input type="checkbox" checked={form.whatsappSame} onChange={(e) => set('whatsappSame', e.target.checked)} />
+            Identique au téléphone
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+
+  const residenceBlock = (
+    <div className="card space-y-4">
+      <h2 className="text-lg font-bold">Résidence</h2>
+      <p className="text-xs text-gray-500 -mt-2 flex items-center gap-1.5">
+        <Info className="w-3.5 h-3.5" /> Aide bo séjour à mieux vous connaître (statistiques touristiques).
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Field label="Pays de résidence">
+          <input className={inputCls} value={form.residence_country} onChange={(e) => set('residence_country', e.target.value)} placeholder="Côte d'Ivoire" />
+        </Field>
+        <Field label="Ville de résidence">
+          <input className={inputCls} value={form.residence_city} onChange={(e) => set('residence_city', e.target.value)} placeholder="Abidjan" />
+        </Field>
+        <Field label="Nationalité">
+          <input className={inputCls} value={form.nationality} onChange={(e) => set('nationality', e.target.value)} placeholder="Ivoirienne" />
+        </Field>
+      </div>
+    </div>
+  );
+
+  const passwordBlock = (
+    <div className="card space-y-4">
+      <h2 className="text-lg font-bold">Mot de passe</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="Mot de passe" required hint="8 caractères minimum">
+          <div className="relative">
+            <input
+              type={showPwd ? 'text' : 'password'}
+              className={inputCls}
+              value={form.password}
+              onChange={(e) => set('password', e.target.value)}
+              required
+            />
+            <button type="button" onClick={() => setShowPwd((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </Field>
+        <Field label="Confirmer le mot de passe" required>
+          <input
+            type={showPwd ? 'text' : 'password'}
+            className={inputCls}
+            value={form.password_confirmation}
+            onChange={(e) => set('password_confirmation', e.target.value)}
+            required
+          />
+        </Field>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold">Créer mon espace voyageur</h1>
+          <h1 className="text-3xl font-bold">
+            {isCorporate ? 'Créer mon espace corporate' : 'Créer mon espace voyageur'}
+          </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Quelques informations suffisent. Vous compléterez le reste plus tard depuis votre espace.
+            {isCorporate
+              ? "Renseignez votre entreprise et les coordonnées du voyageur. La facturation sera établie au nom de l'entreprise."
+              : 'Quelques informations suffisent. Vous compléterez le reste plus tard depuis votre espace.'}
           </p>
         </div>
 
@@ -234,134 +334,65 @@ function RegisterContent() {
             </div>
           </div>
 
-          {/* Identité */}
-          <div className="card space-y-4">
-            <h2 className="text-lg font-bold">Vos informations</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Prénoms" required>
-                <input className={inputCls} value={form.first_name} onChange={(e) => set('first_name', e.target.value)} required />
-              </Field>
-              <Field label="Nom" required>
-                <input className={inputCls} value={form.last_name} onChange={(e) => set('last_name', e.target.value)} required />
-              </Field>
-            </div>
+          {isCorporate ? (
+            /* ---------- Parcours CORPORATE : entreprise → responsable → facturation ---------- */
+            <>
+              <div className="card space-y-4">
+                <div>
+                  <h2 className="text-lg font-bold">Votre entreprise</h2>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ces informations seront conservées dans votre profil pour vos réservations professionnelles.
+                  </p>
+                </div>
+                <Field label="Nom de l'entreprise" required>
+                  <input className={inputCls} value={form.company_name} onChange={(e) => set('company_name', e.target.value)} required />
+                </Field>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="N° TVA / Contribuable">
+                    <input className={inputCls} value={form.company_vat} onChange={(e) => set('company_vat', e.target.value)} />
+                  </Field>
+                  <Field label="Adresse de l'entreprise">
+                    <input className={inputCls} value={form.company_address} onChange={(e) => set('company_address', e.target.value)} />
+                  </Field>
+                  <Field label="Ville">
+                    <input className={inputCls} value={form.company_city} onChange={(e) => set('company_city', e.target.value)} />
+                  </Field>
+                  <Field label="Pays">
+                    <input className={inputCls} value={form.company_country} onChange={(e) => set('company_country', e.target.value)} />
+                  </Field>
+                  <Field label="Service / Département" hint="Facultatif">
+                    <input className={inputCls} value={form.company_service} onChange={(e) => set('company_service', e.target.value)} />
+                  </Field>
+                  <Field label="Code projet interne" hint="Facultatif">
+                    <input className={inputCls} value={form.company_project} onChange={(e) => set('company_project', e.target.value)} />
+                  </Field>
+                </div>
+              </div>
 
-            <Field label="Adresse e-mail" required>
-              <input
-                type="email"
-                className={inputCls}
-                value={form.email}
-                onChange={(e) => set('email', e.target.value)}
-                onBlur={(e) => tryPrefill(e.target.value)}
-                required
-              />
-            </Field>
+              {contactBlock('Voyageur / responsable du compte')}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Téléphone" required hint="Utilisé pour WhatsApp et SMS">
-                <input className={inputCls} value={form.phone} onChange={(e) => set('phone', e.target.value)} required />
-              </Field>
-              <div>
-                <Field label="Numéro WhatsApp">
+              <div className="card space-y-4">
+                <h2 className="text-lg font-bold">Facturation</h2>
+                <Field label="E-mail de facturation" hint="Si différent de l'e-mail du responsable ci-dessus">
                   <input
+                    type="email"
                     className={inputCls}
-                    value={form.whatsappSame ? form.phone : form.whatsapp}
-                    onChange={(e) => set('whatsapp', e.target.value)}
-                    disabled={form.whatsappSame}
+                    value={form.company_billing_email}
+                    onChange={(e) => set('company_billing_email', e.target.value)}
+                    placeholder="comptabilite@entreprise.com"
                   />
                 </Field>
-                <label className="flex items-center gap-2 mt-1.5 text-xs text-gray-500 cursor-pointer">
-                  <input type="checkbox" checked={form.whatsappSame} onChange={(e) => set('whatsappSame', e.target.checked)} />
-                  Identique au téléphone
-                </label>
               </div>
-            </div>
-          </div>
-
-          {/* Résidence (statistiques) */}
-          <div className="card space-y-4">
-            <h2 className="text-lg font-bold">Résidence</h2>
-            <p className="text-xs text-gray-500 -mt-2 flex items-center gap-1.5">
-              <Info className="w-3.5 h-3.5" /> Aide bo séjour à mieux vous connaître (statistiques touristiques).
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Field label="Pays de résidence">
-                <input className={inputCls} value={form.residence_country} onChange={(e) => set('residence_country', e.target.value)} placeholder="Côte d'Ivoire" />
-              </Field>
-              <Field label="Ville de résidence">
-                <input className={inputCls} value={form.residence_city} onChange={(e) => set('residence_city', e.target.value)} placeholder="Abidjan" />
-              </Field>
-              <Field label="Nationalité">
-                <input className={inputCls} value={form.nationality} onChange={(e) => set('nationality', e.target.value)} placeholder="Ivoirienne" />
-              </Field>
-            </div>
-          </div>
-
-          {/* Entreprise (corporate) */}
-          {isCorporate && (
-            <div className="card space-y-4">
-              <h2 className="text-lg font-bold">Votre entreprise</h2>
-              <p className="text-xs text-gray-500 -mt-2">
-                Conservées dans votre profil pour faciliter vos réservations professionnelles.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Nom de l'entreprise" required>
-                  <input className={inputCls} value={form.company_name} onChange={(e) => set('company_name', e.target.value)} required={isCorporate} />
-                </Field>
-                <Field label="N° TVA / Contribuable">
-                  <input className={inputCls} value={form.company_vat} onChange={(e) => set('company_vat', e.target.value)} />
-                </Field>
-                <Field label="Adresse">
-                  <input className={inputCls} value={form.company_address} onChange={(e) => set('company_address', e.target.value)} />
-                </Field>
-                <Field label="Ville">
-                  <input className={inputCls} value={form.company_city} onChange={(e) => set('company_city', e.target.value)} />
-                </Field>
-                <Field label="Pays">
-                  <input className={inputCls} value={form.company_country} onChange={(e) => set('company_country', e.target.value)} />
-                </Field>
-                <Field label="E-mail de facturation" hint="Si différent de votre e-mail">
-                  <input type="email" className={inputCls} value={form.company_billing_email} onChange={(e) => set('company_billing_email', e.target.value)} />
-                </Field>
-                <Field label="Service / Département" hint="Facultatif">
-                  <input className={inputCls} value={form.company_service} onChange={(e) => set('company_service', e.target.value)} />
-                </Field>
-                <Field label="Code projet interne" hint="Facultatif">
-                  <input className={inputCls} value={form.company_project} onChange={(e) => set('company_project', e.target.value)} />
-                </Field>
-              </div>
-            </div>
+            </>
+          ) : (
+            /* ---------- Parcours PARTICULIER : infos perso → résidence ---------- */
+            <>
+              {contactBlock('Vos informations')}
+              {residenceBlock}
+            </>
           )}
 
-          {/* Mot de passe */}
-          <div className="card space-y-4">
-            <h2 className="text-lg font-bold">Mot de passe</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Mot de passe" required hint="8 caractères minimum">
-                <div className="relative">
-                  <input
-                    type={showPwd ? 'text' : 'password'}
-                    className={inputCls}
-                    value={form.password}
-                    onChange={(e) => set('password', e.target.value)}
-                    required
-                  />
-                  <button type="button" onClick={() => setShowPwd((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </Field>
-              <Field label="Confirmer le mot de passe" required>
-                <input
-                  type={showPwd ? 'text' : 'password'}
-                  className={inputCls}
-                  value={form.password_confirmation}
-                  onChange={(e) => set('password_confirmation', e.target.value)}
-                  required
-                />
-              </Field>
-            </div>
-          </div>
+          {passwordBlock}
 
           {/* CGV + erreur + submit */}
           <label className="flex items-start gap-2.5 text-sm text-gray-600 dark:text-gray-300">
