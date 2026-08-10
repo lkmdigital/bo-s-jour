@@ -302,13 +302,23 @@ class PaymentController extends Controller
 
         // Mapper les méthodes de paiement vers les channels de malia-pay
         // Les valeurs attendues par l'API sont : OMCI, WAVECI, CARD, DJAMO
+        //
+        // TODO (paiement) : MTN Money et Moov Money (Flooz) sont à CONFIGURER plus tard
+        // comme moyens de paiement. Ils sont affichés dans le footer (marketing) mais
+        // NE SONT PAS proposés au checkout tant que Malia Pay ne fournit pas leurs codes
+        // de canaux (ex. attendus : 'mtn-ci' => 'MTNCI', 'moov-ci' => 'MOOVCI' — à confirmer).
+        // Une fois les codes obtenus : ajouter ici + créer les entrées dans PaymentMethodSeeder.
         $channelMap = [
             'wave-ci' => 'WAVECI',
             'visa-mastercard' => 'CARD',
             'orange-ci' => 'OMCI',
             'djamo' => 'DJAMO',
+            // 'mtn-ci' => 'MTNCI',    // à activer quand le canal Malia sera confirmé
+            // 'moov-ci' => 'MOOVCI',  // à activer quand le canal Malia sera confirmé
         ];
 
+        // ⚠️ Repli sur WAVECI pour un moyen inconnu : ne JAMAIS exposer au checkout un
+        // moyen absent de $channelMap (ex. MTN/Moov) — le client serait routé vers Wave.
         $channel = $channelMap[$paymentMethod] ?? 'WAVECI';
 
         \Log::info('Channel mapped', [
