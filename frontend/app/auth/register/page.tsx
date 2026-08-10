@@ -156,6 +156,18 @@ function RegisterContent() {
         accept_terms: form.accept_terms,
       };
       const res = await api.post('/auth/register-traveler', payload);
+
+      // Vérification e-mail obligatoire : on redirige vers la saisie du code OTP.
+      if (res.data?.requires_email_otp && res.data.user_id) {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('otp_user_id', String(res.data.user_id));
+          sessionStorage.setItem('otp_email', form.email);
+        }
+        router.push(`/auth/verify-otp?user_id=${res.data.user_id}`);
+        return;
+      }
+
+      // Repli (si un token est renvoyé) : connexion directe.
       const { token, user } = res.data || {};
       if (token) {
         if (typeof window !== 'undefined') {

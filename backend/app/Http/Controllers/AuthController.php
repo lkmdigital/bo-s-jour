@@ -127,12 +127,39 @@ class AuthController extends Controller
         $user->is_guest = false;
         $user->save();
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Vérification e-mail obligatoire : on envoie un code OTP et on NE connecte PAS
+        // tant que l'e-mail n'est pas vérifié (aucun token renvoyé ici).
+        $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $user->update([
+            'email_otp_code'       => $otp,
+            'email_otp_expires_at' => now()->addMinutes(10),
+        ]);
+
+        $emailSent = true;
+        try {
+            Mail::to($user->email)->send(new OtpMail($user->name, $otp));
+        } catch (\Throwable $e) {
+            $emailSent = false;
+            Log::error('Register OTP email failed: ' . $e->getMessage(), ['user_id' => $user->id]);
+        }
+
+        $smsSent = false;
+        if (!empty($user->phone)) {
+            $smsSent = app(SmsService::class)->sendOtp($user->phone, $otp);
+        }
+
+        if (!$emailSent && !$smsSent) {
+            $user->update(['email_otp_code' => null, 'email_otp_expires_at' => null]);
+            return response()->json([
+                'message' => "Impossible d'envoyer le code de vérification. Veuillez réessayer dans quelques instants.",
+            ], 503);
+        }
 
         return response()->json([
-            'message' => 'Compte créé avec succès.',
-            'user'    => $user,
-            'token'   => $token,
+            'requires_email_otp' => true,
+            'user_id'            => $user->id,
+            'email'              => $user->email,
+            'message'            => 'Un code de vérification a été envoyé par email' . ($smsSent ? ' et par SMS' : '') . '.',
         ], 201);
     }
 
@@ -651,10 +678,11 @@ class AuthController extends Controller
             ]);
         }
 
-        // Effacer l'OTP après utilisation
+        // Effacer l'OTP après utilisation + marquer l'e-mail comme vérifié
         $user->update([
             'email_otp_code'       => null,
             'email_otp_expires_at' => null,
+            'email_verified_at'    => $user->email_verified_at ?? now(),
             'last_login_at'        => now(),
             'last_login_ip'        => $request->ip(),
             'login_count'          => ($user->login_count ?? 0) + 1,
