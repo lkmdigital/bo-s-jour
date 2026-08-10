@@ -85,12 +85,12 @@ export default function UserDashboardPage() {
 
   const statCards = [
     { label: 'Réservations Total', value: total, icon: Calendar, color: 'text-primary' },
-    { label: 'À venir', value: upcoming, icon: TrendingUp, color: 'text-green-600 dark:text-green-400' },
+    { label: 'À venir', value: upcoming, icon: TrendingUp, color: 'text-secondary dark:text-secondary-light' },
     { label: 'Séjours effectués', value: past, icon: CheckCircle2, color: 'text-gray-700 dark:text-gray-300' },
     {
       label: 'Avoirs disponibles',
       value: creditsBalance !== null ? `${formatPrice(creditsBalance)} F` : '—',
-      icon: Wallet, color: 'text-green-600 dark:text-green-400',
+      icon: Wallet, color: 'text-secondary dark:text-secondary-light',
     },
   ];
 
@@ -210,10 +210,10 @@ export default function UserDashboardPage() {
           {/* Avoirs */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
             <div className="flex items-center gap-2 mb-2">
-              <Wallet className="w-5 h-5 text-green-500" />
+              <Wallet className="w-5 h-5 text-secondary" />
               <h3 className="font-bold">Mes avoirs</h3>
             </div>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <p className="text-2xl font-bold text-secondary dark:text-secondary-light">
               {creditsBalance !== null ? `${formatPrice(creditsBalance)} FCFA` : '—'}
             </p>
             <p className="text-xs text-gray-500 mt-1">Utilisables pour une prochaine réservation.</p>
