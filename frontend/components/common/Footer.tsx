@@ -37,7 +37,14 @@ const COLUMNS = [
   },
 ];
 
-const PAYMENTS = ['Visa', 'Mastercard', 'Wave', 'Orange', 'MTN', 'Moov', 'Djamo'];
+const PAYMENT_LOGOS = [
+  { src: '/images/payment-methods/visa_mastercard.png', alt: 'Visa / Mastercard' },
+  { src: '/images/payment-methods/wave.png', alt: 'Wave' },
+  { src: '/images/payment-methods/orange-ci.png', alt: 'Orange Money' },
+  { src: '/images/payment-methods/mtn_momo.png', alt: 'MTN MoMo' },
+  { src: '/images/payment-methods/moov.png', alt: 'Moov Money (Flooz)' },
+  { src: '/images/payment-methods/djamo.jpeg', alt: 'Djamo' },
+];
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -101,15 +108,28 @@ export default function Footer() {
                   <Icon className="w-4 h-4 text-white" />
                 </a>
               ))}
+              <a
+                href="https://wa.me/2250705654775"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center transition-transform hover:scale-110"
+                aria-label="Nous écrire sur WhatsApp"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/payment-methods/whatsapp.png" alt="WhatsApp" className="w-9 h-9 object-contain" />
+              </a>
             </div>
           </div>
         </div>
 
         <div className="border-t border-white/10 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-500">© {currentYear} bo séjour. Tous droits réservés.</p>
-          <div className="flex flex-wrap gap-2">
-            {PAYMENTS.map((p) => (
-              <span key={p} className="px-2.5 py-1 rounded-md bg-white text-gray-800 text-[11px] font-semibold">{p}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {PAYMENT_LOGOS.map((logo) => (
+              <span key={logo.src} className="h-8 px-2 rounded-md bg-white flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logo.src} alt={logo.alt} className="h-5 w-auto object-contain" />
+              </span>
             ))}
           </div>
         </div>
