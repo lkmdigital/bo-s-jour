@@ -7,10 +7,12 @@ import api from '@/lib/api';
 import Image from 'next/image';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import PropertyCard, { PropertyCardData } from '@/components/home/PropertyCard';
 import { formatPrice, resolveImageUrl } from '@/lib/utils';
 import {
   Calendar, TrendingUp, CheckCircle2, Wallet, ArrowRight, MapPin,
-  MessageSquare, FileText, Sparkles, CreditCard,
+  MessageSquare, FileText, Search, Heart, Star, User as UserIcon,
+  Bell, Sparkles,
 } from 'lucide-react';
 
 interface Booking {
@@ -29,12 +31,31 @@ interface Booking {
   };
 }
 
+interface RawAccommodation {
+  id: number;
+  name: string;
+  city: string;
+  price_per_night: number;
+  rating?: number | string | null;
+  total_reviews?: number | null;
+  images?: Array<{ url: string; is_primary?: boolean }>;
+}
+
 const STATUS: Record<string, { label: string; cls: string }> = {
   pending: { label: 'En attente', cls: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' },
   confirmed: { label: 'Confirmée', cls: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' },
   cancelled: { label: 'Annulée', cls: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' },
   completed: { label: 'Terminée', cls: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
 };
+
+const QUICK_ACTIONS = [
+  { label: 'Rechercher', href: '/accommodations', icon: Search },
+  { label: 'Mes réservations', href: '/bookings', icon: Calendar },
+  { label: 'Favoris', href: '/favorites', icon: Heart },
+  { label: 'Messages', href: '/dashboard/user/inbox', icon: MessageSquare },
+  { label: 'Avis', href: '/dashboard/user/avis', icon: Star },
+  { label: 'Mon profil', href: '/dashboard/user/profil', icon: UserIcon },
+];
 
 function nights(a: string, b: string) {
   return Math.max(1, Math.ceil((new Date(b).getTime() - new Date(a).getTime()) / 86400000));
@@ -46,6 +67,7 @@ export default function UserDashboardPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [creditsBalance, setCreditsBalance] = useState<number | null>(null);
+  const [suggestions, setSuggestions] = useState<PropertyCardData[]>([]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push('/auth/login');
@@ -66,6 +88,24 @@ export default function UserDashboardPage() {
       }
     })();
     api.get('/credits/balance').then((r) => setCreditsBalance(r.data?.balance ?? 0)).catch(() => setCreditsBalance(0));
+
+    // Suggestions : vrais établissements (recommandés)
+    api.get('/accommodations', { params: { per_page: 6, sort: 'recommended' } })
+      .then((r) => {
+        const list: RawAccommodation[] = r.data?.data ?? (Array.isArray(r.data) ? r.data : []);
+        setSuggestions(
+          list.slice(0, 6).map((a) => ({
+            id: a.id,
+            title: a.name,
+            location: a.city,
+            image: resolveImageUrl(a.images?.find((i) => i.is_primary)?.url || a.images?.[0]?.url) || '',
+            rating: a.rating != null && Number(a.rating) > 0 ? Number(a.rating) : undefined,
+            reviews: a.total_reviews ?? undefined,
+            price: a.price_per_night,
+          }))
+        );
+      })
+      .catch(() => setSuggestions([]));
   }, [isAuthenticated, isLoading]);
 
   const { total, upcoming, past, nextReservation } = useMemo(() => {
@@ -118,82 +158,121 @@ export default function UserDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Prochaine réservation */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">Prochaine réservation</h2>
-            <Link href="/bookings" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-              Voir toutes mes réservations <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+        {/* Colonne principale */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Prochaine réservation */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold">Prochaine réservation</h2>
+              <Link href="/bookings" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+                Voir toutes mes réservations <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
 
-          {nextReservation ? (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="flex flex-col sm:flex-row">
-                <div className="relative w-full sm:w-56 h-40 sm:h-auto bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
-                  {nextReservation.accommodation.images?.[0]?.url ? (
-                    <Image
-                      src={resolveImageUrl(nextReservation.accommodation.images[0].url) || nextReservation.accommodation.images[0].url}
-                      alt={nextReservation.accommodation.name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-primary/40">
-                      <Calendar className="w-10 h-10" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 p-5">
-                  <h3 className="text-lg font-bold">{nextReservation.accommodation.name}</h3>
-                  <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
-                    <MapPin className="w-4 h-4 text-primary" /> {nextReservation.accommodation.city}
-                  </p>
-                  <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
-                    <div>
-                      <p className="text-gray-400">Arrivée</p>
-                      <p className="font-semibold">{new Date(nextReservation.check_in).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400">Départ</p>
-                      <p className="font-semibold">
-                        {new Date(nextReservation.check_out).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        <span className="text-gray-400 font-normal"> ({nights(nextReservation.check_in, nextReservation.check_out)} nuits)</span>
-                      </p>
-                    </div>
+            {nextReservation ? (
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="flex flex-col sm:flex-row">
+                  <div className="relative w-full sm:w-56 h-40 sm:h-auto bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
+                    {nextReservation.accommodation.images?.[0]?.url ? (
+                      <Image
+                        src={resolveImageUrl(nextReservation.accommodation.images[0].url) || nextReservation.accommodation.images[0].url}
+                        alt={nextReservation.accommodation.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-primary/40">
+                        <Calendar className="w-10 h-10" />
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                    <div>
-                      <p className="text-xs text-gray-400">Montant total</p>
-                      <p className="text-xl font-bold text-primary">{formatPrice(nextReservation.total_price)} FCFA</p>
+                  <div className="flex-1 p-5">
+                    <h3 className="text-lg font-bold">{nextReservation.accommodation.name}</h3>
+                    <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                      <MapPin className="w-4 h-4 text-primary" /> {nextReservation.accommodation.city}
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                      <div>
+                        <p className="text-gray-400">Arrivée</p>
+                        <p className="font-semibold">{new Date(nextReservation.check_in).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Départ</p>
+                        <p className="font-semibold">
+                          {new Date(nextReservation.check_out).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          <span className="text-gray-400 font-normal"> ({nights(nextReservation.check_in, nextReservation.check_out)} nuits)</span>
+                        </p>
+                      </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${STATUS[nextReservation.status]?.cls || ''}`}>
-                      {STATUS[nextReservation.status]?.label || nextReservation.status}
-                    </span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                    <Link href={`/bookings/${nextReservation.id}`} className="btn-outline text-sm inline-flex items-center justify-center gap-2 flex-1">
-                      <MessageSquare className="w-4 h-4" /> Contacter l&apos;hôtel
-                    </Link>
-                    <Link href={`/bookings/${nextReservation.id}#receipt`} className="btn-primary text-sm inline-flex items-center justify-center gap-2 flex-1">
-                      <FileText className="w-4 h-4" /> Voir le bon
-                    </Link>
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                      <div>
+                        <p className="text-xs text-gray-400">Montant total</p>
+                        <p className="text-xl font-bold text-primary">{formatPrice(nextReservation.total_price)} FCFA</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${STATUS[nextReservation.status]?.cls || ''}`}>
+                        {STATUS[nextReservation.status]?.label || nextReservation.status}
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                      <Link href={`/bookings/${nextReservation.id}`} className="btn-outline text-sm inline-flex items-center justify-center gap-2 flex-1">
+                        <MessageSquare className="w-4 h-4" /> Contacter l&apos;hôtel
+                      </Link>
+                      <Link href={`/bookings/${nextReservation.id}#receipt`} className="btn-primary text-sm inline-flex items-center justify-center gap-2 flex-1">
+                        <FileText className="w-4 h-4" /> Voir le bon
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
+            ) : (
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-10 text-center">
+                <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Aucune réservation à venir.</p>
+                <Link href="/accommodations" className="btn-primary inline-block">Explorer les hébergements</Link>
+              </div>
+            )}
+          </section>
+
+          {/* Actions rapides */}
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold">Actions rapides</h2>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              {QUICK_ACTIONS.map(({ label, href, icon: Icon }) => (
+                <Link
+                  key={label}
+                  href={href}
+                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 flex flex-col items-center gap-2 text-center hover:border-primary hover:shadow-md transition-all"
+                >
+                  <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <Icon className="w-5 h-5" />
+                  </span>
+                  <span className="text-xs font-medium leading-tight">{label}</span>
+                </Link>
+              ))}
             </div>
-          ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-10 text-center">
-              <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-600 dark:text-gray-400 mb-4">Aucune réservation à venir.</p>
-              <Link href="/accommodations" className="btn-primary inline-block">Explorer les hébergements</Link>
-            </div>
+          </section>
+
+          {/* Suggestions pour vous */}
+          {suggestions.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">Suggestions pour vous</h2>
+                <Link href="/accommodations" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+                  Voir plus de suggestions <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                {suggestions.slice(0, 3).map((s) => (
+                  <PropertyCard key={s.id} data={s} />
+                ))}
+              </div>
+            </section>
           )}
         </div>
 
         {/* Colonne droite */}
-        <div className="space-y-6">
-          {/* Programme Membre (à venir — pas de données de fidélité fabriquées) */}
+        <aside className="space-y-6">
+          {/* Programme Membre (à venir — pas de fidélité fabriquée) */}
           <div className="bg-gray-900 text-white rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold">Programme Membre</h3>
@@ -207,29 +286,35 @@ export default function UserDashboardPage() {
             </Link>
           </div>
 
-          {/* Avoirs */}
+          {/* Notifications (pas d'API voyageur pour l'instant → état honnête) */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <Wallet className="w-5 h-5 text-secondary" />
-              <h3 className="font-bold">Mes avoirs</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold flex items-center gap-2"><Bell className="w-5 h-5 text-primary" /> Notifications</h3>
             </div>
-            <p className="text-2xl font-bold text-secondary dark:text-secondary-light">
-              {creditsBalance !== null ? `${formatPrice(creditsBalance)} FCFA` : '—'}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Utilisables pour une prochaine réservation.</p>
+            <div className="text-center py-6">
+              <Bell className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+              <p className="text-sm text-gray-500">Aucune notification pour le moment.</p>
+              <p className="text-xs text-gray-400 mt-1">Vos confirmations et messages apparaîtront ici.</p>
+            </div>
           </div>
 
-          {/* Raccourci paiements */}
-          <Link href="/bookings" className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex items-center gap-3 hover:border-primary transition-colors">
-            <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <CreditCard className="w-5 h-5" />
-            </span>
-            <div>
-              <p className="font-semibold text-sm">Paiements en attente</p>
-              <p className="text-xs text-gray-500">Régler une réservation</p>
+          {/* Assistant IA — Bientôt (pas de recommandations fabriquées) */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-primary/20 p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <Sparkles className="w-4 h-4" />
+              </span>
+              <div className="leading-tight">
+                <h3 className="font-bold text-sm">Assistant IA bo séjour</h3>
+                <span className="text-[10px] font-semibold text-primary">BIENTÔT</span>
+              </div>
             </div>
-          </Link>
-        </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Bientôt, votre assistant vous proposera des recommandations d&apos;hébergements personnalisées
+              selon vos goûts et vos voyages.
+            </p>
+          </div>
+        </aside>
       </div>
     </div>
   );
