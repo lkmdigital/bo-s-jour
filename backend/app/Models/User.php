@@ -44,6 +44,21 @@ class User extends Authenticatable
         'verification_notes',
         'is_guest', // Compte auto-créé lors d'une réservation invité (à activer)
         'activation_reminder_stage', // Étape de relance d'activation (0..3)
+        // Profil voyageur (brief Parcours Voyageur)
+        'first_name',
+        'last_name',
+        'residence_country',
+        'residence_city',
+        'nationality',
+        'traveler_type',
+        'company_name',
+        'company_vat',
+        'company_address',
+        'company_city',
+        'company_country',
+        'company_service',
+        'company_project',
+        'company_billing_email',
         // Champs spécifiques aux hôtes
         'establishment_name',
         'accommodation_type',

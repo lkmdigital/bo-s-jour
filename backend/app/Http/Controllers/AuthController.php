@@ -60,6 +60,118 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Inscription voyageur (légère, sans pièces d'identité — brief Parcours Voyageur).
+     * Si un compte invité (is_guest) existe déjà pour cet e-mail, on le CONVERTIT
+     * (les réservations passées restent rattachées).
+     */
+    public function registerTraveler(Request $request)
+    {
+        $data = $request->validate([
+            'first_name'            => 'required|string|max:255',
+            'last_name'             => 'required|string|max:255',
+            'email'                 => 'required|string|email|max:255',
+            'password'              => 'required|string|min:8|confirmed',
+            'phone'                 => 'required|string|max:20',
+            'whatsapp'              => 'nullable|string|max:20',
+            'residence_country'     => 'nullable|string|max:255',
+            'residence_city'        => 'nullable|string|max:255',
+            'nationality'           => 'nullable|string|max:255',
+            'traveler_type'         => 'nullable|in:individual,corporate',
+            'company_name'          => 'required_if:traveler_type,corporate|nullable|string|max:255',
+            'company_vat'           => 'nullable|string|max:255',
+            'company_address'       => 'nullable|string|max:255',
+            'company_city'          => 'nullable|string|max:255',
+            'company_country'       => 'nullable|string|max:255',
+            'company_service'       => 'nullable|string|max:255',
+            'company_project'       => 'nullable|string|max:255',
+            'company_billing_email' => 'nullable|string|email|max:255',
+            'accept_terms'          => 'accepted',
+        ]);
+
+        $existing = User::where('email', $data['email'])->first();
+        if ($existing && !$existing->is_guest) {
+            return response()->json([
+                'message' => 'Un compte existe déjà avec cet e-mail. Veuillez vous connecter.',
+                'errors'  => ['email' => ['Un compte existe déjà avec cet e-mail.']],
+            ], 422);
+        }
+
+        $travelerType = $data['traveler_type'] ?? 'individual';
+        $isCorporate  = $travelerType === 'corporate';
+        $clean = fn ($v) => $v !== null ? strip_tags($v) : null;
+
+        $user = $existing ?: new User(['email' => $data['email'], 'role' => 'user']);
+
+        $user->fill([
+            'name'                  => trim($clean($data['first_name']) . ' ' . $clean($data['last_name'])),
+            'first_name'            => $clean($data['first_name']),
+            'last_name'             => $clean($data['last_name']),
+            'phone'                 => $data['phone'],
+            'whatsapp'              => $data['whatsapp'] ?? $data['phone'],
+            'residence_country'     => $clean($data['residence_country'] ?? null),
+            'residence_city'        => $clean($data['residence_city'] ?? null),
+            'nationality'           => $clean($data['nationality'] ?? null),
+            'traveler_type'         => $travelerType,
+            'company_name'          => $isCorporate ? $clean($data['company_name'] ?? null) : null,
+            'company_vat'           => $isCorporate ? $clean($data['company_vat'] ?? null) : null,
+            'company_address'       => $isCorporate ? $clean($data['company_address'] ?? null) : null,
+            'company_city'          => $isCorporate ? $clean($data['company_city'] ?? null) : null,
+            'company_country'       => $isCorporate ? $clean($data['company_country'] ?? null) : null,
+            'company_service'       => $isCorporate ? $clean($data['company_service'] ?? null) : null,
+            'company_project'       => $isCorporate ? $clean($data['company_project'] ?? null) : null,
+            'company_billing_email' => $isCorporate ? ($data['company_billing_email'] ?? null) : null,
+        ]);
+        $user->role     = 'user';
+        $user->password = Hash::make($data['password']);
+        $user->is_guest = false;
+        $user->save();
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Compte créé avec succès.',
+            'user'    => $user,
+            'token'   => $token,
+        ], 201);
+    }
+
+    /**
+     * Préremplissage du formulaire d'inscription à partir d'un compte INVITÉ existant
+     * (réservations passées). Restreint aux comptes is_guest (sans mot de passe) pour
+     * limiter l'exposition de données ; enrichi par la dernière réservation.
+     */
+    public function guestPrefill(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->where('is_guest', true)->first();
+        if (!$user) {
+            return response()->json(['found' => false]);
+        }
+
+        $booking = \App\Models\Booking::where('user_id', $user->id)->latest('id')->first();
+        $parts = preg_split('/\s+/', trim($user->name ?? ''), 2);
+
+        return response()->json([
+            'found'   => true,
+            'prefill' => [
+                'first_name'            => $user->first_name ?: ($parts[0] ?? ''),
+                'last_name'             => $user->last_name ?: ($parts[1] ?? ''),
+                'phone'                 => $user->phone,
+                'whatsapp'              => $user->whatsapp,
+                'residence_country'     => $user->residence_country ?: ($booking->residence_country ?? null),
+                'residence_city'        => $user->residence_city ?: ($booking->residence_city ?? null),
+                'nationality'           => $user->nationality,
+                'traveler_type'         => $booking->traveler_type ?? $user->traveler_type ?? 'individual',
+                'company_name'          => $booking->company_name ?? $user->company_name,
+                'company_vat'           => $booking->company_vat ?? $user->company_vat,
+                'company_address'       => $booking->company_address ?? $user->company_address,
+                'company_billing_email' => $booking->company_billing_email ?? $user->company_billing_email,
+            ],
+        ]);
+    }
+
     public function register(Request $request)
     {
         $role = $request->input('role', 'user');

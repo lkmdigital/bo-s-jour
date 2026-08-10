@@ -83,6 +83,8 @@ Route::get('/payments/{paymentId}', [PaymentController::class, 'show']);
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1'); // 5 tentatives par minute
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1'); // 5 tentatives par minute
 Route::post('/auth/activate-guest', [AuthController::class, 'activateGuest'])->middleware('throttle:5,1'); // activation compte invité
+Route::post('/auth/register-traveler', [AuthController::class, 'registerTraveler'])->middleware('throttle:10,1'); // inscription voyageur (légère)
+Route::get('/auth/guest-prefill', [AuthController::class, 'guestPrefill'])->middleware('throttle:20,1'); // préremplissage depuis compte invité existant
 
 // Email OTP & Password Reset (public)
 Route::post('/auth/send-otp', [AuthController::class, 'sendEmailOtp'])->middleware('throttle:3,1');
