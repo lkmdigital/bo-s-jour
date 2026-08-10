@@ -93,7 +93,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
         <Logo size="sm" href="/" className="flex-shrink-0" />
 
         {/* Recherche */}
-        <form onSubmit={onSearch} className="flex-1 max-w-xl hidden sm:block">
+        <form onSubmit={onSearch} className="flex-1 max-w-xl hidden sm:block sm:ml-6 lg:ml-10">
           <div className="relative">
             <input
               value={query}
