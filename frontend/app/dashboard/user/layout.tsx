@@ -81,51 +81,57 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Top navbar */}
-      <header className="sticky top-0 z-30 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3 px-4">
-        <button
-          className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-          onClick={() => setMobileOpen((v) => !v)}
-          aria-label="Menu"
-        >
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+      <header className="sticky top-0 z-30 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-stretch">
+        {/* Zone logo = largeur de la sidebar (avec séparateur aligné sur celle-ci) */}
+        <div className="flex items-center gap-2 px-4 lg:w-64 lg:flex-shrink-0 lg:border-r border-gray-200 dark:border-gray-700">
+          <button
+            className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label="Menu"
+          >
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+          <Logo size="md" href="/" className="flex-shrink-0" />
+        </div>
 
-        <Logo size="sm" href="/" className="flex-shrink-0" />
+        {/* Zone contenu : recherche centrée + actions à droite */}
+        <div className="flex-1 flex items-center gap-4 px-4 sm:px-6 min-w-0">
+          <div className="flex-1 hidden sm:block" />
 
-        {/* Recherche */}
-        <form onSubmit={onSearch} className="flex-1 max-w-xl hidden sm:block sm:ml-6 lg:ml-10">
-          <div className="relative">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher un hôtel, une ville, une destination…"
-              className="w-full pl-4 pr-11 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-            />
-            <button type="submit" aria-label="Rechercher" className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center">
-              <Search className="w-4 h-4" />
-            </button>
-          </div>
-        </form>
-
-        <div className="ml-auto flex items-center gap-1 sm:gap-3">
-          <Link href="/dashboard/user/programme" className="hidden md:inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary">
-            <Gift className="w-5 h-5" /> Offres
-          </Link>
-          <Link href="/dashboard/user/notifications" className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" aria-label="Notifications">
-            <Bell className="w-5 h-5" />
-          </Link>
-          <Link href="/favorites" className="hidden md:inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary">
-            <Heart className="w-5 h-5" /> Favoris
-          </Link>
-
-          <div className="flex items-center gap-2 pl-2 sm:pl-3 sm:border-l border-gray-200 dark:border-gray-700">
-            <div className="text-right hidden sm:block leading-tight">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-[140px]">{user?.name || 'Mon espace'}</p>
-              <p className="text-xs text-gray-400">Espace membre</p>
+          <form onSubmit={onSearch} className="w-full max-w-xl hidden sm:block">
+            <div className="relative">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Rechercher un hôtel, une ville, une destination…"
+                className="w-full pl-4 pr-11 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              />
+              <button type="submit" aria-label="Rechercher" className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center">
+                <Search className="w-4 h-4" />
+              </button>
             </div>
-            <span className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
-              {initials(user?.name)}
-            </span>
+          </form>
+
+          <div className="flex-1 flex items-center justify-end gap-1 sm:gap-3">
+            <Link href="/dashboard/user/programme" className="hidden md:inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary">
+              <Gift className="w-5 h-5" /> Offres
+            </Link>
+            <Link href="/dashboard/user/notifications" className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" aria-label="Notifications">
+              <Bell className="w-5 h-5" />
+            </Link>
+            <Link href="/favorites" className="hidden md:inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary">
+              <Heart className="w-5 h-5" /> Favoris
+            </Link>
+
+            <div className="flex items-center gap-2 pl-2 sm:pl-3 sm:border-l border-gray-200 dark:border-gray-700">
+              <div className="text-right hidden sm:block leading-tight">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-[140px]">{user?.name || 'Mon espace'}</p>
+                <p className="text-xs text-gray-400">Espace membre</p>
+              </div>
+              <span className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                {initials(user?.name)}
+              </span>
+            </div>
           </div>
         </div>
       </header>
