@@ -4,12 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
-import Header from '@/components/common/Header';
-import Footer from '@/components/common/Footer';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Link from 'next/link';
-import { ArrowLeft, Inbox, MessageSquare } from 'lucide-react';
+import { Inbox, MessageSquare } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -60,15 +58,7 @@ export default function UserInboxPage() {
   };
 
   if (authLoading || (loading && messages.length === 0)) {
-    return (
-      <div className="min-h-screen">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <LoadingSpinner message="Chargement de vos messages..." size="lg" />
-        </div>
-        <Footer />
-      </div>
-    );
+    return <LoadingSpinner message="Chargement de vos messages..." size="lg" />;
   }
 
   if (!isAuthenticated || user?.role !== 'user') {
@@ -76,18 +66,9 @@ export default function UserInboxPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Retour au tableau de bord
-          </Link>
-
+    <div>
+      <main>
+        <div className="max-w-4xl">
           <h1 className="text-3xl font-bold mb-2">Mes messages</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-8">
             Messages de la plateforme et réponses des hôtes. Pour envoyer un message à un hôte, ouvrez la réservation concernée.
@@ -170,7 +151,6 @@ export default function UserInboxPage() {
           )}
         </div>
       </main>
-      <Footer />
     </div>
   );
 }
