@@ -10,6 +10,17 @@
 # Credentials et config sensibles
 deploy.config
 
+# Fichiers d'environnement (secrets) — jamais versionnés, sauf les exemples
+.env
+.env.*
+!.env.example
+*prod-backup*
+
+# Fichiers de sauvegarde
+*.backup
+*.bak
+*.orig
+
 # Dumps de base de données (jamais de données prod/réelles dans le repo)
 *.sql
 !backend/database/**/*.sql
