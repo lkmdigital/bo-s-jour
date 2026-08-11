@@ -367,6 +367,10 @@ class PaymentController extends Controller
             }
         }
 
+        // URLs de retour = FRONT (où revient le voyageur après paiement) ;
+        // notification_url = API (webhook serveur-à-serveur de Malia Pay).
+        $frontend = rtrim(config('services.frontend_url', 'https://bosejour.ci'), '/');
+
         $data = [
             "montant" => $montant,
             "reference" => $payment->payment_reference,
@@ -379,9 +383,9 @@ class PaymentController extends Controller
             "customer_phone_number" => $phoneNumber ?: '22500000000', // Valeur par défaut si vide
             "customer_email" => $user ? $user->email : ($booking->user ? $booking->user->email : ''),
             "notification_url" => url('/api/payments/webhook'),
-            "return_url" => url("/bookings/{$booking->id}?payment=success"),
-            "error_url" => url("/bookings/{$booking->id}/payment?error=1"),
-            "success_url" => url("/bookings/{$booking->id}?payment=success"),
+            "return_url" => "{$frontend}/bookings/{$booking->id}?payment=success",
+            "error_url" => "{$frontend}/bookings/{$booking->id}/payment?error=1",
+            "success_url" => "{$frontend}/bookings/{$booking->id}?payment=success",
         ];
 
         \Log::info('Payment data prepared', [
