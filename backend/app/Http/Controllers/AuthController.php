@@ -430,7 +430,20 @@ class AuthController extends Controller
             ], 200);
         }
 
-        // Pas de Google 2FA — envoyer un OTP par email
+        // E-mail DÉJÀ vérifié (une seule fois, à la création du compte) → connexion directe.
+        // Pas d'OTP à chaque connexion : seul le mot de passe est requis ensuite.
+        if ($user->email_verified_at) {
+            $user->update([
+                'last_login_at' => now(),
+                'last_login_ip' => $request->ip(),
+                'login_count'   => ($user->login_count ?? 0) + 1,
+            ]);
+            $user->load('roles');
+            $token = $user->createToken('auth_token')->plainTextToken;
+            return response()->json(['user' => $user, 'token' => $token]);
+        }
+
+        // E-mail pas encore vérifié → on envoie un OTP pour le vérifier (une seule fois).
         $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         $user->update([
