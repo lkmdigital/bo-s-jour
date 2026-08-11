@@ -59,6 +59,21 @@ class User extends Authenticatable
         'company_service',
         'company_project',
         'company_billing_email',
+        // Complétion du profil (brief Phase 5)
+        'gender',
+        'profession',
+        'preferred_language',
+        'region',
+        'commune',
+        'preferred_accommodation_type',
+        'average_budget',
+        'interests',
+        'travel_frequency',
+        'travel_purpose',
+        'notif_email',
+        'notif_whatsapp',
+        'notif_sms',
+        'offer_types',
         // Champs spécifiques aux hôtes
         'establishment_name',
         'accommodation_type',
@@ -107,6 +122,14 @@ class User extends Authenticatable
             'is_guest' => 'boolean',
             'two_factor_enabled_at' => 'datetime',
             'email_otp_expires_at' => 'datetime',
+            // Profil (complétion Phase 5)
+            'date_of_birth' => 'date',
+            'interests' => 'array',
+            'offer_types' => 'array',
+            'average_budget' => 'integer',
+            'notif_email' => 'boolean',
+            'notif_whatsapp' => 'boolean',
+            'notif_sms' => 'boolean',
         ];
     }
 

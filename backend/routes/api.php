@@ -35,6 +35,7 @@ use App\Http\Controllers\Host\HostClientController;
 use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\BookingMessageController;
 use App\Http\Controllers\UserInboxController;
+use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Admin\AdminReviewController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
@@ -103,6 +104,10 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+
+        // Profil voyageur (mise à jour + mot de passe)
+        Route::put('/me/profile', [UserProfileController::class, 'update']);
+        Route::post('/me/password', [UserProfileController::class, 'changePassword'])->middleware('throttle:5,1');
 
         // Notifications push (OneSignal)
         Route::post('/notifications/trigger', [NotificationController::class, 'trigger']);
@@ -238,6 +243,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
     // Revenue
     Route::get('/revenue/admin', [RevenueController::class, 'adminRevenue'])->middleware('role:admin');
+    Route::get('/revenue/admin/export', [RevenueController::class, 'exportCommissionsCsv'])->middleware('role:admin');
     Route::get('/revenue/host', [RevenueController::class, 'hostRevenue'])->middleware('role:host');
     Route::get('/revenue/commission-rate', [RevenueController::class, 'getCommissionRate']);
     Route::put('/revenue/commission-rate', [RevenueController::class, 'updateCommissionRate'])->middleware('role:admin');
@@ -320,7 +326,8 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::prefix('accommodations')->group(function () {
             Route::get('/', [AdminAccommodationController::class, 'index'])->middleware('permission:accommodations.read');
             Route::post('/', [AdminAccommodationController::class, 'store'])->middleware('permission:accommodations.create');
-            Route::get('/{id}', [AdminAccommodationController::class, 'show'])->middleware('permission:accommodations.read');
+            Route::get('/cities', [AdminAccommodationController::class, 'cities'])->middleware('permission:accommodations.read');
+            Route::get('/{id}', [AdminAccommodationController::class, 'show'])->middleware('permission:accommodations.read')->where('id', '[0-9]+');
             Route::post('/{id}/approve', [AdminAccommodationController::class, 'approve'])->middleware('permission:accommodations.approve');
             Route::post('/{id}/reject', [AdminAccommodationController::class, 'reject'])->middleware('permission:accommodations.reject');
             Route::post('/{id}/remove', [AdminAccommodationController::class, 'remove'])->middleware('permission:accommodations.remove');
@@ -369,8 +376,18 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         // Demandes de retrait (admin)
         Route::prefix('withdrawal-requests')->middleware('role:admin')->group(function () {
             Route::get('/', [AdminWithdrawalController::class, 'index']);
+            Route::get('/export', [AdminWithdrawalController::class, 'exportCsv']);
+            Route::post('/', [AdminWithdrawalController::class, 'store']);
             Route::post('/{id}/approve', [AdminWithdrawalController::class, 'approve'])->where('id', '[0-9]+');
             Route::post('/{id}/reject', [AdminWithdrawalController::class, 'reject'])->where('id', '[0-9]+');
+        });
+
+        // Transactions / paiements voyageurs (admin)
+        Route::prefix('payments')->middleware('role:admin')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'index']);
+            Route::get('/export', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'exportCsv']);
+            Route::get('/credits', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'credits']);
+            Route::get('/credits/export', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'exportCreditsCsv']);
         });
 
         // Modération des avis (admin)
