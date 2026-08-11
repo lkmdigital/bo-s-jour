@@ -372,8 +372,8 @@ class PaymentController extends Controller
             "reference" => $payment->payment_reference,
             "description" => "Paiement de réservation #{$booking->id} - {$booking->accommodation->name}",
             "channel" => $channel,
-            "merchant_id" => "MI_AOXBNNUD2J",
-            "aggregated_merchant_id" => "am-1j54gkvb820we",
+            "merchant_id" => config('services.malia_pay.merchant_id', 'MI_AOXBNNUD2J'),
+            "aggregated_merchant_id" => config('services.malia_pay.aggregated_merchant_id', 'am-1j54gkvb820we'),
             "customer_name" => $customerName,
             "customer_surname" => $customerSurname,
             "customer_phone_number" => $phoneNumber ?: '22500000000', // Valeur par défaut si vide
