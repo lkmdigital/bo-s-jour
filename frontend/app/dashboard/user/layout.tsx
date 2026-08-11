@@ -19,7 +19,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { label: 'Tableau de bord', href: '/dashboard/user', icon: Home },
-  { label: 'Rechercher', href: '/accommodations', icon: Search },
+  { label: 'Rechercher', href: '/dashboard/user/recherche', icon: Search },
   { label: 'Mes réservations', href: '/bookings', icon: Calendar },
   { label: 'Favoris', href: '/favorites', icon: Heart },
   { label: 'Programme Membre', href: '/dashboard/user/programme', icon: Zap },
