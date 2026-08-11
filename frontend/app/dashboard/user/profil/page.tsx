@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { User as UserIcon, MapPin, Plane, Bell, Building2, Lock, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { User as UserIcon, MapPin, Plane, Bell, Building2, Lock, Loader2, CheckCircle2, Eye, EyeOff, ShieldCheck, Upload, FileText } from 'lucide-react';
 
 interface Profile {
   first_name?: string; last_name?: string; email?: string; phone?: string; whatsapp?: string;
@@ -88,6 +88,16 @@ export default function MemberProfilePage() {
   const [pwdMsg, setPwdMsg] = useState<string | null>(null);
   const [pwdErr, setPwdErr] = useState<string | null>(null);
 
+  // Pièces d'identité
+  const [idType, setIdType] = useState('CNI');
+  const [idNumber, setIdNumber] = useState('');
+  const [recto, setRecto] = useState<File | null>(null);
+  const [verso, setVerso] = useState<File | null>(null);
+  const [idStatus, setIdStatus] = useState<{ submitted: boolean; verified: boolean }>({ submitted: false, verified: false });
+  const [idSaving, setIdSaving] = useState(false);
+  const [idMsg, setIdMsg] = useState<string | null>(null);
+  const [idErr, setIdErr] = useState<string | null>(null);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push('/auth/login?redirect=/dashboard/user/profil');
   }, [isAuthenticated, isLoading, router]);
@@ -103,6 +113,9 @@ export default function MemberProfilePage() {
           interests: Array.isArray(u.interests) ? u.interests : [],
           offer_types: Array.isArray(u.offer_types) ? u.offer_types : [],
         });
+        if (u.id_type) setIdType(u.id_type);
+        if (u.id_number) setIdNumber(u.id_number);
+        setIdStatus({ submitted: !!u.id_document_recto_path, verified: !!u.profile_verified });
       })
       .catch(() => setError('Impossible de charger votre profil.'))
       .finally(() => setLoading(false));
@@ -169,6 +182,32 @@ export default function MemberProfilePage() {
       setPwdErr(err.response?.data?.errors?.current_password?.[0] || err.response?.data?.message || 'Échec de la modification.');
     } finally {
       setPwdSaving(false);
+    }
+  };
+
+  const uploadIdentity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIdErr(null); setIdMsg(null);
+    if (!idNumber.trim()) { setIdErr('Renseignez le numéro de la pièce.'); return; }
+    if (!recto && !idStatus.submitted) { setIdErr('Ajoutez au moins le recto de la pièce.'); return; }
+    if ((idType === 'CNI' || idType === 'Permis') && !verso && !idStatus.submitted) { setIdErr('Le verso est requis pour une CNI ou un permis.'); return; }
+    setIdSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('id_type', idType);
+      fd.append('id_number', idNumber);
+      if (recto) fd.append('id_document_recto', recto);
+      if (verso) fd.append('id_document_verso', verso);
+      await api.post('/me/identity', fd);
+      setIdStatus({ submitted: true, verified: false });
+      setRecto(null); setVerso(null);
+      setIdMsg('Pièces enregistrées ✓ — en attente de vérification.');
+      setTimeout(() => setIdMsg(null), 4000);
+    } catch (err: any) {
+      const errs = err.response?.data?.errors;
+      setIdErr(errs ? Object.values(errs).flat()[0] as string : (err.response?.data?.message || "Échec de l'envoi."));
+    } finally {
+      setIdSaving(false);
     }
   };
 
@@ -289,6 +328,47 @@ export default function MemberProfilePage() {
           {savedMsg && <span className="text-sm text-green-600 dark:text-green-400 inline-flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> {savedMsg}</span>}
         </div>
       </form>
+
+      {/* Pièces d'identité */}
+      <Card icon={ShieldCheck} title="Pièces d'identité" subtitle="Confidentielles — servent à vérifier votre identité">
+        {idStatus.submitted && (
+          <div className={`mb-5 rounded-xl p-3 text-sm flex items-center gap-2 ${idStatus.verified ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'}`}>
+            {idStatus.verified ? <CheckCircle2 className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+            {idStatus.verified ? 'Pièce vérifiée.' : 'Pièce enregistrée — en attente de vérification. Vous pouvez la remplacer ci-dessous.'}
+          </div>
+        )}
+        <form onSubmit={uploadIdentity} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Type de pièce">
+              <select className={inputCls} value={idType} onChange={(e) => setIdType(e.target.value)}>
+                <option value="CNI">Carte nationale d'identité (CNI)</option>
+                <option value="Passeport">Passeport</option>
+                <option value="Permis">Permis de conduire</option>
+              </select>
+            </Field>
+            <Field label="Numéro de la pièce">
+              <input className={inputCls} value={idNumber} onChange={(e) => setIdNumber(e.target.value)} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Recto" hint="JPEG ou PNG, 5 Mo max">
+              <input type="file" accept="image/jpeg,image/jpg,image/png" onChange={(e) => setRecto(e.target.files?.[0] || null)} className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-primary/10 file:text-primary file:font-medium hover:file:bg-primary/20" />
+            </Field>
+            {(idType === 'CNI' || idType === 'Permis') && (
+              <Field label="Verso" hint="JPEG ou PNG, 5 Mo max">
+                <input type="file" accept="image/jpeg,image/jpg,image/png" onChange={(e) => setVerso(e.target.files?.[0] || null)} className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-primary/10 file:text-primary file:font-medium hover:file:bg-primary/20" />
+              </Field>
+            )}
+          </div>
+          {idErr && <p className="text-sm text-red-600 dark:text-red-400">{idErr}</p>}
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={idSaving} className="btn-outline disabled:opacity-50 inline-flex items-center gap-2 text-sm">
+              {idSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Envoi…</> : <><Upload className="w-4 h-4" /> {idStatus.submitted ? 'Remplacer la pièce' : 'Envoyer ma pièce'}</>}
+            </button>
+            {idMsg && <span className="text-sm text-green-600 dark:text-green-400 inline-flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> {idMsg}</span>}
+          </div>
+        </form>
+      </Card>
 
       {/* Sécurité */}
       <Card icon={Lock} title="Sécurité" subtitle="Changer votre mot de passe">

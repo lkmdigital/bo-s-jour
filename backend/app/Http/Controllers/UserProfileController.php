@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -88,6 +89,67 @@ class UserProfileController extends Controller
             'message' => 'Profil mis à jour.',
             'user'    => $user->fresh(),
         ]);
+    }
+
+    /**
+     * Ajout / mise à jour des pièces d'identité du voyageur (KYC).
+     * Recto obligatoire ; verso obligatoire pour CNI et Permis (2 faces).
+     */
+    public function uploadIdentity(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'id_type'            => 'required|string|in:CNI,Passeport,Permis',
+            'id_number'          => 'required|string|max:255',
+            'id_document_recto'  => 'required|image|mimes:jpeg,jpg,png|max:5120',
+            'id_document_verso'  => 'required_if:id_type,CNI,Permis|nullable|image|mimes:jpeg,jpg,png|max:5120',
+        ]);
+
+        $user->id_type = $request->id_type;
+        $user->id_number = strip_tags($request->id_number);
+
+        if ($request->hasFile('id_document_recto')) {
+            if ($user->id_document_recto_path) {
+                Storage::disk('public')->delete($user->id_document_recto_path);
+            }
+            $user->id_document_recto_path = $request->file('id_document_recto')->store('user-documents', 'public');
+        }
+
+        if ($request->hasFile('id_document_verso')) {
+            if ($user->id_document_verso_path) {
+                Storage::disk('public')->delete($user->id_document_verso_path);
+            }
+            $user->id_document_verso_path = $request->file('id_document_verso')->store('user-documents', 'public');
+        }
+
+        // Passeport = 1 seule face : on retire un éventuel verso précédent.
+        if ($request->id_type === 'Passeport' && $user->id_document_verso_path) {
+            Storage::disk('public')->delete($user->id_document_verso_path);
+            $user->id_document_verso_path = null;
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message'  => 'Pièces d\'identité enregistrées. Elles seront vérifiées par nos équipes.',
+            'identity' => $this->identityStatus($user),
+        ]);
+    }
+
+    /**
+     * État des pièces d'identité (pour le front) — expose des URLs, jamais les chemins bruts.
+     */
+    private function identityStatus($user): array
+    {
+        return [
+            'id_type'        => $user->id_type,
+            'id_number'      => $user->id_number,
+            'recto_url'      => $user->id_document_recto_path ? Storage::disk('public')->url($user->id_document_recto_path) : null,
+            'verso_url'      => $user->id_document_verso_path ? Storage::disk('public')->url($user->id_document_verso_path) : null,
+            'verified'       => !empty($user->id_verified_at),
+            'submitted'      => !empty($user->id_document_recto_path),
+        ];
     }
 
     /**
