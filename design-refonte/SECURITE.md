@@ -50,9 +50,16 @@ Légende : ✅ fait · 🔴 critique (prod) · 🟠 recommandé · 🟢 bonus ·
       (fuite d'infos). Impératif avant mise en ligne.
 - [ ] **HTTPS forcé partout** — `APP_URL=https://api.bosejour.ci`, redirection 301 http→https (Nginx).
 - [ ] **`MALIA_PAY_WEBHOOK_SECRET`** renseigné en prod (+ configuré côté Malia Pay) 🔑.
-- [ ] **Secrets hors du repo** — vérifier que `.env`, `deploy.config`, dumps SQL ne sont
-      jamais commités. ⚠️ **`frontend/.env.local.prod-backup`** et **`backend/backend-chambres.tar.gz`**
-      sont **suivis par git** → à retirer (`git rm --cached`) + **rotation des secrets** exposés.
+- [x] **Secrets retirés du suivi git (#4, 2026-08-10)** — `git rm --cached` sur
+      `frontend/.env.local.prod-backup`, `backend/backend-chambres.tar.gz`,
+      `backend/app/Http/Controllers/AuthController.php.backup` + `.gitignore` durci
+      (`.env`/`.env.*` sauf `.env.example`, `*prod-backup*`, `*.backup`, `*.bak`, `*.orig`).
+- [ ] **🔴 Rotation des secrets exposés** — les fichiers ci-dessus **restent dans l'historique
+      git** (déjà poussés sur GitHub). Considérer tout secret qu'ils contenaient comme
+      **compromis** → **régénérer/changer** (clés API, mots de passe, `APP_KEY` prod, etc.).
+- [ ] **Purge de l'historique** (optionnel mais recommandé) — `git filter-repo` ou BFG
+      Repo-Cleaner pour effacer ces fichiers de tout l'historique, puis force-push
+      (⚠️ destructif : tous les collaborateurs doivent re-cloner).
 - [ ] **`APP_KEY`** unique et secret en prod (ne jamais régénérer sur prod).
 - [ ] **`FRONTEND_URL=https://bosejour.ci`** en prod (retours de paiement Malia Pay).
 
