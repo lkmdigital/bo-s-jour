@@ -36,6 +36,10 @@ Légende : ✅ fait · 🔴 critique (prod) · 🟠 recommandé · 🟢 bonus ·
       `https://bosejour.ci`. Surchargeable via `CORS_ALLOWED_ORIGINS`.
 - [x] **🟠 #6 Rate-limit global de l'API** — `throttle:120,1` (120 req/min par utilisateur/IP)
       sur tout le groupe `api`, en plus des limites strictes par route.
+- [x] **🟠 #9 Expiration des tokens Sanctum** — `config/sanctum.php 'expiration'` = 30 jours
+      (`SANCTUM_TOKEN_EXPIRATION`, minutes) ; purge quotidienne `sanctum:prune-expired` (Kernel).
+- [x] **🟠 #7 Verrouillage après échecs de connexion** — après **5 échecs** (par e-mail + IP),
+      **blocage 15 min** (429), compteur réinitialisé à la connexion réussie (`RateLimiter`).
 
 ---
 
@@ -56,9 +60,6 @@ Légende : ✅ fait · 🔴 critique (prod) · 🟠 recommandé · 🟢 bonus ·
 
 ## 🟠 Recommandé — durcissement
 
-- [ ] **Expiration des tokens** Sanctum (`config/sanctum.php 'expiration'` = `null` = jamais)
-      → ex. 30 jours (43200 min) + révocation à la déconnexion (déjà en place via `/logout`).
-- [ ] **Verrouillage de compte** après N échecs de connexion (lockout temporaire), en complément du throttle.
 - [ ] **Cookies/session** — `SESSION_SECURE_COOKIE=true`, `SESSION_SAME_SITE=lax`.
 - [ ] **CSP stricte** — auditer `Content-Security-Policy` (limiter `unsafe-inline`/`unsafe-eval`).
 - [ ] **Uploads** — stockage hors webroot, vérification du **type MIME réel**, renommage des fichiers.

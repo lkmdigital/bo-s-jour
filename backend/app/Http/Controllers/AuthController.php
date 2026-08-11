@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\NotificationController;
 
@@ -369,17 +370,38 @@ class AuthController extends Controller
     {
         // La validation est déjà faite dans SecureLoginRequest
 
+        // Verrouillage : après 5 échecs (par e-mail + IP), on bloque 15 min.
+        $throttleKey = Str::lower((string) $request->email) . '|' . $request->ip();
+        $maxAttempts = 5;
+
+        if (RateLimiter::tooManyAttempts($throttleKey, $maxAttempts)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            $minutes = (int) ceil($seconds / 60);
+            Log::channel('security')->warning('Login locked out (too many attempts)', [
+                'email' => $request->email,
+                'ip' => $request->ip(),
+                'retry_in_seconds' => $seconds,
+            ]);
+            throw ValidationException::withMessages([
+                'email' => ["Trop de tentatives de connexion. Réessayez dans {$minutes} minute(s)."],
+            ])->status(429);
+        }
+
         $user = User::where('email', $request->email)->first();
 
         // Protection contre les attaques de timing : toujours vérifier le hash même si l'utilisateur n'existe pas
         $passwordValid = $user && Hash::check($request->password, $user->password);
 
         if (!$passwordValid) {
+            // Incrémente le compteur d'échecs (fenêtre de 15 min)
+            RateLimiter::hit($throttleKey, 900);
+
             // Logger la tentative de connexion échouée
             Log::channel('security')->warning('Failed login attempt', [
                 'email' => $request->email,
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
+                'attempts_left' => RateLimiter::remaining($throttleKey, $maxAttempts),
                 'timestamp' => now()->toIso8601String(),
             ]);
 
@@ -387,6 +409,9 @@ class AuthController extends Controller
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
+
+        // Mot de passe correct → on réinitialise le compteur d'échecs.
+        RateLimiter::clear($throttleKey);
 
         // Vérifier si l'utilisateur est actif et non bloqué
         if (!$user->isActive()) {

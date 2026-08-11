@@ -11,7 +11,9 @@ return [
 
     'guard' => ['web'],
 
-    'expiration' => null,
+    // Durée de vie des tokens en minutes (défaut 30 jours). Au-delà, le token est
+    // invalide → l'utilisateur doit se reconnecter. Purge via `php artisan sanctum:prune-expired`.
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 43200),
 
     'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
 

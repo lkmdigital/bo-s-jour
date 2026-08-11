@@ -28,6 +28,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('reviews:send-post-stay-links')->dailyAt('09:00');
         $schedule->command('bookings:detect-no-show')->dailyAt('11:00');
         $schedule->command('users:remind-guest-activation')->hourly();
+        $schedule->command('sanctum:prune-expired --hours=24')->daily();
     }
 
     /**
