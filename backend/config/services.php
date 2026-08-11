@@ -37,6 +37,10 @@ return [
         'api_url' => env('MALIA_PAY_API_URL', 'https://malia-pay.com/api/v1/OnlinePaymentService/add_payer'),
         'merchant_id' => env('MALIA_PAY_MERCHANT_ID', 'MI_AOXBNNUD2J'),
         'aggregated_merchant_id' => env('MALIA_PAY_AGGREGATED_MERCHANT_ID', 'am-1j54gkvb820we'),
+        // Secret partagé pour authentifier les webhooks entrants de Malia Pay.
+        // Tant qu'il est vide, le webhook est accepté (rétrocompat) mais un avertissement
+        // est journalisé. À renseigner en prod (et côté Malia Pay) pour rejeter les faux appels.
+        'webhook_secret' => env('MALIA_PAY_WEBHOOK_SECRET', ''),
     ],
 
     'google' => [

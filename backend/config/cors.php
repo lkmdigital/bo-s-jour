@@ -3,7 +3,10 @@
 return [
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
     'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Limiter les méthodes autorisées
-    'allowed_origins' => array_filter(explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:3001,http://72.62.16.236,http://72.62.31.145,http://bosejour.ci,https://bosejour.ci,https://monbeaupays.com,https://www.monbeaupays.com,https://monbeaupays.loyerpay.ci,http://monbeaupays.loyerpay.ci'))),
+    // Origines autorisées : localhost pour le dev + domaines HTTPS de prod uniquement.
+    // Surchargeable en prod via CORS_ALLOWED_ORIGINS (liste séparée par des virgules).
+    // ⚠️ Ne jamais utiliser '*' avec supports_credentials = true.
+    'allowed_origins' => array_filter(explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:3001,https://bosejour.ci,https://www.bosejour.ci'))),
     'allowed_origins_patterns' => [
         '#^https://.*\.ngrok(-free)?\.(app|dev)$#', // Tunnels ngrok (dev via tunnel)
     ],

@@ -624,12 +624,62 @@ class PaymentController extends Controller
     }
 
     /**
+     * Authentifie un webhook entrant de Malia Pay via un secret partagé.
+     * Accepte : un header/query/body contenant le secret, OU une signature HMAC-SHA256
+     * du corps brut. Comparaisons à temps constant (hash_equals).
+     * Si aucun secret n'est configuré, on accepte (rétrocompat) mais on journalise un avertissement.
+     */
+    private function verifyWebhookSignature(Request $request): bool
+    {
+        $secret = (string) config('services.malia_pay.webhook_secret', '');
+
+        if ($secret === '') {
+            \Log::warning('Webhook malia-pay non sécurisé : MALIA_PAY_WEBHOOK_SECRET non configuré.');
+            return true; // rétrocompat tant que le client n'a pas fourni le secret
+        }
+
+        // 1) Secret partagé passé en clair (header, query ou body)
+        $provided = $request->header('X-Webhook-Secret')
+            ?? $request->header('X-Webhook-Token')
+            ?? $request->header('X-Api-Key')
+            ?? $request->input('secret')
+            ?? $request->input('webhook_secret')
+            ?? $request->query('token');
+
+        if (is_string($provided) && hash_equals($secret, $provided)) {
+            return true;
+        }
+
+        // 2) Signature HMAC-SHA256 du corps brut
+        $signature = $request->header('X-Signature')
+            ?? $request->header('X-Malia-Signature')
+            ?? $request->header('Signature');
+
+        if (is_string($signature) && $signature !== '') {
+            $expected = hash_hmac('sha256', $request->getContent(), $secret);
+            if (hash_equals($expected, $signature)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Webhook pour recevoir les notifications de paiement de malia-pay.com
      */
     public function webhook(Request $request)
     {
+        // Authentification du webhook : rejette les appels forgés (paiement « réussi » falsifié).
+        if (!$this->verifyWebhookSignature($request)) {
+            \Log::warning('Webhook malia-pay: signature/secret invalide', [
+                'ip' => $request->ip(),
+            ]);
+            return response()->json(['error' => 'Signature invalide'], 401);
+        }
+
         $data = $request->all();
-        
+
         $reference = $data['reference'] ?? null;
         $status = $data['status'] ?? null;
         $transactionId = $data['transactionID'] ?? $data['transaction_id'] ?? null;

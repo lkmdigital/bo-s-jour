@@ -22,6 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->append(\App\Http\Middleware\LogSecurityEvents::class);
 
+        // Rate-limit global de l'API (120 req/min par utilisateur ou IP), en plus
+        // des limites plus strictes déjà posées route par route (login, OTP, paiement…).
+        $middleware->api(append: [
+            'throttle:120,1',
+        ]);
+
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
