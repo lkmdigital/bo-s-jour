@@ -50,7 +50,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 const QUICK_ACTIONS = [
   { label: 'Rechercher', href: '/dashboard/user/recherche', icon: Search },
-  { label: 'Mes réservations', href: '/bookings', icon: Calendar },
+  { label: 'Mes réservations', href: '/dashboard/user/reservations', icon: Calendar },
   { label: 'Favoris', href: '/favorites', icon: Heart },
   { label: 'Messages', href: '/dashboard/user/inbox', icon: MessageSquare },
   { label: 'Avis', href: '/dashboard/user/avis', icon: Star },
@@ -164,7 +164,7 @@ export default function UserDashboardPage() {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold">Prochaine réservation</h2>
-              <Link href="/bookings" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+              <Link href="/dashboard/user/reservations" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
                 Voir toutes mes réservations <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
