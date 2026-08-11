@@ -109,6 +109,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::put('/me/profile', [UserProfileController::class, 'update']);
         Route::post('/me/password', [UserProfileController::class, 'changePassword'])->middleware('throttle:5,1');
         Route::post('/me/identity', [UserProfileController::class, 'uploadIdentity'])->middleware('throttle:10,1');
+        Route::get('/me/payments', [PaymentController::class, 'myPayments']);
 
         // Notifications push (OneSignal)
         Route::post('/notifications/trigger', [NotificationController::class, 'trigger']);

@@ -836,6 +836,39 @@ class PaymentController extends Controller
         return response()->json($payment);
     }
 
+    /**
+     * Historique des paiements du voyageur connecté (+ total réglé).
+     */
+    public function myPayments(Request $request)
+    {
+        $payments = Payment::where('user_id', $request->user()->id)
+            ->with(['booking.accommodation:id,name,city'])
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id'             => $p->id,
+                    'amount'         => (float) $p->amount,
+                    'status'         => $p->status,
+                    'purpose'        => $p->purpose,
+                    'payment_method' => $p->payment_method,
+                    'reference'      => $p->payment_reference,
+                    'transaction_id' => $p->transaction_id,
+                    'paid_at'        => $p->paid_at,
+                    'created_at'     => $p->created_at,
+                    'booking_id'     => $p->booking_id,
+                    'accommodation'  => $p->booking && $p->booking->accommodation
+                        ? ['name' => $p->booking->accommodation->name, 'city' => $p->booking->accommodation->city]
+                        : null,
+                ];
+            });
+
+        return response()->json([
+            'data'       => $payments->values(),
+            'total_paid' => (float) $payments->where('status', 'completed')->sum('amount'),
+        ]);
+    }
+
     private function updateBookingPaymentState(Payment $payment): Booking
     {
         $booking = $payment->booking()->lockForUpdate()->first();
