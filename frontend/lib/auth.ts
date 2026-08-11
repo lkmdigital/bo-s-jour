@@ -1,4 +1,5 @@
 import api from './api';
+import { persistAuth, clearAuth, readToken, readUser, isRemembered, setRememberedEmail } from './tokenStorage';
 
 export interface User {
   id: number;
@@ -20,6 +21,7 @@ export interface User {
 export interface LoginCredentials {
   email: string;
   password: string;
+  remember?: boolean;
 }
 
 export interface RegisterData {
@@ -40,7 +42,11 @@ export const authService = {
     user_id?: number;
     temp_token?: string;
   }> {
-    const response = await api.post('/login', credentials);
+    const { remember = true, ...creds } = credentials;
+    const response = await api.post('/login', creds);
+
+    // Mémoriser l'e-mail pour le préremplissage (si « se souvenir »)
+    setRememberedEmail(remember ? credentials.email : null);
 
     // Google 2FA
     if (response.data.requires_2fa) {
@@ -60,11 +66,7 @@ export const authService = {
     }
 
     const { user, token } = response.data;
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-    }
+    persistAuth(token, user, remember);
 
     return { user, token };
   },
@@ -72,21 +74,15 @@ export const authService = {
   async register(data: RegisterData) {
     const response = await api.post('/register', data);
     const { user, token } = response.data;
-    
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-    }
-    
+
+    persistAuth(token, user, isRemembered());
+
     return { user, token };
   },
 
   async logout() {
     await api.post('/logout');
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-    }
+    clearAuth();
   },
 
   async getCurrentUser(): Promise<User | null> {
@@ -99,14 +95,12 @@ export const authService = {
   },
 
   getStoredUser(): User | null {
-    if (typeof window === 'undefined') return null;
-    const userStr = localStorage.getItem('user');
+    const userStr = readUser();
     return userStr ? JSON.parse(userStr) : null;
   },
 
   getToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('token');
+    return readToken();
   },
 
   /**
@@ -121,10 +115,7 @@ export const authService = {
    * Gérer le callback OAuth (appelé depuis une page de callback)
    */
   async handleOAuthCallback(data: { user: User; token: string; provider: string }) {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-    }
+    persistAuth(data.token, data.user, isRemembered());
     return { user: data.user, token: data.token };
   },
 
@@ -135,10 +126,7 @@ export const authService = {
     const response = await api.post('/auth/verify-otp', { user_id: userId, code });
     const { user, token } = response.data;
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-    }
+    persistAuth(token, user, isRemembered());
 
     return { user, token };
   },

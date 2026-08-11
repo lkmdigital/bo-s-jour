@@ -8,7 +8,7 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, remember?: boolean) => Promise<void>;
   register: (data: any) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -22,8 +22,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   isAuthenticated: false,
 
-  login: async (email: string, password: string) => {
-    const result = await authService.login({ email, password });
+  login: async (email: string, password: string, remember: boolean = true) => {
+    const result = await authService.login({ email, password, remember });
 
     // Si une étape 2FA est requise, propager l'info au caller sans modifier le store
     if (result.requires_2fa || result.requires_email_otp) {

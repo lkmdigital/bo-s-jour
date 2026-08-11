@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { readToken, clearAuth } from './tokenStorage';
 
 // IMPORTANT: Utiliser uniquement HTTPS pour éviter les erreurs Mixed Content
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bosejour.ci/api';
@@ -24,7 +25,7 @@ const api = axios.create({
 // Add token to requests
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
+    const token = readToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -51,9 +52,8 @@ api.interceptors.response.use(
     // Ne pas rediriger si l'utilisateur n'était pas connecté (requête publique)
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
-        const hadToken = !!localStorage.getItem('token');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        const hadToken = !!readToken();
+        clearAuth();
         
         // Rediriger uniquement si l'utilisateur avait une session (token présent)
         // Cela signifie que sa session a expiré ou qu'il a été déconnecté

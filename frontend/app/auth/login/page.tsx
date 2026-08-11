@@ -11,10 +11,12 @@ import { Eye, EyeOff } from 'lucide-react';
 import { FadeIn, SlideUp } from '@/components/common/animations';
 import { isController, isAdmin } from '@/lib/userUtils';
 import { authService } from '@/lib/auth';
+import { getRememberedEmail } from '@/lib/tokenStorage';
 
 interface LoginFormData {
   email: string;
   password: string;
+  remember: boolean;
 }
 
 function LoginContent() {
@@ -25,7 +27,9 @@ function LoginContent() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
+    defaultValues: { email: getRememberedEmail(), remember: true },
+  });
 
   const STAFF_MSG = "Ce portail est réservé aux voyageurs et aux partenaires. Le personnel bo séjour se connecte via le portail administrateur dédié.";
 
@@ -42,7 +46,7 @@ function LoginContent() {
     setError(null);
 
     try {
-      await login(data.email, data.password);
+      await login(data.email, data.password, data.remember);
 
       // Récupérer l'utilisateur connecté avec les rôles RBAC (déjà chargés par le store)
       const currentUser = useAuthStore.getState().user;
@@ -143,7 +147,15 @@ function LoginContent() {
               {errors.password && (
                 <p className="text-red-500 text-xs sm:text-sm mt-1 break-words">{errors.password.message}</p>
               )}
-              <div className="text-right mt-1">
+              <div className="flex items-center justify-between mt-2 gap-2">
+                <label className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-300 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    {...register('remember')}
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  Se souvenir de moi
+                </label>
                 <Link href="/auth/forgot-password" className="text-xs sm:text-sm text-primary hover:underline transition-colors">
                   Mot de passe oublié ?
                 </Link>
