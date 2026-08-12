@@ -3,13 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useThemeStore } from '@/stores/themeStore';
+import { resolveImageUrl } from '@/lib/utils';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import {
   Lock, ShieldCheck, Bell, Loader2, CheckCircle2, KeyRound, Copy, Eye, EyeOff, ArrowRight,
+  Sun, Moon, UserCog, Pencil,
 } from 'lucide-react';
 
 function Card({ icon: Icon, title, subtitle, children }: { icon: any; title: string; subtitle?: string; children: React.ReactNode }) {
@@ -29,7 +33,8 @@ function Card({ icon: Icon, title, subtitle, children }: { icon: any; title: str
 
 export default function MemberSettingsPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
+  const { theme, setTheme } = useThemeStore();
   const [loading, setLoading] = useState(true);
 
   // 2FA
@@ -134,8 +139,54 @@ export default function MemberSettingsPage() {
       <div className="xl:col-span-2 space-y-6 max-w-2xl">
         <div>
           <h1 className="text-3xl font-bold">Paramètres</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Sécurité et préférences de communication.</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Personnalisation, sécurité et préférences de communication.</p>
         </div>
+
+        {/* Personnalisation : apparence de l'app + accès au profil */}
+        <Card icon={UserCog} title="Personnalisation" subtitle="Votre application et votre profil, à votre image">
+          <div className="space-y-6">
+            {/* Apparence */}
+            <div>
+              <p className="text-sm font-medium mb-2">Apparence de l&apos;application</p>
+              <div className="grid grid-cols-2 gap-3 max-w-xs">
+                <button
+                  type="button"
+                  onClick={() => setTheme('light')}
+                  className={`flex flex-col items-center gap-2 py-3 rounded-xl border-2 transition-colors ${theme === 'light' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'}`}
+                >
+                  <Sun className="w-5 h-5" />
+                  <span className="text-xs font-medium">Clair</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTheme('dark')}
+                  className={`flex flex-col items-center gap-2 py-3 rounded-xl border-2 transition-colors ${theme === 'dark' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'}`}
+                >
+                  <Moon className="w-5 h-5" />
+                  <span className="text-xs font-medium">Sombre</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Profil */}
+            <div className="pt-5 border-t border-gray-100 dark:border-gray-700 flex items-center gap-4">
+              <span className="relative w-14 h-14 rounded-full overflow-hidden bg-primary flex-shrink-0 flex items-center justify-center text-white font-bold">
+                {user?.avatar ? (
+                  <Image src={resolveImageUrl(user.avatar) || user.avatar} alt={user?.name || 'Profil'} fill className="object-cover" />
+                ) : (
+                  (user?.name || 'BS').trim().split(/\s+/).slice(0, 2).map((s) => s[0]?.toUpperCase()).join('')
+                )}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">{user?.name || 'Mon profil'}</p>
+                <p className="text-xs text-gray-500">Photo, informations personnelles, préférences de voyage…</p>
+              </div>
+              <Link href="/dashboard/user/profil" className="btn-outline text-sm inline-flex items-center gap-2 flex-shrink-0">
+                <Pencil className="w-4 h-4" /> Personnaliser
+              </Link>
+            </div>
+          </div>
+        </Card>
 
         {/* Mot de passe */}
         <Card icon={Lock} title="Mot de passe">
