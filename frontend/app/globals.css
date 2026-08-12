@@ -20,6 +20,26 @@ body {
   font-family: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
 }
 
+/* Personnalisation — Réduire les animations (accessibilité) : neutralise
+   transitions/animations CSS partout, y compris celles pilotées par Framer Motion. */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Personnalisation — Taille du texte : la taille Tailwind (text-sm, text-base…)
+   est en rem, donc rescaler la racine agrandit tout le texte de l'app. */
+html.text-scale-large {
+  font-size: 112.5%; /* 16px → 18px de base */
+}
+html.text-scale-larger {
+  font-size: 125%; /* 16px → 20px de base */
+}
+
 /* PWA Styles */
 @media (display-mode: standalone) {
   body {
@@ -58,6 +78,22 @@ body {
 
   .no-print {
     @apply print:hidden;
+  }
+
+  /* Impression d'un reçu/facture isolé (peu importe où il est dans le DOM) :
+     n'affiche que l'élément .print-receipt et son contenu à l'impression. */
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    .print-receipt, .print-receipt * {
+      visibility: visible;
+    }
+    .print-receipt {
+      position: fixed;
+      inset: 0;
+      padding: 2rem;
+    }
   }
 
   /* Typographies de marque */

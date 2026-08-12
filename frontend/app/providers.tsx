@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useThemeStore } from '@/stores/themeStore';
+import { useAppearanceStore } from '@/stores/appearanceStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { ConfirmProvider } from '@/components/common/ConfirmContext';
@@ -26,6 +27,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { checkAuth } = useAuthStore();
   const { theme: currentTheme } = useThemeStore();
+  const { reduceMotion, textScale } = useAppearanceStore();
   const { fetchSettings, maintenanceEnabled, maintenanceMessage, eventTheme, loaded } =
     useAppSettingsStore();
   const { user } = useAuthStore();
@@ -45,6 +47,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
       root.classList.remove('dark');
     }
   }, [currentTheme]);
+
+  // Personnalisation : réduction des animations + taille du texte
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('reduce-motion', reduceMotion);
+  }, [reduceMotion]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('text-scale-large', 'text-scale-larger');
+    if (textScale === 'large') root.classList.add('text-scale-large');
+    if (textScale === 'larger') root.classList.add('text-scale-larger');
+  }, [textScale]);
 
   // Maintenance : bloquer les non-admins (laisser passer les admins pour qu'ils puissent désactiver)
   const isAdmin = user?.role === 'admin';

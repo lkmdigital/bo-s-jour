@@ -8,12 +8,13 @@ import { QRCodeSVG } from 'qrcode.react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { useAppearanceStore, TextScale } from '@/stores/appearanceStore';
 import { resolveImageUrl } from '@/lib/utils';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import {
   Lock, ShieldCheck, Bell, Loader2, CheckCircle2, KeyRound, Copy, Eye, EyeOff, ArrowRight,
-  Sun, Moon, UserCog, Pencil,
+  Sun, Moon, UserCog, Pencil, Type, Sparkles, RotateCcw,
 } from 'lucide-react';
 
 function Card({ icon: Icon, title, subtitle, children }: { icon: any; title: string; subtitle?: string; children: React.ReactNode }) {
@@ -35,6 +36,7 @@ export default function MemberSettingsPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
+  const { reduceMotion, textScale, setReduceMotion, setTextScale, reset: resetAppearance } = useAppearanceStore();
   const [loading, setLoading] = useState(true);
 
   // 2FA
@@ -166,6 +168,55 @@ export default function MemberSettingsPage() {
                   <span className="text-xs font-medium">Sombre</span>
                 </button>
               </div>
+            </div>
+
+            {/* Taille du texte */}
+            <div className="pt-5 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-sm font-medium mb-2 flex items-center gap-2"><Type className="w-4 h-4" /> Taille du texte</p>
+              <div className="grid grid-cols-3 gap-3 max-w-sm">
+                {([
+                  { key: 'normal' as TextScale, label: 'Normal', size: 'text-sm' },
+                  { key: 'large' as TextScale, label: 'Grand', size: 'text-base' },
+                  { key: 'larger' as TextScale, label: 'Très grand', size: 'text-lg' },
+                ]).map((o) => (
+                  <button
+                    key={o.key}
+                    type="button"
+                    onClick={() => setTextScale(o.key)}
+                    className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-colors ${textScale === o.key ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'}`}
+                  >
+                    <span className={`${o.size} font-bold`}>Aa</span>
+                    <span className="text-xs font-medium">{o.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Animations */}
+            <div className="pt-5 border-t border-gray-100 dark:border-gray-700">
+              <label className="flex items-center justify-between gap-3 cursor-pointer">
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <Sparkles className="w-4 h-4" /> Réduire les animations
+                </span>
+                <input
+                  type="checkbox"
+                  checked={reduceMotion}
+                  onChange={(e) => setReduceMotion(e.target.checked)}
+                  className="w-5 h-5 accent-[#FF0000]"
+                />
+              </label>
+              <p className="text-xs text-gray-500 mt-1">Désactive les transitions et effets de défilement pour un confort de lecture accru.</p>
+            </div>
+
+            {/* Réinitialiser */}
+            <div className="pt-5 border-t border-gray-100 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => { resetAppearance(); setTheme('light'); }}
+                className="text-sm text-gray-500 hover:text-primary inline-flex items-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" /> Réinitialiser l&apos;apparence par défaut
+              </button>
             </div>
 
             {/* Profil */}
