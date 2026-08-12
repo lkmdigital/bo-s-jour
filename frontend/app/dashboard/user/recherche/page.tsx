@@ -7,11 +7,32 @@ import PropertyCard, { PropertyCardData } from '@/components/home/PropertyCard';
 import ResultsMap, { MapItem } from '@/components/accommodations/ResultsMap';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import Pagination from '@/components/common/Pagination';
-import { resolveImageUrl } from '@/lib/utils';
+import { formatPrice, resolveImageUrl } from '@/lib/utils';
 import { useAppearanceStore } from '@/stores/appearanceStore';
 import {
   Search, MapPin, Calendar, Users, SlidersHorizontal, Star, Map as MapIcon, List, X,
+  Scale, Check, Minus, Loader2,
 } from 'lucide-react';
+
+interface AccommodationDetail {
+  id: number;
+  name: string;
+  city: string;
+  type?: string;
+  price_per_night: number;
+  rating?: number | string | null;
+  total_reviews?: number | null;
+  amenities?: string[];
+  cancellation_policy_hours?: number | null;
+  image?: string;
+}
+
+function cancellationLabel(h?: number | null) {
+  const v = typeof h === 'number' ? h : 48;
+  if (v === 0) return 'Stricte';
+  if (v <= 24) return 'Modérée';
+  return 'Flexible';
+}
 
 interface Accommodation {
   id: number;
@@ -81,6 +102,46 @@ export default function MemberSearchPage() {
   const [sort, setSort] = useState(defaultSort);
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<'list' | 'map'>('list');
+
+  // Comparateur d'établissements (brief Étape 4 — "comparer les établissements")
+  const [compareIds, setCompareIds] = useState<number[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
+  const [compareDetails, setCompareDetails] = useState<Record<number, AccommodationDetail>>({});
+  const [compareLoading, setCompareLoading] = useState(false);
+
+  const toggleCompare = (id: number) => {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 3) return prev;
+      return [...prev, id];
+    });
+  };
+
+  const openCompare = async () => {
+    setShowCompare(true);
+    const missing = compareIds.filter((id) => !compareDetails[id]);
+    if (missing.length === 0) return;
+    setCompareLoading(true);
+    try {
+      const results = await Promise.all(missing.map((id) => api.get(`/accommodations/${id}`).then((r) => r.data).catch(() => null)));
+      setCompareDetails((prev) => {
+        const next = { ...prev };
+        results.forEach((d, i) => {
+          if (d) {
+            next[missing[i]] = {
+              id: d.id, name: d.name, city: d.city, type: d.type,
+              price_per_night: d.price_per_night, rating: d.rating, total_reviews: d.total_reviews,
+              amenities: d.amenities || [], cancellation_policy_hours: d.cancellation_policy_hours,
+              image: d.images?.find((im: any) => im.is_primary)?.url || d.images?.[0]?.url,
+            };
+          }
+        });
+        return next;
+      });
+    } finally {
+      setCompareLoading(false);
+    }
+  };
 
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -319,7 +380,28 @@ export default function MemberSearchPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {cards.map((c) => <PropertyCard key={c.id} data={c} />)}
+              {cards.map((c) => {
+                const id = Number(c.id);
+                const checked = compareIds.includes(id);
+                return (
+                  <div key={c.id} className="relative">
+                    <label
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/95 dark:bg-gray-900/95 shadow-sm border border-gray-200 dark:border-gray-700 text-xs font-medium cursor-pointer select-none"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={!checked && compareIds.length >= 3}
+                        onChange={() => toggleCompare(id)}
+                        className="accent-[#FF0000] w-3.5 h-3.5"
+                      />
+                      Comparer
+                    </label>
+                    <PropertyCard data={c} />
+                  </div>
+                );
+              })}
             </div>
             {pagination.last_page > 1 && (
               <Pagination
@@ -335,6 +417,95 @@ export default function MemberSearchPage() {
       </div>
 
       <MemberAside />
+
+      {/* Barre flottante de comparaison */}
+      {compareIds.length >= 2 && !showCompare && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 bg-gray-900 text-white rounded-full shadow-xl px-5 py-3 flex items-center gap-4">
+          <span className="text-sm font-medium flex items-center gap-2"><Scale className="w-4 h-4" /> {compareIds.length} établissement{compareIds.length > 1 ? 's' : ''} sélectionné{compareIds.length > 1 ? 's' : ''}</span>
+          <button onClick={openCompare} className="btn-primary text-sm !py-1.5 !px-4">Comparer</button>
+          <button onClick={() => setCompareIds([])} className="text-gray-400 hover:text-white"><X className="w-4 h-4" /></button>
+        </div>
+      )}
+
+      {/* Modale de comparaison */}
+      {showCompare && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowCompare(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold flex items-center gap-2"><Scale className="w-5 h-5 text-primary" /> Comparer les établissements</h2>
+              <button onClick={() => setShowCompare(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+
+            {compareLoading ? (
+              <div className="py-16 flex items-center justify-center text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /></div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="text-left p-2 w-28"></th>
+                      {compareIds.map((id) => {
+                        const d = compareDetails[id];
+                        return (
+                          <th key={id} className="p-2 text-left align-top min-w-[180px]">
+                            <div className="relative w-full h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 mb-2">
+                              {d?.image && <img src={resolveImageUrl(d.image) || d.image} alt={d.name} className="w-full h-full object-cover" />}
+                            </div>
+                            <p className="font-bold text-gray-900 dark:text-white">{d?.name || '…'}</p>
+                            <p className="text-xs text-gray-500">{d?.city}</p>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    <tr>
+                      <td className="p-2 text-gray-500">Prix / nuit</td>
+                      {compareIds.map((id) => <td key={id} className="p-2 font-semibold">{compareDetails[id] ? `${formatPrice(compareDetails[id].price_per_night)} F` : '—'}</td>)}
+                    </tr>
+                    <tr>
+                      <td className="p-2 text-gray-500">Note</td>
+                      {compareIds.map((id) => {
+                        const d = compareDetails[id];
+                        const r = d?.rating != null ? Number(d.rating) : 0;
+                        return <td key={id} className="p-2">{r > 0 ? <span className="inline-flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-[#F7C948] text-[#F7C948]" /> {r.toFixed(1)} {d?.total_reviews ? `(${d.total_reviews})` : ''}</span> : 'Pas encore d\'avis'}</td>;
+                      })}
+                    </tr>
+                    <tr>
+                      <td className="p-2 text-gray-500">Type</td>
+                      {compareIds.map((id) => <td key={id} className="p-2">{TYPES.find((t) => t.key === compareDetails[id]?.type)?.label || compareDetails[id]?.type || '—'}</td>)}
+                    </tr>
+                    <tr>
+                      <td className="p-2 text-gray-500">Politique d'annulation</td>
+                      {compareIds.map((id) => <td key={id} className="p-2">{compareDetails[id] ? cancellationLabel(compareDetails[id].cancellation_policy_hours) : '—'}</td>)}
+                    </tr>
+                    {AMENITIES.map((a) => (
+                      <tr key={a}>
+                        <td className="p-2 text-gray-500">{a}</td>
+                        {compareIds.map((id) => (
+                          <td key={id} className="p-2">
+                            {compareDetails[id]?.amenities?.includes(a)
+                              ? <Check className="w-4 h-4 text-green-600" />
+                              : <Minus className="w-4 h-4 text-gray-300" />}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    <tr>
+                      <td className="p-2"></td>
+                      {compareIds.map((id) => (
+                        <td key={id} className="p-2">
+                          <a href={`/accommodations/${id}`} className="btn-outline text-xs inline-block">Voir la fiche</a>
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
