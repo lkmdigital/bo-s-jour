@@ -138,6 +138,14 @@ class UserProfileController extends Controller
     }
 
     /**
+     * État des pièces d'identité du voyageur connecté (avec URLs de consultation).
+     */
+    public function identity(Request $request)
+    {
+        return response()->json($this->identityStatus($request->user()));
+    }
+
+    /**
      * État des pièces d'identité (pour le front) — expose des URLs, jamais les chemins bruts.
      */
     private function identityStatus($user): array

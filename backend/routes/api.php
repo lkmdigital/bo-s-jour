@@ -108,6 +108,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         // Profil voyageur (mise à jour + mot de passe + pièces d'identité)
         Route::put('/me/profile', [UserProfileController::class, 'update']);
         Route::post('/me/password', [UserProfileController::class, 'changePassword'])->middleware('throttle:5,1');
+        Route::get('/me/identity', [UserProfileController::class, 'identity']);
         Route::post('/me/identity', [UserProfileController::class, 'uploadIdentity'])->middleware('throttle:10,1');
         Route::get('/me/payments', [PaymentController::class, 'myPayments']);
 
