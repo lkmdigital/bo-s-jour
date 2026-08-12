@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { User as UserIcon, MapPin, Plane, Bell, Building2, Lock, Loader2, CheckCircle2, Eye, EyeOff, ShieldCheck, Upload, FileText } from 'lucide-react';
+import { resolveImageUrl } from '@/lib/utils';
+import { User as UserIcon, MapPin, Plane, Bell, Building2, Lock, Loader2, CheckCircle2, Eye, EyeOff, ShieldCheck, Upload, FileText, Camera, Trash2 } from 'lucide-react';
 
 interface Profile {
   first_name?: string; last_name?: string; email?: string; phone?: string; whatsapp?: string;
@@ -44,9 +46,9 @@ function Field({ label, children, hint }: { label: string; children: React.React
   );
 }
 
-function Card({ icon: Icon, title, subtitle, children }: { icon: any; title: string; subtitle?: string; children: React.ReactNode }) {
+function Card({ icon: Icon, title, subtitle, children, id }: { icon: any; title: string; subtitle?: string; children: React.ReactNode; id?: string }) {
   return (
-    <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+    <section id={id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 scroll-mt-24">
       <div className="flex items-center gap-3 mb-5">
         <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Icon className="w-5 h-5" /></span>
         <div>
@@ -74,12 +76,17 @@ function Chips({ options, selected, onToggle }: { options: string[]; selected: s
 
 export default function MemberProfilePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, setUser } = useAuthStore();
+  const { isAuthenticated, isLoading, user, setUser } = useAuthStore();
   const [p, setP] = useState<Profile>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Photo de profil
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [avatarErr, setAvatarErr] = useState<string | null>(null);
 
   // Mot de passe
   const [pwd, setPwd] = useState({ current_password: '', password: '', password_confirmation: '' });
@@ -185,6 +192,42 @@ export default function MemberProfilePage() {
     }
   };
 
+  const onAvatarSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAvatarErr(null);
+    setAvatarSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('avatar', file);
+      const res = await api.post('/me/avatar', fd);
+      if (res.data?.user) {
+        setUser(res.data.user);
+        if (typeof window !== 'undefined') localStorage.setItem('user', JSON.stringify(res.data.user));
+      }
+    } catch (err: any) {
+      setAvatarErr(err.response?.data?.errors?.avatar?.[0] || err.response?.data?.message || "Échec de l'envoi de la photo.");
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
+
+  const removeAvatar = async () => {
+    setAvatarErr(null);
+    setAvatarSaving(true);
+    try {
+      await api.delete('/me/avatar');
+      const updated = { ...(user as any), avatar: undefined };
+      setUser(updated);
+      if (typeof window !== 'undefined') localStorage.setItem('user', JSON.stringify(updated));
+    } catch (err: any) {
+      setAvatarErr(err.response?.data?.message || 'Échec de la suppression.');
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
+
   const uploadIdentity = async (e: React.FormEvent) => {
     e.preventDefault();
     setIdErr(null); setIdMsg(null);
@@ -221,6 +264,38 @@ export default function MemberProfilePage() {
         <p className="text-gray-600 dark:text-gray-400 mt-1">
           Complétez votre profil pour des recommandations plus adaptées. Ces informations restent facultatives.
         </p>
+      </div>
+
+      {/* Photo de profil */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex items-center gap-5">
+        <div className="relative w-20 h-20 rounded-full overflow-hidden bg-primary flex-shrink-0 flex items-center justify-center text-white text-xl font-bold">
+          {user?.avatar ? (
+            <Image src={resolveImageUrl(user.avatar) || user.avatar} alt={user?.name || 'Photo de profil'} fill className="object-cover" />
+          ) : (
+            (user?.name || 'BS').trim().split(/\s+/).slice(0, 2).map((s) => s[0]?.toUpperCase()).join('')
+          )}
+          {avatarSaving && (
+            <span className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <Loader2 className="w-5 h-5 text-white animate-spin" />
+            </span>
+          )}
+        </div>
+        <div className="flex-1">
+          <p className="font-semibold">Photo de profil</p>
+          <p className="text-xs text-gray-500 mb-2">JPEG ou PNG, 2 Mo max.</p>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarSaving} className="btn-outline text-sm inline-flex items-center gap-2 disabled:opacity-50">
+              <Camera className="w-4 h-4" /> {user?.avatar ? 'Changer' : 'Ajouter une photo'}
+            </button>
+            {user?.avatar && (
+              <button type="button" onClick={removeAvatar} disabled={avatarSaving} className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50" title="Supprimer">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          {avatarErr && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{avatarErr}</p>}
+          <input ref={avatarInputRef} type="file" accept="image/jpeg,image/jpg,image/png" className="hidden" onChange={onAvatarSelected} />
+        </div>
       </div>
 
       <form onSubmit={saveProfile} className="space-y-6">
@@ -371,7 +446,7 @@ export default function MemberProfilePage() {
       </Card>
 
       {/* Sécurité */}
-      <Card icon={Lock} title="Sécurité" subtitle="Changer votre mot de passe">
+      <Card id="securite" icon={Lock} title="Sécurité" subtitle="Changer votre mot de passe">
         <form onSubmit={changePassword} className="space-y-4">
           <Field label="Mot de passe actuel">
             <div className="relative">

@@ -36,6 +36,7 @@ use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\BookingMessageController;
 use App\Http\Controllers\UserInboxController;
 use App\Http\Controllers\UserProfileController;
+use App\Http\Controllers\MemberNotificationController;
 use App\Http\Controllers\Admin\AdminReviewController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
@@ -107,10 +108,15 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
         // Profil voyageur (mise à jour + mot de passe + pièces d'identité)
         Route::put('/me/profile', [UserProfileController::class, 'update']);
+        Route::post('/me/avatar', [UserProfileController::class, 'uploadAvatar'])->middleware('throttle:10,1');
+        Route::delete('/me/avatar', [UserProfileController::class, 'deleteAvatar']);
         Route::post('/me/password', [UserProfileController::class, 'changePassword'])->middleware('throttle:5,1');
         Route::get('/me/identity', [UserProfileController::class, 'identity']);
         Route::post('/me/identity', [UserProfileController::class, 'uploadIdentity'])->middleware('throttle:10,1');
         Route::get('/me/payments', [PaymentController::class, 'myPayments']);
+        Route::get('/me/notifications', [MemberNotificationController::class, 'index']);
+        Route::post('/me/notifications/{id}/read', [MemberNotificationController::class, 'markAsRead']);
+        Route::post('/me/notifications/read-all', [MemberNotificationController::class, 'markAllAsRead']);
 
         // Notifications push (OneSignal)
         Route::post('/notifications/trigger', [NotificationController::class, 'trigger']);

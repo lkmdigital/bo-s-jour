@@ -70,9 +70,10 @@ class TwoFactorController extends Controller
             ]);
         }
 
-        // Récupérer les codes de récupération
+        // Récupérer les codes de récupération (chiffrés via Crypt::encryptString() côté service
+        // → à déchiffrer avec Crypt::decryptString(), pas le helper decrypt() qui désérialise).
         $recoveryCodes = json_decode(
-            decrypt($user->fresh()->two_factor_recovery_codes),
+            \Illuminate\Support\Facades\Crypt::decryptString($user->fresh()->two_factor_recovery_codes),
             true
         );
 

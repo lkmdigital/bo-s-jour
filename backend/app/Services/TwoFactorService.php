@@ -45,7 +45,7 @@ class TwoFactorService
     }
 
     /**
-     * Vérifier un code 2FA
+     * Vérifier un code 2FA pour un utilisateur qui a DÉJÀ la 2FA activée (ex. à la connexion).
      */
     public function verifyCode(User $user, string $code): bool
     {
@@ -55,30 +55,44 @@ class TwoFactorService
 
         try {
             $secret = Crypt::decryptString($user->two_factor_secret);
-            
-            // Vérifier le code avec une fenêtre de 4 périodes (2 minutes de chaque côté)
-            $valid = $this->google2fa->verifyKey($secret, $code, 4);
-            
-            if ($valid) {
-                Log::channel('security')->info('2FA code verified successfully', [
-                    'user_id' => $user->id,
-                    'ip' => request()->ip(),
-                    'timestamp' => now()->toIso8601String(),
-                ]);
-            } else {
-                Log::channel('security')->warning('2FA code verification failed', [
-                    'user_id' => $user->id,
-                    'ip' => request()->ip(),
-                    'timestamp' => now()->toIso8601String(),
-                ]);
-            }
-            
-            return $valid;
         } catch (\Exception $e) {
             Log::channel('security')->error('2FA verification error', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
+            return false;
+        }
+
+        $valid = $this->verifyTotpCode($secret, $code);
+
+        if ($valid) {
+            Log::channel('security')->info('2FA code verified successfully', [
+                'user_id' => $user->id,
+                'ip' => request()->ip(),
+                'timestamp' => now()->toIso8601String(),
+            ]);
+        } else {
+            Log::channel('security')->warning('2FA code verification failed', [
+                'user_id' => $user->id,
+                'ip' => request()->ip(),
+                'timestamp' => now()->toIso8601String(),
+            ]);
+        }
+
+        return $valid;
+    }
+
+    /**
+     * Vérification TOTP « brute » (sans exiger que la 2FA soit déjà activée en base) —
+     * utilisée pendant la phase d'activation, où le secret n'est pas encore persisté.
+     */
+    private function verifyTotpCode(string $secret, string $code): bool
+    {
+        try {
+            // Fenêtre de 4 périodes (2 minutes de chaque côté) pour tolérer le décalage d'horloge.
+            return (bool) $this->google2fa->verifyKey($secret, $code, 4);
+        } catch (\Exception $e) {
+            Log::channel('security')->error('2FA TOTP verification error', ['error' => $e->getMessage()]);
             return false;
         }
     }
@@ -148,11 +162,9 @@ class TwoFactorService
      */
     public function enable(User $user, string $secret, string $verificationCode): bool
     {
-        // Vérifier d'abord que le code est correct
-        $tempUser = clone $user;
-        $tempUser->two_factor_secret = Crypt::encryptString($secret);
-        
-        if (!$this->verifyCode($tempUser, $verificationCode)) {
+        // Vérifier d'abord que le code est correct (le secret n'est pas encore en base,
+        // donc on ne peut pas passer par verifyCode() qui exige two_factor_enabled=true).
+        if (!$this->verifyTotpCode($secret, $verificationCode)) {
             return false;
         }
 

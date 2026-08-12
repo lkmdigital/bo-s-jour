@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Logo from '@/components/common/Logo';
+import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { resolveImageUrl } from '@/lib/utils';
 import {
   Home, Search, Calendar, Heart, Zap, CreditCard, MessageSquare, MessagesSquare,
   User as UserIcon, FileText, Compass, Globe2, Settings, HelpCircle,
@@ -42,9 +45,17 @@ function initials(name?: string) {
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, isAuthenticated, logout } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    api.get('/me/notifications')
+      .then((r) => setUnreadCount(r.data?.unread_count ?? 0))
+      .catch(() => {});
+  }, [isAuthenticated, pathname]);
 
   const isActive = (href: string) =>
     href === '/dashboard/user' ? pathname === href : pathname?.startsWith(href);
@@ -118,6 +129,11 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
             </Link>
             <Link href="/dashboard/user/notifications" className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" aria-label="Notifications">
               <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-primary text-white text-[10px] font-semibold flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </Link>
             <Link href="/favorites" className="hidden md:inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary">
               <Heart className="w-5 h-5" /> Favoris
@@ -128,9 +144,17 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
                 <p className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-[140px]">{user?.name || 'Mon espace'}</p>
                 <p className="text-xs text-gray-400">Espace membre</p>
               </div>
-              <span className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
-                {initials(user?.name)}
-              </span>
+              <Link href="/dashboard/user/profil" title="Mon profil" className="flex-shrink-0">
+                {user?.avatar ? (
+                  <span className="relative w-9 h-9 rounded-full overflow-hidden block bg-gray-100 dark:bg-gray-700">
+                    <Image src={resolveImageUrl(user.avatar) || user.avatar} alt={user?.name || 'Profil'} fill className="object-cover" />
+                  </span>
+                ) : (
+                  <span className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold">
+                    {initials(user?.name)}
+                  </span>
+                )}
+              </Link>
             </div>
           </div>
         </div>

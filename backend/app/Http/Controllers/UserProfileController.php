@@ -92,6 +92,46 @@ class UserProfileController extends Controller
     }
 
     /**
+     * Ajout / remplacement de la photo de profil.
+     */
+    public function uploadAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,jpg,png|max:2048',
+        ]);
+
+        $user = $request->user();
+
+        if ($user->avatar) {
+            $oldPath = str_replace('/storage/', '', parse_url($user->avatar, PHP_URL_PATH) ?? $user->avatar);
+            if (!str_starts_with($user->avatar, 'http') || str_contains($user->avatar, '/storage/')) {
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
+
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->avatar = Storage::url($path);
+        $user->save();
+
+        return response()->json(['message' => 'Photo de profil mise à jour.', 'avatar' => $user->avatar, 'user' => $user->fresh()]);
+    }
+
+    /**
+     * Suppression de la photo de profil.
+     */
+    public function deleteAvatar(Request $request)
+    {
+        $user = $request->user();
+        if ($user->avatar) {
+            $oldPath = str_replace('/storage/', '', parse_url($user->avatar, PHP_URL_PATH) ?? $user->avatar);
+            Storage::disk('public')->delete($oldPath);
+            $user->avatar = null;
+            $user->save();
+        }
+        return response()->json(['message' => 'Photo de profil supprimée.']);
+    }
+
+    /**
      * Ajout / mise à jour des pièces d'identité du voyageur (KYC).
      * Recto obligatoire ; verso obligatoire pour CNI et Permis (2 faces).
      */

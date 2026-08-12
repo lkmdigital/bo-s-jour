@@ -8,13 +8,36 @@ export function cn(...inputs: Array<string | false | null | undefined>): string 
 
 /**
  * Normalise une URL d'image renvoyée par l'API.
- * En dev via tunnel, les images uploadées ont une URL `localhost:8000/storage`
- * injoignable → on la fait passer par le proxy Next `/tunnel-storage`.
- * En prod (URLs api.bosejour.ci), la valeur est laissée intacte.
+ * - En dev via tunnel, les images uploadées ont une URL `localhost:8000/storage`
+ *   injoignable → on la fait passer par le proxy Next `/tunnel-storage`.
+ * - Certains endpoints (ex. Storage::url() côté Laravel) renvoient un chemin
+ *   RELATIF `/storage/...` plutôt qu'une URL absolue → on le résout par rapport
+ *   à l'API configurée (proxy local en dev, domaine API en prod).
+ * - En prod (URLs api.bosejour.ci déjà absolues), la valeur est laissée intacte.
  */
 export function resolveImageUrl(url?: string | null): string {
   if (!url) return '';
-  return url.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1):8000\/storage/, '/tunnel-storage');
+
+  // URL absolue vers le backend local (dev sans tunnel) → proxy Next.
+  if (/^https?:\/\/(?:localhost|127\.0\.0\.1):8000\/storage/.test(url)) {
+    return url.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1):8000\/storage/, '/tunnel-storage');
+  }
+
+  // Autre URL déjà absolue (prod, image externe…) : inchangée.
+  if (/^https?:\/\//.test(url)) return url;
+
+  // Chemin relatif `/storage/...` (Storage::url() côté Laravel) : à résoudre.
+  if (url.startsWith('/storage')) {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bosejour.ci/api';
+    if (apiUrl.startsWith('/')) {
+      // Setup proxy local (ex. /tunnel-api) → le stockage est servi via /tunnel-storage
+      return url.replace(/^\/storage/, '/tunnel-storage');
+    }
+    const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+    return `${baseUrl}${url}`;
+  }
+
+  return url;
 }
 
 /**
