@@ -6,9 +6,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   Check, User, Building2, ShieldCheck, Lock, Calendar, Users, ChevronRight, ChevronLeft, Mail, Phone, LogIn,
+  MessageCircle, Loader2,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { formatPrice, resolveImageUrl, cn } from '@/lib/utils';
 import { Input } from '@/components/ui';
 import DateSelector from '@/components/booking/DateSelector';
@@ -47,6 +49,7 @@ function policyLabel(h?: number | null) {
 export default function BookingWizard(props: Props) {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
+  const { whatsappVerificationEnabled } = useAppSettingsStore();
 
   const [step, setStep] = useState(0);
   const [checkIn, setCheckIn] = useState(props.initialCheckIn || '');
@@ -70,6 +73,43 @@ export default function BookingWizard(props: Props) {
   const [companyAddress, setCompanyAddress] = useState('');
   const [companyBillingEmail, setCompanyBillingEmail] = useState('');
   const [deferredPayment, setDeferredPayment] = useState(false);
+
+  // Vérification WhatsApp du numéro (brief Étape 8) — n'apparaît que si l'admin
+  // a configuré l'intégration WhatsApp ; sinon on ne simule pas une étape inopérante.
+  const [waOtpSent, setWaOtpSent] = useState(false);
+  const [waCode, setWaCode] = useState('');
+  const [waVerifiedPhone, setWaVerifiedPhone] = useState<string | null>(null);
+  const [waBusy, setWaBusy] = useState(false);
+  const [waError, setWaError] = useState<string | null>(null);
+  const waVerified = waVerifiedPhone !== null && waVerifiedPhone === phone.trim();
+
+  const sendWaCode = async () => {
+    setWaError(null);
+    setWaBusy(true);
+    try {
+      await api.post('/booking/whatsapp-otp/send', { phone: phone.trim() });
+      setWaOtpSent(true);
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setWaError(e.response?.data?.message || "Impossible d'envoyer le code. Vérifiez le numéro.");
+    } finally {
+      setWaBusy(false);
+    }
+  };
+
+  const verifyWaCode = async () => {
+    setWaError(null);
+    setWaBusy(true);
+    try {
+      await api.post('/booking/whatsapp-otp/verify', { phone: phone.trim(), code: waCode });
+      setWaVerifiedPhone(phone.trim());
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setWaError(e.response?.data?.message || 'Code incorrect.');
+    } finally {
+      setWaBusy(false);
+    }
+  };
 
   const [cgv, setCgv] = useState(false);
   const [quote, setQuote] = useState<PriceQuote | null>(null);
@@ -96,12 +136,13 @@ export default function BookingWizard(props: Props) {
     if (step === 1) return account !== null;
     if (step === 2) return true;
     if (step === 3) {
-      const base = firstName.trim() && lastName.trim() && email.trim() && phone.trim();
-      if (travelerType === 'corporate') return base && companyName.trim() && companyBillingEmail.trim();
+      let base = !!(firstName.trim() && lastName.trim() && email.trim() && phone.trim());
+      if (whatsappVerificationEnabled) base = base && waVerified;
+      if (travelerType === 'corporate') return base && !!(companyName.trim() && companyBillingEmail.trim());
       return base;
     }
     return true;
-  }, [step, hasDates, account, firstName, lastName, email, phone, travelerType, companyName, companyBillingEmail]);
+  }, [step, hasDates, account, firstName, lastName, email, phone, travelerType, companyName, companyBillingEmail, whatsappVerificationEnabled, waVerified]);
 
   const goNext = () => {
     // Si connecté, on saute l'étape "Compte"
@@ -257,7 +298,39 @@ export default function BookingWizard(props: Props) {
               <div className="grid sm:grid-cols-2 gap-4">
                 <Input label="Prénom(s)" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
                 <Input label="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-                <Input label="Téléphone / WhatsApp" leftIcon={<Phone className="w-4 h-4" />} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+225 07 00 00 00 00" required hint="Utilisé pour la confirmation WhatsApp" />
+                <div>
+                  <Input label="Téléphone / WhatsApp" leftIcon={<Phone className="w-4 h-4" />} value={phone}
+                    onChange={(e) => { setPhone(e.target.value); setWaOtpSent(false); setWaCode(''); setWaError(null); }}
+                    placeholder="+225 07 00 00 00 00" required hint="Utilisé pour la confirmation WhatsApp" />
+
+                  {whatsappVerificationEnabled && phone.trim() && (
+                    <div className="mt-2">
+                      {waVerified ? (
+                        <p className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1.5">
+                          <Check className="w-4 h-4" /> Numéro WhatsApp vérifié
+                        </p>
+                      ) : !waOtpSent ? (
+                        <button type="button" onClick={sendWaCode} disabled={waBusy}
+                          className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1.5 disabled:opacity-50">
+                          {waBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MessageCircle className="w-3.5 h-3.5" />}
+                          Vérifier ce numéro par WhatsApp
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <input value={waCode} onChange={(e) => setWaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            inputMode="numeric" maxLength={6} placeholder="Code reçu"
+                            className="w-28 px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm tracking-widest outline-none focus:border-primary" />
+                          <button type="button" onClick={verifyWaCode} disabled={waBusy || waCode.length !== 6}
+                            className="text-sm text-primary font-medium hover:underline disabled:opacity-50 inline-flex items-center gap-1">
+                            {waBusy && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Vérifier
+                          </button>
+                          <button type="button" onClick={sendWaCode} disabled={waBusy} className="text-xs text-gray-400 hover:underline">Renvoyer</button>
+                        </div>
+                      )}
+                      {waError && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{waError}</p>}
+                    </div>
+                  )}
+                </div>
                 <Input label="E-mail" type="email" leftIcon={<Mail className="w-4 h-4" />} value={email} onChange={(e) => setEmail(e.target.value)} required />
                 <Input label="Pays de résidence" value={residenceCountry} onChange={(e) => setResidenceCountry(e.target.value)} />
                 <Input label="Ville de résidence" value={residenceCity} onChange={(e) => setResidenceCity(e.target.value)} />

@@ -9,6 +9,7 @@ interface AppSettingsStore {
   eventTheme: EventTheme;
   appName: string;
   currency: string;
+  whatsappVerificationEnabled: boolean;
   loaded: boolean;
   fetchSettings: () => Promise<void>;
 }
@@ -21,6 +22,7 @@ export const useAppSettingsStore = create<AppSettingsStore>((set) => ({
   eventTheme: 'default',
   appName: 'Bosejour',
   currency: 'XOF',
+  whatsappVerificationEnabled: false,
   loaded: false,
 
   fetchSettings: async () => {
@@ -33,6 +35,7 @@ export const useAppSettingsStore = create<AppSettingsStore>((set) => ({
         eventTheme: VALID_THEMES.includes(d.theme_mode) ? d.theme_mode : 'default',
         appName: d.app_name || 'Bosejour',
         currency: d.app_currency || 'XOF',
+        whatsappVerificationEnabled: !!d.whatsapp_verification_enabled,
         loaded: true,
       });
     } catch {

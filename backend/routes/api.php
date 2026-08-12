@@ -26,6 +26,7 @@ use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\OAuthController;
 use App\Http\Controllers\ClientCreditController;
 use App\Http\Controllers\CorporateController;
+use App\Http\Controllers\BookingWhatsappOtpController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Host\HostReviewController;
@@ -69,6 +70,11 @@ Route::get('/settings/public', [SettingsController::class, 'publicSettings']);
 
 // Booking creation (public - permet les réservations sans authentification)
 Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:10,1'); // 10 réservations par minute
+
+// Vérification du numéro WhatsApp pendant le tunnel de réservation (brief Étape 8)
+Route::get('/booking/whatsapp-otp/status', [BookingWhatsappOtpController::class, 'status']);
+Route::post('/booking/whatsapp-otp/send', [BookingWhatsappOtpController::class, 'send'])->middleware('throttle:5,1');
+Route::post('/booking/whatsapp-otp/verify', [BookingWhatsappOtpController::class, 'verify'])->middleware('throttle:10,1');
 
 // Public booking routes (le contrôleur gère les permissions)
 Route::get('/bookings/{id}', [BookingController::class, 'show']); // Peut être consultée sans authentification

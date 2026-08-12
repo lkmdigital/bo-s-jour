@@ -27,6 +27,8 @@ class SettingsController extends Controller
             'maps_provider' => (string) Setting::get('maps_provider', 'osm'),
             'mapbox_token' => (string) Setting::get('mapbox_token', ''),
             'google_maps_api_key' => (string) Setting::get('google_maps_api_key', ''),
+            // Juste le drapeau : jamais le token/phone_id (voir whatsapp_enabled côté admin).
+            'whatsapp_verification_enabled' => (bool) Setting::get('whatsapp_enabled', false),
         ]);
     }
 
