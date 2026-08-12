@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Mail\GuestActivationReminder;
 use App\Models\User;
+use App\Services\WhatsAppService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -43,6 +44,18 @@ class RemindGuestActivation extends Command
                         Mail::to($user->email)->send(
                             new GuestActivationReminder($user->name ?? 'cher voyageur', $activateUrl, $targetStage)
                         );
+
+                        // Double canal WhatsApp aux étapes H+2 et H+72 (brief Étapes 12 et 14) —
+                        // no-op silencieux si l'intégration WhatsApp n'est pas configurée.
+                        if (in_array($targetStage, [1, 3], true)) {
+                            $phone = $user->whatsapp ?: $user->phone;
+                            if ($phone) {
+                                $waMessage = $targetStage === 1
+                                    ? "bo séjour — Votre séjour est confirmé ! Activez gratuitement votre espace bo séjour en 1 minute pour retrouver toutes vos réservations et recevoir des offres personnalisées :\n{$activateUrl}"
+                                    : "bo séjour — Créez votre compte aujourd'hui et bénéficiez de -5% sur votre prochain séjour (offre valable 30 jours) :\n{$activateUrl}";
+                                app(WhatsAppService::class)->sendText($phone, $waMessage);
+                            }
+                        }
 
                         $user->activation_reminder_stage = $targetStage;
                         $user->save();
