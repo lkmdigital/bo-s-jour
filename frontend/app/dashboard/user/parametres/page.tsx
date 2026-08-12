@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import Image from 'next/image';
 import { QRCodeSVG } from 'qrcode.react';
@@ -9,12 +10,13 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAppearanceStore, TextScale, PriceFormat, Density, DefaultSort, LandingPage } from '@/stores/appearanceStore';
+import { useLocaleStore, Locale } from '@/stores/localeStore';
 import { resolveImageUrl } from '@/lib/utils';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import {
   Lock, ShieldCheck, Bell, Loader2, CheckCircle2, KeyRound, Copy, Eye, EyeOff, ArrowRight,
-  Sun, Moon, UserCog, Pencil, Type, Sparkles, RotateCcw, Banknote, Rows3, SortAsc, Home as HomeIcon,
+  Sun, Moon, UserCog, Pencil, Type, Sparkles, RotateCcw, Banknote, Rows3, SortAsc, Home as HomeIcon, Languages,
 } from 'lucide-react';
 
 function Card({ icon: Icon, title, subtitle, children }: { icon: any; title: string; subtitle?: string; children: React.ReactNode }) {
@@ -34,8 +36,11 @@ function Card({ icon: Icon, title, subtitle, children }: { icon: any; title: str
 
 export default function MemberSettingsPage() {
   const router = useRouter();
+  const t = useTranslations('member.pages.settings');
+  const tLang = useTranslations('member.language');
   const { isAuthenticated, isLoading, user } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
+  const { locale, setLocale } = useLocaleStore();
   const {
     reduceMotion, textScale, priceFormat, density, resultsPerPage, defaultSort, landingPage,
     setReduceMotion, setTextScale, setPriceFormat, setDensity, setResultsPerPage, setDefaultSort, setLandingPage,
@@ -144,8 +149,8 @@ export default function MemberSettingsPage() {
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-6 max-w-2xl">
         <div>
-          <h1 className="text-3xl font-bold">Paramètres</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Personnalisation, sécurité et préférences de communication.</p>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">{t('subtitle')}</p>
         </div>
 
         {/* Personnalisation : apparence de l'app + accès au profil */}
@@ -172,6 +177,27 @@ export default function MemberSettingsPage() {
                   <span className="text-xs font-medium">Sombre</span>
                 </button>
               </div>
+            </div>
+
+            {/* Langue */}
+            <div className="pt-5 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-sm font-medium mb-2 flex items-center gap-2"><Languages className="w-4 h-4" /> {tLang('label')}</p>
+              <div className="grid grid-cols-2 gap-3 max-w-xs">
+                {([
+                  { key: 'fr' as Locale, label: tLang('french') },
+                  { key: 'en' as Locale, label: tLang('english') },
+                ]).map((o) => (
+                  <button
+                    key={o.key}
+                    type="button"
+                    onClick={() => setLocale(o.key)}
+                    className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-colors ${locale === o.key ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'}`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{tLang('scopeNote')}</p>
             </div>
 
             {/* Taille du texte */}

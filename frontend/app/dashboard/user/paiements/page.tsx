@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -44,6 +45,7 @@ function fmtDate(d?: string | null) {
 
 export default function MemberPaymentsPage() {
   const router = useRouter();
+  const t = useTranslations('member.pages.payments');
   const { isAuthenticated, isLoading } = useAuthStore();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [totalPaid, setTotalPaid] = useState(0);
@@ -68,8 +70,8 @@ export default function MemberPaymentsPage() {
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Paiements</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Historique de vos paiements, reçus et remboursements.</p>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">{t('subtitle')}</p>
         </div>
 
         {/* Total réglé */}

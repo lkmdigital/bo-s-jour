@@ -2,9 +2,11 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { NextIntlClientProvider } from 'next-intl';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAppearanceStore } from '@/stores/appearanceStore';
+import { useLocaleStore } from '@/stores/localeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { ConfirmProvider } from '@/components/common/ConfirmContext';
@@ -12,6 +14,10 @@ import { ValidationProvider } from '@/components/common/ValidationContext';
 import { ToastProvider } from '@/components/common/ToastContext';
 import ThemeBanner from '@/components/common/ThemeBanner';
 import MaintenancePage from '@/components/common/MaintenancePage';
+import frMessages from '@/messages/fr.json';
+import enMessages from '@/messages/en.json';
+
+const MESSAGES = { fr: frMessages, en: enMessages };
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +34,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const { checkAuth } = useAuthStore();
   const { theme: currentTheme } = useThemeStore();
   const { reduceMotion, textScale, density } = useAppearanceStore();
+  const { locale, hydrateLocale } = useLocaleStore();
   const { fetchSettings, maintenanceEnabled, maintenanceMessage, eventTheme, loaded } =
     useAppSettingsStore();
   const { user } = useAuthStore();
@@ -35,6 +42,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     checkAuth().catch(() => {});
     fetchSettings();
+    // Appliqué après le montage pour éviter un désaccord d'hydratation
+    // (le serveur rend toujours en 'fr' par défaut).
+    hydrateLocale();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -73,15 +83,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ConfirmProvider>
-        <ValidationProvider>
-          <ToastProvider>
-            <ThemeBanner theme={eventTheme} />
-            {children}
-          </ToastProvider>
-        </ValidationProvider>
-      </ConfirmProvider>
-    </QueryClientProvider>
+    <NextIntlClientProvider locale={locale} messages={MESSAGES[locale]} timeZone="Africa/Abidjan">
+      <QueryClientProvider client={queryClient}>
+        <ConfirmProvider>
+          <ValidationProvider>
+            <ToastProvider>
+              <ThemeBanner theme={eventTheme} />
+              {children}
+            </ToastProvider>
+          </ValidationProvider>
+        </ConfirmProvider>
+      </QueryClientProvider>
+    </NextIntlClientProvider>
   );
 }

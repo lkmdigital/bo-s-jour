@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -35,6 +36,7 @@ function fmt(d?: string) {
 
 export default function MemberDocumentsPage() {
   const router = useRouter();
+  const t = useTranslations('member.pages.documents');
   const { isAuthenticated, isLoading } = useAuthStore();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [identity, setIdentity] = useState<Identity | null>(null);
@@ -72,8 +74,8 @@ export default function MemberDocumentsPage() {
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-8">
         <div>
-          <h1 className="text-3xl font-bold">Documents</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Vos bons de réservation, reçus et pièces d&apos;identité, regroupés.</p>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">{t('subtitle')}</p>
         </div>
 
         {/* Bons & reçus */}

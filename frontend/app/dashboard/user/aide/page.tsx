@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import { MessageCircle, Mail, Phone, ChevronDown, ShieldCheck } from 'lucide-react';
 
@@ -45,12 +46,13 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function MemberHelpPage() {
+  const t = useTranslations('member.pages.help');
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Aide & Support</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Une question ? Nous sommes là pour vous aider.</p>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">{t('subtitle')}</p>
         </div>
 
         {/* Canaux de contact */}

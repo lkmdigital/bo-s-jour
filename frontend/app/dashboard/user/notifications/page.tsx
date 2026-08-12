@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -35,6 +36,7 @@ function fmt(d: string) {
 
 export default function MemberNotificationsPage() {
   const router = useRouter();
+  const t = useTranslations('member.pages.notifications');
   const { isAuthenticated, isLoading } = useAuthStore();
   const [items, setItems] = useState<Notif[]>([]);
   const [unread, setUnread] = useState(0);
@@ -85,8 +87,8 @@ export default function MemberNotificationsPage() {
       <div className="xl:col-span-2 space-y-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Notifications</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">Confirmations, rappels et messages liés à vos réservations.</p>
+            <h1 className="text-3xl font-bold">{t('title')}</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">{t('subtitle')}</p>
           </div>
           {unread > 0 && (
             <button onClick={markAll} disabled={marking} className="btn-outline text-sm inline-flex items-center gap-2 whitespace-nowrap disabled:opacity-50">

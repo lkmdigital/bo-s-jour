@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
 import Image from 'next/image';
@@ -63,6 +64,7 @@ function nights(a: string, b: string) {
 
 export default function UserDashboardPage() {
   const router = useRouter();
+  const t = useTranslations('member.pages.dashboard');
   const { isAuthenticated, isLoading, user } = useAuthStore();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,8 +140,8 @@ export default function UserDashboardPage() {
     <div className="space-y-8">
       {/* Salutation */}
       <div>
-        <h1 className="text-3xl font-bold">Bonjour {firstName} 👋</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Bienvenue dans votre espace membre bo séjour.</p>
+        <h1 className="text-3xl font-bold">{t('greeting', { name: firstName })}</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">{t('subtitle')}</p>
       </div>
 
       {/* Statistiques */}

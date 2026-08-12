@@ -70,6 +70,85 @@
     "myAccommodations": "Mes hébergements",
     "addAccommodation": "Ajouter un hébergement",
     "statistics": "Statistiques"
+  },
+  "member": {
+    "navbar": {
+      "searchPlaceholder": "Rechercher un hôtel, une ville, une destination…",
+      "offers": "Offres",
+      "favorites": "Favoris",
+      "memberSpace": "Espace membre",
+      "logout": "Déconnexion"
+    },
+    "nav": {
+      "dashboard": "Tableau de bord",
+      "search": "Rechercher",
+      "reservations": "Mes réservations",
+      "favorites": "Favoris",
+      "loyaltyProgram": "Programme Membre",
+      "payments": "Paiements",
+      "reviews": "Avis",
+      "messages": "Messages",
+      "profile": "Mon profil",
+      "documents": "Documents",
+      "trips": "Mes voyages",
+      "discover": "Découvrir",
+      "settings": "Paramètres",
+      "help": "Aide & Support"
+    },
+    "pages": {
+      "dashboard": {
+        "greeting": "Bonjour {name} 👋",
+        "subtitle": "Bienvenue dans votre espace membre bo séjour."
+      },
+      "reservations": {
+        "title": "Mes réservations",
+        "subtitle": "Gérez vos réservations actuelles et passées"
+      },
+      "payments": {
+        "title": "Paiements",
+        "subtitle": "Historique de vos paiements, reçus et remboursements."
+      },
+      "documents": {
+        "title": "Documents",
+        "subtitle": "Vos bons de réservation, reçus et pièces d'identité, regroupés."
+      },
+      "reviews": {
+        "title": "Mes avis",
+        "subtitle": "Avis déposés et avis en attente après vos séjours."
+      },
+      "trips": {
+        "title": "Mes voyages",
+        "subtitle": "Le carnet de vos séjours en Côte d'Ivoire."
+      },
+      "discover": {
+        "title": "Découvrir la Côte d'Ivoire",
+        "subtitle": "Destinations, sites et activités à explorer pendant votre séjour."
+      },
+      "profile": {
+        "title": "Mon profil",
+        "subtitle": "Complétez votre profil pour des recommandations plus adaptées. Ces informations restent facultatives."
+      },
+      "settings": {
+        "title": "Paramètres",
+        "subtitle": "Personnalisation, sécurité et préférences de communication."
+      },
+      "help": {
+        "title": "Aide & Support",
+        "subtitle": "Une question ? Nous sommes là pour vous aider."
+      },
+      "notifications": {
+        "title": "Notifications",
+        "subtitle": "Confirmations, rappels et messages liés à vos réservations."
+      },
+      "search": {
+        "title": "Trouvez votre prochain séjour"
+      }
+    },
+    "language": {
+      "label": "Langue",
+      "french": "Français",
+      "english": "English",
+      "scopeNote": "Traduit : menu, titres de page et éléments principaux de votre espace membre. Le contenu détaillé (formulaires, descriptions) reste en français pour le moment."
+    }
   }
 }
-

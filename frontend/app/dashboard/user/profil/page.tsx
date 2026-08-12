@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -76,6 +77,7 @@ function Chips({ options, selected, onToggle }: { options: string[]; selected: s
 
 export default function MemberProfilePage() {
   const router = useRouter();
+  const t = useTranslations('member.pages.profile');
   const { isAuthenticated, isLoading, user, setUser } = useAuthStore();
   const [p, setP] = useState<Profile>({});
   const [loading, setLoading] = useState(true);
@@ -260,10 +262,8 @@ export default function MemberProfilePage() {
   return (
     <div className="max-w-3xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Mon profil</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Complétez votre profil pour des recommandations plus adaptées. Ces informations restent facultatives.
-        </p>
+        <h1 className="text-3xl font-bold">{t('title')}</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">{t('subtitle')}</p>
       </div>
 
       {/* Photo de profil */}

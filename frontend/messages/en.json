@@ -70,6 +70,85 @@
     "myAccommodations": "My accommodations",
     "addAccommodation": "Add accommodation",
     "statistics": "Statistics"
+  },
+  "member": {
+    "navbar": {
+      "searchPlaceholder": "Search a hotel, a city, a destination…",
+      "offers": "Offers",
+      "favorites": "Favorites",
+      "memberSpace": "Member area",
+      "logout": "Log out"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "search": "Search",
+      "reservations": "My bookings",
+      "favorites": "Favorites",
+      "loyaltyProgram": "Loyalty Program",
+      "payments": "Payments",
+      "reviews": "Reviews",
+      "messages": "Messages",
+      "profile": "My profile",
+      "documents": "Documents",
+      "trips": "My trips",
+      "discover": "Discover",
+      "settings": "Settings",
+      "help": "Help & Support"
+    },
+    "pages": {
+      "dashboard": {
+        "greeting": "Hello {name} 👋",
+        "subtitle": "Welcome to your bo séjour member area."
+      },
+      "reservations": {
+        "title": "My bookings",
+        "subtitle": "Manage your current and past bookings"
+      },
+      "payments": {
+        "title": "Payments",
+        "subtitle": "History of your payments, receipts and refunds."
+      },
+      "documents": {
+        "title": "Documents",
+        "subtitle": "Your booking vouchers, receipts and ID documents, all in one place."
+      },
+      "reviews": {
+        "title": "My reviews",
+        "subtitle": "Reviews you've posted and reviews awaiting your feedback."
+      },
+      "trips": {
+        "title": "My trips",
+        "subtitle": "Your travel journal in Côte d'Ivoire."
+      },
+      "discover": {
+        "title": "Discover Côte d'Ivoire",
+        "subtitle": "Destinations, sights and activities to explore during your stay."
+      },
+      "profile": {
+        "title": "My profile",
+        "subtitle": "Complete your profile for more tailored recommendations. This information remains optional."
+      },
+      "settings": {
+        "title": "Settings",
+        "subtitle": "Personalization, security and communication preferences."
+      },
+      "help": {
+        "title": "Help & Support",
+        "subtitle": "Have a question? We're here to help."
+      },
+      "notifications": {
+        "title": "Notifications",
+        "subtitle": "Confirmations, reminders and messages related to your bookings."
+      },
+      "search": {
+        "title": "Find your next stay"
+      }
+    },
+    "language": {
+      "label": "Language",
+      "french": "Français",
+      "english": "English",
+      "scopeNote": "Translated: menu, page titles and main elements of your member area. Detailed content (forms, descriptions) remains in French for now."
+    }
   }
 }
-

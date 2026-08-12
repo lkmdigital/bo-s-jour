@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -26,6 +27,7 @@ function fmt(d: string) {
 
 export default function MemberTripsPage() {
   const router = useRouter();
+  const t = useTranslations('member.pages.trips');
   const { isAuthenticated, isLoading } = useAuthStore();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,8 +77,8 @@ export default function MemberTripsPage() {
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-8">
         <div>
-          <h1 className="text-3xl font-bold">Mes voyages</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Le carnet de vos séjours en Côte d&apos;Ivoire.</p>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">{t('subtitle')}</p>
         </div>
 
         {/* Stats réelles */}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -36,6 +37,7 @@ function fmt(d: string) {
 
 export default function MemberReservationsPage() {
   const router = useRouter();
+  const t = useTranslations('member.pages.reservations');
   const { isAuthenticated, isLoading } = useAuthStore();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,8 +96,8 @@ export default function MemberReservationsPage() {
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Mes réservations</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Gérez vos réservations actuelles et passées</p>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">{t('subtitle')}</p>
         </div>
 
         {/* Onglets */}

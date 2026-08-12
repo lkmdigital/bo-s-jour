@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import Logo from '@/components/common/Logo';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -15,26 +16,26 @@ import {
 } from 'lucide-react';
 
 interface NavItem {
-  label: string;
+  labelKey: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 const NAV: NavItem[] = [
-  { label: 'Tableau de bord', href: '/dashboard/user', icon: Home },
-  { label: 'Rechercher', href: '/dashboard/user/recherche', icon: Search },
-  { label: 'Mes réservations', href: '/dashboard/user/reservations', icon: Calendar },
-  { label: 'Favoris', href: '/favorites', icon: Heart },
-  { label: 'Programme Membre', href: '/dashboard/user/programme', icon: Zap },
-  { label: 'Paiements', href: '/dashboard/user/paiements', icon: CreditCard },
-  { label: 'Avis', href: '/dashboard/user/avis', icon: MessageSquare },
-  { label: 'Messages', href: '/dashboard/user/inbox', icon: MessagesSquare },
-  { label: 'Mon profil', href: '/dashboard/user/profil', icon: UserIcon },
-  { label: 'Documents', href: '/dashboard/user/documents', icon: FileText },
-  { label: 'Mes voyages', href: '/dashboard/user/voyages', icon: Compass },
-  { label: 'Découvrir', href: '/dashboard/user/decouvrir', icon: Globe2 },
-  { label: 'Paramètres', href: '/dashboard/user/parametres', icon: Settings },
-  { label: 'Aide & Support', href: '/dashboard/user/aide', icon: HelpCircle },
+  { labelKey: 'dashboard', href: '/dashboard/user', icon: Home },
+  { labelKey: 'search', href: '/dashboard/user/recherche', icon: Search },
+  { labelKey: 'reservations', href: '/dashboard/user/reservations', icon: Calendar },
+  { labelKey: 'favorites', href: '/favorites', icon: Heart },
+  { labelKey: 'loyaltyProgram', href: '/dashboard/user/programme', icon: Zap },
+  { labelKey: 'payments', href: '/dashboard/user/paiements', icon: CreditCard },
+  { labelKey: 'reviews', href: '/dashboard/user/avis', icon: MessageSquare },
+  { labelKey: 'messages', href: '/dashboard/user/inbox', icon: MessagesSquare },
+  { labelKey: 'profile', href: '/dashboard/user/profil', icon: UserIcon },
+  { labelKey: 'documents', href: '/dashboard/user/documents', icon: FileText },
+  { labelKey: 'trips', href: '/dashboard/user/voyages', icon: Compass },
+  { labelKey: 'discover', href: '/dashboard/user/decouvrir', icon: Globe2 },
+  { labelKey: 'settings', href: '/dashboard/user/parametres', icon: Settings },
+  { labelKey: 'help', href: '/dashboard/user/aide', icon: HelpCircle },
 ];
 
 function initials(name?: string) {
@@ -45,6 +46,8 @@ function initials(name?: string) {
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const tNav = useTranslations('member.nav');
+  const tNavbar = useTranslations('member.navbar');
   const { user, isAuthenticated, logout } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -68,7 +71,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
 
   const SidebarNav = () => (
     <nav className="flex flex-col gap-1 p-3">
-      {NAV.map(({ label, href, icon: Icon }) => {
+      {NAV.map(({ labelKey, href, icon: Icon }) => {
         const active = isActive(href);
         return (
           <Link
@@ -82,7 +85,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
             }`}
           >
             <Icon className="w-5 h-5 flex-shrink-0" />
-            {label}
+            {tNav(labelKey)}
           </Link>
         );
       })}
@@ -114,7 +117,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Rechercher un hôtel, une ville, une destination…"
+                placeholder={tNavbar('searchPlaceholder')}
                 className="w-full pl-4 pr-11 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
               />
               <button type="submit" aria-label="Rechercher" className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center">
@@ -125,7 +128,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
 
           <div className="flex-1 flex items-center justify-end gap-1 sm:gap-3">
             <Link href="/dashboard/user/programme" className="hidden md:inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary">
-              <Gift className="w-5 h-5" /> Offres
+              <Gift className="w-5 h-5" /> {tNavbar('offers')}
             </Link>
             <Link href="/dashboard/user/notifications" className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" aria-label="Notifications">
               <Bell className="w-5 h-5" />
@@ -136,13 +139,13 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
               )}
             </Link>
             <Link href="/favorites" className="hidden md:inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-primary">
-              <Heart className="w-5 h-5" /> Favoris
+              <Heart className="w-5 h-5" /> {tNavbar('favorites')}
             </Link>
 
             <div className="flex items-center gap-2 pl-2 sm:pl-3 sm:border-l border-gray-200 dark:border-gray-700">
               <div className="text-right hidden sm:block leading-tight">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-[140px]">{user?.name || 'Mon espace'}</p>
-                <p className="text-xs text-gray-400">Espace membre</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-[140px]">{user?.name || tNavbar('memberSpace')}</p>
+                <p className="text-xs text-gray-400">{tNavbar('memberSpace')}</p>
               </div>
               <Link href="/dashboard/user/profil" title="Mon profil" className="flex-shrink-0">
                 {user?.avatar ? (
@@ -168,7 +171,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
             onClick={() => { logout(); router.push('/'); }}
             className="mt-auto m-3 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            <LogOut className="w-5 h-5" /> Déconnexion
+            <LogOut className="w-5 h-5" /> {tNavbar("logout")}
           </button>
         </aside>
 
@@ -182,7 +185,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
                 onClick={() => { logout(); router.push('/'); }}
                 className="mt-auto m-3 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
-                <LogOut className="w-5 h-5" /> Déconnexion
+                <LogOut className="w-5 h-5" /> {tNavbar("logout")}
               </button>
             </aside>
           </div>

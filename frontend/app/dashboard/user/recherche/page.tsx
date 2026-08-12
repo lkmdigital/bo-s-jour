@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import PropertyCard, { PropertyCardData } from '@/components/home/PropertyCard';
 import ResultsMap, { MapItem } from '@/components/accommodations/ResultsMap';
@@ -66,6 +67,7 @@ const inputCls =
   'w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none';
 
 export default function MemberSearchPage() {
+  const t = useTranslations('member.pages.search');
   const [destination, setDestination] = useState('');
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
@@ -168,7 +170,7 @@ export default function MemberSearchPage() {
       <div className="xl:col-span-2 space-y-6">
         {/* Hero recherche */}
         <div className="rounded-2xl bg-gradient-to-r from-primary to-primary-dark p-6 sm:p-8 text-white">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-5">Trouvez votre prochain séjour</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-5">{t('title')}</h1>
           <form onSubmit={applySearch} className="bg-white rounded-2xl p-2 flex flex-col lg:flex-row gap-2">
             <div className="relative flex-1">
               <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
