@@ -253,6 +253,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     Route::post('/revenue/commissions/mark-paid', [RevenueController::class, 'markCommissionsPaid'])->middleware('role:admin');
 
     // Reviews
+    Route::get('/me/reviews', [ReviewController::class, 'myReviews']);
     Route::post('/reviews', [ReviewController::class, 'store']);
     Route::post('/reviews/{id}/report', [ReviewController::class, 'report'])->where('id', '[0-9]+');
 

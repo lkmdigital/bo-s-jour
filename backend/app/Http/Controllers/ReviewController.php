@@ -13,6 +13,46 @@ class ReviewController extends Controller
     public const REVIEW_TOKEN_VALID_DAYS = 90;
 
     /**
+     * Mes avis : ceux déjà déposés + les séjours terminés en attente d'avis.
+     */
+    public function myReviews(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $submitted = Review::where('user_id', $userId)
+            ->with('accommodation:id,name,city')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn ($r) => [
+                'id'             => $r->id,
+                'rating'         => $r->rating,
+                'comment'        => $r->comment,
+                'host_reply'     => $r->host_reply,
+                'created_at'     => $r->created_at,
+                'accommodation'  => $r->accommodation ? ['id' => $r->accommodation->id, 'name' => $r->accommodation->name, 'city' => $r->accommodation->city] : null,
+            ]);
+
+        $reviewedAccommodationIds = $submitted->pluck('accommodation.id')->filter()->all();
+
+        $pending = Booking::where('user_id', $userId)
+            ->where('status', 'confirmed')
+            ->where('check_out', '<=', now())
+            ->whereNotIn('accommodation_id', $reviewedAccommodationIds ?: [0])
+            ->with('accommodation:id,name,city')
+            ->orderByDesc('check_out')
+            ->get()
+            ->unique('accommodation_id')
+            ->map(fn ($b) => [
+                'booking_id'    => $b->id,
+                'check_out'     => $b->check_out,
+                'accommodation' => $b->accommodation ? ['id' => $b->accommodation->id, 'name' => $b->accommodation->name, 'city' => $b->accommodation->city] : null,
+            ])
+            ->values();
+
+        return response()->json(['submitted' => $submitted->values(), 'pending' => $pending]);
+    }
+
+    /**
      * Récupérer les infos d'une réservation par token (lien post-séjour, public).
      */
     public function getBookingByToken(string $token)
