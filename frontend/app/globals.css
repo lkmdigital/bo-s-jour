@@ -40,6 +40,21 @@ html.text-scale-larger {
   font-size: 125%; /* 16px → 20px de base */
 }
 
+/* Personnalisation — Densité d'affichage (espace membre) : resserre le padding
+   des cartes. Cible à la fois la classe utilitaire .card et le motif réellement
+   utilisé sur les pages de l'espace membre (rounded-2xl + border + p-5/p-6). */
+html.density-compact .card,
+html.density-compact .rounded-2xl.border.p-6,
+html.density-compact .rounded-2xl.border.p-5 {
+  padding: 1rem !important;
+}
+html.density-compact .space-y-6 > * + * {
+  margin-top: 1rem !important;
+}
+html.density-compact .space-y-8 > * + * {
+  margin-top: 1.25rem !important;
+}
+
 /* PWA Styles */
 @media (display-mode: standalone) {
   body {

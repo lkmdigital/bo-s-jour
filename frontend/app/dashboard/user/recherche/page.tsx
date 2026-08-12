@@ -7,6 +7,7 @@ import ResultsMap, { MapItem } from '@/components/accommodations/ResultsMap';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import Pagination from '@/components/common/Pagination';
 import { resolveImageUrl } from '@/lib/utils';
+import { useAppearanceStore } from '@/stores/appearanceStore';
 import {
   Search, MapPin, Calendar, Users, SlidersHorizontal, Star, Map as MapIcon, List, X,
 } from 'lucide-react';
@@ -71,15 +72,18 @@ export default function MemberSearchPage() {
   const [guests, setGuests] = useState('1');
   const [applied, setApplied] = useState({ search: '', checkIn: '', checkOut: '', guests: '1' });
 
+  // Préférences de personnalisation (Paramètres) : tri par défaut + résultats par page.
+  const { defaultSort, resultsPerPage } = useAppearanceStore();
+
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [sort, setSort] = useState('recommended');
+  const [sort, setSort] = useState(defaultSort);
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<'list' | 'map'>('list');
 
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, per_page: 9, current_page: 1, last_page: 1 });
+  const [pagination, setPagination] = useState({ total: 0, per_page: resultsPerPage, current_page: 1, last_page: 1 });
   const [mapCfg, setMapCfg] = useState<{ provider: string; token: string }>({ provider: 'osm', token: '' });
 
   const today = new Date().toISOString().split('T')[0];
@@ -94,7 +98,7 @@ export default function MemberSearchPage() {
     (async () => {
       try {
         setLoading(true);
-        const params: Record<string, string | number> = { per_page: 9, page: currentPage, sort };
+        const params: Record<string, string | number> = { per_page: resultsPerPage, page: currentPage, sort };
         if (applied.search) params.search = applied.search;
         if (applied.checkIn) params.check_in = applied.checkIn;
         if (applied.checkOut) params.check_out = applied.checkOut;
@@ -121,7 +125,7 @@ export default function MemberSearchPage() {
         setLoading(false);
       }
     })();
-  }, [currentPage, sort, applied, filters]);
+  }, [currentPage, sort, applied, filters, resultsPerPage]);
 
   // Retour page 1 quand la recherche/les filtres changent
   useEffect(() => { if (currentPage !== 1) setCurrentPage(1); /* eslint-disable-next-line */ }, [applied, filters, sort]);

@@ -12,6 +12,7 @@ import { FadeIn, SlideUp } from '@/components/common/animations';
 import { isController, isAdmin } from '@/lib/userUtils';
 import { authService } from '@/lib/auth';
 import { getRememberedEmail } from '@/lib/tokenStorage';
+import { useAppearanceStore, LANDING_PAGE_ROUTES } from '@/stores/appearanceStore';
 
 interface LoginFormData {
   email: string;
@@ -73,7 +74,9 @@ function LoginContent() {
       } else if (currentUser?.role === 'host') {
         router.push('/dashboard/host');
       } else {
-        router.push('/');
+        // Page d'accueil après connexion : préférence voyageur (Paramètres), sinon l'accueil.
+        const landingPage = useAppearanceStore.getState().landingPage;
+        router.push(LANDING_PAGE_ROUTES[landingPage] || '/');
       }
     } catch (err: any) {
       if (err.requires_email_otp) {

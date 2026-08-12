@@ -27,7 +27,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { checkAuth } = useAuthStore();
   const { theme: currentTheme } = useThemeStore();
-  const { reduceMotion, textScale } = useAppearanceStore();
+  const { reduceMotion, textScale, density } = useAppearanceStore();
   const { fetchSettings, maintenanceEnabled, maintenanceMessage, eventTheme, loaded } =
     useAppSettingsStore();
   const { user } = useAuthStore();
@@ -60,6 +60,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if (textScale === 'large') root.classList.add('text-scale-large');
     if (textScale === 'larger') root.classList.add('text-scale-larger');
   }, [textScale]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('density-compact', density === 'compact');
+  }, [density]);
 
   // Maintenance : bloquer les non-admins (laisser passer les admins pour qu'ils puissent désactiver)
   const isAdmin = user?.role === 'admin';

@@ -45,20 +45,38 @@ export function resolveImageUrl(url?: string | null): string {
  * @param amount - Le montant à formater (peut être number, string ou decimal)
  * @returns Le montant formaté en entier avec séparateurs
  */
+export type PriceFormat = 'standard' | 'compact';
+
+function readPriceFormat(): PriceFormat {
+  if (typeof window === 'undefined') return 'standard';
+  return localStorage.getItem('price_format') === 'compact' ? 'compact' : 'standard';
+}
+
 export function formatPrice(amount: number | string | null | undefined): string {
   if (amount === null || amount === undefined) {
     return '0';
   }
-  
+
   const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-  
+
   if (isNaN(numAmount)) {
     return '0';
   }
-  
+
   // Arrondir à l'entier le plus proche
   const roundedAmount = Math.round(numAmount);
-  
+
+  // Format compact (préférence utilisateur) : 195 000 → 195K, 1 250 000 → 1,3M
+  if (readPriceFormat() === 'compact') {
+    const abs = Math.abs(roundedAmount);
+    if (abs >= 1_000_000) {
+      return `${(roundedAmount / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}M`;
+    }
+    if (abs >= 1_000) {
+      return `${(roundedAmount / 1_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}K`;
+    }
+  }
+
   // Formater avec séparateurs de milliers
   return roundedAmount.toLocaleString('fr-FR', {
     maximumFractionDigits: 0,

@@ -8,13 +8,13 @@ import { QRCodeSVG } from 'qrcode.react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
-import { useAppearanceStore, TextScale } from '@/stores/appearanceStore';
+import { useAppearanceStore, TextScale, PriceFormat, Density, DefaultSort, LandingPage } from '@/stores/appearanceStore';
 import { resolveImageUrl } from '@/lib/utils';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import {
   Lock, ShieldCheck, Bell, Loader2, CheckCircle2, KeyRound, Copy, Eye, EyeOff, ArrowRight,
-  Sun, Moon, UserCog, Pencil, Type, Sparkles, RotateCcw,
+  Sun, Moon, UserCog, Pencil, Type, Sparkles, RotateCcw, Banknote, Rows3, SortAsc, Home as HomeIcon,
 } from 'lucide-react';
 
 function Card({ icon: Icon, title, subtitle, children }: { icon: any; title: string; subtitle?: string; children: React.ReactNode }) {
@@ -36,7 +36,11 @@ export default function MemberSettingsPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
-  const { reduceMotion, textScale, setReduceMotion, setTextScale, reset: resetAppearance } = useAppearanceStore();
+  const {
+    reduceMotion, textScale, priceFormat, density, resultsPerPage, defaultSort, landingPage,
+    setReduceMotion, setTextScale, setPriceFormat, setDensity, setResultsPerPage, setDefaultSort, setLandingPage,
+    reset: resetAppearance,
+  } = useAppearanceStore();
   const [loading, setLoading] = useState(true);
 
   // 2FA
@@ -206,6 +210,93 @@ export default function MemberSettingsPage() {
                 />
               </label>
               <p className="text-xs text-gray-500 mt-1">Désactive les transitions et effets de défilement pour un confort de lecture accru.</p>
+            </div>
+
+            {/* Densité d'affichage */}
+            <div className="pt-5 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-sm font-medium mb-2 flex items-center gap-2"><Rows3 className="w-4 h-4" /> Densité d&apos;affichage</p>
+              <div className="grid grid-cols-2 gap-3 max-w-xs">
+                {([
+                  { key: 'comfortable' as Density, label: 'Confortable' },
+                  { key: 'compact' as Density, label: 'Compacte' },
+                ]).map((o) => (
+                  <button
+                    key={o.key}
+                    type="button"
+                    onClick={() => setDensity(o.key)}
+                    className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-colors ${density === o.key ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'}`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Resserre l&apos;espacement des cartes de votre espace membre.</p>
+            </div>
+
+            {/* Format des prix */}
+            <div className="pt-5 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-sm font-medium mb-2 flex items-center gap-2"><Banknote className="w-4 h-4" /> Format des prix</p>
+              <div className="grid grid-cols-2 gap-3 max-w-xs">
+                <button
+                  type="button"
+                  onClick={() => setPriceFormat('standard')}
+                  className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-colors ${priceFormat === 'standard' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'}`}
+                >
+                  195 000 F
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPriceFormat('compact')}
+                  className={`py-2.5 rounded-xl border-2 text-sm font-medium transition-colors ${priceFormat === 'compact' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'}`}
+                >
+                  195K F
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">S&apos;applique aux prochaines pages consultées.</p>
+            </div>
+
+            {/* Recherche : tri par défaut + résultats par page */}
+            <div className="pt-5 border-t border-gray-100 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <p className="text-sm font-medium mb-2 flex items-center gap-2"><SortAsc className="w-4 h-4" /> Tri par défaut</p>
+                <select
+                  value={defaultSort}
+                  onChange={(e) => setDefaultSort(e.target.value as DefaultSort)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                >
+                  <option value="recommended">Recommandés</option>
+                  <option value="price_asc">Prix croissant</option>
+                  <option value="price_desc">Prix décroissant</option>
+                  <option value="rating">Mieux notés</option>
+                </select>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-2">Résultats par page</p>
+                <select
+                  value={resultsPerPage}
+                  onChange={(e) => setResultsPerPage(Number(e.target.value))}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                >
+                  <option value={9}>9</option>
+                  <option value={12}>12</option>
+                  <option value={18}>18</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Page d'accueil après connexion */}
+            <div className="pt-5 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-sm font-medium mb-2 flex items-center gap-2"><HomeIcon className="w-4 h-4" /> Page d&apos;accueil après connexion</p>
+              <select
+                value={landingPage}
+                onChange={(e) => setLandingPage(e.target.value as LandingPage)}
+                className="w-full max-w-xs px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              >
+                <option value="home">Accueil du site</option>
+                <option value="dashboard">Tableau de bord</option>
+                <option value="reservations">Mes réservations</option>
+                <option value="recherche">Recherche</option>
+              </select>
             </div>
 
             {/* Réinitialiser */}
