@@ -86,6 +86,8 @@
       "favorites": "Favorites",
       "loyaltyProgram": "Loyalty Program",
       "payments": "Payments",
+      "credits": "My credits",
+      "company": "My company",
       "reviews": "Reviews",
       "messages": "Messages",
       "profile": "My profile",
@@ -142,6 +144,14 @@
       },
       "search": {
         "title": "Find your next stay"
+      },
+      "credits": {
+        "title": "My credits",
+        "subtitle": "Credits available from cancellations, to use on a future booking."
+      },
+      "company": {
+        "title": "My company",
+        "subtitle": "Company information, collaborators authorized to book, and business expense tracking."
       }
     },
     "language": {

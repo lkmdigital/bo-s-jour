@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/authStore';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { formatPrice } from '@/lib/utils';
-import { MapPin, Calendar, Pencil, Download, Trash2, CreditCard, Search } from 'lucide-react';
+import { MapPin, Calendar, Pencil, Download, Trash2, CreditCard, Search, Briefcase, User as UserIcon } from 'lucide-react';
 
 interface Booking {
   id: number;
@@ -20,6 +20,10 @@ interface Booking {
   status: string;
   payment_status?: 'pending' | 'paid' | 'failed' | 'refunded';
   accommodation: { id: number; name: string; city: string };
+  traveler_type?: 'individual' | 'corporate';
+  company_name?: string | null;
+  company_service?: string | null;
+  company_project?: string | null;
 }
 
 type Tab = 'upcoming' | 'past' | 'cancelled';
@@ -42,6 +46,7 @@ export default function MemberReservationsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('upcoming');
+  const [scope, setScope] = useState<'all' | 'individual' | 'corporate'>('all');
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push('/auth/login?redirect=/dashboard/user/reservations');
@@ -63,12 +68,24 @@ export default function MemberReservationsPage() {
     })();
   }, [isAuthenticated, isLoading]);
 
+  // La séparation Personnel / Professionnel (brief Étape 21, tableau de bord Corporate)
+  // ne s'affiche que si le voyageur a réellement les deux types de réservations.
+  const hasCorporate = useMemo(() => bookings.some((b) => b.traveler_type === 'corporate'), [bookings]);
+  const hasIndividual = useMemo(() => bookings.some((b) => b.traveler_type !== 'corporate'), [bookings]);
+  const showScopeToggle = hasCorporate && hasIndividual;
+
+  const scopedBookings = useMemo(() => {
+    if (scope === 'individual') return bookings.filter((b) => b.traveler_type !== 'corporate');
+    if (scope === 'corporate') return bookings.filter((b) => b.traveler_type === 'corporate');
+    return bookings;
+  }, [bookings, scope]);
+
   const { upcoming, past, cancelled } = useMemo(() => {
     const now = new Date();
     const up: Booking[] = [];
     const pa: Booking[] = [];
     const ca: Booking[] = [];
-    for (const b of bookings) {
+    for (const b of scopedBookings) {
       if (b.status === 'cancelled') ca.push(b);
       else if (b.status === 'completed' || new Date(b.check_out) < now) pa.push(b);
       else up.push(b);
@@ -77,7 +94,7 @@ export default function MemberReservationsPage() {
     pa.sort((a, b) => new Date(b.check_out).getTime() - new Date(a.check_out).getTime());
     ca.sort((a, b) => new Date(b.check_in).getTime() - new Date(a.check_in).getTime());
     return { upcoming: up, past: pa, cancelled: ca };
-  }, [bookings]);
+  }, [scopedBookings]);
 
   const list = tab === 'upcoming' ? upcoming : tab === 'past' ? past : cancelled;
 
@@ -99,6 +116,27 @@ export default function MemberReservationsPage() {
           <h1 className="text-3xl font-bold">{t('title')}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">{t('subtitle')}</p>
         </div>
+
+        {/* Personnel / Professionnel — visible seulement si le voyageur a les deux */}
+        {showScopeToggle && (
+          <div className="inline-flex rounded-xl border border-gray-200 dark:border-gray-700 p-1 bg-white dark:bg-gray-800">
+            {([
+              { key: 'all' as const, label: 'Toutes' },
+              { key: 'individual' as const, label: 'Personnelles', icon: UserIcon },
+              { key: 'corporate' as const, label: 'Professionnelles', icon: Briefcase },
+            ]).map((o) => (
+              <button
+                key={o.key}
+                onClick={() => setScope(o.key)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium inline-flex items-center gap-1.5 transition-colors ${
+                  scope === o.key ? 'bg-primary text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                {o.icon && <o.icon className="w-3.5 h-3.5" />} {o.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Onglets */}
         <div className="border-b border-gray-200 dark:border-gray-700 flex gap-6">
@@ -147,6 +185,15 @@ export default function MemberReservationsPage() {
                       <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
                         <Calendar className="w-4 h-4" /> {fmt(b.check_in)} – {fmt(b.check_out)}
                       </p>
+                      {b.traveler_type === 'corporate' && (
+                        <p className="text-xs text-secondary flex items-center gap-1 mt-1.5">
+                          <Briefcase className="w-3.5 h-3.5" />
+                          {b.company_name || 'Réservation professionnelle'}
+                          {(b.company_service || b.company_project) && (
+                            <span className="text-gray-400"> · {[b.company_service, b.company_project].filter(Boolean).join(' · ')}</span>
+                          )}
+                        </p>
+                      )}
                     </Link>
 
                     {/* Montant */}

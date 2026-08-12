@@ -12,13 +12,14 @@ import { resolveImageUrl } from '@/lib/utils';
 import {
   Home, Search, Calendar, Heart, Zap, CreditCard, MessageSquare, MessagesSquare,
   User as UserIcon, FileText, Compass, Globe2, Settings, HelpCircle,
-  Gift, Bell, Menu, X, LogOut,
+  Gift, Bell, Menu, X, LogOut, Wallet, Building2,
 } from 'lucide-react';
 
 interface NavItem {
   labelKey: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  corporateOnly?: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -28,6 +29,8 @@ const NAV: NavItem[] = [
   { labelKey: 'favorites', href: '/favorites', icon: Heart },
   { labelKey: 'loyaltyProgram', href: '/dashboard/user/programme', icon: Zap },
   { labelKey: 'payments', href: '/dashboard/user/paiements', icon: CreditCard },
+  { labelKey: 'credits', href: '/dashboard/user/avoirs', icon: Wallet },
+  { labelKey: 'company', href: '/dashboard/user/entreprise', icon: Building2, corporateOnly: true },
   { labelKey: 'reviews', href: '/dashboard/user/avis', icon: MessageSquare },
   { labelKey: 'messages', href: '/dashboard/user/inbox', icon: MessagesSquare },
   { labelKey: 'profile', href: '/dashboard/user/profil', icon: UserIcon },
@@ -69,9 +72,11 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
     router.push(q ? `/accommodations?destination=${encodeURIComponent(q)}` : '/accommodations');
   };
 
+  const isCorporate = user?.traveler_type === 'corporate';
+
   const SidebarNav = () => (
     <nav className="flex flex-col gap-1 p-3">
-      {NAV.map(({ labelKey, href, icon: Icon }) => {
+      {NAV.filter((item) => !item.corporateOnly || isCorporate).map(({ labelKey, href, icon: Icon }) => {
         const active = isActive(href);
         return (
           <Link

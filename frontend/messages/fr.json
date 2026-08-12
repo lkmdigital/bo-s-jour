@@ -86,6 +86,8 @@
       "favorites": "Favoris",
       "loyaltyProgram": "Programme Membre",
       "payments": "Paiements",
+      "credits": "Mes avoirs",
+      "company": "Mon entreprise",
       "reviews": "Avis",
       "messages": "Messages",
       "profile": "Mon profil",
@@ -142,6 +144,14 @@
       },
       "search": {
         "title": "Trouvez votre prochain séjour"
+      },
+      "credits": {
+        "title": "Mes avoirs",
+        "subtitle": "Vos crédits disponibles suite à des annulations, à utiliser sur une prochaine réservation."
+      },
+      "company": {
+        "title": "Mon entreprise",
+        "subtitle": "Informations de l'entreprise, collaborateurs autorisés à réserver et suivi des dépenses professionnelles."
       }
     },
     "language": {

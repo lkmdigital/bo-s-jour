@@ -16,6 +16,9 @@ export interface User {
   city?: string;
   phone_fixed?: string;
   whatsapp?: string;
+  // Voyageur (brief Parcours Voyageur)
+  traveler_type?: 'individual' | 'corporate';
+  company_name?: string;
 }
 
 export interface LoginCredentials {

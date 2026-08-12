@@ -13,6 +13,7 @@ use App\Services\PaymentOptionsService;
 use App\Services\RoomPricingService;
 use App\Services\CancellationPolicyService;
 use App\Models\RoomAvailability;
+use App\Models\CorporateCollaborator;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -152,6 +153,8 @@ class BookingController extends Controller
             'company_vat' => 'nullable|string|max:100',
             'company_address' => 'nullable|string|max:500',
             'company_billing_email' => 'nullable|string|email|max:255|required_if:traveler_type,corporate',
+            'company_service' => 'nullable|string|max:255',
+            'company_project' => 'nullable|string|max:255',
             'deferred_payment' => 'nullable|boolean',
         ];
 
@@ -338,12 +341,22 @@ class BookingController extends Controller
         $isNonRefundable = ($cancellationHours === 0);
         $depositAmount = 0;
 
+        // Voyageur Corporate rattaché comme collaborateur d'une entreprise (brief Étape 22) :
+        // ses réservations "corporate" sont comptabilisées dans le rapport de dépenses du responsable.
+        $corporateOwnerId = null;
+        if ($user && $request->input('traveler_type') === 'corporate') {
+            $membership = CorporateCollaborator::where('collaborator_user_id', $user->id)
+                ->where('status', CorporateCollaborator::STATUS_ACTIVE)
+                ->first();
+            $corporateOwnerId = $membership?->owner_id;
+        }
+
         // ─── ANTI-SURBOOKING TRANSACTIONNEL ──────────────────────────────────
         // Le verrou, la vérification ET la création sont dans la même transaction
         // pour garantir qu'aucune autre requête concurrente ne peut s'intercaler.
         $booking = DB::transaction(function () use (
             $request, $room, $accommodation, $user, $bookedForThirdParty,
-            $totalPrice, $depositAmount, $isNonRefundable, $cancellationHours
+            $totalPrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId
         ) {
             if ($room) {
                 Room::lockForUpdate()->findOrFail($room->id);
@@ -383,6 +396,9 @@ class BookingController extends Controller
                 'company_vat' => $request->traveler_type === 'corporate' ? $request->company_vat : null,
                 'company_address' => $request->traveler_type === 'corporate' ? $request->company_address : null,
                 'company_billing_email' => $request->traveler_type === 'corporate' ? $request->company_billing_email : null,
+                'company_service' => $request->traveler_type === 'corporate' ? $request->company_service : null,
+                'company_project' => $request->traveler_type === 'corporate' ? $request->company_project : null,
+                'corporate_owner_id' => $corporateOwnerId,
                 'deferred_payment' => $request->traveler_type === 'corporate' && $request->boolean('deferred_payment'),
                 // Paiement différé Corporate : la réservation est validée sur facture (pas d'expiration 48h)
                 'expires_at' => ($request->traveler_type === 'corporate' && $request->boolean('deferred_payment'))

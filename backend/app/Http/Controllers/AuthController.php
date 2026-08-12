@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\CorporateCollaborator;
 use App\Services\TwoFactorService;
 use App\Services\OneSignalService;
 use App\Services\SmsService;
@@ -51,6 +52,7 @@ class AuthController extends Controller
             $user->phone = $request->phone;
         }
         $user->save();
+        CorporateCollaborator::linkPendingInvitations($user);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -127,6 +129,7 @@ class AuthController extends Controller
         $user->password = Hash::make($data['password']);
         $user->is_guest = false;
         $user->save();
+        CorporateCollaborator::linkPendingInvitations($user);
 
         // Vérification e-mail obligatoire : on envoie un code OTP et on NE connecte PAS
         // tant que l'e-mail n'est pas vérifié (aucun token renvoyé ici).
@@ -288,6 +291,7 @@ class AuthController extends Controller
         }
 
         $user = User::create($userData);
+        CorporateCollaborator::linkPendingInvitations($user);
 
         // Gérer l'upload des fichiers d'identité pour les voyageurs
         if ($role === 'user') {

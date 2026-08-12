@@ -25,6 +25,7 @@ use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\OAuthController;
 use App\Http\Controllers\ClientCreditController;
+use App\Http\Controllers\CorporateController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Host\HostReviewController;
@@ -232,6 +233,15 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     // Avoirs client (espace client)
     Route::get('/credits', [ClientCreditController::class, 'index']);
     Route::get('/credits/balance', [ClientCreditController::class, 'balance']);
+
+    // Espace "Mon entreprise" du voyageur Corporate (brief Étapes 21-22)
+    Route::prefix('me/corporate')->group(function () {
+        Route::get('/overview', [CorporateController::class, 'overview']);
+        Route::get('/expenses', [CorporateController::class, 'expenses']);
+        Route::post('/collaborators', [CorporateController::class, 'inviteCollaborator'])->middleware('throttle:20,1');
+        Route::put('/collaborators/{collaborator}', [CorporateController::class, 'updateCollaborator']);
+        Route::delete('/collaborators/{collaborator}', [CorporateController::class, 'removeCollaborator']);
+    });
 
     // Favoris (espace client)
     Route::get('/favorites', [FavoriteController::class, 'index']);
