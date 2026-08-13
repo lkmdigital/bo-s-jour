@@ -87,7 +87,7 @@ Rendre le mode d'acompte réellement configurable par hôte (% ou montant fixe) 
 ---
 
 ## LOT 6 — Documents légaux & publication contrôlée (brief Phases 10-11-12)
-**Statut : 🟡 les champs existent, le contrôle n'existe pas.**
+**Statut : ✅ RIB + checklist de publication faits (2026-08-13). OCR/statut par document/séquestre restent hors périmètre (voir ci-dessous).**
 
 Déjà réel : upload pièce d'identité, RCCM, IFU/fiscal (`User` model). Commission 10% déjà complète et fonctionnelle.
 
@@ -98,9 +98,9 @@ Manque, dans l'ordre d'impact :
 4. ❌ OCR automatique — clairement post-lancement, un contrôle humain fait le travail au démarrage.
 5. ❌ Séquestre des paiements pendant validation — dépend du modèle métier réel (est-ce que Malia Pay permet un blocage de fonds ?) : **à cadrer avec le client/la passerelle**, pas juste un développement front/back.
 
-### À faire pour le lancement
-- [ ] ➕⚙️ Champ RIB (banque, IBAN ou n° de compte, titulaire) sur le profil hôte, requis avant premier retrait.
-- [ ] ✏️ Bouton **"Publier mon établissement"** côté hôte qui vérifie les prérequis simples (5 photos, ≥1 type d'hébergement, prix défini, politique d'annulation choisie) avant de passer `status = pending` → notifie l'admin pour validation manuelle (pas besoin d'automatiser la validation elle-même tout de suite, juste le déclenchement contrôlé).
+### Fait (2026-08-13)
+- [x] ➕⚙️ Champ RIB (banque, titulaire, n° de compte/IBAN) sur le profil hôte (`Finances > Demandes de retrait`), requis avant toute demande de retrait (bloqué côté serveur).
+- [x] ✏️⚙️ Bouton **"Publier mon établissement"** côté hôte : checklist réelle (5 photos, prix, politique d'annulation, WhatsApp établissement, RIB), revalidée côté serveur, marque `submitted_for_review_at` (le statut reste `pending`, seul un admin publie — garde-fou existant conservé). Pas de notification admin automatique pour l'instant (l'admin voit déjà tous les `pending` dans son écran de revue existant) ; pourrait trier/filtrer sur ce nouveau champ plus tard si le volume le justifie.
 
 ### Peut attendre
 - [ ] Statut par document, OCR, séquestre — à planifier une fois le volume de partenaires le justifie.
@@ -150,8 +150,8 @@ Aucune action recommandée avant lancement. À ne considérer que si des partena
 
 ## Ordre recommandé pour un lancement rapide
 
-**Vague 1 — bloquant pour un lancement crédible :**
-LOT 3 ✅ (politique d'annulation/horaires/WhatsApp établissement — impacte directement le voyageur) → LOT 4 ✅ (règle d'airain : déjà sûre, décision de ne pas la rendre configurable) → LOT 6 (RIB + bouton de publication contrôlée).
+**Vague 1 — bloquant pour un lancement crédible : ✅ TERMINÉE (2026-08-13)**
+LOT 3 ✅ (politique d'annulation/horaires/WhatsApp établissement) → LOT 4 ✅ (règle d'airain : déjà sûre, décision de ne pas la rendre configurable) → LOT 6 ✅ (RIB + bouton de publication contrôlée).
 
 **Vague 2 — améliore fortement l'expérience d'onboarding, faisable en parallèle :**
 LOT 1 (inscription light + vérification) → LOT 2 (landing + configurateur guidé).
