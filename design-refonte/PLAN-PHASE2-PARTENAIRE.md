@@ -14,7 +14,7 @@ Contrairement à la Phase 1 (Voyageur) qui partait quasiment de zéro sur le tun
 ---
 
 ## LOT 1 — Inscription & connexion partenaire (brief Phases 3-4)
-**Statut : 🟡 fonctionnel mais non conforme au brief.**
+**Statut : ✅ fait (2026-08-13).** `registerPartnerLight()` (nom, prénoms, tél, e-mail, mdp) + OTP e-mail (décision produit : pas de SMS, cf. ci-dessous) + `register-partenaire/page.tsx` réécrit sur un seul écran. Vérifié en direct (inscription → e-mail réel reçu → vérification → connexion role=host).
 
 - `frontend/app/auth/register-partenaire/page.tsx` (892 l.) collecte déjà nom établissement, type, adresse, WhatsApp **dès l'inscription** — le brief demande une inscription *light* (nom, tél, email, mdp uniquement), le reste étant repoussé au dépôt des documents légaux.
 - ❌ **Aucune vérification de compte hôte** : `AuthController::register()` délivre le token immédiatement (contrairement à `registerTraveler()` qui bloque tant que l'OTP e-mail n'est pas validé). Le brief demande double vérif e-mail (lien magique) + SMS.
@@ -26,12 +26,12 @@ Contrairement à la Phase 1 (Voyageur) qui partait quasiment de zéro sur le tun
 - [ ] ⚙️ Vérification téléphone par SMS : `SmsService` existe déjà (utilisé pour l'OTP voyageur) — le réutiliser plutôt que d'ajouter un « lien magique » e-mail séparé (redondant avec l'OTP e-mail, plus simple à maintenir avec un seul canal éprouvé).
 - [ ] ✏️ Adapter `register-partenaire/page.tsx` : ne garder que les 5 champs light + les 2 écrans de vérification (email puis SMS), sur le modèle de `verify-otp/page.tsx` (voyageur).
 
-**Décision produit à trancher avec le client avant de coder** : est-ce que la vérif SMS est vraiment nécessaire au lancement, ou est-ce que l'OTP e-mail seul suffit pour ne pas ralentir l'inscription hôte ? (Le brief la demande, mais chaque étape de vérif est un point d'abandon.)
+**Décision produit (2026-08-13)** : OTP e-mail seul, pas de SMS — pour limiter la friction à l'inscription. `SmsService` reste réutilisable plus tard si besoin.
 
 ---
 
 ## LOT 2 — Landing Extranet & configurateur guidé (brief Phase 2 + 4)
-**Statut : ❌ n'existe pas.**
+**Statut : ✅ fait (2026-08-13).** Landing `/partenaire` + lien header (n'existait nulle part) + écran "Prise en main" (mode guidé → assistant existant, mode expert → dashboard direct). Le wizard guidé lui-même réutilise l'assistant de création déjà existant plutôt qu'une reconstruction dédiée.
 
 Aujourd'hui un hôte connecté tombe directement sur `frontend/app/dashboard/host/page.tsx`, avec tous les menus déjà visibles et indépendants. Pas de landing dédiée « pourquoi rejoindre BoSéjour », pas d'assistant pas-à-pas, pas de choix guidé/expert.
 
@@ -153,8 +153,8 @@ Aucune action recommandée avant lancement. À ne considérer que si des partena
 **Vague 1 — bloquant pour un lancement crédible : ✅ TERMINÉE (2026-08-13)**
 LOT 3 ✅ (politique d'annulation/horaires/WhatsApp établissement) → LOT 4 ✅ (règle d'airain : déjà sûre, décision de ne pas la rendre configurable) → LOT 6 ✅ (RIB + bouton de publication contrôlée).
 
-**Vague 2 — améliore fortement l'expérience d'onboarding, faisable en parallèle :**
-LOT 1 (inscription light + vérification) → LOT 2 (landing + configurateur guidé).
+**Vague 2 — améliore fortement l'expérience d'onboarding : ✅ TERMINÉE (2026-08-13)**
+LOT 1 ✅ (inscription light + vérification) → LOT 2 ✅ (landing + configurateur guidé).
 
 **Vague 3 — peut suivre après les premiers partenaires réels :**
 LOT 5 (correction lien calendrier, cosmétique) → LOT 9 (promotions avancées, relances anti-abandon) → LOT 8 (mode sur-demande, si demandé).
