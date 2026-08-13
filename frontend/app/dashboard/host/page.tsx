@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -19,6 +20,9 @@ import {
   Gauge,
   HandCoins,
   Repeat,
+  Rocket,
+  Compass,
+  ArrowRight,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -72,6 +76,8 @@ export default function HostDashboardPage() {
   const [data, setData] = useState<HostAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accommodationCount, setAccommodationCount] = useState<number | null>(null);
+  const [expertMode, setExpertMode] = useState(false);
 
   useEffect(() => {
     api
@@ -81,6 +87,15 @@ export default function HostDashboardPage() {
         setError(err.response?.data?.message || 'Erreur lors du chargement du tableau de bord');
       })
       .finally(() => setLoading(false));
+
+    api
+      .get('/accommodations/my')
+      .then((res) => setAccommodationCount(Array.isArray(res.data) ? res.data.length : 0))
+      .catch(() => setAccommodationCount(null));
+
+    if (typeof window !== 'undefined' && sessionStorage.getItem('host_expert_mode') === '1') {
+      setExpertMode(true);
+    }
   }, []);
 
   // Recharts (ResponsiveContainer) mesure parfois une largeur de 0 au premier rendu
@@ -105,6 +120,74 @@ export default function HostDashboardPage() {
   }
 
   if (!data) return null;
+
+  // Prise en main (brief Extranet Partenaire, Étape 6) : un hôte sans établissement
+  // voit un écran d'accueil dédié plutôt qu'un tableau de bord vide, sauf s'il a
+  // choisi le mode expert pour cette session.
+  if (accommodationCount === 0 && !expertMode) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gray-950 text-white rounded-2xl p-8 sm:p-12 text-center">
+          <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/20 text-primary mb-4">
+            <Rocket className="w-7 h-7" />
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Bienvenue {user?.name?.split(' ')[0] ?? ''} 👋</h1>
+          <p className="text-gray-300 max-w-lg mx-auto mb-1">
+            Votre compte est prêt. Il ne reste plus qu'à configurer votre établissement pour commencer à recevoir des
+            réservations.
+          </p>
+          <div className="max-w-xs mx-auto mt-6 mb-2">
+            <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+              <span>Configuration de l&apos;établissement</span><span>0%</span>
+            </div>
+            <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+              <div className="h-full bg-primary rounded-full" style={{ width: '2%' }} />
+            </div>
+          </div>
+          <Link
+            href="/dashboard/host/accommodations/new"
+            className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-base mt-6"
+          >
+            Commencer la configuration <ArrowRight className="w-4 h-4" />
+          </Link>
+          <p className="text-xs text-gray-400 mt-3">Sauvegarde automatique à chaque étape — vous pouvez reprendre plus tard.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="card">
+            <p className="font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+              <Rocket className="w-4 h-4 text-primary" /> Mode guidé
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+              Recommandé si c&apos;est votre première fois. Un parcours pas-à-pas : informations, photos, chambres,
+              tarifs, politiques.
+            </p>
+            <Link href="/dashboard/host/accommodations/new" className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1">
+              Démarrer <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="card">
+            <p className="font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+              <Compass className="w-4 h-4 text-secondary" /> Mode expert
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+              Vous connaissez déjà bo séjour ? Accédez directement à tous les menus de l&apos;Extranet.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') sessionStorage.setItem('host_expert_mode', '1');
+                setExpertMode(true);
+              }}
+              className="text-sm text-secondary font-medium hover:underline inline-flex items-center gap-1"
+            >
+              Accéder au tableau de bord <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const revenueByRoomType = (data.revenue_by_room_type || []).map((r) => ({
     name: ROOM_CATEGORY_LABELS[r.room_category] || r.room_category,

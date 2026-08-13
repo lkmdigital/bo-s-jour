@@ -453,6 +453,11 @@ export default function Header() {
                 >
                   <Headphones className="w-5 h-5" />
                 </a>
+                {/* Espace Partenaire */}
+                <Link href="/partenaire" className="hidden lg:inline-flex text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary items-center gap-1.5">
+                  <Building2 className="w-4 h-4" />
+                  Espace Partenaire
+                </Link>
                 {/* Connexion */}
                 <Link href="/acces" className="btn-primary text-sm inline-flex items-center gap-1.5">
                   <LogIn className="w-4 h-4" />
