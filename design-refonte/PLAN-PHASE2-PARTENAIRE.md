@@ -131,13 +131,11 @@ Aujourd'hui : confirmation **toujours automatique** après paiement (`BookingSer
 ---
 
 ## LOT 9 — Exploitation quotidienne (brief Phase 15)
-**Statut : ✅ la partie la plus solide du parcours partenaire.**
+**Statut : ✅ fait (2026-08-13).** Finances/retraits, statistiques, analytics : branchés sur données réelles. Promotions désormais complètes (montant fixe, nuit offerte, séjour minimum, code promo, suivi réservations/CA). Relances anti-abandon hôte H+24/H+72/H+168 en place (`hosts:remind-onboarding`, hourly).
 
-Finances/retraits, statistiques, analytics : tous branchés sur des données réelles (`/revenue/host`, `/analytics/host`, `/host/withdrawal-requests`). Promotions fonctionnelles (% réduction, ciblage chambre, période) mais incomplètes vs brief (pas de montant fixe, pas de "nuit offerte", pas de code promo, pas de suivi de performance).
+Écarts assumés au brief : pas de "taux de conversion" sur les promotions (aucune donnée de vues/impressions n'existe dans la plateforme — mesure non fabriquée) ; l'incitation "1 mois de visibilité offerte" à H+72 n'a pas de mécanisme réel derrière (pas de système de mise en avant temporaire) — reformulée en encouragement générique.
 
-### À faire (amélioration incrémentale, pas bloquant)
-- [ ] ✏️⚙️ Promotions : ajouter réduction en montant fixe, "une nuit offerte", séjour minimum, code promo personnalisé.
-- [ ] ➕⚙️ Relances anti-abandon hôte (H+24/H+72/H+168) sur le modèle de `RemindGuestActivation` déjà en place côté voyageur — même patron de code, à dupliquer/adapter pour les inscriptions hôte incomplètes.
+⚠️ Incident lors des tests : `hosts:remind-onboarding` testée une première fois sans compte isolé, a envoyé de vrais e-mails à 3 hôtes existants (dont un sous l'adresse de l'utilisateur). Signalé, stage remis à 0. Retenir pour la suite : toujours tester les commandes de relance en batch sur un compte jetable isolé, jamais directement.
 
 ---
 
@@ -156,8 +154,7 @@ LOT 3 ✅ (politique d'annulation/horaires/WhatsApp établissement) → LOT 4 �
 **Vague 2 — améliore fortement l'expérience d'onboarding : ✅ TERMINÉE (2026-08-13)**
 LOT 1 ✅ (inscription light + vérification) → LOT 2 ✅ (landing + configurateur guidé).
 
-**Vague 3 — peut suivre après les premiers partenaires réels :**
-LOT 5 (correction lien calendrier, cosmétique) → LOT 9 (promotions avancées, relances anti-abandon) → LOT 8 (mode sur-demande, si demandé).
+**Vague 3 : ✅ TERMINÉE (2026-08-13)** (LOT 5, LOT 9 faits — LOT 8 mode sur-demande toujours en attente, sur demande explicite d'un partenaire, cf. recommandation du LOT 8).
 
 **Non prioritaire / à ne construire que sur demande explicite d'un partenaire :**
 LOT 7 (collaborateurs/rôles) → LOT 10 (channel manager) → OCR/séquestre/statut par document (fin du LOT 6).
