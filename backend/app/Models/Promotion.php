@@ -14,6 +14,10 @@ class Promotion extends Model
         'accommodation_id',
         'room_id',
         'discount_percent',
+        'discount_type',
+        'discount_amount',
+        'min_stay_nights',
+        'promo_code',
         'start_date',
         'end_date',
         'description',
@@ -24,6 +28,8 @@ class Promotion extends Model
     {
         return [
             'discount_percent' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'min_stay_nights' => 'integer',
             'start_date' => 'date',
             'end_date' => 'date',
             'is_active' => 'boolean',
@@ -38,6 +44,27 @@ class Promotion extends Model
     public function room()
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * Montant de la réduction pour un prix de base donné (avant réduction) et un
+     * nombre de nuits — unifie les 3 modes (percent/fixed/free_night) en un seul
+     * calcul réutilisable par BookingController et le suivi de performance.
+     */
+    public function computeDiscount(float $basePrice, float $pricePerNight): float
+    {
+        $discount = match ($this->discount_type) {
+            'fixed' => (float) ($this->discount_amount ?? 0),
+            'free_night' => $pricePerNight,
+            default => $basePrice * (float) $this->discount_percent / 100,
+        };
+
+        return min($discount, $basePrice);
     }
 
     /**

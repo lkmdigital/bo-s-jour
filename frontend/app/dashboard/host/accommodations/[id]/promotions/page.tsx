@@ -8,15 +8,22 @@ import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Edit, Trash2, Calendar, Percent, Tag, Power, PowerOff } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Calendar, Percent, Tag, Power, PowerOff, BarChart3, Loader2, Ticket, Moon } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { formatPrice } from '@/lib/utils';
+
+type DiscountType = 'percent' | 'fixed' | 'free_night';
 
 interface Promotion {
   id: number;
   accommodation_id: number;
   room_id: number | null;
-  discount_percent: number;
+  discount_percent: number | null;
+  discount_type: DiscountType;
+  discount_amount: number | null;
+  min_stay_nights: number | null;
+  promo_code: string | null;
   start_date: string;
   end_date: string;
   description: string | null;
@@ -28,6 +35,14 @@ interface Promotion {
     name: string;
     type: string;
   } | null;
+}
+
+interface PromoStats { bookings_count: number; revenue_generated: number }
+
+function discountLabel(p: Promotion): string {
+  if (p.discount_type === 'fixed') return `${formatPrice(p.discount_amount || 0)} F de réduction`;
+  if (p.discount_type === 'free_night') return 'Une nuit offerte';
+  return `${p.discount_percent}% de réduction`;
 }
 
 interface Room {
@@ -52,11 +67,30 @@ export default function AccommodationPromotionsPage() {
 
   const [formData, setFormData] = useState({
     room_id: '',
+    discount_type: 'percent' as DiscountType,
     discount_percent: '',
+    discount_amount: '',
+    min_stay_nights: '',
+    promo_code: '',
     start_date: '',
     end_date: '',
     description: '',
   });
+  const emptyForm = {
+    room_id: '', discount_type: 'percent' as DiscountType, discount_percent: '', discount_amount: '',
+    min_stay_nights: '', promo_code: '', start_date: '', end_date: '', description: '',
+  };
+  const [statsByPromo, setStatsByPromo] = useState<Record<number, PromoStats | 'loading' | undefined>>({});
+
+  const loadStats = async (promotionId: number) => {
+    setStatsByPromo((s) => ({ ...s, [promotionId]: 'loading' }));
+    try {
+      const res = await api.get(`/accommodations/${params.id}/promotions/${promotionId}/stats`);
+      setStatsByPromo((s) => ({ ...s, [promotionId]: res.data }));
+    } catch {
+      setStatsByPromo((s) => ({ ...s, [promotionId]: undefined }));
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || user?.role !== 'host')) {
@@ -93,20 +127,28 @@ export default function AccommodationPromotionsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.discount_percent || !formData.start_date || !formData.end_date) {
+
+    if (!formData.start_date || !formData.end_date) {
       setError('Veuillez remplir tous les champs obligatoires');
       return;
     }
-
     if (new Date(formData.start_date) >= new Date(formData.end_date)) {
       setError('La date de fin doit être après la date de début');
       return;
     }
-
-    if (parseFloat(formData.discount_percent) < 1 || parseFloat(formData.discount_percent) > 100) {
-      setError('Le pourcentage de réduction doit être entre 1% et 100%');
-      return;
+    if (formData.discount_type === 'percent') {
+      const v = parseFloat(formData.discount_percent);
+      if (!formData.discount_percent || v < 1 || v > 100) {
+        setError('Le pourcentage de réduction doit être entre 1% et 100%');
+        return;
+      }
+    }
+    if (formData.discount_type === 'fixed') {
+      const v = parseFloat(formData.discount_amount);
+      if (!formData.discount_amount || v < 1) {
+        setError('Le montant de la réduction doit être positif');
+        return;
+      }
     }
 
     setSaving(true);
@@ -115,7 +157,11 @@ export default function AccommodationPromotionsPage() {
     try {
       const payload = {
         room_id: formData.room_id || null,
-        discount_percent: parseFloat(formData.discount_percent),
+        discount_type: formData.discount_type,
+        discount_percent: formData.discount_type === 'percent' ? parseFloat(formData.discount_percent) : null,
+        discount_amount: formData.discount_type === 'fixed' ? parseFloat(formData.discount_amount) : null,
+        min_stay_nights: formData.min_stay_nights ? parseInt(formData.min_stay_nights, 10) : null,
+        promo_code: formData.promo_code.trim() || null,
         start_date: formData.start_date,
         end_date: formData.end_date,
         description: formData.description || null,
@@ -130,13 +176,7 @@ export default function AccommodationPromotionsPage() {
       await fetchData();
       setShowForm(false);
       setEditingPromotion(null);
-      setFormData({
-        room_id: '',
-        discount_percent: '',
-        start_date: '',
-        end_date: '',
-        description: '',
-      });
+      setFormData(emptyForm);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors de la sauvegarde de la promotion');
     } finally {
@@ -148,7 +188,11 @@ export default function AccommodationPromotionsPage() {
     setEditingPromotion(promotion);
     setFormData({
       room_id: promotion.room_id?.toString() || '',
-      discount_percent: promotion.discount_percent.toString(),
+      discount_type: promotion.discount_type || 'percent',
+      discount_percent: promotion.discount_percent?.toString() || '',
+      discount_amount: promotion.discount_amount?.toString() || '',
+      min_stay_nights: promotion.min_stay_nights?.toString() || '',
+      promo_code: promotion.promo_code || '',
       start_date: promotion.start_date,
       end_date: promotion.end_date,
       description: promotion.description || '',
@@ -227,13 +271,7 @@ export default function AccommodationPromotionsPage() {
               onClick={() => {
                 setShowForm(!showForm);
                 setEditingPromotion(null);
-                setFormData({
-                  room_id: '',
-                  discount_percent: '',
-                  start_date: '',
-                  end_date: '',
-                  description: '',
-                });
+                setFormData(emptyForm);
               }}
               className="btn-primary flex items-center gap-2"
             >
@@ -276,24 +314,96 @@ export default function AccommodationPromotionsPage() {
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Pourcentage de réduction *
-                  </label>
-                  <div className="relative">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-2">Type de réduction *</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {([
+                      { key: 'percent' as DiscountType, label: 'Pourcentage', icon: Percent },
+                      { key: 'fixed' as DiscountType, label: 'Montant fixe', icon: Tag },
+                      { key: 'free_night' as DiscountType, label: 'Nuit offerte', icon: Moon },
+                    ]).map((o) => (
+                      <button
+                        key={o.key}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, discount_type: o.key })}
+                        className={`py-2.5 rounded-lg border-2 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                          formData.discount_type === o.key ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
+                        }`}
+                      >
+                        <o.icon className="w-4 h-4" /> {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {formData.discount_type === 'percent' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Pourcentage de réduction *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        step="0.01"
+                        value={formData.discount_percent}
+                        onChange={(e) => setFormData({ ...formData, discount_percent: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-800"
+                        placeholder="15"
+                        required
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                    </div>
+                  </div>
+                )}
+
+                {formData.discount_type === 'fixed' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Montant de la réduction (FCFA) *
+                    </label>
                     <input
                       type="number"
                       min="1"
-                      max="100"
-                      step="0.01"
-                      value={formData.discount_percent}
-                      onChange={(e) => setFormData({ ...formData, discount_percent: e.target.value })}
+                      step="100"
+                      value={formData.discount_amount}
+                      onChange={(e) => setFormData({ ...formData, discount_amount: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-800"
-                      placeholder="15"
+                      placeholder="10000"
                       required
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
                   </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Séjour minimum (optionnel)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.min_stay_nights}
+                    onChange={(e) => setFormData({ ...formData, min_stay_nights: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-800"
+                    placeholder="Ex: 3 nuits"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Code promo (optionnel)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.promo_code}
+                    onChange={(e) => setFormData({ ...formData, promo_code: e.target.value.toUpperCase() })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-800 uppercase"
+                    placeholder="Ex: ETE2026"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    Si renseigné, seuls les voyageurs saisissant ce code en bénéficient. Sinon, s&apos;applique automatiquement.
+                  </p>
                 </div>
 
                 <div>
@@ -351,13 +461,7 @@ export default function AccommodationPromotionsPage() {
                   onClick={() => {
                     setShowForm(false);
                     setEditingPromotion(null);
-                    setFormData({
-                      room_id: '',
-                      discount_percent: '',
-                      start_date: '',
-                      end_date: '',
-                      description: '',
-                    });
+                    setFormData(emptyForm);
                   }}
                   className="btn-outline"
                 >
@@ -414,11 +518,21 @@ export default function AccommodationPromotionsPage() {
                               : 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300'
                           }`}>
                             <Percent className="w-4 h-4" />
-                            {promotion.discount_percent}% de réduction
+                            {discountLabel(promotion)}
                           </div>
                           {!promotion.is_active && (
                             <span className="px-2 py-1 rounded-full text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-400">
                               Désactivée
+                            </span>
+                          )}
+                          {promotion.min_stay_nights && (
+                            <span className="px-2 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                              <Moon className="w-3 h-3" /> {promotion.min_stay_nights} nuits min.
+                            </span>
+                          )}
+                          {promotion.promo_code && (
+                            <span className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary flex items-center gap-1 font-mono">
+                              <Ticket className="w-3 h-3" /> {promotion.promo_code}
                             </span>
                           )}
                         </div>
@@ -451,6 +565,30 @@ export default function AccommodationPromotionsPage() {
 
                           <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                             Créée le {format(new Date(promotion.created_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
+                          </div>
+
+                          {/* Performance */}
+                          <div className="pt-2">
+                            {!statsByPromo[promotion.id] ? (
+                              <button
+                                type="button"
+                                onClick={() => loadStats(promotion.id)}
+                                className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                              >
+                                <BarChart3 className="w-3.5 h-3.5" /> Voir les performances
+                              </button>
+                            ) : statsByPromo[promotion.id] === 'loading' ? (
+                              <span className="text-xs text-gray-400 inline-flex items-center gap-1">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Chargement…
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-600 dark:text-gray-400 inline-flex items-center gap-1.5">
+                                <BarChart3 className="w-3.5 h-3.5 text-primary" />
+                                {(statsByPromo[promotion.id] as PromoStats).bookings_count} réservation
+                                {(statsByPromo[promotion.id] as PromoStats).bookings_count > 1 ? 's' : ''} ·{' '}
+                                {formatPrice((statsByPromo[promotion.id] as PromoStats).revenue_generated)} F générés
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

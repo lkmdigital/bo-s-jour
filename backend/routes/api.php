@@ -202,6 +202,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::put('/accommodations/{accommodationId}/promotions/{promotionId}', [PromotionController::class, 'update']);
         Route::delete('/accommodations/{accommodationId}/promotions/{promotionId}', [PromotionController::class, 'destroy']);
         Route::post('/accommodations/{accommodationId}/promotions/{promotionId}/toggle', [PromotionController::class, 'toggle']);
+        Route::get('/accommodations/{accommodationId}/promotions/{promotionId}/stats', [PromotionController::class, 'stats']);
 
         // Commentaires clients (avis reçus + réponse)
         Route::get('/host/reviews', [HostReviewController::class, 'index']);

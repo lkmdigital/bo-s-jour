@@ -139,6 +139,7 @@ class BookingController extends Controller
             'check_in' => 'required|date|after:today',
             'check_out' => 'required|date|after:check_in',
             'guests' => 'required|integer|min:1',
+            'promo_code' => 'nullable|string|max:100',
             'special_requests' => 'nullable|string|max:1000',
             'booked_for_third_party' => 'nullable|boolean',
             'traveler_name' => 'nullable|string|max:255|required_if:booked_for_third_party,true',
@@ -302,14 +303,16 @@ class BookingController extends Controller
 
         $basePrice = $effectivePricePerNight * $nights;
         
-        // Vérifier s'il y a une promotion active pour cette période
+        // Vérifier s'il y a une promotion active pour cette période (brief Étape 33 :
+        // pourcentage, montant fixe, nuit offerte, séjour minimum, code promo).
         $promotion = null;
+        $submittedPromoCode = trim((string) $request->input('promo_code', ''));
         try {
-            $promotion = Promotion::where('accommodation_id', $request->accommodation_id)
+            $candidates = Promotion::where('accommodation_id', $request->accommodation_id)
                 ->where('is_active', true)
-                ->where(function($q) use ($request) {
+                ->where(function ($q) use ($request) {
                     // Promotion pour une chambre spécifique ou toutes les chambres
-                    $q->where(function($q2) use ($request) {
+                    $q->where(function ($q2) use ($request) {
                         if ($request->room_id) {
                             $q2->where('room_id', $request->room_id)
                                ->orWhereNull('room_id');
@@ -319,7 +322,22 @@ class BookingController extends Controller
                     });
                 })
                 ->validForPeriod($request->check_in, $request->check_out)
-                ->orderBy('discount_percent', 'desc') // Prendre la promotion avec le plus grand pourcentage
+                ->get()
+                ->filter(function (Promotion $p) use ($nights, $submittedPromoCode) {
+                    if ($p->min_stay_nights && $nights < $p->min_stay_nights) {
+                        return false;
+                    }
+                    // Sans code : promo automatique. Avec code : ne s'applique que si le
+                    // voyageur a saisi exactement ce code.
+                    if ($p->promo_code) {
+                        return $submittedPromoCode !== '' && hash_equals($p->promo_code, $submittedPromoCode);
+                    }
+                    return true;
+                });
+
+            // Retenir la promotion offrant la plus grosse réduction effective.
+            $promotion = $candidates
+                ->sortByDesc(fn (Promotion $p) => $p->computeDiscount($basePrice, $effectivePricePerNight))
                 ->first();
         } catch (\Illuminate\Database\QueryException $e) {
             // Si la table promotions n'existe pas encore, continuer sans promotion
@@ -333,7 +351,7 @@ class BookingController extends Controller
         // Appliquer la réduction si une promotion existe
         $totalPrice = $basePrice;
         if ($promotion) {
-            $discountAmount = ($basePrice * $promotion->discount_percent) / 100;
+            $discountAmount = $promotion->computeDiscount($basePrice, $effectivePricePerNight);
             $totalPrice = $basePrice - $discountAmount;
         }
 
@@ -356,7 +374,7 @@ class BookingController extends Controller
         // pour garantir qu'aucune autre requête concurrente ne peut s'intercaler.
         $booking = DB::transaction(function () use (
             $request, $room, $accommodation, $user, $bookedForThirdParty,
-            $totalPrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId
+            $totalPrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion
         ) {
             if ($room) {
                 Room::lockForUpdate()->findOrFail($room->id);
@@ -372,6 +390,7 @@ class BookingController extends Controller
                 'user_id' => $user->id,
                 'accommodation_id' => $request->accommodation_id,
                 'room_id' => $request->room_id,
+                'promotion_id' => $promotion?->id,
                 'check_in' => $request->check_in,
                 'check_out' => $request->check_out,
                 'guests' => $request->guests,

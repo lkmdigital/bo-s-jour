@@ -59,7 +59,11 @@ class PromotionController extends Controller
 
         $validator = Validator::make($request->all(), [
             'room_id' => 'nullable|exists:rooms,id',
-            'discount_percent' => 'required|numeric|min:1|max:100',
+            'discount_type' => 'nullable|string|in:percent,fixed,free_night',
+            'discount_percent' => 'required_if:discount_type,percent|nullable|numeric|min:1|max:100',
+            'discount_amount' => 'required_if:discount_type,fixed|nullable|numeric|min:1',
+            'min_stay_nights' => 'nullable|integer|min:1|max:365',
+            'promo_code' => 'nullable|string|max:100|alpha_dash',
             'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after:start_date',
             'description' => 'nullable|string|max:500',
@@ -77,7 +81,7 @@ class PromotionController extends Controller
             $room = Room::where('id', $request->room_id)
                 ->where('accommodation_id', $accommodationId)
                 ->first();
-            
+
             if (!$room) {
                 return response()->json([
                     'message' => 'La chambre spécifiée n\'appartient pas à cet établissement'
@@ -85,10 +89,17 @@ class PromotionController extends Controller
             }
         }
 
+        $discountType = $request->input('discount_type', 'percent');
+
         $promotion = Promotion::create([
             'accommodation_id' => $accommodationId,
             'room_id' => $request->room_id,
-            'discount_percent' => $request->discount_percent,
+            'discount_type' => $discountType,
+            // discount_percent est NOT NULL en base (colonne historique) : 0 quand non applicable.
+            'discount_percent' => $discountType === 'percent' ? $request->discount_percent : 0,
+            'discount_amount' => $discountType === 'fixed' ? $request->discount_amount : null,
+            'min_stay_nights' => $request->min_stay_nights,
+            'promo_code' => $request->promo_code ? strtoupper($request->promo_code) : null,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'description' => $request->description,
@@ -118,7 +129,11 @@ class PromotionController extends Controller
 
         $validator = Validator::make($request->all(), [
             'room_id' => 'nullable|exists:rooms,id',
-            'discount_percent' => 'sometimes|numeric|min:1|max:100',
+            'discount_type' => 'sometimes|string|in:percent,fixed,free_night',
+            'discount_percent' => 'sometimes|nullable|numeric|min:1|max:100',
+            'discount_amount' => 'sometimes|nullable|numeric|min:1',
+            'min_stay_nights' => 'sometimes|nullable|integer|min:1|max:365',
+            'promo_code' => 'sometimes|nullable|string|max:100|alpha_dash',
             'start_date' => 'sometimes|date',
             'end_date' => 'sometimes|date|after:start_date',
             'description' => 'nullable|string|max:500',
@@ -137,7 +152,7 @@ class PromotionController extends Controller
             $room = Room::where('id', $request->room_id)
                 ->where('accommodation_id', $accommodationId)
                 ->first();
-            
+
             if (!$room) {
                 return response()->json([
                     'message' => 'La chambre spécifiée n\'appartient pas à cet établissement'
@@ -145,14 +160,26 @@ class PromotionController extends Controller
             }
         }
 
-        $promotion->update($request->only([
+        $updateData = $request->only([
             'room_id',
+            'discount_type',
             'discount_percent',
+            'discount_amount',
+            'min_stay_nights',
             'start_date',
             'end_date',
             'description',
-            'is_active'
-        ]));
+            'is_active',
+        ]);
+        // discount_percent est NOT NULL en base : jamais null, 0 si non applicable.
+        if (array_key_exists('discount_percent', $updateData) && $updateData['discount_percent'] === null) {
+            $updateData['discount_percent'] = 0;
+        }
+        if ($request->has('promo_code')) {
+            $updateData['promo_code'] = $request->promo_code ? strtoupper($request->promo_code) : null;
+        }
+
+        $promotion->update($updateData);
 
         return response()->json($promotion->load('room'));
     }
@@ -202,6 +229,32 @@ class PromotionController extends Controller
         $promotion->save();
 
         return response()->json($promotion->load('room'));
+    }
+
+    /**
+     * Suivi de performance d'une promotion (brief Étape 33) : réservations générées
+     * et chiffre d'affaires associé. Pas de "taux de conversion" — aucune trace des
+     * vues/impressions n'existe dans la plateforme, on ne fabrique pas cette mesure.
+     */
+    public function stats(Request $request, $accommodationId, $promotionId)
+    {
+        $accommodation = Accommodation::findOrFail($accommodationId);
+        $promotion = Promotion::findOrFail($promotionId);
+
+        if ($promotion->accommodation_id != $accommodationId) {
+            return response()->json(['message' => 'Promotion not found'], 404);
+        }
+
+        if (!$request->user()->isAdmin() && $accommodation->host_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $bookings = $promotion->bookings()->whereIn('status', ['confirmed', 'completed'])->get();
+
+        return response()->json([
+            'bookings_count' => $bookings->count(),
+            'revenue_generated' => (float) $bookings->sum('total_price'),
+        ]);
     }
 }
 

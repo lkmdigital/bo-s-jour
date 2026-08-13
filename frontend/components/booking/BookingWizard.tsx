@@ -111,6 +111,7 @@ export default function BookingWizard(props: Props) {
     }
   };
 
+  const [promoCode, setPromoCode] = useState('');
   const [cgv, setCgv] = useState(false);
   const [quote, setQuote] = useState<PriceQuote | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -167,6 +168,7 @@ export default function BookingWizard(props: Props) {
         traveler_type: travelerType,
         residence_country: residenceCountry || null,
         residence_city: residenceCity || null,
+        promo_code: promoCode.trim() || undefined,
       };
       if (!isAuthenticated) {
         payload.name = `${firstName} ${lastName}`.trim();
@@ -372,6 +374,18 @@ export default function BookingWizard(props: Props) {
                     <span className="font-medium text-gray-900 dark:text-white text-right">{v}</span>
                   </div>
                 ))}
+              </div>
+
+              {/* Code promo (facultatif) */}
+              <div>
+                <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">Code promo <span className="text-gray-400 font-normal">(facultatif)</span></label>
+                <input
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  placeholder="Ex: ETE2026"
+                  className="w-full max-w-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm uppercase focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                />
+                <p className="text-xs text-gray-400 mt-1">Vérifié et appliqué à la confirmation de votre réservation.</p>
               </div>
 
               {/* Bandeau sécurité */}
