@@ -27,6 +27,7 @@ class Accommodation extends Model
         'bathrooms',
         'amenities',
         'status',
+        'submitted_for_review_at',
         'is_featured',
         'rating',
         'total_reviews',
@@ -71,6 +72,7 @@ class Accommodation extends Model
     protected function casts(): array
     {
         return [
+            'submitted_for_review_at' => 'datetime',
             'amenities' => 'array',
             'room_types' => 'array',
             'room_type_pricing' => 'array',

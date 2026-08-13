@@ -828,6 +828,97 @@ class AccommodationController extends Controller
         return response()->json($accommodation);
     }
 
+    /**
+     * Checklist de publication (brief Extranet Partenaire, Étape 21) : ce qu'il manque
+     * avant que l'hôte puisse soumettre l'établissement à la revue admin.
+     */
+    public function readiness(Request $request, $id)
+    {
+        $accommodation = Accommodation::with('images')->findOrFail($id);
+
+        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $checks = [
+            'photos' => [
+                'label' => 'Au moins 5 photos',
+                'ok' => $accommodation->images->count() >= 5,
+            ],
+            'price' => [
+                'label' => 'Prix par nuit défini',
+                'ok' => (float) $accommodation->price_per_night > 0,
+            ],
+            'cancellation_policy' => [
+                'label' => "Politique d'annulation choisie",
+                'ok' => $accommodation->cancellation_policy_hours !== null,
+            ],
+            'whatsapp' => [
+                'label' => "Numéro WhatsApp de l'établissement renseigné",
+                'ok' => !empty($accommodation->whatsapp),
+            ],
+            'bank_details' => [
+                'label' => 'Coordonnées bancaires renseignées (pour les reversements)',
+                'ok' => $accommodation->host?->hasBankDetails() ?? false,
+            ],
+        ];
+
+        $ready = collect($checks)->every(fn ($c) => $c['ok']);
+
+        return response()->json([
+            'ready' => $ready,
+            'checks' => $checks,
+            'submitted_for_review_at' => $accommodation->submitted_for_review_at,
+            'status' => $accommodation->status,
+        ]);
+    }
+
+    /**
+     * Action hôte "Publier mon établissement" : revalide la checklist côté serveur
+     * puis marque l'établissement comme prêt pour la revue admin (le statut reste
+     * "pending" — seul un admin peut le faire passer "published", cf. update()).
+     */
+    public function submitForReview(Request $request, $id)
+    {
+        $accommodation = Accommodation::with('images')->findOrFail($id);
+
+        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $missing = [];
+        if ($accommodation->images->count() < 5) {
+            $missing[] = 'Au moins 5 photos sont requises.';
+        }
+        if ((float) $accommodation->price_per_night <= 0) {
+            $missing[] = 'Le prix par nuit doit être défini.';
+        }
+        if ($accommodation->cancellation_policy_hours === null) {
+            $missing[] = "La politique d'annulation doit être choisie.";
+        }
+        if (empty($accommodation->whatsapp)) {
+            $missing[] = "Le numéro WhatsApp de l'établissement est requis.";
+        }
+        if (!($accommodation->host?->hasBankDetails() ?? false)) {
+            $missing[] = 'Les coordonnées bancaires (RIB) doivent être renseignées dans votre profil.';
+        }
+
+        if (!empty($missing)) {
+            return response()->json([
+                'message' => 'Établissement non prêt pour publication.',
+                'missing' => $missing,
+            ], 422);
+        }
+
+        $accommodation->submitted_for_review_at = now();
+        $accommodation->save();
+
+        return response()->json([
+            'message' => 'Établissement soumis à la revue de notre équipe.',
+            'submitted_for_review_at' => $accommodation->submitted_for_review_at,
+        ]);
+    }
+
     public function destroy(Request $request, $id)
     {
         $accommodation = Accommodation::findOrFail($id);

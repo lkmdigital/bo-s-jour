@@ -7,7 +7,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import { formatPrice } from '@/lib/utils';
 import DateRangeFilter, { useDefaultDateRange } from '@/components/common/DateRangeFilter';
-import { DollarSign, TrendingUp, Calendar, Wallet, Clock, Send, CheckCircle, XCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, Calendar, Wallet, Clock, Send, CheckCircle, XCircle, Landmark, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -68,22 +68,57 @@ export default function HostFinancesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [bankName, setBankName] = useState('');
+  const [bankHolder, setBankHolder] = useState('');
+  const [bankNumber, setBankNumber] = useState('');
+  const [bankSaving, setBankSaving] = useState(false);
+  const [bankSaved, setBankSaved] = useState(false);
+  const [bankLoaded, setBankLoaded] = useState(false);
+  const hasBankDetails = !!(bankName.trim() && bankHolder.trim() && bankNumber.trim());
+
   const fetchAll = async () => {
     try {
       setLoading(true);
       setError(null);
-      const [revenueRes, balanceRes, requestsRes] = await Promise.all([
+      const [revenueRes, balanceRes, requestsRes, profileRes] = await Promise.all([
         api.get('/revenue/host', { params: { from_date: dateRange.from, to_date: dateRange.to } }),
         api.get('/host/withdrawal-requests/balance'),
         api.get('/host/withdrawal-requests'),
+        api.get('/host/profile'),
       ]);
       setRevenueData(revenueRes.data);
       setBalance(balanceRes.data);
       setRequests(Array.isArray(requestsRes.data?.data) ? requestsRes.data.data : requestsRes.data ?? []);
+      const u = profileRes.data?.user;
+      if (u) {
+        setBankName(u.bank_name || '');
+        setBankHolder(u.bank_account_holder || '');
+        setBankNumber(u.bank_account_number || '');
+      }
+      setBankLoaded(true);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement des données financières');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveBankDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBankSaving(true);
+    setBankSaved(false);
+    try {
+      await api.post('/host/profile', {
+        bank_name: bankName.trim(),
+        bank_account_holder: bankHolder.trim(),
+        bank_account_number: bankNumber.trim(),
+      });
+      setBankSaved(true);
+      setTimeout(() => setBankSaved(false), 3000);
+    } catch (err: any) {
+      setSubmitError(err.response?.data?.message || "Erreur lors de l'enregistrement des coordonnées bancaires");
+    } finally {
+      setBankSaving(false);
     }
   };
 
@@ -254,6 +289,63 @@ export default function HostFinancesPage() {
       {tab === 'retraits' && (
         <>
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
+            <h2 className="text-lg font-bold mb-1 flex items-center gap-2 text-gray-900 dark:text-white">
+              <Landmark className="w-5 h-5" />
+              Coordonnées bancaires
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Utilisées pour vos reversements. Enregistrées une fois, réutilisées pour chaque demande de retrait.
+            </p>
+            {bankLoaded && (
+              <form onSubmit={saveBankDetails} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Banque</label>
+                    <input
+                      type="text"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      placeholder="Ex: NSIA Banque"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titulaire du compte</label>
+                    <input
+                      type="text"
+                      value={bankHolder}
+                      onChange={(e) => setBankHolder(e.target.value)}
+                      placeholder="Nom du titulaire"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">IBAN / Numéro de compte (RIB)</label>
+                  <input
+                    type="text"
+                    value={bankNumber}
+                    onChange={(e) => setBankNumber(e.target.value)}
+                    placeholder="CI93 CI08 0000 0000 0000 0000 0000 0"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={bankSaving}
+                    className="btn-outline text-sm inline-flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {bankSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Landmark className="w-4 h-4" />}
+                    {bankSaving ? 'Enregistrement...' : 'Enregistrer'}
+                  </button>
+                  {bankSaved && <span className="text-sm text-green-600 dark:text-green-400">Enregistré ✓</span>}
+                </div>
+              </form>
+            )}
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
               <Send className="w-5 h-5" />
               Nouvelle demande de retrait
@@ -261,6 +353,10 @@ export default function HostFinancesPage() {
             {available <= 0 ? (
               <p className="text-gray-500 dark:text-gray-400">
                 Votre solde disponible est de 0 FCFA. Les montants sont débloqués après l&apos;enregistrement de l&apos;arrivée du client (code réservation).
+              </p>
+            ) : !hasBankDetails ? (
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Renseignez d&apos;abord vos coordonnées bancaires ci-dessus pour pouvoir demander un retrait.
               </p>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">

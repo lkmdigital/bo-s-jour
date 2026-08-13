@@ -9,7 +9,7 @@ import api from '@/lib/api';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import SuccessDisplay from '@/components/common/SuccessDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { ArrowLeft, MapPin, Trash2, Star, Tag, Bed, Clock, MessageCircle, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, MapPin, Trash2, Star, Tag, Bed, Clock, MessageCircle, ShieldCheck, Rocket, CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { compressImages } from '@/lib/utils';
@@ -84,6 +84,34 @@ export default function EditAccommodationPage() {
   const [existingMedia, setExistingMedia] = useState<Array<{ id: number; url: string; is_primary: boolean }>>([]);
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [locationInfo, setLocationInfo] = useState<{ type: 'info' | 'success' | 'error'; message: string } | null>(null);
+  const [accStatus, setAccStatus] = useState<string | null>(null);
+  const [readiness, setReadiness] = useState<{ ready: boolean; checks: Record<string, { label: string; ok: boolean }>; submitted_for_review_at: string | null } | null>(null);
+  const [publishBusy, setPublishBusy] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishSuccess, setPublishSuccess] = useState(false);
+
+  const fetchReadiness = async () => {
+    try {
+      const res = await api.get(`/accommodations/${params.id}/readiness`);
+      setReadiness(res.data);
+    } catch {
+      setReadiness(null);
+    }
+  };
+
+  const handlePublish = async () => {
+    setPublishBusy(true);
+    setPublishError(null);
+    try {
+      await api.post(`/accommodations/${params.id}/submit-for-review`);
+      setPublishSuccess(true);
+      await fetchReadiness();
+    } catch (err: any) {
+      setPublishError(err.response?.data?.message || "Impossible de soumettre l'établissement pour le moment.");
+    } finally {
+      setPublishBusy(false);
+    }
+  };
   const [pricingPlans, setPricingPlans] = useState({
     nonRefundableEnabled: false,
     nonRefundableDiscount: 10,
@@ -146,6 +174,7 @@ export default function EditAccommodationPage() {
         cancellation_policy_hours: acc.cancellation_policy_hours ?? 48,
       });
 
+      setAccStatus(acc.status || null);
       setSelectedAmenities(acc.amenities || []);
       setExistingMedia(acc.images || []);
       setPricingPlans({
@@ -162,6 +191,7 @@ export default function EditAccommodationPage() {
     } finally {
       setLoading(false);
     }
+    fetchReadiness();
   };
 
   const geocodeAddress = async (address: string, city: string): Promise<{ lat: number; lng: number }> => {
@@ -338,6 +368,7 @@ export default function EditAccommodationPage() {
         }
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
+        fetchReadiness();
       } else if (mediaResponse.data?.errors && mediaResponse.data.errors.length > 0) {
         setError(mediaResponse.data.message || 'Erreur lors de l\'upload des images');
       } else {
@@ -498,6 +529,57 @@ export default function EditAccommodationPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+          </div>
+        )}
+
+        {/* Publication contrôlée (brief Extranet Partenaire, Étape 21) */}
+        {accStatus === 'pending' && readiness && (
+          <div className="card mb-6">
+            {readiness.submitted_for_review_at ? (
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-gray-900 dark:text-white">Soumis à la revue de notre équipe</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Envoyé le {new Date(readiness.submitted_for_review_at).toLocaleDateString('fr-FR')}. Vous serez notifié dès la validation.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-xl font-semibold mb-1 flex items-center gap-2">
+                  <Rocket className="w-5 h-5 text-primary" /> Publier mon établissement
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Vérifiez que tout est prêt avant de soumettre votre établissement à notre équipe.
+                </p>
+                <ul className="space-y-2 mb-4">
+                  {Object.entries(readiness.checks).map(([key, c]) => (
+                    <li key={key} className="flex items-center gap-2 text-sm">
+                      {c.ok ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      ) : (
+                        <Circle className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+                      )}
+                      <span className={c.ok ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400'}>{c.label}</span>
+                    </li>
+                  ))}
+                </ul>
+                {publishError && <p className="text-sm text-red-600 dark:text-red-400 mb-3">{publishError}</p>}
+                <button
+                  type="button"
+                  onClick={handlePublish}
+                  disabled={!readiness.ready || publishBusy}
+                  className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+                >
+                  {publishBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
+                  {publishBusy ? 'Envoi...' : 'Publier mon établissement'}
+                </button>
+                {!readiness.ready && (
+                  <p className="text-xs text-gray-400 mt-2">Complétez les points ci-dessus pour activer la publication.</p>
+                )}
+              </>
+            )}
           </div>
         )}
 

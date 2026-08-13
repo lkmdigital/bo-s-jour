@@ -84,6 +84,10 @@ class User extends Authenticatable
         'rccm',
         'cnps_number',
         'tax_account_number',
+        // Coordonnées bancaires (reversements hôte)
+        'bank_name',
+        'bank_account_holder',
+        'bank_account_number',
         // Nouveaux champs de gestion
         'status',
         'blocked_at',
@@ -131,6 +135,11 @@ class User extends Authenticatable
             'notif_whatsapp' => 'boolean',
             'notif_sms' => 'boolean',
         ];
+    }
+
+    public function hasBankDetails(): bool
+    {
+        return !empty($this->bank_name) && !empty($this->bank_account_holder) && !empty($this->bank_account_number);
     }
 
     public function hasCompleteIdentityDocument(): bool

@@ -162,6 +162,8 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::post('/accommodations/{id}/appointments', [AppointmentController::class, 'store'])->where('id', '[0-9]+');
         Route::put('/accommodations/{id}', [AccommodationController::class, 'update'])->where('id', '[0-9]+');
         Route::delete('/accommodations/{id}', [AccommodationController::class, 'destroy'])->where('id', '[0-9]+');
+        Route::get('/accommodations/{id}/readiness', [AccommodationController::class, 'readiness'])->where('id', '[0-9]+');
+        Route::post('/accommodations/{id}/submit-for-review', [AccommodationController::class, 'submitForReview'])->where('id', '[0-9]+');
 
         // Rooms (gestion hôte)
         // Chemin distinct de /accommodations/{id}/rooms (public, cf. ligne ~53) pour éviter

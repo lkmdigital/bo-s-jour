@@ -44,6 +44,13 @@ class HostWithdrawalController extends Controller
             'host_note' => 'nullable|string|max:500',
         ]);
 
+        if (!$request->user()->hasBankDetails()) {
+            return response()->json([
+                'message' => 'Renseignez vos coordonnées bancaires (RIB) dans votre profil avant de demander un retrait.',
+                'bank_details_required' => true,
+            ], 422);
+        }
+
         $hostId = $request->user()->id;
         $amount = (float) $request->amount;
 

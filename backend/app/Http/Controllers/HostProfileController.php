@@ -65,6 +65,9 @@ class HostProfileController extends Controller
             'whatsapp' => 'sometimes|nullable|string|max:20',
             'rccm' => 'sometimes|nullable|string|max:255',
             'tax_account_number' => 'sometimes|nullable|string|max:255',
+            'bank_name' => 'sometimes|nullable|string|max:255',
+            'bank_account_holder' => 'sometimes|nullable|string|max:255',
+            'bank_account_number' => 'sometimes|nullable|string|max:255',
             'id_type' => ['sometimes', 'nullable', Rule::in(['CNI', 'Passeport', 'Permis de conduire', 'Autre'])],
             'id_number' => 'sometimes|nullable|string|max:50',
             'id_document' => 'sometimes|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB - Pour passeport ou document unique
@@ -80,7 +83,7 @@ class HostProfileController extends Controller
         // Mise à jour des champs texte
         // Utiliser input() au lieu de only() pour FormData
         $updateData = [];
-        $fields = ['name', 'phone', 'date_of_birth', 'bio', 'address_line1', 'address_line2', 'city', 'postal_code', 'country', 'phone_fixed', 'whatsapp', 'rccm', 'tax_account_number', 'id_type', 'id_number'];
+        $fields = ['name', 'phone', 'date_of_birth', 'bio', 'address_line1', 'address_line2', 'city', 'postal_code', 'country', 'phone_fixed', 'whatsapp', 'rccm', 'tax_account_number', 'id_type', 'id_number', 'bank_name', 'bank_account_holder', 'bank_account_number'];
         
         foreach ($fields as $field) {
             if ($request->has($field)) {
