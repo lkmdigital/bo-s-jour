@@ -552,6 +552,7 @@ class AccommodationController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
+            'whatsapp' => 'nullable|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/',
             'type' => 'required|string|in:hotel,lodge,guesthouse,apartment',
             'description' => 'required|string',
             'description_en' => 'nullable|string',
@@ -632,6 +633,7 @@ class AccommodationController extends Controller
         $accommodation = Accommodation::create([
             'host_id' => $request->user()->id,
             'name' => $request->name,
+            'whatsapp' => $request->whatsapp,
             'slug' => $slug,
             'type' => $request->type,
             'description' => $request->description,
@@ -694,6 +696,7 @@ class AccommodationController extends Controller
 
         $request->validate([
             'name' => 'sometimes|string|max:255',
+            'whatsapp' => 'nullable|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/',
             'type' => 'sometimes|string|in:hotel,lodge,guesthouse,apartment',
             'description' => 'sometimes|string',
             'description_en' => 'nullable|string',
@@ -749,7 +752,7 @@ class AccommodationController extends Controller
         }
 
         $updateData = $request->only([
-            'name', 'type', 'description', 'description_en', 'address', 'city',
+            'name', 'whatsapp', 'type', 'description', 'description_en', 'address', 'city',
             'latitude', 'longitude', 'price_per_night', 'max_guests',
             'bedrooms', 'bathrooms', 'amenities', 'status',
             // Nouveaux champs

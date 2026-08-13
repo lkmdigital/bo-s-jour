@@ -12,6 +12,7 @@ class Accommodation extends Model
     protected $fillable = [
         'host_id',
         'name',
+        'whatsapp',
         'slug',
         'type',
         'description',

@@ -14,6 +14,7 @@ import { compressImages } from '@/lib/utils';
 
 interface AccommodationFormData {
   name: string;
+  whatsapp?: string;
   type: 'hotel' | 'lodge' | 'guesthouse' | 'apartment';
   description: string;
   description_en?: string;
@@ -125,6 +126,12 @@ interface AccommodationCreationWizardProps {
   subtitle?: string;
 }
 
+const CANCELLATION_POLICIES = [
+  { hours: 48, key: 'flexible', label: 'Flexible', desc: 'Annulation gratuite jusqu\'à 48h avant l\'arrivée.' },
+  { hours: 24, key: 'moderate', label: 'Modérée', desc: 'Annulation gratuite jusqu\'à 24h avant. Au-delà : 50% conservé, 50% en avoir.' },
+  { hours: 0, key: 'strict', label: 'Stricte', desc: 'Non remboursable. Intégralité conservée par l\'établissement en cas d\'annulation.' },
+] as const;
+
 const HOST_STEPS = [
   { id: 1, title: 'Informations de base', key: 'basic' },
   { id: 2, title: 'Localisation', key: 'location' },
@@ -210,17 +217,20 @@ export default function AccommodationCreationWizard({
     if (mode === 'host' && user) {
       return {
         name: user.establishment_name || '',
+        whatsapp: user.whatsapp || '',
         type: mapAccommodationType(user.accommodation_type),
         classification_mode: 'unclassified',
         address: user.address_line1 || '',
         city: user.city || '',
         amenities: [],
+        cancellation_policy_hours: 48,
       };
     }
     return {
       type: 'hotel',
       classification_mode: 'unclassified',
       amenities: [],
+      cancellation_policy_hours: 48,
     };
   };
 
@@ -875,6 +885,21 @@ export default function AccommodationCreationWizard({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  WhatsApp de l'établissement <span className="text-gray-500">(recommandé)</span>
+                </label>
+                <input
+                  {...register('whatsapp')}
+                  type="text"
+                  placeholder="+225 07 00 00 00 00"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Utilisé pour envoyer à vos clients la confirmation de leur réservation. Laissez vide pour reprendre le numéro de votre inscription.
+                </p>
               </div>
 
               <div>
@@ -1541,12 +1566,24 @@ export default function AccommodationCreationWizard({
               {/* Politique d'annulation */}
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <h3 className="text-lg font-semibold mb-3">Politique d'annulation</h3>
-                <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/30">
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Par défaut, les annulations sont possibles jusqu'à 48 heures avant l'arrivée.
-                    La plateforme applique automatiquement cette règle et affiche les détails aux voyageurs.
-                    Pour toute exception, veuillez contacter notre équipe.
-                  </p>
+                <p className="text-sm text-gray-500 mb-3">Affichée au voyageur avant paiement. Il devra l'accepter pour réserver.</p>
+                <input type="hidden" {...register('cancellation_policy_hours', { valueAsNumber: true })} />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {CANCELLATION_POLICIES.map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setValue('cancellation_policy_hours', p.hours, { shouldDirty: true })}
+                      className={`text-left p-4 rounded-xl border-2 transition-colors ${
+                        (watch('cancellation_policy_hours') ?? 48) === p.hours
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
+                      }`}
+                    >
+                      <p className="font-semibold text-gray-900 dark:text-white">{p.label}</p>
+                      <p className="text-xs text-gray-500 mt-1">{p.desc}</p>
+                    </button>
+                  ))}
                 </div>
               </div>
 

@@ -9,13 +9,14 @@ import api from '@/lib/api';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import SuccessDisplay from '@/components/common/SuccessDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { ArrowLeft, MapPin, Trash2, Star, Tag, Bed } from 'lucide-react';
+import { ArrowLeft, MapPin, Trash2, Star, Tag, Bed, Clock, MessageCircle, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { compressImages } from '@/lib/utils';
 
 interface AccommodationFormData {
   name: string;
+  whatsapp?: string;
   type: 'hotel' | 'lodge' | 'guesthouse' | 'apartment';
   description: string;
   description_en?: string;
@@ -28,7 +29,17 @@ interface AccommodationFormData {
   bedrooms: number;
   bathrooms: number;
   amenities: string[];
+  star_rating?: number;
+  check_in_time?: string;
+  check_out_time?: string;
+  cancellation_policy_hours?: number;
 }
+
+const CANCELLATION_POLICIES = [
+  { hours: 48, key: 'flexible', label: 'Flexible', desc: 'Annulation gratuite jusqu\'à 48h avant l\'arrivée.' },
+  { hours: 24, key: 'moderate', label: 'Modérée', desc: 'Annulation gratuite jusqu\'à 24h avant. Au-delà : 50% conservé, 50% en avoir.' },
+  { hours: 0, key: 'strict', label: 'Stricte', desc: 'Non remboursable. Intégralité conservée par l\'établissement en cas d\'annulation.' },
+] as const;
 
 const typeOptions = [
   { value: 'hotel', label: 'Hôtel' },
@@ -117,6 +128,7 @@ export default function EditAccommodationPage() {
 
       reset({
         name: acc.name,
+        whatsapp: acc.whatsapp || '',
         type: acc.type,
         description: acc.description,
         description_en: acc.description_en || '',
@@ -128,6 +140,10 @@ export default function EditAccommodationPage() {
         max_guests: acc.max_guests,
         bedrooms: acc.bedrooms,
         bathrooms: acc.bathrooms,
+        star_rating: acc.star_rating || undefined,
+        check_in_time: acc.check_in_time ? String(acc.check_in_time).slice(0, 5) : '',
+        check_out_time: acc.check_out_time ? String(acc.check_out_time).slice(0, 5) : '',
+        cancellation_policy_hours: acc.cancellation_policy_hours ?? 48,
       });
 
       setSelectedAmenities(acc.amenities || []);
@@ -521,6 +537,37 @@ export default function EditAccommodationPage() {
                 </select>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Nombre d'étoiles <span className="text-gray-500">(optionnel)</span>
+                  </label>
+                  <select
+                    {...register('star_rating', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                  >
+                    <option value="">Non classé</option>
+                    <option value="1">1 étoile</option>
+                    <option value="2">2 étoiles</option>
+                    <option value="3">3 étoiles</option>
+                    <option value="4">4 étoiles</option>
+                    <option value="5">5 étoiles</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2 flex items-center gap-1.5">
+                    <MessageCircle className="w-4 h-4 text-green-600" /> WhatsApp de l'établissement
+                  </label>
+                  <input
+                    {...register('whatsapp')}
+                    type="text"
+                    placeholder="+225 07 00 00 00 00"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Utilisé pour l'envoi des confirmations de réservation à vos clients.</p>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Description (FR) <span className="text-red-500">*</span>
@@ -776,6 +823,55 @@ export default function EditAccommodationPage() {
                 {errors.bathrooms && (
                   <p className="text-red-500 text-sm mt-1">{errors.bathrooms.message}</p>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Horaires & politique d'annulation */}
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2"><Clock className="w-5 h-5 text-primary" /> Horaires & politique d'annulation</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">Heure d'arrivée (check-in)</label>
+                <input
+                  {...register('check_in_time')}
+                  type="time"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Heure de départ (check-out)</label>
+                <input
+                  {...register('check_out_time')}
+                  type="time"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-primary" /> Politique d'annulation
+              </label>
+              <p className="text-xs text-gray-500 mb-3">Affichée au voyageur avant paiement. Il devra l'accepter pour réserver.</p>
+              <input type="hidden" {...register('cancellation_policy_hours', { valueAsNumber: true })} />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {CANCELLATION_POLICIES.map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => setValue('cancellation_policy_hours', p.hours, { shouldDirty: true })}
+                    className={`text-left p-4 rounded-xl border-2 transition-colors ${
+                      watch('cancellation_policy_hours') === p.hours
+                        ? 'border-primary bg-primary/5'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
+                    }`}
+                  >
+                    <p className="font-semibold text-gray-900 dark:text-white">{p.label}</p>
+                    <p className="text-xs text-gray-500 mt-1">{p.desc}</p>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
