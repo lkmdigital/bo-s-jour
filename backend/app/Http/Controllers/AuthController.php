@@ -168,6 +168,61 @@ class AuthController extends Controller
     }
 
     /**
+     * Inscription hôte allégée (brief Extranet Partenaire, Étape 4) : seuls nom,
+     * téléphone, e-mail et mot de passe sont demandés. Établissement, type,
+     * adresse etc. sont saisis plus tard dans la configuration de l'hébergement
+     * (AccommodationController::store() bloque déjà tant que profile_completed
+     * est faux). Vérification par OTP e-mail uniquement (décision produit
+     * 2026-08-13 : pas de SMS, pour limiter les frictions à l'inscription).
+     */
+    public function registerPartnerLight(Request $request)
+    {
+        $data = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name'  => 'required|string|max:255',
+            'email'      => 'required|string|email|max:255|unique:users',
+            'password'   => 'required|string|min:8|confirmed',
+            'phone'      => 'required|string|max:20',
+            'accept_terms' => 'accepted',
+        ]);
+
+        $clean = fn ($v) => $v !== null ? strip_tags($v) : null;
+
+        $user = User::create([
+            'name'       => trim($clean($data['first_name']) . ' ' . $clean($data['last_name'])),
+            'first_name' => $clean($data['first_name']),
+            'last_name'  => $clean($data['last_name']),
+            'email'      => $data['email'],
+            'phone'      => $data['phone'],
+            'password'   => Hash::make($data['password']),
+            'role'       => 'host',
+        ]);
+
+        $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $user->update([
+            'email_otp_code'       => $otp,
+            'email_otp_expires_at' => now()->addMinutes(10),
+        ]);
+
+        try {
+            Mail::to($user->email)->send(new OtpMail($user->name, $otp));
+        } catch (\Throwable $e) {
+            Log::error('Register partner OTP email failed: ' . $e->getMessage(), ['user_id' => $user->id]);
+            $user->update(['email_otp_code' => null, 'email_otp_expires_at' => null]);
+            return response()->json([
+                'message' => "Impossible d'envoyer le code de vérification. Veuillez réessayer dans quelques instants.",
+            ], 503);
+        }
+
+        return response()->json([
+            'requires_email_otp' => true,
+            'user_id'            => $user->id,
+            'email'              => $user->email,
+            'message'            => 'Un code de vérification a été envoyé par email.',
+        ], 201);
+    }
+
+    /**
      * Préremplissage du formulaire d'inscription à partir d'un compte INVITÉ existant
      * (réservations passées). Restreint aux comptes is_guest (sans mot de passe) pour
      * limiter l'exposition de données ; enrichi par la dernière réservation.

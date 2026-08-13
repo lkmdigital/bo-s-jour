@@ -93,6 +93,7 @@ Route::post('/register', [AuthController::class, 'register'])->middleware('throt
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1'); // 5 tentatives par minute
 Route::post('/auth/activate-guest', [AuthController::class, 'activateGuest'])->middleware('throttle:5,1'); // activation compte invité
 Route::post('/auth/register-traveler', [AuthController::class, 'registerTraveler'])->middleware('throttle:10,1'); // inscription voyageur (légère)
+Route::post('/auth/register-partner-light', [AuthController::class, 'registerPartnerLight'])->middleware('throttle:10,1'); // inscription hôte (légère)
 Route::get('/auth/guest-prefill', [AuthController::class, 'guestPrefill'])->middleware('throttle:20,1'); // préremplissage depuis compte invité existant
 
 // Email OTP & Password Reset (public)
