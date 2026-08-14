@@ -31,13 +31,21 @@ import {
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isController, isAdmin } from '@/lib/userUtils';
+import { useLocaleStore, Locale } from '@/stores/localeStore';
 import Logo from './Logo';
+
+const LANG_OPTIONS: { key: Locale; label: string }[] = [
+  { key: 'fr', label: 'Français' },
+  { key: 'en', label: 'English' },
+];
 
 export default function Header() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
+  const { locale, setLocale } = useLocaleStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   // Vérifier si on est sur une page admin
   const isAdminPage = pathname?.startsWith('/dashboard/admin');
@@ -441,9 +449,35 @@ export default function Header() {
             ) : (
               <div className="flex items-center gap-3">
                 {/* Langue */}
-                <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary" aria-label="Changer la langue">
-                  <Globe className="w-5 h-5" />
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setLangMenuOpen((v) => !v)}
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
+                    aria-label="Changer la langue"
+                    aria-haspopup="true"
+                    aria-expanded={langMenuOpen}
+                  >
+                    <Globe className="w-5 h-5" />
+                  </button>
+                  {langMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setLangMenuOpen(false)} />
+                      <div className="absolute right-0 top-full mt-2 w-36 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1.5 z-50">
+                        {LANG_OPTIONS.map((o) => (
+                          <button
+                            key={o.key}
+                            type="button"
+                            onClick={() => { setLocale(o.key); setLangMenuOpen(false); }}
+                            className={`w-full text-left px-3.5 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${locale === o.key ? 'text-primary font-semibold' : 'text-gray-700 dark:text-gray-300'}`}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
                 {/* Support */}
                 <a
                   href="https://wa.me/2250705654775?text=Bonjour%2C%20j%27ai%20besoin%20d%27assistance."
@@ -453,13 +487,13 @@ export default function Header() {
                 >
                   <Headphones className="w-5 h-5" />
                 </a>
-                {/* Espace Partenaire */}
+                {/* Ajouter mon établissement (espace partenaire) */}
                 <Link href="/partenaire" className="hidden lg:inline-flex text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary items-center gap-1.5">
                   <Building2 className="w-4 h-4" />
-                  Espace Partenaire
+                  Ajouter mon établissement
                 </Link>
-                {/* Connexion */}
-                <Link href="/acces" className="btn-primary text-sm inline-flex items-center gap-1.5">
+                {/* Connexion — réservée au voyageur, les partenaires passent par "Ajouter mon établissement" */}
+                <Link href="/auth/login" className="btn-primary text-sm inline-flex items-center gap-1.5">
                   <LogIn className="w-4 h-4" />
                   Connexion
                 </Link>
@@ -486,7 +520,7 @@ export default function Header() {
                 </button>
               </>
             ) : (
-              <Link href="/acces" className="btn-primary text-sm inline-flex items-center gap-1.5">
+              <Link href="/auth/login" className="btn-primary text-sm inline-flex items-center gap-1.5">
                 <LogIn className="w-4 h-4" />
                 Connexion
               </Link>

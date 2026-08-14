@@ -15,7 +15,7 @@ class HostClientController extends Controller
      */
     public function index(Request $request)
     {
-        $hostId = $request->user()->id;
+        $hostId = $request->user()->hostScopeId();
         $accommodationIds = Accommodation::where('host_id', $hostId)->pluck('id');
 
         $clients = Booking::whereIn('accommodation_id', $accommodationIds)

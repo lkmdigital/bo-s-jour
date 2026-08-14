@@ -21,7 +21,7 @@ class PromotionController extends Controller
 
         try {
             // Si l'utilisateur est authentifié et est propriétaire ou admin, retourner toutes les promotions
-            if ($user && ($user->isAdmin() || $accommodation->host_id === $user->id)) {
+            if ($user && ($user->isAdmin() || $accommodation->host_id === $user->hostScopeId())) {
                 $promotions = Promotion::where('accommodation_id', $accommodationId)
                     ->with(['room'])
                     ->orderBy('start_date', 'desc')
@@ -53,7 +53,7 @@ class PromotionController extends Controller
         $accommodation = Accommodation::findOrFail($accommodationId);
 
         // Vérifier que l'utilisateur est le propriétaire ou admin
-        if (!$request->user()->isAdmin() && $accommodation->host_id !== $request->user()->id) {
+        if (!$request->user()->isAdmin() && $accommodation->host_id !== $request->user()->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -123,7 +123,7 @@ class PromotionController extends Controller
         }
 
         // Vérifier que l'utilisateur est le propriétaire ou admin
-        if (!$request->user()->isAdmin() && $accommodation->host_id !== $request->user()->id) {
+        if (!$request->user()->isAdmin() && $accommodation->host_id !== $request->user()->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -198,7 +198,7 @@ class PromotionController extends Controller
         }
 
         // Vérifier que l'utilisateur est le propriétaire ou admin
-        if (!$request->user()->isAdmin() && $accommodation->host_id !== $request->user()->id) {
+        if (!$request->user()->isAdmin() && $accommodation->host_id !== $request->user()->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -221,7 +221,7 @@ class PromotionController extends Controller
         }
 
         // Vérifier que l'utilisateur est le propriétaire ou admin
-        if (!$request->user()->isAdmin() && $accommodation->host_id !== $request->user()->id) {
+        if (!$request->user()->isAdmin() && $accommodation->host_id !== $request->user()->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -245,7 +245,7 @@ class PromotionController extends Controller
             return response()->json(['message' => 'Promotion not found'], 404);
         }
 
-        if (!$request->user()->isAdmin() && $accommodation->host_id !== $request->user()->id) {
+        if (!$request->user()->isAdmin() && $accommodation->host_id !== $request->user()->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

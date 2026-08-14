@@ -5,7 +5,7 @@ import EstablishmentHubList from '@/components/dashboard/host/EstablishmentHubLi
 export default function HostPropertyPage() {
   return (
     <EstablishmentHubList
-      title="Mon établissement"
+      title="Mes établissements"
       description="Gérez les informations, photos et politiques de vos établissements"
       actionHref={(id) => `/dashboard/host/accommodations/${id}/edit`}
       actionLabel="Modifier l'établissement"

@@ -8,6 +8,7 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RevenueController extends Controller
 {
@@ -96,6 +97,49 @@ class RevenueController extends Controller
     }
 
     /**
+     * Export CSV des commissions filtrées (compatible Excel).
+     */
+    public function exportCommissionsCsv(Request $request): StreamedResponse
+    {
+        if (!$request->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $query = Commission::with(['booking.accommodation', 'host']);
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->has('from_date')) {
+            $query->whereDate('created_at', '>=', $request->from_date);
+        }
+        if ($request->has('to_date')) {
+            $query->whereDate('created_at', '<=', $request->to_date);
+        }
+
+        $commissions = $query->orderByDesc('created_at')->get();
+        $filename = 'commissions-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($commissions) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($out, ['Date', 'Établissement', 'Hôte', 'Montant réservation (FCFA)', 'Commission (FCFA)', 'Montant hôte (FCFA)', 'Statut']);
+            foreach ($commissions as $c) {
+                fputcsv($out, [
+                    optional($c->created_at)->format('Y-m-d H:i'),
+                    $c->booking->accommodation->name ?? '',
+                    $c->host->name ?? '',
+                    $c->booking_amount,
+                    $c->commission_amount,
+                    $c->host_amount,
+                    $c->status,
+                ]);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
      * Obtenir les revenus de l'hôte
      */
     public function hostRevenue(Request $request)
@@ -104,7 +148,7 @@ class RevenueController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $hostId = $request->user()->id;
+        $hostId = $request->user()->hostScopeId();
 
         $query = Commission::with(['booking.accommodation', 'payment'])
             ->where('host_id', $hostId);

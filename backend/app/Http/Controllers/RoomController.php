@@ -23,7 +23,7 @@ class RoomController extends Controller
 
         $user = $request->user();
         $isAdmin = $user && $user->isAdmin();
-        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->id;
+        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->hostScopeId();
 
         // Admin et propriétaire voient toutes les chambres (actives et inactives)
         // Autres utilisateurs voient seulement les chambres actives
@@ -218,7 +218,7 @@ class RoomController extends Controller
 
         $user = $request->user();
         $isAdmin = $user && $user->isAdmin();
-        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->id;
+        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->hostScopeId();
 
         // Seul l'admin ou le propriétaire peut créer
         if (!$isAdmin && !$isHostOwner) {
@@ -332,7 +332,7 @@ class RoomController extends Controller
 
         $user = $request->user();
         $isAdmin = $user && $user->isAdmin();
-        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->id;
+        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->hostScopeId();
 
         // Seul l'admin ou le propriétaire peut modifier
         if (!$isAdmin && !$isHostOwner) {
@@ -433,7 +433,7 @@ class RoomController extends Controller
 
         $user = $request->user();
         $isAdmin = $user && $user->isAdmin();
-        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->id;
+        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->hostScopeId();
 
         // Seul l'admin ou le propriétaire peut supprimer
         if (!$isAdmin && !$isHostOwner) {
@@ -466,7 +466,7 @@ class RoomController extends Controller
 
         $user = $request->user();
         $isAdmin = $user && $user->isAdmin();
-        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->id;
+        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->hostScopeId();
 
         // Seul l'admin ou le propriétaire peut uploader
         if (!$isAdmin && !$isHostOwner) {
@@ -536,7 +536,7 @@ class RoomController extends Controller
 
         $user = $request->user();
         $isAdmin = $user && $user->isAdmin();
-        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->id;
+        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->hostScopeId();
 
         // Seul l'admin ou le propriétaire peut supprimer
         if (!$isAdmin && !$isHostOwner) {
@@ -594,7 +594,7 @@ class RoomController extends Controller
 
         $user = $request->user();
         $isAdmin = $user && $user->isAdmin();
-        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->id;
+        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->hostScopeId();
 
         // Seul l'admin ou le propriétaire peut définir l'image principale
         if (!$isAdmin && !$isHostOwner) {
@@ -644,7 +644,7 @@ class RoomController extends Controller
 
         $user = $request->user();
         $isAdmin = $user && $user->isAdmin();
-        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->id;
+        $isHostOwner = $user && $user->isHost() && $accommodation->host_id === $user->hostScopeId();
 
         // Seul l'admin ou le propriétaire peut réorganiser
         if (!$isAdmin && !$isHostOwner) {

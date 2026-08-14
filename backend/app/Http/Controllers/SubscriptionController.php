@@ -34,7 +34,7 @@ class SubscriptionController extends Controller
 
         $accommodation = Accommodation::findOrFail($request->accommodation_id);
 
-        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+        if ($accommodation->host_id !== $request->user()->hostScopeId() && !$request->user()->isAdmin()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

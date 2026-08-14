@@ -150,7 +150,7 @@ class AccommodationController extends Controller
 
         // If authenticated and is owner or admin, allow viewing regardless of status
         $user = $request->user();
-        if ($user && ($user->isAdmin() || Accommodation::where('id', $id)->where('host_id', $user->id)->exists())) {
+        if ($user && ($user->isAdmin() || Accommodation::where('id', $id)->where('host_id', $user->hostScopeId())->exists())) {
             // Pour le propriétaire/admin : charger TOUTES les chambres (actives et inactives)
             $accommodation = Accommodation::with([
                 'host', 
@@ -344,7 +344,7 @@ class AccommodationController extends Controller
             return response()->json(['message' => 'Non authentifié'], 401);
         }
 
-        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+        if ($accommodation->host_id !== $request->user()->hostScopeId() && !$request->user()->isAdmin()) {
             return response()->json(['message' => 'Permission refusée'], 403);
         }
 
@@ -458,7 +458,7 @@ class AccommodationController extends Controller
     {
         $accommodation = Accommodation::findOrFail($accommodationId);
 
-        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+        if ($accommodation->host_id !== $request->user()->hostScopeId() && !$request->user()->isAdmin()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -496,7 +496,7 @@ class AccommodationController extends Controller
         $accommodation = Accommodation::findOrFail($accommodationId);
 
         // Autorisations : propriétaire ou admin
-        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+        if ($accommodation->host_id !== $request->user()->hostScopeId() && !$request->user()->isAdmin()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -519,18 +519,20 @@ class AccommodationController extends Controller
 
     public function store(Request $request)
     {
-        // Vérifier que le profil hôte est complet et vérifié
+        // Vérifier que le profil hôte est complet et vérifié — pour un compte staff,
+        // c'est la conformité du PROPRIÉTAIRE qui compte, pas celle du collaborateur.
         $user = $request->user();
+        $complianceUser = $user->isStaff() ? ($user->staffOwner ?? $user) : $user;
         Log::info('Accommodation store request received', [
             'user_id' => $user?->id,
-            'profile_completed' => $user?->profile_completed,
-            'profile_verified' => $user?->profile_verified,
+            'profile_completed' => $complianceUser?->profile_completed,
+            'profile_verified' => $complianceUser?->profile_verified,
             'payload_preview' => $request->only([
                 'name', 'type', 'city', 'price_per_night', 'max_guests'
             ]),
         ]);
 
-        if (!$user->profile_completed) {
+        if (!$complianceUser->profile_completed) {
             Log::warning('Accommodation creation blocked: profile not completed', [
                 'user_id' => $user->id,
             ]);
@@ -540,7 +542,7 @@ class AccommodationController extends Controller
             ], 403);
         }
 
-        if (!$user->profile_verified) {
+        if (!$complianceUser->profile_verified) {
             Log::warning('Accommodation creation blocked: profile awaiting verification', [
                 'user_id' => $user->id,
             ]);
@@ -602,7 +604,7 @@ class AccommodationController extends Controller
         ]);
 
         // Sécurité: empêcher la création de doublons pour le même hôte
-        $duplicate = Accommodation::where('host_id', $user->id)
+        $duplicate = Accommodation::where('host_id', $user->hostScopeId())
             ->whereRaw('LOWER(name) = LOWER(?)', [$request->name])
             ->whereRaw('LOWER(city) = LOWER(?)', [$request->city])
             ->whereNotIn('status', ['removed'])
@@ -631,7 +633,7 @@ class AccommodationController extends Controller
         }
 
         $accommodation = Accommodation::create([
-            'host_id' => $request->user()->id,
+            'host_id' => $request->user()->hostScopeId(),
             'name' => $request->name,
             'whatsapp' => $request->whatsapp,
             'slug' => $slug,
@@ -690,7 +692,7 @@ class AccommodationController extends Controller
     {
         $accommodation = Accommodation::findOrFail($id);
 
-        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+        if ($accommodation->host_id !== $request->user()->hostScopeId() && !$request->user()->isAdmin()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -836,7 +838,7 @@ class AccommodationController extends Controller
     {
         $accommodation = Accommodation::with('images')->findOrFail($id);
 
-        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+        if ($accommodation->host_id !== $request->user()->hostScopeId() && !$request->user()->isAdmin()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -882,7 +884,7 @@ class AccommodationController extends Controller
     {
         $accommodation = Accommodation::with('images')->findOrFail($id);
 
-        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+        if ($accommodation->host_id !== $request->user()->hostScopeId() && !$request->user()->isAdmin()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -923,7 +925,7 @@ class AccommodationController extends Controller
     {
         $accommodation = Accommodation::findOrFail($id);
 
-        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+        if ($accommodation->host_id !== $request->user()->hostScopeId() && !$request->user()->isAdmin()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -956,7 +958,7 @@ class AccommodationController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $query = Accommodation::where('host_id', $request->user()->id)
+        $query = Accommodation::where('host_id', $request->user()->hostScopeId())
             ->with(['images', 'bookings' => function($q) {
                 $q->where('status', 'confirmed');
             }])

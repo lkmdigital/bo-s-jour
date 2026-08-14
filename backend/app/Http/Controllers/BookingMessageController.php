@@ -17,7 +17,7 @@ class BookingMessageController extends Controller
         $user = $request->user();
 
         $canAccess = $user->id === $booking->user_id
-            || $user->id === $booking->accommodation->host_id;
+            || $user->hostScopeId() === $booking->accommodation->host_id;
 
         if (!$canAccess) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
@@ -48,7 +48,7 @@ class BookingMessageController extends Controller
 
         if ($user->id === $booking->user_id) {
             $recipientId = $booking->accommodation->host_id;
-        } elseif ($user->id === $booking->accommodation->host_id) {
+        } elseif ($user->hostScopeId() === $booking->accommodation->host_id) {
             $recipientId = $booking->user_id;
         }
 

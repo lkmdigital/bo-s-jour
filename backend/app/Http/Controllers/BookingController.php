@@ -34,8 +34,9 @@ class BookingController extends Controller
         if ($request->user()->isUser()) {
             $query->where('user_id', $request->user()->id);
         } elseif ($request->user()->isHost()) {
-            $query->whereHas('accommodation', function($q) use ($request) {
-                $q->where('host_id', $request->user()->id);
+            $hostScopeId = $request->user()->hostScopeId();
+            $query->whereHas('accommodation', function($q) use ($hostScopeId) {
+                $q->where('host_id', $hostScopeId);
             });
         }
 
@@ -85,7 +86,7 @@ class BookingController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
         $now = \Carbon\Carbon::now();
-        $hostId = $request->user()->id;
+        $hostId = $request->user()->hostScopeId();
 
         $base = Booking::with(['accommodation.images', 'room', 'user'])
             ->whereHas('accommodation', function($q) use ($hostId) {
@@ -215,7 +216,7 @@ class BookingController extends Controller
         if ($isAuthenticated) {
             $user = $request->user();
             // Prevent a host from booking their own accommodation
-            if ($user->id === $accommodation->host_id) {
+            if ($user->hostScopeId() === $accommodation->host_id) {
                 return response()->json(['message' => 'Hosts cannot book their own accommodation'], 403);
             }
         } else {
@@ -453,7 +454,7 @@ class BookingController extends Controller
 
         $canCancel = $user->isAdmin()
             || $booking->user_id === $user->id
-            || $booking->accommodation?->host_id === $user->id;
+            || $booking->accommodation?->host_id === $user->hostScopeId();
 
         if (!$canCancel) {
             return response()->json(['message' => 'Forbidden'], 403);
@@ -487,7 +488,7 @@ class BookingController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isAdmin() && $booking->accommodation?->host_id !== $user->id) {
+        if (!$user->isAdmin() && $booking->accommodation?->host_id !== $user->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -519,7 +520,7 @@ class BookingController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isAdmin() && $booking->accommodation?->host_id !== $user->id) {
+        if (!$user->isAdmin() && $booking->accommodation?->host_id !== $user->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -537,7 +538,7 @@ class BookingController extends Controller
 
         $canView = $user->isAdmin()
             || $booking->user_id === $user->id
-            || $booking->accommodation?->host_id === $user->id;
+            || $booking->accommodation?->host_id === $user->hostScopeId();
 
         if (!$canView) {
             return response()->json(['message' => 'Forbidden'], 403);
@@ -567,7 +568,7 @@ class BookingController extends Controller
         $booking = Booking::findOrFail($id);
 
         if ($booking->user_id !== $request->user()->id && 
-            $booking->accommodation->host_id !== $request->user()->id && 
+            $booking->accommodation->host_id !== $request->user()->hostScopeId() && 
             !$request->user()->isAdmin()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
@@ -688,7 +689,7 @@ class BookingController extends Controller
             $canView = true;
         } elseif ($user->isUser() && $booking->user_id === $user->id) {
             $canView = true;
-        } elseif ($user->isHost() && $booking->accommodation->host_id === $user->id) {
+        } elseif ($user->isHost() && $booking->accommodation->host_id === $user->hostScopeId()) {
             $canView = true;
         }
 

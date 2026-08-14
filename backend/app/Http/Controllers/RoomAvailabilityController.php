@@ -13,7 +13,7 @@ class RoomAvailabilityController extends Controller
     {
         $room = Room::where('accommodation_id', $accommodationId)->findOrFail($roomId);
 
-        if ($room->accommodation->host_id !== $request->user()->id) {
+        if ($room->accommodation->host_id !== $request->user()->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -32,7 +32,7 @@ class RoomAvailabilityController extends Controller
     {
         $room = Room::where('accommodation_id', $accommodationId)->findOrFail($roomId);
 
-        if ($room->accommodation->host_id !== $request->user()->id) {
+        if ($room->accommodation->host_id !== $request->user()->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -60,7 +60,7 @@ class RoomAvailabilityController extends Controller
     {
         $room = Room::where('accommodation_id', $accommodationId)->findOrFail($roomId);
 
-        if ($room->accommodation->host_id !== $request->user()->id) {
+        if ($room->accommodation->host_id !== $request->user()->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -111,7 +111,7 @@ class RoomAvailabilityController extends Controller
             })
             ->findOrFail($id);
 
-        if ($availability->room->accommodation->host_id !== $request->user()->id) {
+        if ($availability->room->accommodation->host_id !== $request->user()->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -133,7 +133,7 @@ class RoomAvailabilityController extends Controller
             })
             ->findOrFail($id);
 
-        if ($availability->room->accommodation->host_id !== $request->user()->id) {
+        if ($availability->room->accommodation->host_id !== $request->user()->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -146,7 +146,7 @@ class RoomAvailabilityController extends Controller
     {
         $room = Room::where('accommodation_id', $accommodationId)->findOrFail($roomId);
 
-        if ($room->accommodation->host_id !== $request->user()->id) {
+        if ($room->accommodation->host_id !== $request->user()->hostScopeId()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

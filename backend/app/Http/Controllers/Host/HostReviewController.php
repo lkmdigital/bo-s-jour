@@ -14,7 +14,7 @@ class HostReviewController extends Controller
      */
     public function index(Request $request)
     {
-        $hostId = $request->user()->id;
+        $hostId = $request->user()->hostScopeId();
         $accommodationIds = Accommodation::where('host_id', $hostId)->pluck('id');
 
         $reviews = Review::with(['user:id,name', 'accommodation:id,name,city'])
@@ -35,7 +35,7 @@ class HostReviewController extends Controller
         ]);
 
         $review = Review::findOrFail($id);
-        $accommodation = Accommodation::where('id', $review->accommodation_id)->where('host_id', $request->user()->id)->firstOrFail();
+        $accommodation = Accommodation::where('id', $review->accommodation_id)->where('host_id', $request->user()->hostScopeId())->firstOrFail();
 
         $review->host_reply = $request->host_reply;
         $review->host_replied_at = now();

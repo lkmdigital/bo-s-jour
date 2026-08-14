@@ -20,7 +20,7 @@ class AnalyticsController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $hostId = $request->user()->id;
+        $hostId = $request->user()->hostScopeId();
 
         $filterByPeriod = $request->has('from_date') && $request->has('to_date');
         $startDate = $filterByPeriod ? Carbon::parse($request->from_date)->startOfDay() : null;
@@ -634,7 +634,7 @@ class AnalyticsController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $hostId = $request->user()->id;
+        $hostId = $request->user()->hostScopeId();
 
         // Vérifier que l'établissement appartient à l'hôte
         $accommodation = Accommodation::where('id', $accommodationId)

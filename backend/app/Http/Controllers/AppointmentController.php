@@ -13,7 +13,7 @@ class AppointmentController extends Controller
     {
         $accommodation = Accommodation::findOrFail($accommodationId);
 
-        if ($accommodation->host_id !== $request->user()->id && !$request->user()->isAdmin()) {
+        if ($accommodation->host_id !== $request->user()->hostScopeId() && !$request->user()->isAdmin()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -43,7 +43,7 @@ class AppointmentController extends Controller
             return response()->json(
                 Appointment::with(['accommodation', 'user'])
                     ->whereHas('accommodation', function ($q) use ($request) {
-                        $q->where('host_id', $request->user()->id);
+                        $q->where('host_id', $request->user()->hostScopeId());
                     })
                     ->orderBy('created_at', 'desc')
                     ->get()

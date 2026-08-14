@@ -17,6 +17,8 @@ class User extends Authenticatable
         'password',
         'phone',
         'role', // Rôle principal (rétrocompatibilité)
+        'staff_owner_id',
+        'staff_role',
         'avatar',
         'email_verified_at',
         'google_id',
@@ -140,6 +142,35 @@ class User extends Authenticatable
     public function hasBankDetails(): bool
     {
         return !empty($this->bank_name) && !empty($this->bank_account_holder) && !empty($this->bank_account_number);
+    }
+
+    public function staffOwner()
+    {
+        return $this->belongsTo(User::class, 'staff_owner_id');
+    }
+
+    public function staffMembers()
+    {
+        return $this->hasMany(HostStaff::class, 'owner_id');
+    }
+
+    public function isStaff(): bool
+    {
+        return !empty($this->staff_owner_id);
+    }
+
+    /**
+     * Identifiant "propriétaire" à utiliser pour toute requête host_id : le compte
+     * lui-même s'il est propriétaire, ou son staff_owner_id s'il s'agit d'un
+     * collaborateur (réceptionniste, comptabilité…) — brief Extranet Partenaire,
+     * Phase 13. Les modules réellement accessibles restent filtrés côté menu
+     * (voir HostStaff::ROLE_LABELS / frontend) : ceci ne fait que garantir qu'un
+     * collaborateur ne voit et n'agit jamais que sur les établissements de SON
+     * propriétaire, jamais sur ceux d'un autre hôte.
+     */
+    public function hostScopeId(): int
+    {
+        return $this->staff_owner_id ?? $this->id;
     }
 
     public function hasCompleteIdentityDocument(): bool

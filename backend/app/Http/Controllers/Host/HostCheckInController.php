@@ -20,7 +20,7 @@ class HostCheckInController extends Controller
         ]);
 
         $code = strtoupper(trim($request->confirmation_code));
-        $hostId = $request->user()->id;
+        $hostId = $request->user()->hostScopeId();
 
         $booking = Booking::with(['accommodation', 'user'])
             ->where('confirmation_code', $code)

@@ -19,6 +19,9 @@ export interface User {
   // Voyageur (brief Parcours Voyageur)
   traveler_type?: 'individual' | 'corporate';
   company_name?: string;
+  // Collaborateur hôte (menu Personnel — brief Extranet Partenaire, Phase 13)
+  staff_owner_id?: number | null;
+  staff_role?: 'administrateur' | 'receptionniste' | 'comptabilite' | 'commercial' | 'housekeeping' | 'maintenance' | null;
 }
 
 export interface LoginCredentials {

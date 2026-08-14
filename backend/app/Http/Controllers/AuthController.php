@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\CorporateCollaborator;
+use App\Models\HostStaff;
 use App\Services\TwoFactorService;
 use App\Services\OneSignalService;
 use App\Services\SmsService;
@@ -58,6 +59,96 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Compte activé avec succès.',
+            'user' => $user,
+            'token' => $token,
+        ]);
+    }
+
+    /**
+     * Activation d'une invitation collaborateur (menu Personnel de l'extranet partenaire —
+     * brief Extranet Partenaire, Phase 13). Le lien contient un jeton à usage unique posé
+     * lors de l'invitation (HostStaffController::store). Crée un compte "host" distinct
+     * rattaché au propriétaire via staff_owner_id (voir User::hostScopeId()).
+     */
+    public function staffInvitationInfo(Request $request)
+    {
+        $request->validate(['token' => 'required|string']);
+
+        $staff = HostStaff::where('invite_token', $request->token)
+            ->where('status', HostStaff::STATUS_INVITED)
+            ->with('owner:id,name,company_name')
+            ->first();
+
+        if (!$staff) {
+            return response()->json(['message' => "Ce lien d'invitation est invalide ou a déjà été utilisé."], 404);
+        }
+
+        return response()->json([
+            'name' => $staff->name,
+            'email' => $staff->email,
+            'role' => $staff->role,
+            'role_label' => HostStaff::ROLE_LABELS[$staff->role] ?? $staff->role,
+            'owner_name' => $staff->owner?->company_name ?: $staff->owner?->name,
+        ]);
+    }
+
+    public function activateStaffInvitation(Request $request)
+    {
+        $data = $request->validate([
+            'token' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $staff = HostStaff::where('invite_token', $data['token'])
+            ->where('status', HostStaff::STATUS_INVITED)
+            ->first();
+
+        if (!$staff) {
+            return response()->json([
+                'message' => "Ce lien d'invitation est invalide ou a déjà été utilisé.",
+            ], 422);
+        }
+
+        $user = User::where('email', $staff->email)->first();
+
+        if (!$user) {
+            $user = User::create([
+                'name' => $staff->name,
+                'email' => $staff->email,
+                'phone' => $staff->phone,
+                'password' => Hash::make($data['password']),
+                'role' => 'host',
+                'staff_owner_id' => $staff->owner_id,
+                'staff_role' => $staff->role,
+                'email_verified_at' => now(),
+                'profile_completed' => true,
+                'profile_verified' => true,
+            ]);
+        } else {
+            // Compte voyageur existant : on pose le mot de passe collaborateur (peut différer
+            // de celui du compte voyageur si un mot de passe existait déjà) et on le promeut.
+            $user->password = Hash::make($data['password']);
+            $user->role = 'host';
+            $user->staff_owner_id = $staff->owner_id;
+            $user->staff_role = $staff->role;
+            $user->is_guest = false;
+            if (!$user->email_verified_at) {
+                $user->email_verified_at = now();
+            }
+            $user->save();
+        }
+
+        $staff->update([
+            'collaborator_user_id' => $user->id,
+            'status' => HostStaff::STATUS_ACTIVE,
+            'accepted_at' => now(),
+            'invite_token' => null,
+        ]);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Accès collaborateur activé avec succès.',
             'user' => $user,
             'token' => $token,
         ]);

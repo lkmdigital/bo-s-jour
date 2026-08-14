@@ -824,8 +824,8 @@ class PaymentController extends Controller
 
         // Si l'utilisateur est authentifié, vérifier les permissions
         if ($user) {
-            if ($payment->user_id !== $user->id && 
-                $payment->booking->accommodation->host_id !== $user->id &&
+            if ($payment->user_id !== $user->id &&
+                $payment->booking->accommodation->host_id !== $user->hostScopeId() &&
                 !$user->isAdmin()) {
                 return response()->json(['message' => 'Forbidden'], 403);
             }

@@ -14,7 +14,7 @@ class HostWithdrawalController extends Controller
      */
     public function availableBalance(Request $request)
     {
-        $hostId = $request->user()->id;
+        $hostId = $request->user()->hostScopeId();
         $balance = (float) Commission::where('host_id', $hostId)
             ->whereNotNull('released_at')
             ->where('status', 'pending')
@@ -27,7 +27,7 @@ class HostWithdrawalController extends Controller
      */
     public function index(Request $request)
     {
-        $requests = WithdrawalRequest::where('host_id', $request->user()->id)
+        $requests = WithdrawalRequest::where('host_id', $request->user()->hostScopeId())
             ->orderByDesc('created_at')
             ->paginate($request->get('per_page', 20));
         return response()->json($requests);
@@ -38,6 +38,15 @@ class HostWithdrawalController extends Controller
      */
     public function store(Request $request)
     {
+        // Les coordonnées bancaires et les retraits restent réservés au propriétaire,
+        // même pour un collaborateur "Administrateur" (brief Extranet Partenaire,
+        // Phase 13 : "accès total... hors coordonnées bancaires").
+        if ($request->user()->isStaff()) {
+            return response()->json([
+                'message' => "Les demandes de retrait sont réservées au propriétaire du compte.",
+            ], 403);
+        }
+
         $request->validate([
             'amount' => 'required|numeric|min:1000',
             'payment_method' => 'nullable|string|max:50',

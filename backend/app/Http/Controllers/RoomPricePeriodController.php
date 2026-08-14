@@ -136,7 +136,7 @@ class RoomPricePeriodController extends Controller
     {
         $user = $request->user();
         $isAdmin = $user && $user->isAdmin();
-        $isHostOwner = $user && $user->isHost() && $room->accommodation->host_id === $user->id;
+        $isHostOwner = $user && $user->isHost() && $room->accommodation->host_id === $user->hostScopeId();
 
         if (!$isAdmin && !$isHostOwner) {
             return response()->json(['message' => 'Forbidden'], 403);

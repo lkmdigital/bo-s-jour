@@ -26,6 +26,7 @@ use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\OAuthController;
 use App\Http\Controllers\ClientCreditController;
 use App\Http\Controllers\CorporateController;
+use App\Http\Controllers\HostStaffController;
 use App\Http\Controllers\BookingWhatsappOtpController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\SettingsController;
@@ -92,6 +93,8 @@ Route::get('/payments/{paymentId}', [PaymentController::class, 'show']);
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1'); // 5 tentatives par minute
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1'); // 5 tentatives par minute
 Route::post('/auth/activate-guest', [AuthController::class, 'activateGuest'])->middleware('throttle:5,1'); // activation compte invité
+Route::get('/auth/staff-invitation', [AuthController::class, 'staffInvitationInfo'])->middleware('throttle:20,1'); // infos invitation collaborateur (menu Personnel)
+Route::post('/auth/activate-staff', [AuthController::class, 'activateStaffInvitation'])->middleware('throttle:5,1'); // activation collaborateur
 Route::post('/auth/register-traveler', [AuthController::class, 'registerTraveler'])->middleware('throttle:10,1'); // inscription voyageur (légère)
 Route::post('/auth/register-partner-light', [AuthController::class, 'registerPartnerLight'])->middleware('throttle:10,1'); // inscription hôte (légère)
 Route::get('/auth/guest-prefill', [AuthController::class, 'guestPrefill'])->middleware('throttle:20,1'); // préremplissage depuis compte invité existant
@@ -223,6 +226,12 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::get('/host/withdrawal-requests/balance', [HostWithdrawalController::class, 'availableBalance']);
         Route::get('/host/withdrawal-requests', [HostWithdrawalController::class, 'index']);
         Route::post('/host/withdrawal-requests', [HostWithdrawalController::class, 'store']);
+
+        // Personnel (collaborateurs : réceptionniste, comptabilité, commercial, housekeeping, maintenance)
+        Route::get('/host/staff', [HostStaffController::class, 'index']);
+        Route::post('/host/staff', [HostStaffController::class, 'store'])->middleware('throttle:20,1');
+        Route::put('/host/staff/{staffMember}', [HostStaffController::class, 'update']);
+        Route::delete('/host/staff/{staffMember}', [HostStaffController::class, 'destroy']);
     });
 
     // Bookings protégées (nécessitent authentification)

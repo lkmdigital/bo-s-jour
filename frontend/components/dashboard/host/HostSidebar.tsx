@@ -29,7 +29,7 @@ import { useRouter } from 'next/navigation';
 
 const NAV_ITEMS = [
   { href: '/dashboard/host', label: 'Tableau de bord', icon: LayoutGrid },
-  { href: '/dashboard/host/property', label: 'Mon établissement', icon: Building2 },
+  { href: '/dashboard/host/property', label: 'Mes établissements', icon: Building2 },
   { href: '/dashboard/host/rooms', label: 'Chambres et tarifs', icon: BedDouble },
   { href: '/dashboard/host/calendar', label: 'Calendrier', icon: CalendarDays },
   { href: '/dashboard/host/reservations', label: 'Réservations', icon: BookOpen },
@@ -44,10 +44,51 @@ const NAV_ITEMS = [
   { href: '/dashboard/host/ai', label: 'Assistant IA', icon: Sparkles },
 ];
 
+/**
+ * Visibilité des menus par rôle collaborateur (brief Extranet Partenaire, Phase 13 :
+ * "seuls les modules autorisés sont visibles"). C'est une commodité d'UX côté frontend —
+ * la frontière de sécurité réelle (quels établissements un collaborateur peut voir/modifier)
+ * est appliquée côté backend via User::hostScopeId(), quel que soit le menu affiché ici.
+ * "Personnel" et "Mes établissements" restent réservés au propriétaire et à l'Administrateur.
+ */
+const STAFF_ROLE_MENUS: Record<string, string[]> = {
+  administrateur: NAV_ITEMS.map((i) => i.href),
+  receptionniste: [
+    '/dashboard/host',
+    '/dashboard/host/calendar',
+    '/dashboard/host/reservations',
+    '/dashboard/host/clients',
+  ],
+  comptabilite: [
+    '/dashboard/host',
+    '/dashboard/host/finances',
+    '/dashboard/host/documents',
+    '/dashboard/host/stats',
+  ],
+  commercial: [
+    '/dashboard/host',
+    '/dashboard/host/promotions',
+    '/dashboard/host/marketing',
+    '/dashboard/host/reviews',
+    '/dashboard/host/stats',
+  ],
+  housekeeping: [
+    '/dashboard/host',
+    '/dashboard/host/calendar',
+    '/dashboard/host/rooms',
+    '/dashboard/host/reservations',
+  ],
+  maintenance: [
+    '/dashboard/host',
+    '/dashboard/host/rooms',
+    '/dashboard/host/property',
+  ],
+};
+
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
 
   const isActive = (href: string) => {
     if (href === '/dashboard/host') return pathname === href;
@@ -59,10 +100,15 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     router.push('/auth/login');
   };
 
+  const staffRole = user?.staff_owner_id ? user?.staff_role : null;
+  const visibleItems = staffRole
+    ? NAV_ITEMS.filter((item) => (STAFF_ROLE_MENUS[staffRole] || []).includes(item.href))
+    : NAV_ITEMS;
+
   return (
     <>
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {visibleItems.map(({ href, label, icon: Icon }) => {
           const active = isActive(href);
           return (
             <Link
