@@ -492,8 +492,8 @@ export default function Header() {
                   <Building2 className="w-4 h-4" />
                   Ajouter mon établissement
                 </Link>
-                {/* Connexion — réservée au voyageur, les partenaires passent par "Ajouter mon établissement" */}
-                <Link href="/auth/login" className="btn-primary text-sm inline-flex items-center gap-1.5">
+                {/* Connexion — réservée au voyageur (page /voyageur, miroir de /partenaire) */}
+                <Link href="/voyageur" className="btn-primary text-sm inline-flex items-center gap-1.5">
                   <LogIn className="w-4 h-4" />
                   Connexion
                 </Link>
@@ -520,7 +520,7 @@ export default function Header() {
                 </button>
               </>
             ) : (
-              <Link href="/auth/login" className="btn-primary text-sm inline-flex items-center gap-1.5">
+              <Link href="/voyageur" className="btn-primary text-sm inline-flex items-center gap-1.5">
                 <LogIn className="w-4 h-4" />
                 Connexion
               </Link>
