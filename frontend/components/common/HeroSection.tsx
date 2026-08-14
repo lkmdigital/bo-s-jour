@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, Building2, Home, BedDouble, TreePalm, Tent, Castle, X, Minus, Plus } from 'lucide-react';
+import { Search, Building2, Home, BedDouble, TreePalm, X, Minus, Plus } from 'lucide-react';
 import SearchInputWithAutocomplete from './SearchInputWithAutocomplete';
 import { useSearchStore } from '@/stores/searchStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,13 +23,14 @@ interface HeroSectionProps {
   initialValues?: SearchParams;
 }
 
+// Alignés sur l'enum réel de la base (Accommodation.type) et sur les filtres de
+// /accommodations — un type choisi ici doit produire de vrais résultats filtrés,
+// jamais une valeur inconnue silencieusement ignorée.
 const PROPERTY_TYPES = [
   { key: 'hotel', label: 'Hôtel', icon: Building2 },
-  { key: 'maison', label: 'Maison', icon: Home },
-  { key: 'maison_hotes', label: "Maison d'hôtes", icon: BedDouble },
-  { key: 'cabine', label: 'Cabines', icon: TreePalm },
-  { key: 'glamping', label: 'Glamping', icon: Tent },
-  { key: 'dome', label: 'Doms', icon: Castle },
+  { key: 'lodge', label: 'Écolodge', icon: TreePalm },
+  { key: 'guesthouse', label: "Maison d'hôtes", icon: BedDouble },
+  { key: 'apartment', label: 'Appartement', icon: Home },
 ];
 
 // Diaporama du hero (change toutes les 3 s)

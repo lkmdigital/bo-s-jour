@@ -67,7 +67,10 @@ class SeedTestHostAccommodations extends Command
         $namePrefixes = ['Résidence', 'Hôtel', 'Villa', 'Lodge', 'Maison d\'Hôtes', 'Appart\'Hôtel'];
         $nameSuffixes = ['Étoile', 'Émeraude', 'Palmeraie', 'Horizon', 'Baobab', 'Perle', 'Oasis', 'Prestige', 'Zenith', 'Confort'];
         $types = ['hotel', 'lodge', 'guesthouse', 'apartment'];
-        $amenityPool = ['wifi', 'pool', 'parking', 'restaurant', 'gym', 'spa', 'tv', 'kitchen', 'air_conditioning', 'breakfast'];
+        // Vocabulaire aligné sur commonAmenities (AccommodationCreationWizard.tsx) — le
+        // même que celui réellement proposé à l'hôte, pour que les filtres de recherche
+        // fonctionnent aussi sur ces établissements de démo.
+        $amenityPool = ['Wi-Fi', 'Piscine', 'Parking', 'Restaurant', 'Salle de sport', 'Spa', 'Télévision', 'Cuisine équipée', 'Climatisation', 'Petit-déjeuner'];
 
         $created = 0;
         $counter = 1;

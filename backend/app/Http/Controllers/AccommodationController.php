@@ -52,10 +52,12 @@ class AccommodationController extends Controller
             $query->where('rating', '>=', (float) $request->min_rating);
         }
 
-        // Services / équipements (tous requis)
+        // Services / équipements (tous requis). Comparaison insensible à la casse via
+        // une recherche texte sur le JSON brut plutôt que whereJsonContains (comparaison
+        // stricte) : robuste si un hôte a saisi "wi-fi" au lieu de "Wi-Fi" par exemple.
         if ($request->filled('amenities')) {
             foreach (array_filter(array_map('trim', explode(',', $request->amenities))) as $amenity) {
-                $query->whereJsonContains('amenities', $amenity);
+                $query->whereRaw('LOWER(amenities) LIKE ?', ['%"' . mb_strtolower($amenity) . '"%']);
             }
         }
 

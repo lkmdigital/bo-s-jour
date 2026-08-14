@@ -224,22 +224,37 @@ export function TopSites({ photos = [] }: { photos?: string[] }) {
 /* ------------------------------------------------------------------ */
 /* 5. Meilleures activités                                             */
 /* ------------------------------------------------------------------ */
-const ACT_TABS = [
-  { label: 'Explorer', icon: Compass }, { label: 'Plage', icon: Waves },
-  { label: 'Musée', icon: Landmark }, { label: 'Afficher', icon: Eye },
-  { label: 'Nourriture', icon: UtensilsCrossed }, { label: 'Vie nocturne', icon: Moon },
+// 'all' = onglet "Explorer" (aucun filtre, tout affiché). Les autres catégories
+// filtrent réellement la grille, et chaque carte relie vers une recherche
+// d'hébergements pré-remplie (paramètre `search`, consommé par /accommodations)
+// plutôt que vers un lien générique sans effet.
+type ActivityCategory = 'plage' | 'musee' | 'voir' | 'nourriture' | 'vie_nocturne';
+const ACT_TABS: { label: string; icon: typeof Compass; category: ActivityCategory | 'all' }[] = [
+  { label: 'Explorer', icon: Compass, category: 'all' },
+  { label: 'Plage', icon: Waves, category: 'plage' },
+  { label: 'Musée', icon: Landmark, category: 'musee' },
+  { label: 'À voir', icon: Eye, category: 'voir' },
+  { label: 'Nourriture', icon: UtensilsCrossed, category: 'nourriture' },
+  { label: 'Vie nocturne', icon: Moon, category: 'vie_nocturne' },
 ];
-const ACTIVITIES = [
-  { name: 'Plage de Grand-Bassam', image: img('1507525428034-b723cf961d3e', 500) },
-  { name: 'Parc du Banco', image: img('1441974231531-c6227db76b6e', 500) },
-  { name: 'Plateau, Abidjan', image: img('1502602898657-3e91760cbb34', 500) },
-  { name: 'Lagune Ébrié', image: img('1520250497591-112f2f40a3f4', 500) },
-  { name: 'Basilique de Yamoussoukro', image: img('1566073771259-6a8506099945', 500) },
-  { name: 'Cascades de Man', image: img('1506905925346-21bda4d32df4', 500) },
+const ACTIVITIES: { name: string; searchTerm: string; categories: ActivityCategory[]; image: string }[] = [
+  { name: 'Plage de Grand-Bassam', searchTerm: 'Grand-Bassam', categories: ['plage'], image: img('1507525428034-b723cf961d3e', 500) },
+  { name: 'San-Pédro, bord de mer', searchTerm: 'San-Pédro', categories: ['plage'], image: img('1520250497591-112f2f40a3f4', 500) },
+  { name: 'Basilique de Yamoussoukro', searchTerm: 'Yamoussoukro', categories: ['musee'], image: img('1566073771259-6a8506099945', 500) },
+  { name: 'Plateau, Abidjan', searchTerm: 'Plateau', categories: ['musee', 'voir'], image: img('1502602898657-3e91760cbb34', 500) },
+  { name: 'Parc du Banco', searchTerm: 'Abidjan', categories: ['voir'], image: img('1441974231531-c6227db76b6e', 500) },
+  { name: 'Lagune Ébrié', searchTerm: 'Abidjan', categories: ['voir'], image: img('1520250497591-112f2f40a3f4', 500) },
+  { name: 'Cascades de Man', searchTerm: 'Man', categories: ['voir'], image: img('1506905925346-21bda4d32df4', 500) },
+  { name: 'Marché de Treichville', searchTerm: 'Abidjan', categories: ['nourriture'], image: img('1502602898657-3e91760cbb34', 500) },
+  { name: 'Rue Princesse, Yopougon', searchTerm: 'Yopougon', categories: ['nourriture', 'vie_nocturne'], image: img('1441974231531-c6227db76b6e', 500) },
+  { name: 'Zone 4, Marcory', searchTerm: 'Marcory', categories: ['vie_nocturne'], image: img('1506905925346-21bda4d32df4', 500) },
 ];
 
 export function Activities({ photos = [] }: { photos?: string[] }) {
   const [active, setActive] = useState(0);
+  const category = ACT_TABS[active].category;
+  const filtered = category === 'all' ? ACTIVITIES : ACTIVITIES.filter((a) => a.categories.includes(category));
+
   return (
     <section className="container mx-auto px-4 md:px-8 max-w-7xl py-12">
       <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Les meilleures activités à Abidjan</h2>
@@ -258,16 +273,20 @@ export function Activities({ photos = [] }: { photos?: string[] }) {
           );
         })}
       </div>
-      <Reveal className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        {ACTIVITIES.map((a, i) => (
-          <Link key={a.name} href="/accommodations" className="group">
-            <div className="relative aspect-square rounded-xl overflow-hidden mb-2">
-              <Image src={photos[i] || a.image} alt={a.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="16vw" />
-            </div>
-            <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{a.name}</p>
-          </Link>
-        ))}
-      </Reveal>
+      {filtered.length === 0 ? (
+        <p className="text-sm text-gray-500 py-8 text-center">Aucune activité dans cette catégorie pour le moment.</p>
+      ) : (
+        <Reveal className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {filtered.map((a, i) => (
+            <Link key={a.name} href={`/accommodations?search=${encodeURIComponent(a.searchTerm)}`} className="group">
+              <div className="relative aspect-square rounded-xl overflow-hidden mb-2">
+                <Image src={photos[i] || a.image} alt={a.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="16vw" />
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{a.name}</p>
+            </Link>
+          ))}
+        </Reveal>
+      )}
     </section>
   );
 }

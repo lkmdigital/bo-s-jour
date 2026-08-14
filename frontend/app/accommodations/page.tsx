@@ -38,7 +38,11 @@ const TYPES = [
   { key: 'guesthouse', label: "Maison d'hôtes" },
   { key: 'apartment', label: 'Appartement' },
 ];
-const AMENITIES = ['Wifi', 'Parking', 'Piscine', 'Climatisation', 'Petit-déjeuner', 'Restaurant', 'Salle de sport', 'Animaux acceptés'];
+// Alignés sur la liste réelle proposée à l'hôte lors de la création de son établissement
+// (commonAmenities dans AccommodationCreationWizard.tsx) — un service coché ici doit
+// correspondre exactement à ce qui est enregistré en base, sinon le filtre ne trouve rien.
+// "Animaux acceptés" n'existe pas dans cette liste (pas un service réel du produit).
+const AMENITIES = ['Wi-Fi', 'Climatisation', 'Piscine', 'Parking', 'Petit-déjeuner', 'Restaurant', 'Salle de sport'];
 const CANCELLATION = ['Flexible', 'Modérée', 'Stricte'];
 const SORTS = [
   { key: 'recommended', label: 'Recommandés' },
@@ -72,7 +76,13 @@ export default function AccommodationsPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, per_page: 12, current_page: 1, last_page: 1 });
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  // Type initialisé depuis l'URL dès le premier rendu (et non via un effet après coup) :
+  // sinon le premier fetch part sans filtre, puis un second fetch filtré part juste après —
+  // une course que le second peut perdre selon les latences réseau.
+  const [filters, setFilters] = useState<Filters>(() => {
+    const t = urlParams.get('type');
+    return { ...DEFAULT_FILTERS, type: t && TYPES.some((x) => x.key === t) ? t : '' };
+  });
   const [sort, setSort] = useState('recommended');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [view, setView] = useState<'list' | 'map'>('list');
@@ -91,8 +101,6 @@ export default function AccommodationsPage() {
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
-    const t = urlParams.get('type');
-    if (t) setFilters((f) => ({ ...f, type: TYPES.some((x) => x.key === t) ? t : '' }));
     api.get('/settings/public')
       .then((r) => setMapCfg({ provider: r.data?.maps_provider || 'osm', token: r.data?.mapbox_token || '' }))
       .catch(() => {});
