@@ -162,7 +162,7 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
             initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             className="text-4xl md:text-6xl font-bold drop-shadow-lg md:whitespace-nowrap"
           >
-            Votre voyage commence ici
+            Votre séjour commence ici
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
