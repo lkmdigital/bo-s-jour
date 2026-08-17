@@ -137,7 +137,10 @@ class BookingController extends Controller
         $validationRules = [
             'accommodation_id' => 'required|exists:accommodations,id',
             'room_id' => 'nullable|exists:rooms,id',
-            'check_in' => 'required|date|after:today',
+            // after_or_equal (pas after) : une arrivée le jour même doit rester possible
+            // (ex. réservation de dernière minute pour la nuit même) — cohérent avec la
+            // règle utilisée pour la modification d'une réservation existante (update()).
+            'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
             'guests' => 'required|integer|min:1',
             'promo_code' => 'nullable|string|max:100',
@@ -178,7 +181,16 @@ class BookingController extends Controller
                 'id_type' => 'nullable|string|in:CNI,Passeport,Permis',
                 'id_number' => 'nullable|string|max:255|regex:/^[a-zA-Z0-9]+$/', // Seulement alphanumérique
             ]);
+        }
 
+        // La validation Laravel doit passer AVANT les contrôles SecurityService
+        // ci-dessous : email/phone sont "required" seulement dans la branche non
+        // authentifiée, donc les passer bruts (potentiellement null) à des méthodes
+        // qui exigent une string plantait en TypeError (500) au lieu de renvoyer une
+        // erreur 422 propre lorsque le champ était absent de la requête.
+        $request->validate($validationRules);
+
+        if (!$isAuthenticated) {
             // Validation supplémentaire avec SecurityService
             if (!SecurityService::validateEmail($request->email)) {
                 SecurityService::recordSuspiciousActivity($request, 'booking');
@@ -194,8 +206,6 @@ class BookingController extends Controller
                 ], 422);
             }
         }
-
-        $request->validate($validationRules);
 
         $bookedForThirdParty = $request->boolean('booked_for_third_party');
 
