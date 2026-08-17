@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Users } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import BookingStyleDateRange from './BookingStyleDateRange';
@@ -13,16 +13,12 @@ interface DateSelectorProps {
   minDate?: Date;
   /** Dates indisponibles (YYYY-MM-DD) pour griser dans le calendrier */
   disabledDates?: string[];
-  /**
-   * Empile toujours Dates / Voyageurs / Bouton verticalement, quelle que soit la largeur
-   * du viewport — nécessaire quand ce composant est intégré dans une colonne étroite (ex.
-   * la barre latérale de réservation, ~380px) : le seuil `md:` de Tailwind se base sur la
-   * largeur du VIEWPORT, pas sur celle du conteneur, donc la mise en ligne horizontale se
-   * déclenchait quand même sur desktop et écrasait le sélecteur de dates (texte tronqué
-   * lettre par lettre, boutons superposés).
-   */
-  compact?: boolean;
 }
+
+// Largeur minimale (px) en dessous de laquelle Dates + Voyageurs + Bouton ne tiennent
+// plus confortablement sur une ligne (mesuré : ~632px dans le tunnel de réservation
+// pleine largeur, ~280px dans la barre latérale de la fiche établissement).
+const ROW_MIN_WIDTH = 600;
 
 export default function DateSelector({
   onDatesSelected,
@@ -31,12 +27,31 @@ export default function DateSelector({
   initialGuests = 1,
   minDate = new Date(),
   disabledDates = [],
-  compact = false,
 }: DateSelectorProps) {
   const [checkIn, setCheckIn] = useState<Date | null>(initialCheckIn || null);
   const [checkOut, setCheckOut] = useState<Date | null>(initialCheckOut || null);
   const [guests, setGuests] = useState(initialGuests);
   const [errors, setErrors] = useState<{ checkIn?: string; checkOut?: string }>({});
+
+  // Mise en ligne horizontale déclenchée par la largeur RÉELLE du conteneur (via
+  // ResizeObserver), pas par un seuil `md:` de Tailwind basé sur le viewport : ce
+  // composant est utilisé aussi bien en pleine largeur (tunnel de réservation) que dans
+  // une colonne étroite (barre latérale de la fiche établissement), et un seuil basé sur
+  // le viewport écrasait le sélecteur dans ce second cas (texte tronqué, éléments
+  // superposés) même sur un grand écran.
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [isRowLayout, setIsRowLayout] = useState(false);
+
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 0;
+      setIsRowLayout(width >= ROW_MIN_WIDTH);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handleDatesChange = (newCheckIn: Date | null, newCheckOut: Date | null) => {
     setCheckIn(newCheckIn);
@@ -87,7 +102,7 @@ export default function DateSelector({
       </div>
 
       {/* Barre type Booking : Dates | Voyageurs | Bouton */}
-      <div className={`flex flex-col gap-4 ${compact ? '' : 'md:flex-row md:items-end'}`}>
+      <div ref={rowRef} className={`flex gap-4 ${isRowLayout ? 'flex-row items-end' : 'flex-col'}`}>
         <div className="flex-1 min-w-0">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Dates du séjour
@@ -110,7 +125,7 @@ export default function DateSelector({
           )}
         </div>
 
-        <div className={`shrink-0 ${compact ? '' : 'md:w-32'}`}>
+        <div className={`shrink-0 ${isRowLayout ? 'w-32' : ''}`}>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             <Users className="w-4 h-4 inline mr-1" />
             Voyageurs
@@ -129,7 +144,7 @@ export default function DateSelector({
           <button
             type="button"
             onClick={handleSearch}
-            className={`btn-primary px-6 py-3 flex items-center justify-center gap-2 rounded-xl ${compact ? 'w-full' : 'w-full md:w-auto'}`}
+            className={`btn-primary px-6 py-3 flex items-center justify-center gap-2 rounded-xl ${isRowLayout ? 'w-auto' : 'w-full'}`}
           >
             Voir les chambres
           </button>

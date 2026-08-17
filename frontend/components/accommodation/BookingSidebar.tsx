@@ -89,7 +89,6 @@ export default function BookingSidebar({
               initialCheckIn={selectedDates.checkIn || undefined}
               initialCheckOut={selectedDates.checkOut || undefined}
               initialGuests={selectedDates.guests}
-              compact
             />
             <button
               type="button"
