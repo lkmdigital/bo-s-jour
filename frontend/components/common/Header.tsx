@@ -27,7 +27,7 @@ import {
   Search,
   Globe,
   Headphones,
-  BadgePercent,
+  Gift,
 } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -497,7 +497,7 @@ export default function Header() {
                   className="group relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
                   aria-label="Offres promotionnelles"
                 >
-                  <BadgePercent className="w-5 h-5" />
+                  <Gift className="w-5 h-5" />
                   <IconTooltip text="Profitez de nos offres promotionnelles" />
                 </Link>
                 {/* Support */}
