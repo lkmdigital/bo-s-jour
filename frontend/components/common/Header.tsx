@@ -491,15 +491,6 @@ export default function Header() {
                     </>
                   )}
                 </div>
-                {/* Offres promotionnelles */}
-                <Link
-                  href="/accommodations?featured=1"
-                  className="group relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
-                  aria-label="Offres promotionnelles"
-                >
-                  <Gift className="w-5 h-5" />
-                  <IconTooltip text="Profitez de nos offres promotionnelles" />
-                </Link>
                 {/* Support */}
                 <a
                   href="https://wa.me/2250705654775?text=Bonjour%2C%20j%27ai%20besoin%20d%27assistance."
@@ -519,6 +510,15 @@ export default function Header() {
                 <Link href="/voyageur" className="btn-primary text-sm inline-flex items-center gap-1.5">
                   <LogIn className="w-4 h-4" />
                   Se connecter
+                </Link>
+                {/* Offres promotionnelles */}
+                <Link
+                  href="/accommodations?featured=1"
+                  className="group relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
+                  aria-label="Offres promotionnelles"
+                >
+                  <Gift className="w-5 h-5" />
+                  <IconTooltip text="Profitez de nos offres promotionnelles" />
                 </Link>
               </div>
             )}
