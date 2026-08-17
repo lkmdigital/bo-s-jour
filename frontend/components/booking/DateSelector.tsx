@@ -13,6 +13,15 @@ interface DateSelectorProps {
   minDate?: Date;
   /** Dates indisponibles (YYYY-MM-DD) pour griser dans le calendrier */
   disabledDates?: string[];
+  /**
+   * Empile toujours Dates / Voyageurs / Bouton verticalement, quelle que soit la largeur
+   * du viewport — nécessaire quand ce composant est intégré dans une colonne étroite (ex.
+   * la barre latérale de réservation, ~380px) : le seuil `md:` de Tailwind se base sur la
+   * largeur du VIEWPORT, pas sur celle du conteneur, donc la mise en ligne horizontale se
+   * déclenchait quand même sur desktop et écrasait le sélecteur de dates (texte tronqué
+   * lettre par lettre, boutons superposés).
+   */
+  compact?: boolean;
 }
 
 export default function DateSelector({
@@ -22,6 +31,7 @@ export default function DateSelector({
   initialGuests = 1,
   minDate = new Date(),
   disabledDates = [],
+  compact = false,
 }: DateSelectorProps) {
   const [checkIn, setCheckIn] = useState<Date | null>(initialCheckIn || null);
   const [checkOut, setCheckOut] = useState<Date | null>(initialCheckOut || null);
@@ -77,7 +87,7 @@ export default function DateSelector({
       </div>
 
       {/* Barre type Booking : Dates | Voyageurs | Bouton */}
-      <div className="flex flex-col md:flex-row gap-4 md:items-end">
+      <div className={`flex flex-col gap-4 ${compact ? '' : 'md:flex-row md:items-end'}`}>
         <div className="flex-1 min-w-0">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Dates du séjour
@@ -100,7 +110,7 @@ export default function DateSelector({
           )}
         </div>
 
-        <div className="md:w-32 shrink-0">
+        <div className={`shrink-0 ${compact ? '' : 'md:w-32'}`}>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             <Users className="w-4 h-4 inline mr-1" />
             Voyageurs
@@ -119,7 +129,7 @@ export default function DateSelector({
           <button
             type="button"
             onClick={handleSearch}
-            className="btn-primary w-full md:w-auto px-6 py-3 flex items-center justify-center gap-2 rounded-xl"
+            className={`btn-primary px-6 py-3 flex items-center justify-center gap-2 rounded-xl ${compact ? 'w-full' : 'w-full md:w-auto'}`}
           >
             Voir les chambres
           </button>
