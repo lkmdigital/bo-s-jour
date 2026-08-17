@@ -139,10 +139,13 @@ Aujourd'hui : confirmation **toujours automatique** après paiement (`BookingSer
 
 ---
 
-## LOT 10 — Synchronisation externe / Channel Manager (brief Phase 9)
-**Statut : ❌ n'existe pas — explicitement optionnel dans le brief lui-même.**
-
-Aucune action recommandée avant lancement. À ne considérer que si des partenaires utilisant déjà Booking.com/Airbnb le demandent comme condition d'adhésion.
+## LOT 10 — Synchronisation externe / Channel Manager (brief Phase 9, Étape 18)
+**Statut : ✅ FAIT (2026-08-17)** — import iCal réel (fetch + parsing sabre/vobject +
+blocage des disponibilités, sans écraser réservations/blocages manuels). La "connexion
+API XML bidirectionnelle" avec Booking.com/Airbnb n'est volontairement pas simulée
+(aucun partenariat API réel) : bouton "Être informé" qui enregistre l'intérêt du
+partenaire, affiché "Bientôt disponible". Accessible depuis les paramètres de
+l'établissement + lien depuis la bannière de succès du configurateur guidé.
 
 ---
 
