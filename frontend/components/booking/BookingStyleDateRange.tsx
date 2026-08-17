@@ -19,7 +19,7 @@ import {
   differenceInDays,
 } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, X } from 'lucide-react';
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
@@ -33,7 +33,7 @@ export interface BookingStyleDateRangeProps {
   placeholderArrival?: string;
   placeholderDeparture?: string;
   className?: string;
-  /** Si true, le popover est toujours visible (inline), pas au clic */
+  /** Si true, le calendrier est toujours visible (inline), pas au clic */
   inline?: boolean;
 }
 
@@ -81,6 +81,7 @@ export default function BookingStyleDateRange({
         onChange(checkIn, newOut);
       } else {
         onChange(checkIn, d);
+        setOpen(false);
       }
     }
   };
@@ -99,8 +100,6 @@ export default function BookingStyleDateRange({
     return isWithinInterval(d, { start: checkIn, end }) && !isSameDay(d, end);
   };
 
-  const isStart = (d: Date) => checkIn ? isSameDay(d, checkIn) : false;
-  const isEnd = (d: Date) => checkOut ? isSameDay(d, checkOut) : false;
   const isRangeStart = (d: Date) => {
     if (!checkIn) return false;
     const end = checkOut || hoverDate;
@@ -114,16 +113,24 @@ export default function BookingStyleDateRange({
     return isSameDay(d, end);
   };
 
+  // Popover rendu en grand plan superposé (fixed + backdrop) plutôt qu'en dropdown
+  // ancré au déclencheur : un dropdown "absolute" hérite de la largeur disponible de
+  // son conteneur et se retrouve écrasé/illisible dès que ce dernier est étroit (ex. la
+  // barre latérale de réservation) ou coupé par un ancêtre en overflow-hidden. En plan
+  // fixe centré, le calendrier garde toujours une taille confortable, quel que soit
+  // l'endroit où ce composant est utilisé.
   useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+    if (!open || inline) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
+    document.addEventListener('keydown', handleEscape);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [open, inline]);
 
   const secondMonth = addMonths(firstMonth, 1);
 
@@ -143,15 +150,15 @@ export default function BookingStyleDateRange({
     }
 
     return (
-      <div key={monthStart.getTime()} className="p-3">
-        <div className="text-center font-semibold text-gray-800 dark:text-gray-200 mb-2 capitalize">
+      <div key={monthStart.getTime()} className="flex-1 min-w-[280px]">
+        <div className="text-center text-lg font-bold text-gray-900 dark:text-white mb-3 capitalize">
           {format(monthStart, 'MMMM yyyy', { locale: fr })}
         </div>
-        <div className="grid grid-cols-7 gap-0.5">
+        <div className="grid grid-cols-7 gap-1.5">
           {WEEKDAYS.map((wd) => (
             <div
               key={wd}
-              className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1"
+              className="text-center text-sm font-medium text-gray-500 dark:text-gray-400 py-1"
             >
               {wd}
             </div>
@@ -172,14 +179,14 @@ export default function BookingStyleDateRange({
                   onMouseEnter={() => handleMouseEnter(day)}
                   onMouseLeave={handleMouseLeave}
                   className={`
-                    w-9 h-9 text-sm rounded flex items-center justify-center
+                    w-11 h-11 sm:w-12 sm:h-12 text-base rounded-lg flex items-center justify-center transition-colors
                     ${otherMonth ? 'text-gray-300 dark:text-gray-600' : 'text-gray-900 dark:text-gray-100'}
                     ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700'}
-                    ${isToday(day) && !start && !end ? 'ring-1 ring-primary font-semibold' : ''}
-                    ${inRange ? 'bg-primary/15 dark:bg-primary/20' : ''}
+                    ${isToday(day) && !start && !end ? 'ring-2 ring-primary font-semibold' : ''}
+                    ${inRange ? 'bg-primary/15 dark:bg-primary/20 rounded-none' : ''}
                     ${start ? 'rounded-r-none bg-primary text-white hover:bg-primary hover:text-white font-semibold' : ''}
                     ${end ? 'rounded-l-none bg-primary text-white hover:bg-primary hover:text-white font-semibold' : ''}
-                    ${start && end ? 'rounded bg-primary text-white' : ''}
+                    ${start && end ? 'rounded-lg bg-primary text-white' : ''}
                   `}
                 >
                   {format(day, 'd')}
@@ -228,33 +235,46 @@ export default function BookingStyleDateRange({
     </button>
   );
 
-  const calendarContent = (
-    <div className="flex flex-wrap justify-center gap-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700">
-      <div className="flex items-center justify-between w-full px-3 pt-3">
-        <button
-          type="button"
-          onClick={() => setFirstMonth((m) => subMonths(m, 1))}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
-          aria-label="Mois précédent"
-        >
-          ←
-        </button>
-        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          {minNights > 1 ? `${minNights} nuit${minNights > 1 ? 's' : ''} minimum` : 'Sélectionnez vos dates'}
-        </span>
+  const calendarNav = (showClose: boolean) => (
+    <div className="flex items-center justify-between mb-5">
+      <button
+        type="button"
+        onClick={() => setFirstMonth((m) => subMonths(m, 1))}
+        className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-lg"
+        aria-label="Mois précédent"
+      >
+        ←
+      </button>
+      <span className="text-base font-semibold text-gray-800 dark:text-gray-200">
+        {minNights > 1 ? `${minNights} nuits minimum` : 'Sélectionnez vos dates'}
+      </span>
+      <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => setFirstMonth((m) => addMonths(m, 1))}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+          className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-lg"
           aria-label="Mois suivant"
         >
           →
         </button>
+        {showClose && (
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="ml-2 p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+            aria-label="Fermer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
-      <div className="flex flex-nowrap gap-0 pb-4">
-        {renderMonth(firstMonth)}
-        {renderMonth(secondMonth)}
-      </div>
+    </div>
+  );
+
+  const monthsRow = (
+    <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
+      {renderMonth(firstMonth)}
+      {renderMonth(secondMonth)}
     </div>
   );
 
@@ -262,7 +282,10 @@ export default function BookingStyleDateRange({
     return (
       <div ref={containerRef} className="space-y-4">
         {trigger}
-        {calendarContent}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-5">
+          {calendarNav(false)}
+          {monthsRow}
+        </div>
       </div>
     );
   }
@@ -271,8 +294,12 @@ export default function BookingStyleDateRange({
     <div ref={containerRef} className="relative">
       {trigger}
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-50">
-          {calendarContent}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-5 sm:p-6">
+            {calendarNav(true)}
+            {monthsRow}
+          </div>
         </div>
       )}
     </div>
