@@ -61,7 +61,15 @@ class HostStaffController extends Controller
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
             'role' => ['required', Rule::in(HostStaff::ROLES)],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => [Rule::in(HostStaff::PERMISSIONS)],
         ]);
+
+        // Si aucune sélection explicite n'est envoyée, on retombe sur la présélection du
+        // poste plutôt que de laisser le collaborateur sans aucun menu accessible.
+        $permissions = array_values(array_unique(
+            $data['permissions'] ?? HostStaff::DEFAULT_PERMISSIONS_BY_ROLE[$data['role']] ?? []
+        ));
 
         $existing = HostStaff::where('owner_id', $ownerId)->where('email', $data['email'])->first();
         if ($existing) {
@@ -94,6 +102,7 @@ class HostStaffController extends Controller
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
             'role' => $data['role'],
+            'permissions' => $permissions,
             'status' => $isImmediateLink ? HostStaff::STATUS_ACTIVE : HostStaff::STATUS_INVITED,
             'invited_at' => now(),
             'accepted_at' => $isImmediateLink ? now() : null,
@@ -103,7 +112,7 @@ class HostStaffController extends Controller
         if ($isImmediateLink) {
             // Compte déjà collaborateur de CE propriétaire (ex. réinvitation après suppression) :
             // liaison immédiate, pas d'e-mail d'activation nécessaire.
-            $existingUser->update(['staff_role' => $data['role']]);
+            $existingUser->update(['staff_role' => $data['role'], 'staff_permissions' => $permissions]);
         } else {
             // Nouvel e-mail, ou compte voyageur simple existant : on ne le convertit PAS
             // automatiquement en compte host — il doit poser un mot de passe collaborateur
@@ -140,13 +149,27 @@ class HostStaffController extends Controller
             'name' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'role' => ['nullable', Rule::in(HostStaff::ROLES)],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => [Rule::in(HostStaff::PERMISSIONS)],
             'status' => ['nullable', Rule::in([HostStaff::STATUS_ACTIVE, HostStaff::STATUS_SUSPENDED])],
         ]);
 
-        $staffMember->update(array_filter($data, fn ($v) => $v !== null));
+        // 'permissions' peut légitimement être un tableau vide (retirer tous les menus) —
+        // array_filter(...,  fn($v) => $v !== null) le laisserait passer tel quel, mais il
+        // faut le traiter à part puisque [] est "falsy" pour d'autres usages ailleurs.
+        $hasPermissions = array_key_exists('permissions', $data) && $data['permissions'] !== null;
+        $updates = array_filter($data, fn ($v) => $v !== null);
+        if ($hasPermissions) {
+            $updates['permissions'] = array_values(array_unique($data['permissions']));
+        }
 
-        if ($staffMember->collaborator_user_id && isset($data['role'])) {
-            User::where('id', $staffMember->collaborator_user_id)->update(['staff_role' => $data['role']]);
+        $staffMember->update($updates);
+
+        if ($staffMember->collaborator_user_id && (isset($data['role']) || $hasPermissions)) {
+            $userUpdates = [];
+            if (isset($data['role'])) $userUpdates['staff_role'] = $data['role'];
+            if ($hasPermissions) $userUpdates['staff_permissions'] = $updates['permissions'];
+            User::where('id', $staffMember->collaborator_user_id)->update($userUpdates);
         }
 
         return response()->json($staffMember->fresh()->load('collaboratorUser:id,name,email,avatar'));

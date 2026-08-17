@@ -44,45 +44,24 @@ const NAV_ITEMS = [
   { href: '/dashboard/host/ai', label: 'Assistant IA', icon: Sparkles },
 ];
 
-/**
- * Visibilité des menus par rôle collaborateur (brief Extranet Partenaire, Phase 13 :
- * "seuls les modules autorisés sont visibles"). C'est une commodité d'UX côté frontend —
- * la frontière de sécurité réelle (quels établissements un collaborateur peut voir/modifier)
- * est appliquée côté backend via User::hostScopeId(), quel que soit le menu affiché ici.
- * "Personnel" et "Mes établissements" restent réservés au propriétaire et à l'Administrateur.
- */
-const STAFF_ROLE_MENUS: Record<string, string[]> = {
-  administrateur: NAV_ITEMS.map((i) => i.href),
-  receptionniste: [
-    '/dashboard/host',
-    '/dashboard/host/calendar',
-    '/dashboard/host/reservations',
-    '/dashboard/host/clients',
-  ],
-  comptabilite: [
-    '/dashboard/host',
-    '/dashboard/host/finances',
-    '/dashboard/host/documents',
-    '/dashboard/host/stats',
-  ],
-  commercial: [
-    '/dashboard/host',
-    '/dashboard/host/promotions',
-    '/dashboard/host/marketing',
-    '/dashboard/host/reviews',
-    '/dashboard/host/stats',
-  ],
-  housekeeping: [
-    '/dashboard/host',
-    '/dashboard/host/calendar',
-    '/dashboard/host/rooms',
-    '/dashboard/host/reservations',
-  ],
-  maintenance: [
-    '/dashboard/host',
-    '/dashboard/host/rooms',
-    '/dashboard/host/property',
-  ],
+// Clé de permission (host_staff.permissions / users.staff_permissions, choisie
+// individuellement par le propriétaire à l'invitation — voir /dashboard/host/staff)
+// associée à chaque item du menu. "Tableau de bord" n'a pas de clé : toujours accessible.
+// Miroir de HostStaff::PERMISSIONS côté backend (app/Models/HostStaff.php).
+const NAV_ITEM_PERMISSION: Record<string, string> = {
+  '/dashboard/host/property': 'property',
+  '/dashboard/host/rooms': 'rooms',
+  '/dashboard/host/calendar': 'calendar',
+  '/dashboard/host/reservations': 'reservations',
+  '/dashboard/host/clients': 'clients',
+  '/dashboard/host/reviews': 'reviews',
+  '/dashboard/host/promotions': 'promotions',
+  '/dashboard/host/finances': 'finances',
+  '/dashboard/host/documents': 'documents',
+  '/dashboard/host/staff': 'staff',
+  '/dashboard/host/marketing': 'marketing',
+  '/dashboard/host/stats': 'stats',
+  '/dashboard/host/ai': 'ai',
 };
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
@@ -100,9 +79,18 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     router.push('/auth/login');
   };
 
-  const staffRole = user?.staff_owner_id ? user?.staff_role : null;
-  const visibleItems = staffRole
-    ? NAV_ITEMS.filter((item) => (STAFF_ROLE_MENUS[staffRole] || []).includes(item.href))
+  // Un collaborateur "Administrateur" sans liste explicite (compte activé avant
+  // l'introduction des cases à cocher) garde un accès complet par défaut — cohérent avec
+  // User::staffPermissions() côté backend.
+  const isStaffMember = !!user?.staff_owner_id;
+  const staffPermissions = isStaffMember
+    ? user?.staff_permissions ?? (user?.staff_role === 'administrateur' ? Object.values(NAV_ITEM_PERMISSION) : [])
+    : null;
+  const visibleItems = staffPermissions
+    ? NAV_ITEMS.filter((item) => {
+        const perm = NAV_ITEM_PERMISSION[item.href];
+        return !perm || staffPermissions.includes(perm);
+      })
     : NAV_ITEMS;
 
   return (

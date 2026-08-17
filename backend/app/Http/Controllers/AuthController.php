@@ -120,6 +120,7 @@ class AuthController extends Controller
                 'role' => 'host',
                 'staff_owner_id' => $staff->owner_id,
                 'staff_role' => $staff->role,
+                'staff_permissions' => $staff->permissions,
                 'email_verified_at' => now(),
                 'profile_completed' => true,
                 'profile_verified' => true,
@@ -131,6 +132,7 @@ class AuthController extends Controller
             $user->role = 'host';
             $user->staff_owner_id = $staff->owner_id;
             $user->staff_role = $staff->role;
+            $user->staff_permissions = $staff->permissions;
             $user->is_guest = false;
             if (!$user->email_verified_at) {
                 $user->email_verified_at = now();

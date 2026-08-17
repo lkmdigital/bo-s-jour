@@ -20,6 +20,7 @@ class HostStaff extends Model
         'email',
         'phone',
         'role',
+        'permissions',
         'status',
         'invited_at',
         'accepted_at',
@@ -35,6 +36,7 @@ class HostStaff extends Model
         return [
             'invited_at' => 'datetime',
             'accepted_at' => 'datetime',
+            'permissions' => 'array',
         ];
     }
 
@@ -51,6 +53,41 @@ class HostStaff extends Model
         'commercial' => 'Commercial',
         'housekeeping' => 'Housekeeping',
         'maintenance' => 'Maintenance',
+    ];
+
+    // Menus de l'extranet partenaire pouvant être cochés individuellement pour un
+    // collaborateur — "Tableau de bord" n'y figure pas : toujours accessible, c'est la
+    // page d'atterrissage. Miroir de NAV_ITEMS dans HostSidebar.tsx (frontend).
+    public const PERMISSIONS = [
+        'property', 'rooms', 'calendar', 'reservations', 'clients', 'reviews',
+        'promotions', 'finances', 'documents', 'staff', 'marketing', 'stats', 'ai',
+    ];
+
+    public const PERMISSION_LABELS = [
+        'property' => 'Mes établissements',
+        'rooms' => 'Chambres et tarifs',
+        'calendar' => 'Calendrier',
+        'reservations' => 'Réservations',
+        'clients' => 'Clients',
+        'reviews' => 'Avis',
+        'promotions' => 'Promotions',
+        'finances' => 'Finances',
+        'documents' => 'Documents',
+        'staff' => 'Personnel',
+        'marketing' => 'Commercialisation',
+        'stats' => 'Statistiques',
+        'ai' => 'Assistant IA',
+    ];
+
+    // Présélection suggérée à l'invitation selon le poste — reste entièrement modifiable
+    // via les cases à cocher, ce n'est qu'un point de départ pratique.
+    public const DEFAULT_PERMISSIONS_BY_ROLE = [
+        'administrateur' => ['property', 'rooms', 'calendar', 'reservations', 'clients', 'reviews', 'promotions', 'finances', 'documents', 'staff', 'marketing', 'stats', 'ai'],
+        'receptionniste' => ['calendar', 'reservations', 'clients'],
+        'comptabilite' => ['finances', 'documents', 'stats'],
+        'commercial' => ['promotions', 'marketing', 'reviews', 'stats'],
+        'housekeeping' => ['calendar', 'rooms', 'reservations'],
+        'maintenance' => ['rooms', 'property'],
     ];
 
     public function owner()

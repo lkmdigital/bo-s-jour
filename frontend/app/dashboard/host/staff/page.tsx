@@ -14,6 +14,7 @@ interface StaffMember {
   email: string;
   phone: string | null;
   role: 'administrateur' | 'receptionniste' | 'comptabilite' | 'commercial' | 'housekeeping' | 'maintenance';
+  permissions: string[] | null;
   status: 'invited' | 'active' | 'suspended';
   invited_at: string | null;
   accepted_at: string | null;
@@ -27,6 +28,38 @@ const ROLE_LABELS: Record<string, string> = {
   commercial: 'Commercial',
   housekeeping: 'Housekeeping',
   maintenance: 'Maintenance',
+};
+
+// Miroir de HostStaff::PERMISSIONS / PERMISSION_LABELS / DEFAULT_PERMISSIONS_BY_ROLE côté
+// backend (app/Models/HostStaff.php) — garder les deux synchronisés.
+const PERMISSIONS = [
+  'property', 'rooms', 'calendar', 'reservations', 'clients', 'reviews',
+  'promotions', 'finances', 'documents', 'staff', 'marketing', 'stats', 'ai',
+];
+
+const PERMISSION_LABELS: Record<string, string> = {
+  property: 'Mes établissements',
+  rooms: 'Chambres et tarifs',
+  calendar: 'Calendrier',
+  reservations: 'Réservations',
+  clients: 'Clients',
+  reviews: 'Avis',
+  promotions: 'Promotions',
+  finances: 'Finances',
+  documents: 'Documents',
+  staff: 'Personnel',
+  marketing: 'Commercialisation',
+  stats: 'Statistiques',
+  ai: 'Assistant IA',
+};
+
+const DEFAULT_PERMISSIONS_BY_ROLE: Record<string, string[]> = {
+  administrateur: PERMISSIONS,
+  receptionniste: ['calendar', 'reservations', 'clients'],
+  comptabilite: ['finances', 'documents', 'stats'],
+  commercial: ['promotions', 'marketing', 'reviews', 'stats'],
+  housekeeping: ['calendar', 'rooms', 'reservations'],
+  maintenance: ['rooms', 'property'],
 };
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
@@ -49,6 +82,7 @@ export default function HostStaffPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [invitePhone, setInvitePhone] = useState('');
   const [inviteRole, setInviteRole] = useState<string>('receptionniste');
+  const [invitePermissions, setInvitePermissions] = useState<string[]>(DEFAULT_PERMISSIONS_BY_ROLE.receptionniste);
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteErr, setInviteErr] = useState<string | null>(null);
 
@@ -66,6 +100,21 @@ export default function HostStaffPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canManage]);
 
+  const handleRoleChange = (role: string) => {
+    setInviteRole(role);
+    // Présélection pratique selon le poste — reste entièrement modifiable ci-dessous.
+    setInvitePermissions(DEFAULT_PERMISSIONS_BY_ROLE[role] || []);
+  };
+
+  const togglePermission = (key: string) =>
+    setInvitePermissions((p) => (p.includes(key) ? p.filter((x) => x !== key) : [...p, key]));
+
+  const resetInviteForm = () => {
+    setInviteName(''); setInviteEmail(''); setInvitePhone('');
+    setInviteRole('receptionniste');
+    setInvitePermissions(DEFAULT_PERMISSIONS_BY_ROLE.receptionniste);
+  };
+
   const invite = async (e: React.FormEvent) => {
     e.preventDefault();
     setInviteErr(null);
@@ -76,8 +125,9 @@ export default function HostStaffPage() {
         email: inviteEmail,
         phone: invitePhone || undefined,
         role: inviteRole,
+        permissions: invitePermissions,
       });
-      setInviteName(''); setInviteEmail(''); setInvitePhone(''); setInviteRole('receptionniste');
+      resetInviteForm();
       setShowInvite(false);
       load();
     } catch (err: any) {
@@ -143,7 +193,7 @@ export default function HostStaffPage() {
         {error && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</p>}
 
         {showInvite && (
-          <form onSubmit={invite} className="mb-5 p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 space-y-3">
+          <form onSubmit={invite} className="mb-5 p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input required placeholder="Nom complet" value={inviteName} onChange={(e) => setInviteName(e.target.value)}
                 className="px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
@@ -153,13 +203,36 @@ export default function HostStaffPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input placeholder="Téléphone (facultatif)" value={invitePhone} onChange={(e) => setInvitePhone(e.target.value)}
                 className="px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
-              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}
+              <select value={inviteRole} onChange={(e) => handleRoleChange(e.target.value)}
                 className="px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
                 {Object.entries(ROLE_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
               </select>
             </div>
+
+            <div>
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                Menus accessibles
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {PERMISSIONS.map((key) => (
+                  <label key={key} className="flex items-center gap-2 text-sm cursor-pointer px-2.5 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary/50 bg-white dark:bg-gray-800">
+                    <input
+                      type="checkbox"
+                      checked={invitePermissions.includes(key)}
+                      onChange={() => togglePermission(key)}
+                      className="accent-primary rounded"
+                    />
+                    <span className="text-gray-700 dark:text-gray-300">{PERMISSION_LABELS[key]}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                Présélection selon le poste — cochez ou décochez librement. « Tableau de bord » reste toujours accessible.
+              </p>
+            </div>
+
             {inviteErr && <p className="text-sm text-red-600 dark:text-red-400">{inviteErr}</p>}
             <div className="flex items-center gap-2">
               <button type="submit" disabled={inviteBusy} className="btn-primary text-sm disabled:opacity-50 inline-flex items-center gap-2">
@@ -169,8 +242,8 @@ export default function HostStaffPage() {
             </div>
             <p className="text-xs text-gray-400">
               S&apos;il a déjà un compte bo séjour, une invitation lui est tout de même envoyée pour créer son
-              accès collaborateur (distinct de son compte voyageur). Il ne verra que les modules autorisés
-              pour son rôle et n&apos;a jamais accès à vos coordonnées bancaires ni aux retraits.
+              accès collaborateur (distinct de son compte voyageur). Il ne verra que les menus cochés
+              ci-dessus et n&apos;a jamais accès à vos coordonnées bancaires ni aux retraits.
             </p>
           </form>
         )}
@@ -180,32 +253,39 @@ export default function HostStaffPage() {
         ) : (
           <div className="space-y-2">
             {staff.map((m) => (
-              <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 dark:border-gray-700 flex-wrap">
-                <span className="w-9 h-9 rounded-full bg-secondary/10 text-secondary flex items-center justify-center text-sm font-semibold flex-shrink-0">
-                  {(m.collaborator_user?.name || m.name)[0]?.toUpperCase()}
-                </span>
-                <div className="flex-1 min-w-[160px]">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{m.collaborator_user?.name || m.name}</p>
-                  <p className="text-xs text-gray-500">{m.email}{m.phone ? ` · ${m.phone}` : ''}</p>
-                </div>
+              <div key={m.id} className="p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="w-9 h-9 rounded-full bg-secondary/10 text-secondary flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                    {(m.collaborator_user?.name || m.name)[0]?.toUpperCase()}
+                  </span>
+                  <div className="flex-1 min-w-[160px]">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{m.collaborator_user?.name || m.name}</p>
+                    <p className="text-xs text-gray-500">{m.email}{m.phone ? ` · ${m.phone}` : ''}</p>
+                  </div>
 
-                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary whitespace-nowrap">
-                  {ROLE_LABELS[m.role] || m.role}
-                </span>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary whitespace-nowrap">
+                    {ROLE_LABELS[m.role] || m.role}
+                  </span>
 
-                <span className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${STATUS_LABEL[m.status]?.cls}`}>
-                  {STATUS_LABEL[m.status]?.label}
-                </span>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${STATUS_LABEL[m.status]?.cls}`}>
+                    {STATUS_LABEL[m.status]?.label}
+                  </span>
 
-                {m.status !== 'invited' && (
-                  <button onClick={() => toggleSuspend(m)} title={m.status === 'suspended' ? 'Réactiver' : 'Suspendre'}
-                    className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5">
-                    {m.status === 'suspended' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                  {m.status !== 'invited' && (
+                    <button onClick={() => toggleSuspend(m)} title={m.status === 'suspended' ? 'Réactiver' : 'Suspendre'}
+                      className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5">
+                      {m.status === 'suspended' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                    </button>
+                  )}
+                  <button onClick={() => remove(m)} title="Retirer" className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                    <Trash2 className="w-4 h-4" />
                   </button>
+                </div>
+                {m.permissions && m.permissions.length > 0 && (
+                  <p className="text-xs text-gray-400 mt-2 pl-12">
+                    Accès : {m.permissions.map((p) => PERMISSION_LABELS[p] || p).join(', ')}
+                  </p>
                 )}
-                <button onClick={() => remove(m)} title="Retirer" className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
             ))}
           </div>
@@ -215,9 +295,9 @@ export default function HostStaffPage() {
       <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 text-sm text-blue-800 dark:text-blue-300">
         <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
         <p>
-          Vos collaborateurs voient et gèrent les mêmes établissements que vous, mais uniquement les modules
-          correspondant à leur rôle sont visibles dans leur menu. Les coordonnées bancaires et les demandes
-          de retrait restent réservées au propriétaire du compte, quel que soit le rôle.
+          Vos collaborateurs voient et gèrent les mêmes établissements que vous, mais uniquement les menus que
+          vous cochez à l&apos;invitation sont visibles dans leur espace. Les coordonnées bancaires et les
+          demandes de retrait restent réservées au propriétaire du compte, quel que soit le rôle.
         </p>
       </div>
     </div>

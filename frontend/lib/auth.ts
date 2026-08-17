@@ -22,6 +22,8 @@ export interface User {
   // Collaborateur hôte (menu Personnel — brief Extranet Partenaire, Phase 13)
   staff_owner_id?: number | null;
   staff_role?: 'administrateur' | 'receptionniste' | 'comptabilite' | 'commercial' | 'housekeeping' | 'maintenance' | null;
+  /** Menus cochés individuellement par le propriétaire à l'invitation (clés HostStaff::PERMISSIONS). */
+  staff_permissions?: string[] | null;
 }
 
 export interface LoginCredentials {

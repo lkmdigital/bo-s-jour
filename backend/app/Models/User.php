@@ -19,6 +19,7 @@ class User extends Authenticatable
         'role', // Rôle principal (rétrocompatibilité)
         'staff_owner_id',
         'staff_role',
+        'staff_permissions',
         'avatar',
         'email_verified_at',
         'google_id',
@@ -136,6 +137,7 @@ class User extends Authenticatable
             'notif_email' => 'boolean',
             'notif_whatsapp' => 'boolean',
             'notif_sms' => 'boolean',
+            'staff_permissions' => 'array',
         ];
     }
 
@@ -171,6 +173,21 @@ class User extends Authenticatable
     public function hostScopeId(): int
     {
         return $this->staff_owner_id ?? $this->id;
+    }
+
+    /**
+     * Menus de l'extranet partenaire auxquels ce collaborateur a droit (clés
+     * HostStaff::PERMISSIONS), cochés individuellement par le propriétaire à
+     * l'invitation. Un administrateur sans liste explicite (comptes activés avant
+     * l'introduction des cases à cocher) garde un accès complet par défaut ; les
+     * autres postes sans liste explicite n'ont accès qu'au tableau de bord.
+     */
+    public function staffPermissions(): array
+    {
+        if (is_array($this->staff_permissions)) {
+            return $this->staff_permissions;
+        }
+        return $this->staff_role === 'administrateur' ? HostStaff::PERMISSIONS : [];
     }
 
     public function hasCompleteIdentityDocument(): bool
