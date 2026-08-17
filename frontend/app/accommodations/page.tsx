@@ -64,8 +64,9 @@ interface Filters {
   type: string;
   amenities: string[];
   cancellation: string;
+  featured: boolean;
 }
-const DEFAULT_FILTERS: Filters = { minPrice: '', maxPrice: '', minRating: 0, type: '', amenities: [], cancellation: '' };
+const DEFAULT_FILTERS: Filters = { minPrice: '', maxPrice: '', minRating: 0, type: '', amenities: [], cancellation: '', featured: false };
 
 export default function AccommodationsPage() {
   const router = useRouter();
@@ -81,7 +82,12 @@ export default function AccommodationsPage() {
   // une course que le second peut perdre selon les latences réseau.
   const [filters, setFilters] = useState<Filters>(() => {
     const t = urlParams.get('type');
-    return { ...DEFAULT_FILTERS, type: t && TYPES.some((x) => x.key === t) ? t : '' };
+    const featuredParam = urlParams.get('featured');
+    return {
+      ...DEFAULT_FILTERS,
+      type: t && TYPES.some((x) => x.key === t) ? t : '',
+      featured: featuredParam === '1' || featuredParam === 'true',
+    };
   });
   const [sort, setSort] = useState('recommended');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -130,6 +136,7 @@ export default function AccommodationsPage() {
       if (filters.minRating) params.min_rating = filters.minRating;
       if (filters.amenities.length) params.amenities = filters.amenities.join(',');
       if (filters.cancellation) params.cancellation_policy = filters.cancellation;
+      if (filters.featured) params.featured = 1;
 
       const res = await api.get('/accommodations', { params });
       const data = res.data?.data && Array.isArray(res.data.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
@@ -332,7 +339,11 @@ export default function AccommodationsPage() {
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
               <div>
                 <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                  {applied.search ? `Séjours à ${applied.search}` : 'Tous les hébergements'}
+                  {applied.search
+                    ? `Séjours à ${applied.search}`
+                    : filters.featured
+                      ? 'Nos offres promotionnelles'
+                      : 'Tous les hébergements'}
                 </h1>
                 <p className="text-sm text-gray-500">{loading ? 'Recherche…' : `${pagination.total} résultat${pagination.total > 1 ? 's' : ''}`}</p>
               </div>

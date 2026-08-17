@@ -27,6 +27,7 @@ import {
   Search,
   Globe,
   Headphones,
+  BadgePercent,
 } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -38,6 +39,18 @@ const LANG_OPTIONS: { key: Locale; label: string }[] = [
   { key: 'fr', label: 'Français' },
   { key: 'en', label: 'English' },
 ];
+
+/** Info-bulle affichée sous une icône au survol (souris). */
+function IconTooltip({ text }: { text: string }) {
+  return (
+    <span
+      role="tooltip"
+      className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-900 dark:bg-gray-700 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 z-50"
+    >
+      {text}
+    </span>
+  );
+}
 
 export default function Header() {
   const pathname = usePathname();
@@ -478,24 +491,34 @@ export default function Header() {
                     </>
                   )}
                 </div>
+                {/* Offres promotionnelles */}
+                <Link
+                  href="/accommodations?featured=1"
+                  className="group relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
+                  aria-label="Offres promotionnelles"
+                >
+                  <BadgePercent className="w-5 h-5" />
+                  <IconTooltip text="Profitez de nos offres promotionnelles" />
+                </Link>
                 {/* Support */}
                 <a
                   href="https://wa.me/2250705654775?text=Bonjour%2C%20j%27ai%20besoin%20d%27assistance."
                   target="_blank" rel="noopener noreferrer"
-                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
-                  aria-label="Assistance"
+                  className="group relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
+                  aria-label="Assistance technique"
                 >
                   <Headphones className="w-5 h-5" />
+                  <IconTooltip text="Assistance technique" />
                 </a>
-                {/* Ajouter mon établissement (espace partenaire) */}
+                {/* Publier mon établissement (espace partenaire) */}
                 <Link href="/partenaire" className="hidden lg:inline-flex text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary items-center gap-1.5">
                   <Building2 className="w-4 h-4" />
-                  Ajouter mon établissement
+                  Publier mon établissement
                 </Link>
-                {/* Connexion — réservée au voyageur (page /voyageur, miroir de /partenaire) */}
+                {/* Se connecter — réservé au voyageur (page /voyageur, miroir de /partenaire) */}
                 <Link href="/voyageur" className="btn-primary text-sm inline-flex items-center gap-1.5">
                   <LogIn className="w-4 h-4" />
-                  Connexion
+                  Se connecter
                 </Link>
               </div>
             )}
@@ -522,7 +545,7 @@ export default function Header() {
             ) : (
               <Link href="/voyageur" className="btn-primary text-sm inline-flex items-center gap-1.5">
                 <LogIn className="w-4 h-4" />
-                Connexion
+                Se connecter
               </Link>
             )}
           </div>
