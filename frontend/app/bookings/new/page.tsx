@@ -2,6 +2,8 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import api from '@/lib/api';
 import { useSearchStore } from '@/stores/searchStore';
 import Header from '@/components/common/Header';
@@ -113,6 +115,14 @@ function NewBookingContent() {
       
       <main className="flex-grow bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-4 py-8 max-w-6xl">
+          <Link
+            href={`/accommodations/${accommodation.id}`}
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-primary transition-colors mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Retour à l&apos;établissement
+          </Link>
+
           <h1 className="text-2xl md:text-3xl font-bold mb-1">Finaliser votre réservation</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-8">
             {accommodation.name}{room && <span> • {room.name}</span>}

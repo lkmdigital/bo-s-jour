@@ -14,7 +14,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
 import { useToast } from '@/components/common/ToastContext';
 import { isAdmin } from '@/lib/userUtils';
-import { MapPin, Star, Users, Bed, Bath, Clock, CheckCircle, XCircle, EyeOff, Wrench, Edit, Trash2, Calendar, ExternalLink, Wifi, Car, Waves, Snowflake, Coffee, Utensils, Dumbbell, PawPrint, CreditCard, ShieldCheck, Lock, CigaretteOff, LogIn as LogInIcon, LogOut as LogOutIcon } from 'lucide-react';
+import { MapPin, Star, Users, Bed, Bath, Clock, CheckCircle, XCircle, EyeOff, Wrench, Edit, Trash2, Calendar, ExternalLink, Wifi, Car, Waves, Snowflake, Coffee, Utensils, Dumbbell, PawPrint, CreditCard, ShieldCheck, Lock, CigaretteOff, LogIn as LogInIcon, LogOut as LogOutIcon, ArrowLeft } from 'lucide-react';
 import AccommodationGallery from '@/components/accommodation/AccommodationGallery';
 import { PromoBadge, VerifiedBadge } from '@/components/ui';
 import PropertyCard, { PropertyCardData } from '@/components/home/PropertyCard';
@@ -180,6 +180,20 @@ export default function AccommodationDetailPage() {
   const storedOrUrlCheckIn = urlCheckIn || session?.checkIn;
   const storedOrUrlCheckOut = urlCheckOut || session?.checkOut;
   const storedOrUrlGuests = urlGuests ? parseInt(urlGuests, 10) : (session?.guests ?? 1);
+
+  // Retour à la recherche : on reconstruit les filtres depuis la session mémorisée
+  // (SearchInputWithAutocomplete/HeroSection) pour retomber sur les mêmes résultats.
+  const backToResultsHref = (() => {
+    const qs = new URLSearchParams();
+    if (session?.search) qs.set('search', session.search);
+    if (session?.city) qs.set('city', session.city);
+    if (session?.checkIn) qs.set('checkIn', session.checkIn);
+    if (session?.checkOut) qs.set('checkOut', session.checkOut);
+    if (session?.guests) qs.set('guests', String(session.guests));
+    if (session?.type) qs.set('type', session.type);
+    const query = qs.toString();
+    return query ? `/accommodations?${query}` : '/accommodations';
+  })();
 
   const [selectedDates, setSelectedDates] = useState<{ checkIn: Date | null; checkOut: Date | null; guests: number }>({
     checkIn: storedOrUrlCheckIn ? new Date(storedOrUrlCheckIn) : null,
@@ -519,6 +533,14 @@ export default function AccommodationDetailPage() {
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-6">
+          <Link
+            href={backToResultsHref}
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Retour aux résultats
+          </Link>
+
           {error && (
             <ErrorDisplay error={error} onDismiss={() => setError(null)} />
           )}
