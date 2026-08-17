@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import api from '@/lib/api';
@@ -156,6 +156,11 @@ export default function AccommodationCreationWizard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  // Étape 18 (facultative) : proposée juste après la création plutôt qu'insérée dans ce
+  // formulaire en une seule soumission — l'établissement (et son id) n'existe qu'une fois
+  // la création terminée.
+  const [createdAccommodationId, setCreatedAccommodationId] = useState<number | null>(null);
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const steps = useMemo(() => {
     if (mode === 'admin') {
       return [
@@ -399,8 +404,10 @@ export default function AccommodationCreationWizard({
       // Afficher le succès seulement si tout s'est bien passé (upload réussi)
       if (mediaUploadSuccess) {
         setSuccess(true);
-        // Afficher le message de succès pendant 3 secondes avant la redirection
-        setTimeout(() => {
+        setCreatedAccommodationId(accommodationId);
+        // Afficher le message de succès pendant 3 secondes avant la redirection (sauf si
+        // l'hôte clique sur "Configurer la synchronisation" entre-temps, cf. bannière ci-dessous).
+        redirectTimeoutRef.current = setTimeout(() => {
           router.push(successRedirectHref);
         }, 3000);
       }
@@ -736,13 +743,27 @@ export default function AccommodationCreationWizard({
               <div>
                 <p className="font-semibold text-lg">{successTitle}</p>
                 <p className="text-sm mt-1">{successDescription}</p>
+                {mode === 'host' && createdAccommodationId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
+                      setSuccess(false);
+                      router.push(`/dashboard/host/accommodations/${createdAccommodationId}/edit#synchronisation`);
+                    }}
+                    className="text-sm font-medium underline hover:no-underline mt-2 inline-block"
+                  >
+                    Configurer la synchronisation (facultatif) →
+                  </button>
+                )}
               </div>
             </div>
-            <button 
+            <button
               onClick={() => {
+                if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
                 setSuccess(false);
                 router.push(successRedirectHref);
-              }} 
+              }}
               className="text-green-800 dark:text-green-300 hover:text-green-600 dark:hover:text-green-200 ml-4"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -13,6 +13,7 @@ import { ArrowLeft, MapPin, Trash2, Star, Tag, Bed, Clock, MessageCircle, Shield
 import Link from 'next/link';
 import Image from 'next/image';
 import { compressImages } from '@/lib/utils';
+import IcalSyncPanel from '@/components/accommodations/IcalSyncPanel';
 
 interface AccommodationFormData {
   name: string;
@@ -582,6 +583,11 @@ export default function EditAccommodationPage() {
             )}
           </div>
         )}
+
+        {/* Synchronisation externe — brief Extranet Partenaire, Étape 18 */}
+        <div className="mb-6">
+          <IcalSyncPanel accommodationId={Number(params.id)} />
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Informations de base */}

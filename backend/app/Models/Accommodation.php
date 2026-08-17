@@ -67,6 +67,13 @@ class Accommodation extends Model
         'pricing_long_stay_enabled',
         'pricing_long_stay_discount',
         'pricing_long_stay_nights',
+        // Synchronisation externe (brief Extranet Partenaire, Étape 18)
+        'ical_import_url',
+        'ical_last_synced_at',
+        'ical_last_sync_status',
+        'ical_last_sync_error',
+        'ical_last_sync_events_count',
+        'channel_manager_interest_requested_at',
     ];
 
     protected function casts(): array
@@ -97,6 +104,8 @@ class Accommodation extends Model
             'pricing_non_refundable_discount' => 'decimal:2',
             'pricing_modifiable_surcharge' => 'decimal:2',
             'pricing_long_stay_discount' => 'decimal:2',
+            'ical_last_synced_at' => 'datetime',
+            'channel_manager_interest_requested_at' => 'datetime',
         ];
     }
 

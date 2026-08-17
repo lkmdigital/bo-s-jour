@@ -27,6 +27,7 @@ use App\Http\Controllers\OAuthController;
 use App\Http\Controllers\ClientCreditController;
 use App\Http\Controllers\CorporateController;
 use App\Http\Controllers\HostStaffController;
+use App\Http\Controllers\IcalSyncController;
 use App\Http\Controllers\BookingWhatsappOtpController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\SettingsController;
@@ -168,6 +169,13 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::delete('/accommodations/{id}', [AccommodationController::class, 'destroy'])->where('id', '[0-9]+');
         Route::get('/accommodations/{id}/readiness', [AccommodationController::class, 'readiness'])->where('id', '[0-9]+');
         Route::post('/accommodations/{id}/submit-for-review', [AccommodationController::class, 'submitForReview'])->where('id', '[0-9]+');
+
+        // Synchronisation externe (iCal) — brief Extranet Partenaire, Étape 18
+        Route::get('/accommodations/{id}/ical', [IcalSyncController::class, 'show'])->where('id', '[0-9]+');
+        Route::post('/accommodations/{id}/ical/sync', [IcalSyncController::class, 'sync'])->where('id', '[0-9]+')->middleware('throttle:10,1,ical-sync');
+        Route::post('/accommodations/{id}/ical/resync', [IcalSyncController::class, 'resync'])->where('id', '[0-9]+')->middleware('throttle:10,1,ical-resync');
+        Route::delete('/accommodations/{id}/ical', [IcalSyncController::class, 'disconnect'])->where('id', '[0-9]+');
+        Route::post('/accommodations/{id}/channel-manager/interest', [IcalSyncController::class, 'requestChannelManagerAccess'])->where('id', '[0-9]+')->middleware('throttle:5,1,channel-manager-interest');
 
         // Rooms (gestion hôte)
         // Chemin distinct de /accommodations/{id}/rooms (public, cf. ligne ~53) pour éviter
