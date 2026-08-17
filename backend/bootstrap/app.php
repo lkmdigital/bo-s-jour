@@ -49,6 +49,19 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // "Too Many Attempts." est un message codé en dur dans
+        // Illuminate\Routing\Middleware\ThrottleRequests (pas une chaîne de validation
+        // Laravel), donc lang/fr/validation.php ne le traduit pas. On le remplace ici pour
+        // les requêtes API par un message français avec le délai d'attente réel.
+        $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, \Illuminate\Http\Request $request) {
+            if (!$request->is('api/*') && !$request->expectsJson()) {
+                return null;
+            }
+            $retryAfter = $e->getHeaders()['Retry-After'] ?? null;
+            $message = $retryAfter
+                ? "Trop de tentatives. Merci de réessayer dans {$retryAfter} seconde(s)."
+                : 'Trop de tentatives. Merci de réessayer dans quelques instants.';
+            return response()->json(['message' => $message], 429, $e->getHeaders());
+        });
     })->create();
 
