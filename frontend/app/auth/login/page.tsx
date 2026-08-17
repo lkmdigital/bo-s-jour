@@ -13,6 +13,7 @@ import { isController, isAdmin } from '@/lib/userUtils';
 import { authService } from '@/lib/auth';
 import { getRememberedEmail } from '@/lib/tokenStorage';
 import { useAppearanceStore, LANDING_PAGE_ROUTES } from '@/stores/appearanceStore';
+import { useRetryCountdown } from '@/hooks/useRetryCountdown';
 
 interface LoginFormData {
   email: string;
@@ -26,6 +27,8 @@ function LoginContent() {
   const { login, user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
+  const retrySecondsLeft = useRetryCountdown(retryAfter);
   const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
@@ -45,6 +48,7 @@ function LoginContent() {
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
     setError(null);
+    setRetryAfter(null);
 
     try {
       await login(data.email, data.password, data.remember);
@@ -88,6 +92,9 @@ function LoginContent() {
         router.push(`/auth/verify-otp?user_id=${err.user_id}`);
       } else if (err.requires_2fa) {
         setError('Authentification à deux facteurs activée. Cette fonctionnalité sera disponible prochainement. Veuillez contacter le support pour désactiver temporairement le 2FA.');
+      } else if (err.response?.status === 429 && err.retryAfterSeconds) {
+        setError('Trop de tentatives.');
+        setRetryAfter(err.retryAfterSeconds);
       } else {
         setError(err.response?.data?.message || err.message || 'Erreur lors de la connexion');
       }
@@ -108,8 +115,18 @@ function LoginContent() {
 
             {error && (
               <FadeIn>
-                <div className="bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-2.5 sm:p-3 rounded-lg mb-4 text-xs sm:text-sm break-words animate-pulse-slow">
+                <div className={`bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-2.5 sm:p-3 rounded-lg mb-4 text-xs sm:text-sm break-words ${retryAfter == null ? 'animate-pulse-slow' : ''}`}>
                   {error}
+                  {retryAfter != null && (
+                    <>
+                      {' '}
+                      {retrySecondsLeft ? (
+                        <>Réessayez dans <span className="font-semibold tabular-nums">{retrySecondsLeft}s</span>.</>
+                      ) : (
+                        'Vous pouvez réessayer.'
+                      )}
+                    </>
+                  )}
                 </div>
               </FadeIn>
             )}
@@ -167,10 +184,10 @@ function LoginContent() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !!retrySecondsLeft}
               className="w-full btn-primary disabled:opacity-50 text-sm sm:text-base py-2 sm:py-2.5"
             >
-              {loading ? 'Accès en cours...' : 'Accéder à mon espace'}
+              {loading ? 'Accès en cours...' : retrySecondsLeft ? `Réessayez dans ${retrySecondsLeft}s` : 'Accéder à mon espace'}
             </button>
             </form>
             </FadeIn>

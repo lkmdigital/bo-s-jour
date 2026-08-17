@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useRetryCountdown } from '@/hooks/useRetryCountdown';
 import Header from '@/components/common/Header';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -93,6 +94,8 @@ export default function BookingPaymentPage() {
   const [loadingMethods, setLoadingMethods] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
+  const retrySecondsLeft = useRetryCountdown(retryAfter);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentType, setPaymentType] = useState<'full' | 'guarantee' | ''>('');
@@ -155,6 +158,7 @@ export default function BookingPaymentPage() {
     }
     setProcessing(true);
     setError(null);
+    setRetryAfter(null);
     try {
       const res = await api.post(`/bookings/${booking.id}/payment/initiate`, {
         payment_method: selectedPaymentMethod,
@@ -177,12 +181,19 @@ export default function BookingPaymentPage() {
       }
       throw new Error('Le lien de paiement est indisponible. Veuillez réessayer.');
     } catch (err: any) {
-      const message =
-        err.response?.data?.error ||
-        err.response?.data?.message ||
-        err.message ||
-        'Une erreur est survenue lors du paiement. Veuillez réessayer.';
-      setError(message);
+      if (err.response?.status === 429 && err.retryAfterSeconds) {
+        // Message reconstruit côté client avec un décompte en direct plutôt que le texte
+        // statique du backend (qui deviendrait faux dès la seconde suivante).
+        setError('Trop de tentatives.');
+        setRetryAfter(err.retryAfterSeconds);
+      } else {
+        const message =
+          err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          'Une erreur est survenue lors du paiement. Veuillez réessayer.';
+        setError(message);
+      }
       setProcessing(false);
     }
   };
@@ -427,9 +438,21 @@ export default function BookingPaymentPage() {
                   <div className="flex items-start gap-3">
                     <XCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <p className="text-sm text-red-700 dark:text-red-400 whitespace-pre-wrap">{error}</p>
+                      <p className="text-sm text-red-700 dark:text-red-400 whitespace-pre-wrap">
+                        {error}
+                        {retryAfter != null && (
+                          <>
+                            {' '}
+                            {retrySecondsLeft ? (
+                              <>Réessayez dans <span className="font-semibold tabular-nums">{retrySecondsLeft}s</span>.</>
+                            ) : (
+                              'Vous pouvez réessayer.'
+                            )}
+                          </>
+                        )}
+                      </p>
                       <button
-                        onClick={() => setError(null)}
+                        onClick={() => { setError(null); setRetryAfter(null); }}
                         className="mt-1 text-xs text-red-600 dark:text-red-400 hover:underline"
                       >
                         Fermer
@@ -441,7 +464,7 @@ export default function BookingPaymentPage() {
 
               <button
                 onClick={handlePay}
-                disabled={processing || !selectedPaymentMethod || !paymentType}
+                disabled={processing || !selectedPaymentMethod || !paymentType || !!retrySecondsLeft}
                 className="w-full btn-primary mt-5 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
               >
                 {processing ? (

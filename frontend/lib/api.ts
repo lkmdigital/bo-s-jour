@@ -87,6 +87,14 @@ api.interceptors.response.use(
       error.message = 'Erreur serveur. Veuillez réessayer plus tard.';
     }
 
+    // Handle 429 Too Many Requests — expose le délai d'attente (header Retry-After,
+    // renvoyé par ThrottleRequests) pour permettre un décompte côté UI plutôt qu'un
+    // message statique.
+    if (error.response?.status === 429) {
+      const retryAfter = parseInt(error.response.headers?.['retry-after'], 10);
+      error.retryAfterSeconds = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : 60;
+    }
+
     return Promise.reject(error);
   }
 );
