@@ -71,6 +71,17 @@ class AccommodationController extends Controller
         }
 
         if ($request->has('featured')) {
+            // Les offres promotionnelles (établissements "featured") sont réservées aux
+            // voyageurs inscrits — c'est un levier d'inscription volontaire, pas une
+            // simple mise en avant marketing. $request->user() se résout depuis le
+            // Bearer token même sur cette route publique (guard par défaut = sanctum),
+            // sans middleware auth:sanctum nécessaire.
+            if (!$request->user()) {
+                return response()->json([
+                    'message' => 'Créez votre compte ou connectez-vous pour découvrir nos offres promotionnelles.',
+                    'requires_auth' => true,
+                ], 401);
+            }
             $query->featured();
         }
 

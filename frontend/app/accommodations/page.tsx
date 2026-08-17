@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import Header from '@/components/common/Header';
@@ -11,7 +12,7 @@ import Footer from '@/components/common/Footer';
 import Pagination from '@/components/common/Pagination';
 import PropertyCard, { PropertyCardData } from '@/components/home/PropertyCard';
 import ResultsMap, { MapItem } from '@/components/accommodations/ResultsMap';
-import { Search, SlidersHorizontal, X, Star, Map, List, Minus, Plus, Users } from 'lucide-react';
+import { Search, SlidersHorizontal, X, Star, Map, List, Minus, Plus, Users, Gift, LogIn, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Accommodation {
@@ -75,6 +76,9 @@ export default function AccommodationsPage() {
 
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [loading, setLoading] = useState(true);
+  // Offres promotionnelles réservées aux voyageurs inscrits (levier d'inscription) :
+  // posé quand l'API renvoie 401 + requires_auth pour une recherche `featured=1`.
+  const [offersAuthRequired, setOffersAuthRequired] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, per_page: 12, current_page: 1, last_page: 1 });
   // Type initialisé depuis l'URL dès le premier rendu (et non via un effet après coup) :
@@ -118,6 +122,10 @@ export default function AccommodationsPage() {
       router.push('/dashboard/host');
       return;
     }
+    // Offres promotionnelles : on attend que l'état de connexion soit résolu avant de
+    // lancer la recherche, sinon un voyageur déjà connecté (token en cours d'hydratation)
+    // se verrait affiché à tort l'écran "créez un compte" le temps d'un aller-retour.
+    if (filters.featured && isLoading) return;
     if (user?.role !== 'host') fetchAccommodations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, filters, sort, applied, isAuthenticated, isLoading, user?.role]);
@@ -125,6 +133,7 @@ export default function AccommodationsPage() {
   const fetchAccommodations = async () => {
     try {
       setLoading(true);
+      setOffersAuthRequired(false);
       const params: Record<string, string | number> = { per_page: 12, page: currentPage, sort };
       if (applied.search) params.search = applied.search;
       if (applied.checkIn) params.check_in = applied.checkIn;
@@ -147,8 +156,12 @@ export default function AccommodationsPage() {
         current_page: res.data.current_page ?? 1,
         last_page: res.data.last_page ?? 1,
       });
-    } catch (e) {
-      console.error('Erreur chargement hébergements:', e);
+    } catch (e: any) {
+      if (filters.featured && e.response?.status === 401 && e.response?.data?.requires_auth) {
+        setOffersAuthRequired(true);
+      } else {
+        console.error('Erreur chargement hébergements:', e);
+      }
       setAccommodations([]);
     } finally {
       setLoading(false);
@@ -345,7 +358,9 @@ export default function AccommodationsPage() {
                       ? 'Nos offres promotionnelles'
                       : 'Tous les hébergements'}
                 </h1>
-                <p className="text-sm text-gray-500">{loading ? 'Recherche…' : `${pagination.total} résultat${pagination.total > 1 ? 's' : ''}`}</p>
+                {!offersAuthRequired && (
+                  <p className="text-sm text-gray-500">{loading ? 'Recherche…' : `${pagination.total} résultat${pagination.total > 1 ? 's' : ''}`}</p>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -382,6 +397,28 @@ export default function AccommodationsPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : offersAuthRequired ? (
+              <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 min-h-[360px] flex items-center justify-center text-center p-8">
+                <div className="max-w-sm">
+                  <span className="w-14 h-14 rounded-2xl bg-primary/15 text-primary flex items-center justify-center mx-auto mb-4">
+                    <Gift className="w-7 h-7" />
+                  </span>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                    Nos offres promotionnelles sont réservées aux voyageurs inscrits
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    Créez votre compte bo séjour (gratuit, une minute) ou connectez-vous pour découvrir nos établissements en promotion.
+                  </p>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <Link href="/auth/register?redirect=%2Faccommodations%3Ffeatured%3D1" className="btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2">
+                      <UserPlus className="w-4 h-4" /> Créer mon compte
+                    </Link>
+                    <Link href="/auth/login?redirect=%2Faccommodations%3Ffeatured%3D1" className="btn-outline w-full sm:w-auto inline-flex items-center justify-center gap-2">
+                      <LogIn className="w-4 h-4" /> Se connecter
+                    </Link>
+                  </div>
+                </div>
               </div>
             ) : view === 'map' ? (
               mapItems.length > 0 ? (

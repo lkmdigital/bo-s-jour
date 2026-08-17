@@ -442,6 +442,16 @@ export default function Header() {
 
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
+                {user?.role === 'user' && (
+                  <Link
+                    href="/accommodations?featured=1"
+                    className="group relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
+                    aria-label="Offres promotionnelles"
+                  >
+                    <Gift className="w-5 h-5" />
+                    <IconTooltip text="Profitez de nos offres promotionnelles" />
+                  </Link>
+                )}
                 <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Changer le thème">
                   {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
