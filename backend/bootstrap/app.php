@@ -22,10 +22,24 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->append(\App\Http\Middleware\LogSecurityEvents::class);
 
-        // Rate-limit global de l'API (120 req/min par utilisateur ou IP), en plus
+        // Rate-limit global de l'API (240 req/min par utilisateur ou IP), en plus
         // des limites plus strictes déjà posées route par route (login, OTP, paiement…).
+        // Une seule fiche établissement charge déjà 8-10 requêtes en parallèle
+        // (établissement, chambres, avis, tarif, carte, favoris, suggestions…) ; à 120/min
+        // quelques pages consultées à la suite suffisaient à déclencher "Too Many Attempts"
+        // en usage normal, pas seulement en cas d'abus.
+        //
+        // Le préfixe "global-api" est indispensable : par défaut, la clé de compteur du
+        // rate-limiter Laravel ne dépend QUE du domaine + de l'IP (pas du chemin de la
+        // route, ni des valeurs maxAttempts/decay). Sans préfixe distinct ici, ce throttle
+        // global partage exactement le même compteur que TOUS les throttle:N,1 posés route
+        // par route ci-dessous — chaque requête, même une simple page consultée, incrémente
+        // alors le même compteur que "tentatives de connexion" ou "tentatives de paiement",
+        // qui se retrouvent bloquées après quelques pages de navigation normale, sans
+        // rapport avec leur propre historique. C'était la cause du "Too Many Attempts"
+        // qui apparaissait un peu partout sur le site.
         $middleware->api(append: [
-            'throttle:120,1',
+            'throttle:240,1,global-api',
         ]);
 
         $middleware->alias([

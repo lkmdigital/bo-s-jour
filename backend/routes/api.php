@@ -52,7 +52,7 @@ Route::get('/accommodations/{id}/price-preview', [AccommodationController::class
 Route::get('/accommodations/{id}/similar', [AccommodationController::class, 'getSimilarByCity'])->where('id', '[0-9]+');
 Route::get('/accommodations/{id}/reviews', [ReviewController::class, 'index'])->where('id', '[0-9]+');
 Route::get('/reviews/booking-by-token/{token}', [ReviewController::class, 'getBookingByToken']);
-Route::post('/reviews/submit-by-token', [ReviewController::class, 'submitByToken'])->middleware('throttle:5,1');
+Route::post('/reviews/submit-by-token', [ReviewController::class, 'submitByToken'])->middleware('throttle:5,1,review-token');
 Route::get('/accommodations/{id}/promotions', [PromotionController::class, 'index'])->where('id', '[0-9]+');
 
 // Public room routes (DOIT être avant le middleware auth:sanctum)
@@ -70,39 +70,39 @@ Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
 Route::get('/settings/public', [SettingsController::class, 'publicSettings']);
 
 // Booking creation (public - permet les réservations sans authentification)
-Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:10,1'); // 10 réservations par minute
+Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:10,1,booking-store'); // 10 réservations par minute
 
 // Vérification du numéro WhatsApp pendant le tunnel de réservation (brief Étape 8)
 Route::get('/booking/whatsapp-otp/status', [BookingWhatsappOtpController::class, 'status']);
-Route::post('/booking/whatsapp-otp/send', [BookingWhatsappOtpController::class, 'send'])->middleware('throttle:5,1');
-Route::post('/booking/whatsapp-otp/verify', [BookingWhatsappOtpController::class, 'verify'])->middleware('throttle:10,1');
+Route::post('/booking/whatsapp-otp/send', [BookingWhatsappOtpController::class, 'send'])->middleware('throttle:8,1,booking-wa-otp-send');
+Route::post('/booking/whatsapp-otp/verify', [BookingWhatsappOtpController::class, 'verify'])->middleware('throttle:10,1,booking-wa-otp-verify');
 
 // Public booking routes (le contrôleur gère les permissions)
 Route::get('/bookings/{id}', [BookingController::class, 'show']); // Peut être consultée sans authentification
 
 // Payment initiation (public - permet le paiement sans authentification pour les réservations sans compte)
-Route::post('/bookings/{bookingId}/payment/initiate', [PaymentController::class, 'initiate'])->middleware('throttle:5,1'); // 5 tentatives par minute
+Route::post('/bookings/{bookingId}/payment/initiate', [PaymentController::class, 'initiate'])->middleware('throttle:15,1,payment-initiate'); // 15 tentatives par minute — un aller-retour passerelle qui échoue (timeout réseau, retour "Annulé") pousse à réessayer plusieurs fois de suite
 
 // Payment processing (public - permet le traitement du paiement sans authentification)
-Route::post('/payments/{paymentId}/process', [PaymentController::class, 'process'])->middleware('throttle:5,1'); // 5 tentatives par minute
+Route::post('/payments/{paymentId}/process', [PaymentController::class, 'process'])->middleware('throttle:15,1,payment-process'); // idem : appelé en repli juste après /initiate, ne doit pas être le facteur limitant
 
 // Payment details (public - permet de consulter un paiement sans authentification)
 Route::get('/payments/{paymentId}', [PaymentController::class, 'show']);
 
 // Auth routes avec rate limiting strict pour prévenir les attaques de force brute
-Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1'); // 5 tentatives par minute
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1'); // 5 tentatives par minute
-Route::post('/auth/activate-guest', [AuthController::class, 'activateGuest'])->middleware('throttle:5,1'); // activation compte invité
-Route::get('/auth/staff-invitation', [AuthController::class, 'staffInvitationInfo'])->middleware('throttle:20,1'); // infos invitation collaborateur (menu Personnel)
-Route::post('/auth/activate-staff', [AuthController::class, 'activateStaffInvitation'])->middleware('throttle:5,1'); // activation collaborateur
-Route::post('/auth/register-traveler', [AuthController::class, 'registerTraveler'])->middleware('throttle:10,1'); // inscription voyageur (légère)
-Route::post('/auth/register-partner-light', [AuthController::class, 'registerPartnerLight'])->middleware('throttle:10,1'); // inscription hôte (légère)
-Route::get('/auth/guest-prefill', [AuthController::class, 'guestPrefill'])->middleware('throttle:20,1'); // préremplissage depuis compte invité existant
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1,auth-register'); // 5 tentatives par minute
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1,auth-login'); // 10 tentatives par minute — reste très en dessous de ce qu'il faut pour du brute-force, mais laisse la marge d'une faute de frappe suivie d'un rechargement de page
+Route::post('/auth/activate-guest', [AuthController::class, 'activateGuest'])->middleware('throttle:5,1,auth-activate-guest'); // activation compte invité
+Route::get('/auth/staff-invitation', [AuthController::class, 'staffInvitationInfo'])->middleware('throttle:20,1,auth-staff-invitation'); // infos invitation collaborateur (menu Personnel)
+Route::post('/auth/activate-staff', [AuthController::class, 'activateStaffInvitation'])->middleware('throttle:5,1,auth-activate-staff'); // activation collaborateur
+Route::post('/auth/register-traveler', [AuthController::class, 'registerTraveler'])->middleware('throttle:10,1,auth-register-traveler'); // inscription voyageur (légère)
+Route::post('/auth/register-partner-light', [AuthController::class, 'registerPartnerLight'])->middleware('throttle:10,1,auth-register-partner'); // inscription hôte (légère)
+Route::get('/auth/guest-prefill', [AuthController::class, 'guestPrefill'])->middleware('throttle:20,1,auth-guest-prefill'); // préremplissage depuis compte invité existant
 
 // Email OTP & Password Reset (public)
-Route::post('/auth/send-otp', [AuthController::class, 'sendEmailOtp'])->middleware('throttle:3,1');
-Route::post('/auth/verify-otp', [AuthController::class, 'verifyEmailOtp'])->middleware('throttle:10,1');
-Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
+Route::post('/auth/send-otp', [AuthController::class, 'sendEmailOtp'])->middleware('throttle:6,1,auth-send-otp'); // laisse renvoyer le code 2-3 fois (mail en retard) sans se bloquer
+Route::post('/auth/verify-otp', [AuthController::class, 'verifyEmailOtp'])->middleware('throttle:10,1,auth-verify-otp');
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:6,1,auth-forgot-password');
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 
 // OAuth routes
@@ -119,11 +119,11 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
         // Profil voyageur (mise à jour + mot de passe + pièces d'identité)
         Route::put('/me/profile', [UserProfileController::class, 'update']);
-        Route::post('/me/avatar', [UserProfileController::class, 'uploadAvatar'])->middleware('throttle:10,1');
+        Route::post('/me/avatar', [UserProfileController::class, 'uploadAvatar'])->middleware('throttle:10,1,me-avatar');
         Route::delete('/me/avatar', [UserProfileController::class, 'deleteAvatar']);
-        Route::post('/me/password', [UserProfileController::class, 'changePassword'])->middleware('throttle:5,1');
+        Route::post('/me/password', [UserProfileController::class, 'changePassword'])->middleware('throttle:10,1,me-password');
         Route::get('/me/identity', [UserProfileController::class, 'identity']);
-        Route::post('/me/identity', [UserProfileController::class, 'uploadIdentity'])->middleware('throttle:10,1');
+        Route::post('/me/identity', [UserProfileController::class, 'uploadIdentity'])->middleware('throttle:10,1,me-identity');
         Route::get('/me/payments', [PaymentController::class, 'myPayments']);
         Route::get('/me/notifications', [MemberNotificationController::class, 'index']);
         Route::post('/me/notifications/{id}/read', [MemberNotificationController::class, 'markAsRead']);
@@ -229,7 +229,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
         // Personnel (collaborateurs : réceptionniste, comptabilité, commercial, housekeeping, maintenance)
         Route::get('/host/staff', [HostStaffController::class, 'index']);
-        Route::post('/host/staff', [HostStaffController::class, 'store'])->middleware('throttle:20,1');
+        Route::post('/host/staff', [HostStaffController::class, 'store'])->middleware('throttle:20,1,host-staff-invite');
         Route::put('/host/staff/{staffMember}', [HostStaffController::class, 'update']);
         Route::delete('/host/staff/{staffMember}', [HostStaffController::class, 'destroy']);
     });
@@ -238,8 +238,8 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/bookings/host/overview', [BookingController::class, 'hostReservations'])->middleware('role:host');
     Route::put('/bookings/{id}', [BookingController::class, 'update']);
-    Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('throttle:5,1');
-    Route::post('/bookings/{booking}/refuse', [BookingController::class, 'refuse'])->middleware(['role:host,admin', 'throttle:10,1']);
+    Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('throttle:5,1,booking-cancel');
+    Route::post('/bookings/{booking}/refuse', [BookingController::class, 'refuse'])->middleware(['role:host,admin', 'throttle:10,1,booking-refuse']);
     Route::post('/bookings/{booking}/complete', [BookingController::class, 'complete'])->middleware('role:host,admin');
     Route::get('/bookings/{booking}/history', [BookingController::class, 'history']);
     Route::get('/bookings/{id}/messages', [BookingMessageController::class, 'index'])->where('id', '[0-9]+');
@@ -257,7 +257,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     Route::prefix('me/corporate')->group(function () {
         Route::get('/overview', [CorporateController::class, 'overview']);
         Route::get('/expenses', [CorporateController::class, 'expenses']);
-        Route::post('/collaborators', [CorporateController::class, 'inviteCollaborator'])->middleware('throttle:20,1');
+        Route::post('/collaborators', [CorporateController::class, 'inviteCollaborator'])->middleware('throttle:20,1,corporate-collaborator-invite');
         Route::put('/collaborators/{collaborator}', [CorporateController::class, 'updateCollaborator']);
         Route::delete('/collaborators/{collaborator}', [CorporateController::class, 'removeCollaborator']);
     });
@@ -265,7 +265,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     // Favoris (espace client)
     Route::get('/favorites', [FavoriteController::class, 'index']);
     Route::get('/favorites/ids', [FavoriteController::class, 'ids']);
-    Route::post('/favorites', [FavoriteController::class, 'store'])->middleware('throttle:60,1');
+    Route::post('/favorites', [FavoriteController::class, 'store'])->middleware('throttle:60,1,favorites-store');
     Route::delete('/favorites/{accommodationId}', [FavoriteController::class, 'destroy'])->where('accommodationId', '[0-9]+');
 
     // Payment Methods (détails nécessitent authentification)
