@@ -34,6 +34,7 @@ interface InspectionDetail {
   score?: number;
   scheduled_at?: string;
   started_at?: string;
+  paused_at?: string | null;
   completed_at?: string;
   observations?: string;
   recommendations?: string;
@@ -485,8 +486,17 @@ export default function InspectionDetailPage() {
                   disabled={actionLoading}
                   className="btn-secondary flex items-center gap-2"
                 >
-                  <Pause className="w-4 h-4" />
-                  Mettre en pause
+                  {inspection.paused_at ? (
+                    <>
+                      <Play className="w-4 h-4" />
+                      Reprendre
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="w-4 h-4" />
+                      Mettre en pause
+                    </>
+                  )}
                 </button>
               ) : (
                 <div className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-sm flex items-center gap-2">

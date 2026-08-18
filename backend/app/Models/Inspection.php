@@ -18,6 +18,7 @@ class Inspection extends Model
         'status',
         'scheduled_at',
         'started_at',
+        'paused_at',
         'completed_at',
         'score',
         'result',
@@ -32,6 +33,7 @@ class Inspection extends Model
     protected $casts = [
         'scheduled_at' => 'datetime',
         'started_at' => 'datetime',
+        'paused_at' => 'datetime',
         'completed_at' => 'datetime',
         'score' => 'decimal:2',
         'offline_mode' => 'boolean',
@@ -81,7 +83,7 @@ class Inspection extends Model
             if ($checklist->type === 'boolean') {
                 $score = $response->value_boolean ? 100 : 0;
             } elseif ($checklist->type === 'rating') {
-                $score = ($response->value_rating / 5) * 100;
+                $score = (($response->value_rating ?? 0) / 5) * 100;
             }
 
             $weightedScore += $score * $weight;

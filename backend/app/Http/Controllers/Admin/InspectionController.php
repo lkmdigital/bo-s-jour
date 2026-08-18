@@ -219,6 +219,15 @@ class InspectionController extends Controller
             ], 400);
         }
 
+        // Sans au moins une réponse, calculateScore() renvoie 0 et le résultat
+        // basculerait automatiquement en "rejected" — trompeur pour une inspection
+        // qu'on vient à peine de démarrer.
+        if ($inspection->responses()->count() === 0) {
+            return response()->json([
+                'message' => 'Renseignez au moins un critère avant de compléter l\'inspection.',
+            ], 400);
+        }
+
         $validated = $request->validate([
             'observations' => 'nullable|string|max:10000',
             'recommendations' => 'nullable|string|max:10000',
@@ -262,6 +271,15 @@ class InspectionController extends Controller
         $inspection = Inspection::findOrFail($id);
         $this->authorize('approve', $inspection);
 
+        // Sans cette garde, une inspection jamais démarrée/complétée pouvait être
+        // approuvée directement, publiant l'établissement sans qu'il ait été
+        // réellement inspecté.
+        if ($inspection->status !== 'completed') {
+            return response()->json([
+                'message' => 'Seule une inspection complétée peut être approuvée.',
+            ], 400);
+        }
+
         $validated = $request->validate([
             'reason' => 'nullable|string|max:2000',
         ]);
@@ -288,6 +306,12 @@ class InspectionController extends Controller
     {
         $inspection = Inspection::findOrFail($id);
         $this->authorize('reject', $inspection);
+
+        if ($inspection->status !== 'completed') {
+            return response()->json([
+                'message' => 'Seule une inspection complétée peut être rejetée.',
+            ], 400);
+        }
 
         $validated = $request->validate([
             'rejection_reason' => 'required|string|max:2000',
@@ -490,53 +514,6 @@ class InspectionController extends Controller
 
 
     /**
-     * Obtenir la catégorie pour un nom de critère
-     */
-    private function getCategoryForName($name)
-    {
-        $mapping = [
-            'Nom de l\'établissement' => 'general',
-            'Type d\'établissement' => 'general',
-            'Description' => 'general',
-            'Année d\'ouverture' => 'general',
-            'Classement (étoiles)' => 'general',
-            'Adresse' => 'location',
-            'Ville' => 'location',
-            'Coordonnées GPS' => 'location',
-            'Capacité maximale' => 'capacity',
-            'Nombre de chambres' => 'capacity',
-            'Nombre de salles de bain' => 'capacity',
-            'Types de chambres' => 'capacity',
-            'Équipements déclarés' => 'services',
-            'Réception 24h/24' => 'services',
-            'Service de navette' => 'services',
-            'Buanderie' => 'services',
-            'Espace fumeur' => 'services',
-            'Animaux acceptés' => 'services',
-            'Salles de conférence' => 'additional',
-            'Capacité restaurant' => 'additional',
-            'Capacité bar' => 'additional',
-            'Prix par nuit' => 'pricing',
-            'Prix du petit déjeuner' => 'pricing',
-            'Petit déjeuner inclus' => 'pricing',
-            'Heure d\'arrivée (Check-in)' => 'pricing',
-            'Heure de départ (Check-out)' => 'pricing',
-        ];
-        return $mapping[$name] ?? 'general';
-    }
-
-    /**
-     * Obtenir le type pour un nom de critère
-     */
-    private function getTypeForName($name)
-    {
-        $booleanItems = [
-            'Réception 24h/24', 'Service de navette', 'Buanderie', 'Espace fumeur', 'Animaux acceptés', 'Petit déjeuner inclus',
-        ];
-        return in_array($name, $booleanItems) ? 'boolean' : 'rating';
-    }
-
-    /**
      * Obtenir la description pour un nom de critère
      */
     private function getDescriptionForName($name)
@@ -635,8 +612,16 @@ class InspectionController extends Controller
             ], 400);
         }
 
-        // On peut simplement laisser l'inspection en "in_progress" mais on peut ajouter un champ "paused_at" si nécessaire
-        // Pour l'instant, on garde le statut "in_progress" mais on peut ajouter une note
+        // Bascule pause / reprise (même endpoint, pas de route dédiée pour "reprendre").
+        if ($inspection->paused_at) {
+            $inspection->update(['paused_at' => null]);
+            return response()->json([
+                'message' => 'Inspection reprise',
+                'data' => $inspection,
+            ]);
+        }
+
+        $inspection->update(['paused_at' => now()]);
 
         return response()->json([
             'message' => 'Inspection mise en pause',

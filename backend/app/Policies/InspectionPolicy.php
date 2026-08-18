@@ -62,9 +62,18 @@ class InspectionPolicy
      */
     public function complete(User $user, Inspection $inspection): bool
     {
-        // Seul le contrôleur assigné peut compléter
-        return $inspection->inspector_id === $user->id && 
-               $user->hasRole('controleur');
+        // Même schéma que update() ci-dessus : l'inspecteur assigné peut compléter
+        // sa propre inspection quel que soit son rôle (store() autorise déjà un
+        // admin à devenir inspector_id via inspections.create — l'ancienne
+        // condition hasRole('controleur') rendait alors l'inspection à jamais
+        // impossible à compléter par qui que ce soit) ; un admin garde par
+        // ailleurs la même capacité de reprise en main que sur update().
+        if ($inspection->inspector_id === $user->id) {
+            return true;
+        }
+
+        return $user->hasPermission('inspections.update') ||
+               $user->hasAnyRole(['super_admin', 'admin']);
     }
 
     /**

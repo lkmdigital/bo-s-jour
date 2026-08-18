@@ -38,6 +38,7 @@ class Review extends Model
         'is_reported',
         'report_reason',
         'report_count',
+        'reported_by',
         'moderation_status',
     ];
 
@@ -48,6 +49,7 @@ class Review extends Model
             'category_ratings' => 'array',
             'host_replied_at' => 'datetime',
             'is_reported' => 'boolean',
+            'reported_by' => 'array',
         ];
     }
 

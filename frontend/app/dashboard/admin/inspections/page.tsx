@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
-import { isAdminOrController } from '@/lib/userUtils';
+import { isAdminOrController, isController, isAdmin } from '@/lib/userUtils';
 import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Pagination from '@/components/common/Pagination';
-import { isController, isAdmin } from '@/lib/userUtils';
 import {
   FileCheck,
   Search,
@@ -28,6 +27,7 @@ interface Inspection {
   score?: number;
   scheduled_at?: string;
   started_at?: string;
+  paused_at?: string | null;
   completed_at?: string;
   accommodation?: {
     id: number;
@@ -303,7 +303,14 @@ export default function AdminInspectionsPage() {
                         </p>
                       </td>
                       <td className="py-4 px-4">
-                        {getStatusBadge(inspection.status)}
+                        <div className="flex items-center gap-1.5">
+                          {getStatusBadge(inspection.status)}
+                          {inspection.status === 'in_progress' && inspection.paused_at && (
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+                              En pause
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-4 px-4">
                         {getResultBadge(inspection.result)}

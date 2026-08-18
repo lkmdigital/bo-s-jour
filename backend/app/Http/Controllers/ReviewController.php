@@ -146,12 +146,7 @@ class ReviewController extends Controller
             'comment_en' => $request->comment_en,
         ]);
 
-        $accommodation = Accommodation::findOrFail($booking->accommodation_id);
-        $approvedQuery = Review::where('accommodation_id', $booking->accommodation_id)->where('moderation_status', 'approved');
-        $accommodation->update([
-            'rating' => round((float) $approvedQuery->avg('rating'), 2),
-            'total_reviews' => $approvedQuery->count(),
-        ]);
+        $this->refreshAccommodationRating($booking->accommodation_id);
 
         return response()->json([
             'message' => 'Merci pour votre avis !',
@@ -226,19 +221,15 @@ class ReviewController extends Controller
             'comment_en' => $request->comment_en,
         ]);
 
-        // Update accommodation rating (only approved reviews count)
-        $accommodation = Accommodation::findOrFail($request->accommodation_id);
-        $approvedQuery = Review::where('accommodation_id', $request->accommodation_id)->where('moderation_status', 'approved');
-        $accommodation->update([
-            'rating' => round((float) $approvedQuery->avg('rating'), 2),
-            'total_reviews' => $approvedQuery->count(),
-        ]);
+        $this->refreshAccommodationRating((int) $request->accommodation_id);
 
         return response()->json($review->load('user'), 201);
     }
 
     /**
-     * Signaler un avis (utilisateur connecté).
+     * Signaler un avis (utilisateur connecté). Idempotent par utilisateur : un même
+     * voyageur ne peut pas gonfler report_count en signalant plusieurs fois le même
+     * avis (ex. après un rechargement de page qui réinitialise l'état du bouton).
      */
     public function report(Request $request, int $id)
     {
@@ -247,14 +238,37 @@ class ReviewController extends Controller
         ]);
 
         $review = Review::findOrFail($id);
-        $review->increment('report_count');
+        $reportedBy = $review->reported_by ?? [];
+        $userId = $request->user()->id;
+
+        if (in_array($userId, $reportedBy, true)) {
+            return response()->json(['message' => 'Vous avez déjà signalé cet avis. L\'équipe l\'examine.']);
+        }
+
+        $reportedBy[] = $userId;
         $review->update([
             'is_reported' => true,
             'report_reason' => $request->reason ?? $review->report_reason,
+            'report_count' => count($reportedBy),
+            'reported_by' => $reportedBy,
             'moderation_status' => 'pending',
         ]);
 
+        // moderation_status vient de passer à 'pending' : l'avis ne doit plus
+        // compter dans la moyenne tant qu'un admin ne l'a pas re-modéré (sinon la
+        // note affichée reste artificiellement gonflée par un avis désormais en attente).
+        $this->refreshAccommodationRating($review->accommodation_id);
+
         return response()->json(['message' => 'Avis signalé. L\'équipe va l\'examiner.']);
+    }
+
+    private function refreshAccommodationRating(int $accommodationId): void
+    {
+        $approved = Review::where('accommodation_id', $accommodationId)->where('moderation_status', 'approved');
+        Accommodation::where('id', $accommodationId)->update([
+            'rating' => round((float) $approved->avg('rating'), 2),
+            'total_reviews' => $approved->count(),
+        ]);
     }
 }
 
