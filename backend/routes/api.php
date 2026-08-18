@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\AdminLegalDocumentController;
 use App\Http\Controllers\Admin\AdminPaymentMethodController;
 use App\Http\Controllers\Admin\AdminPromotionController;
 use App\Http\Controllers\Admin\AdminStrategicController;
+use App\Http\Controllers\Admin\AdminTourismController;
 use App\Http\Controllers\Admin\InspectionController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminBookingController;
@@ -350,6 +351,12 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::get('/forecast', [AdminStrategicController::class, 'forecast']);
             Route::get('/alerts', [AdminStrategicController::class, 'alerts']);
             Route::get('/geography', [AdminStrategicController::class, 'geography']);
+        });
+
+        // Base touristique (cartographie + statistiques plateforme)
+        Route::prefix('tourism')->middleware('role:admin')->group(function () {
+            Route::get('/map', [AdminTourismController::class, 'map']);
+            Route::get('/stats', [AdminTourismController::class, 'stats']);
         });
 
         // Journal d'activité (fusion UserActivityLog + AccommodationAuditLog)
