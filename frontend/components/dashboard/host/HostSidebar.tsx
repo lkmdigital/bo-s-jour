@@ -117,7 +117,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-white/10 py-3 px-3 space-y-1">
         <Link
-          href="/dashboard/host/profile"
+          href="/dashboard/host/settings"
           onClick={onNavigate}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white"
         >
