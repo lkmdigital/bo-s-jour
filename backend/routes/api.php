@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\AdminPaymentMethodController;
 use App\Http\Controllers\Admin\AdminPromotionController;
 use App\Http\Controllers\Admin\AdminStrategicController;
 use App\Http\Controllers\Admin\AdminTourismController;
+use App\Http\Controllers\Admin\AdminMarketingController;
 use App\Http\Controllers\Admin\InspectionController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminBookingController;
@@ -357,6 +358,14 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::prefix('tourism')->middleware('role:admin')->group(function () {
             Route::get('/map', [AdminTourismController::class, 'map']);
             Route::get('/stats', [AdminTourismController::class, 'stats']);
+        });
+
+        // Commercialisation (campagnes marketing segmentées)
+        Route::prefix('marketing')->middleware('role:admin')->group(function () {
+            Route::get('/campaigns', [AdminMarketingController::class, 'index']);
+            Route::post('/campaigns', [AdminMarketingController::class, 'store']);
+            Route::get('/segment-preview', [AdminMarketingController::class, 'previewSegment']);
+            Route::get('/cities', [AdminMarketingController::class, 'cities']);
         });
 
         // Journal d'activité (fusion UserActivityLog + AccommodationAuditLog)
