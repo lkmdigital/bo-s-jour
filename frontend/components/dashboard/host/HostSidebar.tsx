@@ -15,7 +15,6 @@ import {
   Wallet,
   FileText,
   UserCog,
-  Megaphone,
   BarChart3,
   Sparkles,
   HelpCircle,
@@ -28,6 +27,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 
 const NAV_ITEMS = [
+  // "Commercialisation" n'est plus un onglet séparé : accessible depuis Statistiques
+  // (carte "Commercialisation" -> /dashboard/host/promotions).
   { href: '/dashboard/host', label: 'Tableau de bord', icon: LayoutGrid },
   { href: '/dashboard/host/property', label: 'Mes établissements', icon: Building2 },
   { href: '/dashboard/host/rooms', label: 'Chambres et tarifs', icon: BedDouble },
@@ -39,7 +40,6 @@ const NAV_ITEMS = [
   { href: '/dashboard/host/finances', label: 'Finances', icon: Wallet },
   { href: '/dashboard/host/documents', label: 'Documents', icon: FileText },
   { href: '/dashboard/host/staff', label: 'Personnel', icon: UserCog },
-  { href: '/dashboard/host/marketing', label: 'Commercialisation', icon: Megaphone },
   { href: '/dashboard/host/stats', label: 'Statistiques', icon: BarChart3 },
   { href: '/dashboard/host/ai', label: 'Assistant IA', icon: Sparkles },
 ];
@@ -59,7 +59,6 @@ const NAV_ITEM_PERMISSION: Record<string, string> = {
   '/dashboard/host/finances': 'finances',
   '/dashboard/host/documents': 'documents',
   '/dashboard/host/staff': 'staff',
-  '/dashboard/host/marketing': 'marketing',
   '/dashboard/host/stats': 'stats',
   '/dashboard/host/ai': 'ai',
 };

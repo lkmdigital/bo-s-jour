@@ -60,7 +60,7 @@ class HostStaff extends Model
     // page d'atterrissage. Miroir de NAV_ITEMS dans HostSidebar.tsx (frontend).
     public const PERMISSIONS = [
         'property', 'rooms', 'calendar', 'reservations', 'clients', 'reviews',
-        'promotions', 'finances', 'documents', 'staff', 'marketing', 'stats', 'ai',
+        'promotions', 'finances', 'documents', 'staff', 'stats', 'ai',
     ];
 
     public const PERMISSION_LABELS = [
@@ -74,18 +74,19 @@ class HostStaff extends Model
         'finances' => 'Finances',
         'documents' => 'Documents',
         'staff' => 'Personnel',
-        'marketing' => 'Commercialisation',
         'stats' => 'Statistiques',
         'ai' => 'Assistant IA',
     ];
 
     // Présélection suggérée à l'invitation selon le poste — reste entièrement modifiable
     // via les cases à cocher, ce n'est qu'un point de départ pratique.
+    // "Commercialisation" n'est plus un menu séparé : la Commercialisation (promotions)
+    // vit désormais sous Statistiques et reste couverte par la permission 'promotions'.
     public const DEFAULT_PERMISSIONS_BY_ROLE = [
-        'administrateur' => ['property', 'rooms', 'calendar', 'reservations', 'clients', 'reviews', 'promotions', 'finances', 'documents', 'staff', 'marketing', 'stats', 'ai'],
+        'administrateur' => ['property', 'rooms', 'calendar', 'reservations', 'clients', 'reviews', 'promotions', 'finances', 'documents', 'staff', 'stats', 'ai'],
         'receptionniste' => ['calendar', 'reservations', 'clients'],
         'comptabilite' => ['finances', 'documents', 'stats'],
-        'commercial' => ['promotions', 'marketing', 'reviews', 'stats'],
+        'commercial' => ['promotions', 'reviews', 'stats'],
         'housekeeping' => ['calendar', 'rooms', 'reservations'],
         'maintenance' => ['rooms', 'property'],
     ];

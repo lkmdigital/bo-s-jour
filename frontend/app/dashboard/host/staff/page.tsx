@@ -34,7 +34,7 @@ const ROLE_LABELS: Record<string, string> = {
 // backend (app/Models/HostStaff.php) — garder les deux synchronisés.
 const PERMISSIONS = [
   'property', 'rooms', 'calendar', 'reservations', 'clients', 'reviews',
-  'promotions', 'finances', 'documents', 'staff', 'marketing', 'stats', 'ai',
+  'promotions', 'finances', 'documents', 'staff', 'stats', 'ai',
 ];
 
 const PERMISSION_LABELS: Record<string, string> = {
@@ -48,16 +48,17 @@ const PERMISSION_LABELS: Record<string, string> = {
   finances: 'Finances',
   documents: 'Documents',
   staff: 'Personnel',
-  marketing: 'Commercialisation',
   stats: 'Statistiques',
   ai: 'Assistant IA',
 };
 
+// "Commercialisation" n'est plus un menu séparé : elle vit sous Statistiques
+// et reste couverte par la permission 'promotions'.
 const DEFAULT_PERMISSIONS_BY_ROLE: Record<string, string[]> = {
   administrateur: PERMISSIONS,
   receptionniste: ['calendar', 'reservations', 'clients'],
   comptabilite: ['finances', 'documents', 'stats'],
-  commercial: ['promotions', 'marketing', 'reviews', 'stats'],
+  commercial: ['promotions', 'reviews', 'stats'],
   housekeeping: ['calendar', 'rooms', 'reservations'],
   maintenance: ['rooms', 'property'],
 };
