@@ -18,6 +18,8 @@ use App\Http\Controllers\RevenueController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminHostController;
 use App\Http\Controllers\Admin\AdminAccommodationController;
+use App\Http\Controllers\Admin\AdminLegalDocumentController;
+use App\Http\Controllers\Admin\AdminPaymentMethodController;
 use App\Http\Controllers\Admin\InspectionController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminBookingController;
@@ -69,6 +71,9 @@ Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
 
 // Paramètres publics (thème, maintenance, etc.)
 Route::get('/settings/public', [SettingsController::class, 'publicSettings']);
+
+// Documents juridiques publiés (CGV, CGU, politique de confidentialité)
+Route::get('/legal/{slug}', [AdminLegalDocumentController::class, 'publicShow']);
 
 // Booking creation (public - permet les réservations sans authentification)
 Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:10,1,booking-store'); // 10 réservations par minute
@@ -323,6 +328,14 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
     // Admin routes - Nouveau système RBAC
     Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
+        // Paramètres > Conditions générales de vente / Juridique
+        Route::get('/legal-documents', [AdminLegalDocumentController::class, 'index'])->middleware('role:admin');
+        Route::put('/legal-documents/{slug}', [AdminLegalDocumentController::class, 'update'])->middleware('role:admin');
+
+        // Paramètres > Facturation (moyens de paiement)
+        Route::get('/payment-methods', [AdminPaymentMethodController::class, 'index'])->middleware('role:admin');
+        Route::put('/payment-methods/{id}', [AdminPaymentMethodController::class, 'update'])->middleware('role:admin')->where('id', '[0-9]+');
+
         // Dashboard & Analytics
         Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats'])
             ->middleware('permission:admin.dashboard.read');

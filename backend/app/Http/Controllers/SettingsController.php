@@ -29,6 +29,7 @@ class SettingsController extends Controller
             'google_maps_api_key' => (string) Setting::get('google_maps_api_key', ''),
             // Juste le drapeau : jamais le token/phone_id (voir whatsapp_enabled côté admin).
             'whatsapp_verification_enabled' => (bool) Setting::get('whatsapp_enabled', false),
+            'languages_enabled' => (array) Setting::get('languages_enabled', ['fr', 'en']),
         ]);
     }
 
@@ -61,6 +62,24 @@ class SettingsController extends Controller
             'whatsapp_enabled' => (bool) Setting::get('whatsapp_enabled', false),
             'whatsapp_token' => (string) Setting::get('whatsapp_token', ''),
             'whatsapp_phone_id' => (string) Setting::get('whatsapp_phone_id', ''),
+            // Paramètres > Langues
+            'languages_enabled' => (array) Setting::get('languages_enabled', ['fr', 'en']),
+            // Paramètres > Taxes de séjour
+            'vat_rate' => (float) Setting::get('vat_rate', 18),
+            'tourist_tax_enabled' => (bool) Setting::get('tourist_tax_enabled', false),
+            'tourist_tax_mode' => (string) Setting::get('tourist_tax_mode', 'fixed'),
+            'tourist_tax_amount' => (float) Setting::get('tourist_tax_amount', 0),
+            // Paramètres > Modèles (WhatsApp)
+            'whatsapp_template_confirmation' => (string) Setting::get(
+                'whatsapp_template_confirmation',
+                \App\Services\WhatsAppService::DEFAULT_CONFIRMATION_TEMPLATE
+            ),
+            // Paramètres > Facturation
+            'deferred_payment_enabled' => (bool) Setting::get('deferred_payment_enabled', true),
+            'billing_company_name' => (string) Setting::get('billing_company_name', ''),
+            'billing_rccm' => (string) Setting::get('billing_rccm', ''),
+            'billing_ncc' => (string) Setting::get('billing_ncc', ''),
+            'billing_address' => (string) Setting::get('billing_address', ''),
         ]);
     }
 
@@ -91,6 +110,22 @@ class SettingsController extends Controller
             'whatsapp_enabled' => 'sometimes|boolean',
             'whatsapp_token' => 'sometimes|nullable|string|max:1000',
             'whatsapp_phone_id' => 'sometimes|nullable|string|max:100',
+            'languages_enabled' => ['sometimes', 'array', 'min:1', function ($attribute, $value, $fail) {
+                if (!in_array('fr', $value, true)) {
+                    $fail('Le français ne peut pas être désactivé (langue de base de la plateforme).');
+                }
+            }],
+            'languages_enabled.*' => 'string|in:fr,en',
+            'vat_rate' => 'sometimes|numeric|min:0|max:100',
+            'tourist_tax_enabled' => 'sometimes|boolean',
+            'tourist_tax_mode' => 'sometimes|string|in:fixed,percentage',
+            'tourist_tax_amount' => 'sometimes|numeric|min:0',
+            'whatsapp_template_confirmation' => 'sometimes|string|max:1000',
+            'deferred_payment_enabled' => 'sometimes|boolean',
+            'billing_company_name' => 'sometimes|nullable|string|max:191',
+            'billing_rccm' => 'sometimes|nullable|string|max:100',
+            'billing_ncc' => 'sometimes|nullable|string|max:100',
+            'billing_address' => 'sometimes|nullable|string|max:500',
         ]);
 
         if (array_key_exists('maintenance_enabled', $data)) {
@@ -167,6 +202,55 @@ class SettingsController extends Controller
         }
         if (array_key_exists('whatsapp_phone_id', $data)) {
             Setting::set('whatsapp_phone_id', $data['whatsapp_phone_id'] ?? '', 'string', 'Phone Number ID WhatsApp');
+        }
+
+        if (array_key_exists('languages_enabled', $data)) {
+            Setting::set('languages_enabled', array_values($data['languages_enabled']), 'json', 'Langues actives');
+        }
+
+        if (array_key_exists('vat_rate', $data)) {
+            Setting::set('vat_rate', (float) $data['vat_rate'], 'number', 'Taux de TVA (%)');
+        }
+
+        if (array_key_exists('tourist_tax_enabled', $data)) {
+            Setting::set('tourist_tax_enabled', $data['tourist_tax_enabled'], 'boolean', 'Taxe de séjour activée');
+        }
+
+        if (array_key_exists('tourist_tax_mode', $data)) {
+            Setting::set('tourist_tax_mode', $data['tourist_tax_mode'], 'string', 'Mode taxe de séjour (fixed/percentage)');
+        }
+
+        if (array_key_exists('tourist_tax_amount', $data)) {
+            Setting::set('tourist_tax_amount', (float) $data['tourist_tax_amount'], 'number', 'Montant/taux taxe de séjour');
+        }
+
+        if (array_key_exists('whatsapp_template_confirmation', $data)) {
+            Setting::set(
+                'whatsapp_template_confirmation',
+                $data['whatsapp_template_confirmation'],
+                'string',
+                'Modèle WhatsApp — confirmation de réservation'
+            );
+        }
+
+        if (array_key_exists('deferred_payment_enabled', $data)) {
+            Setting::set('deferred_payment_enabled', $data['deferred_payment_enabled'], 'boolean', 'Paiement différé autorisé');
+        }
+
+        if (array_key_exists('billing_company_name', $data)) {
+            Setting::set('billing_company_name', $data['billing_company_name'] ?? '', 'string', 'Raison sociale (facturation)');
+        }
+
+        if (array_key_exists('billing_rccm', $data)) {
+            Setting::set('billing_rccm', $data['billing_rccm'] ?? '', 'string', 'RCCM (facturation)');
+        }
+
+        if (array_key_exists('billing_ncc', $data)) {
+            Setting::set('billing_ncc', $data['billing_ncc'] ?? '', 'string', 'NCC (facturation)');
+        }
+
+        if (array_key_exists('billing_address', $data)) {
+            Setting::set('billing_address', $data['billing_address'] ?? '', 'string', 'Adresse de facturation');
         }
 
         return $this->getAdminSettings($request);
