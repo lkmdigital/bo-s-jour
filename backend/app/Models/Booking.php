@@ -38,6 +38,8 @@ class Booking extends Model
         'company_name',
         'company_vat',
         'company_address',
+        'company_country',
+        'company_city',
         'company_billing_email',
         'company_service',
         'company_project',

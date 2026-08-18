@@ -149,14 +149,19 @@ class BookingController extends Controller
             'traveler_name' => 'nullable|string|max:255|required_if:booked_for_third_party,true',
             'traveler_phone' => 'nullable|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/|required_if:booked_for_third_party,true',
             'traveler_email' => 'nullable|string|email|max:255',
-            // Type de voyageur + données statistiques
+            // Type de voyageur + données statistiques. Pays obligatoire pour tout voyageur
+            // (rapport de vérification parcours voyageur, point 3) — c'est la seule donnée
+            // de localisation captée pour une réservation invité qui ne crée jamais de compte.
             'traveler_type' => 'nullable|string|in:individual,corporate',
-            'residence_country' => 'nullable|string|max:255',
+            'residence_country' => 'required|string|max:255',
             'residence_city' => 'nullable|string|max:255',
-            // Corporate (voyageur d'entreprise)
+            // Corporate (voyageur d'entreprise) — pays et ville de l'entreprise obligatoires
+            // pour la même raison (rapport, point 1).
             'company_name' => 'nullable|string|max:255|required_if:traveler_type,corporate',
             'company_vat' => 'nullable|string|max:100',
             'company_address' => 'nullable|string|max:500',
+            'company_country' => 'nullable|string|max:255|required_if:traveler_type,corporate',
+            'company_city' => 'nullable|string|max:255|required_if:traveler_type,corporate',
             'company_billing_email' => 'nullable|string|email|max:255|required_if:traveler_type,corporate',
             'company_service' => 'nullable|string|max:255',
             'company_project' => 'nullable|string|max:255',
@@ -425,6 +430,8 @@ class BookingController extends Controller
                 'company_name' => $request->traveler_type === 'corporate' ? $request->company_name : null,
                 'company_vat' => $request->traveler_type === 'corporate' ? $request->company_vat : null,
                 'company_address' => $request->traveler_type === 'corporate' ? $request->company_address : null,
+                'company_country' => $request->traveler_type === 'corporate' ? $request->company_country : null,
+                'company_city' => $request->traveler_type === 'corporate' ? $request->company_city : null,
                 'company_billing_email' => $request->traveler_type === 'corporate' ? $request->company_billing_email : null,
                 'company_service' => $request->traveler_type === 'corporate' ? $request->company_service : null,
                 'company_project' => $request->traveler_type === 'corporate' ? $request->company_project : null,

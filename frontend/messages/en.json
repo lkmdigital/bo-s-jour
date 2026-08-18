@@ -87,10 +87,10 @@
       "loyaltyProgram": "Loyalty Program",
       "payments": "Payments",
       "credits": "My credits",
-      "company": "My company",
+      "company": "Business account",
       "reviews": "Reviews",
       "messages": "Messages",
-      "profile": "My profile",
+      "profile": "My account",
       "documents": "Documents",
       "trips": "My trips",
       "discover": "Discover",
@@ -127,7 +127,7 @@
         "subtitle": "Destinations, sights and activities to explore during your stay."
       },
       "profile": {
-        "title": "My profile",
+        "title": "My account",
         "subtitle": "Complete your profile for more tailored recommendations. This information remains optional."
       },
       "settings": {
@@ -150,7 +150,7 @@
         "subtitle": "Credits available from cancellations, to use on a future booking."
       },
       "company": {
-        "title": "My company",
+        "title": "Business account",
         "subtitle": "Company information, collaborators authorized to book, and business expense tracking."
       }
     },

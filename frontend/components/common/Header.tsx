@@ -511,10 +511,10 @@ export default function Header() {
                   <Headphones className="w-5 h-5" />
                   <IconTooltip text="Assistance technique" />
                 </a>
-                {/* Publier mon établissement (espace partenaire) */}
+                {/* Publier votre établissement (espace partenaire) */}
                 <Link href="/partenaire" className="hidden lg:inline-flex text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary items-center gap-1.5">
                   <Building2 className="w-4 h-4" />
-                  Publier mon établissement
+                  Publier votre établissement
                 </Link>
                 {/* Se connecter — réservé au voyageur (page /voyageur, miroir de /partenaire) */}
                 <Link href="/voyageur" className="btn-primary text-sm inline-flex items-center gap-1.5">

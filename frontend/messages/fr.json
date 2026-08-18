@@ -87,10 +87,10 @@
       "loyaltyProgram": "Programme Membre",
       "payments": "Paiements",
       "credits": "Mes avoirs",
-      "company": "Mon entreprise",
+      "company": "Compte entreprise",
       "reviews": "Avis",
       "messages": "Messages",
-      "profile": "Mon profil",
+      "profile": "Mon compte",
       "documents": "Documents",
       "trips": "Mes voyages",
       "discover": "Découvrir",
@@ -127,7 +127,7 @@
         "subtitle": "Destinations, sites et activités à explorer pendant votre séjour."
       },
       "profile": {
-        "title": "Mon profil",
+        "title": "Mon compte",
         "subtitle": "Complétez votre profil pour des recommandations plus adaptées. Ces informations restent facultatives."
       },
       "settings": {
@@ -150,7 +150,7 @@
         "subtitle": "Vos crédits disponibles suite à des annulations, à utiliser sur une prochaine réservation."
       },
       "company": {
-        "title": "Mon entreprise",
+        "title": "Compte entreprise",
         "subtitle": "Informations de l'entreprise, collaborateurs autorisés à réserver et suivi des dépenses professionnelles."
       }
     },

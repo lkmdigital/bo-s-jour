@@ -71,8 +71,22 @@ export default function BookingWizard(props: Props) {
   const [companyName, setCompanyName] = useState('');
   const [companyVat, setCompanyVat] = useState('');
   const [companyAddress, setCompanyAddress] = useState('');
+  const [companyCountry, setCompanyCountry] = useState('Côte d\'Ivoire');
+  const [companyCity, setCompanyCity] = useState('');
+  const [companyService, setCompanyService] = useState('');
+  const [companyProject, setCompanyProject] = useState('');
   const [companyBillingEmail, setCompanyBillingEmail] = useState('');
   const [deferredPayment, setDeferredPayment] = useState(false);
+
+  // Réservation pour un tiers (rapport de vérification parcours voyageur, point 2) :
+  // l'hôtelier doit savoir si le payeur est le voyageur réel.
+  const [bookedForThirdParty, setBookedForThirdParty] = useState(false);
+  const [travelerFirstName, setTravelerFirstName] = useState('');
+  const [travelerLastName, setTravelerLastName] = useState('');
+  const [travelerPhone, setTravelerPhone] = useState('');
+
+  // Demandes particulières (point 3) — facultatif.
+  const [specialRequests, setSpecialRequests] = useState('');
 
   // Vérification WhatsApp du numéro (brief Étape 8) — n'apparaît que si l'admin
   // a configuré l'intégration WhatsApp ; sinon on ne simule pas une étape inopérante.
@@ -137,13 +151,22 @@ export default function BookingWizard(props: Props) {
     if (step === 1) return account !== null;
     if (step === 2) return true;
     if (step === 3) {
-      let base = !!(firstName.trim() && lastName.trim() && email.trim() && phone.trim());
+      let base = !!(firstName.trim() && lastName.trim() && email.trim() && phone.trim() && residenceCountry.trim());
       if (whatsappVerificationEnabled) base = base && waVerified;
-      if (travelerType === 'corporate') return base && !!(companyName.trim() && companyBillingEmail.trim());
+      if (bookedForThirdParty) {
+        base = base && !!(travelerFirstName.trim() && travelerLastName.trim() && travelerPhone.trim());
+      }
+      if (travelerType === 'corporate') {
+        return base && !!(companyName.trim() && companyBillingEmail.trim() && companyCountry.trim() && companyCity.trim());
+      }
       return base;
     }
     return true;
-  }, [step, hasDates, account, firstName, lastName, email, phone, travelerType, companyName, companyBillingEmail, whatsappVerificationEnabled, waVerified]);
+  }, [
+    step, hasDates, account, firstName, lastName, email, phone, residenceCountry, travelerType,
+    companyName, companyBillingEmail, companyCountry, companyCity, whatsappVerificationEnabled, waVerified,
+    bookedForThirdParty, travelerFirstName, travelerLastName, travelerPhone,
+  ]);
 
   const goNext = () => {
     // Si connecté, on saute l'étape "Compte"
@@ -169,16 +192,26 @@ export default function BookingWizard(props: Props) {
         residence_country: residenceCountry || null,
         residence_city: residenceCity || null,
         promo_code: promoCode.trim() || undefined,
+        special_requests: specialRequests.trim() || undefined,
+        booked_for_third_party: bookedForThirdParty,
       };
       if (!isAuthenticated) {
         payload.name = `${firstName} ${lastName}`.trim();
         payload.email = email;
         payload.phone = phone;
       }
+      if (bookedForThirdParty) {
+        payload.traveler_name = `${travelerFirstName} ${travelerLastName}`.trim();
+        payload.traveler_phone = travelerPhone;
+      }
       if (travelerType === 'corporate') {
         payload.company_name = companyName;
         payload.company_vat = companyVat || null;
         payload.company_address = companyAddress || null;
+        payload.company_country = companyCountry;
+        payload.company_city = companyCity;
+        payload.company_service = companyService.trim() || undefined;
+        payload.company_project = companyProject.trim() || undefined;
         payload.company_billing_email = companyBillingEmail;
         payload.deferred_payment = deferredPayment;
       }
@@ -334,7 +367,7 @@ export default function BookingWizard(props: Props) {
                   )}
                 </div>
                 <Input label="E-mail" type="email" leftIcon={<Mail className="w-4 h-4" />} value={email} onChange={(e) => setEmail(e.target.value)} required />
-                <Input label="Pays de résidence" value={residenceCountry} onChange={(e) => setResidenceCountry(e.target.value)} />
+                <Input label="Pays de résidence" value={residenceCountry} onChange={(e) => setResidenceCountry(e.target.value)} required />
                 <Input label="Ville de résidence" value={residenceCity} onChange={(e) => setResidenceCity(e.target.value)} />
               </div>
 
@@ -345,12 +378,47 @@ export default function BookingWizard(props: Props) {
                     <Input label="Raison sociale" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
                     <Input label="N° TVA / Contribuable" value={companyVat} onChange={(e) => setCompanyVat(e.target.value)} />
                     <Input label="Adresse de l'entreprise" containerClassName="sm:col-span-2" value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} />
+                    <Input label="Pays de l'entreprise" value={companyCountry} onChange={(e) => setCompanyCountry(e.target.value)} required />
+                    <Input label="Ville de l'entreprise" value={companyCity} onChange={(e) => setCompanyCity(e.target.value)} required />
+                    <Input label="Service / Département" value={companyService} onChange={(e) => setCompanyService(e.target.value)} hint="Facultatif" />
+                    <Input label="Code projet interne" value={companyProject} onChange={(e) => setCompanyProject(e.target.value)} hint="Facultatif" />
                     <Input label="E-mail de facturation" type="email" value={companyBillingEmail} onChange={(e) => setCompanyBillingEmail(e.target.value)} required />
                   </div>
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input type="checkbox" checked={deferredPayment} onChange={(e) => setDeferredPayment(e.target.checked)} className="accent-[#FF0000]" />
                     Paiement par mon entreprise (facturation différée, sans paiement immédiat)
                   </label>
+                </div>
+              )}
+
+              {travelerType === 'individual' && (
+                <div className="rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                  <p className="font-semibold text-gray-900 dark:text-white">Qui séjournera dans l&apos;établissement ?</p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <label className={cn('flex items-start gap-2.5 text-sm cursor-pointer rounded-xl border-2 p-3', !bookedForThirdParty ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700')}>
+                      <input type="radio" name="third_party" checked={!bookedForThirdParty} onChange={() => setBookedForThirdParty(false)} className="mt-0.5 accent-[#FF0000]" />
+                      <span>
+                        <span className="block font-medium text-gray-900 dark:text-white">Je réserve pour moi-même</span>
+                        <span className="text-gray-500">Le voyageur, c&apos;est vous.</span>
+                      </span>
+                    </label>
+                    <label className={cn('flex items-start gap-2.5 text-sm cursor-pointer rounded-xl border-2 p-3', bookedForThirdParty ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700')}>
+                      <input type="radio" name="third_party" checked={bookedForThirdParty} onChange={() => setBookedForThirdParty(true)} className="mt-0.5 accent-[#FF0000]" />
+                      <span>
+                        <span className="block font-medium text-gray-900 dark:text-white">Je réserve pour une tierce personne</span>
+                        <span className="text-gray-500">Vous payez, quelqu&apos;un d&apos;autre séjourne.</span>
+                      </span>
+                    </label>
+                  </div>
+                  {bookedForThirdParty && (
+                    <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                      <Input label="Prénom du voyageur" value={travelerFirstName} onChange={(e) => setTravelerFirstName(e.target.value)} required />
+                      <Input label="Nom du voyageur" value={travelerLastName} onChange={(e) => setTravelerLastName(e.target.value)} required />
+                      <Input label="Téléphone du voyageur" containerClassName="sm:col-span-2" leftIcon={<Phone className="w-4 h-4" />} value={travelerPhone}
+                        onChange={(e) => setTravelerPhone(e.target.value)} placeholder="+225 07 00 00 00 00" required
+                        hint="Pour que l'établissement puisse joindre directement la personne qui séjourne" />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -367,6 +435,9 @@ export default function BookingWizard(props: Props) {
                   ['Voyageurs', `${guests}`],
                   ['Voyageur', travelerType === 'corporate' ? `Corporate — ${companyName}` : `Particulier — ${firstName} ${lastName}`],
                   ['Contact', `${email} · ${phone}`],
+                  ...(bookedForThirdParty
+                    ? [['Séjourne dans l\'établissement', `${travelerFirstName} ${travelerLastName} · ${travelerPhone}`]]
+                    : []),
                   ['Politique d\'annulation', policyLabel(quote?.cancellation_policy_hours ?? props.cancellationPolicyHours)],
                 ].map(([k, v]) => (
                   <div key={k} className="flex justify-between gap-4 p-3 text-sm">
@@ -386,6 +457,20 @@ export default function BookingWizard(props: Props) {
                   className="w-full max-w-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm uppercase focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 />
                 <p className="text-xs text-gray-400 mt-1">Vérifié et appliqué à la confirmation de votre réservation.</p>
+              </div>
+
+              {/* Demandes particulières (facultatif) */}
+              <div>
+                <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">
+                  Autres besoins / Demandes particulières <span className="text-gray-400 font-normal">(facultatif)</span>
+                </label>
+                <textarea
+                  value={specialRequests}
+                  onChange={(e) => setSpecialRequests(e.target.value.slice(0, 1000))}
+                  placeholder="Allergies, lit bébé, arrivée tardive…"
+                  rows={3}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+                />
               </div>
 
               {/* Bandeau sécurité */}
