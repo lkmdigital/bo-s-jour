@@ -39,6 +39,10 @@ class AccommodationController extends Controller
             $query->byType($request->type);
         }
 
+        if ($request->filled('subtype')) {
+            $query->bySubtype($request->subtype);
+        }
+
         // Prix (bornes indépendantes)
         if ($request->filled('min_price')) {
             $query->where('price_per_night', '>=', (float) $request->min_price);
@@ -568,7 +572,14 @@ class AccommodationController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'whatsapp' => 'nullable|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/',
-            'type' => 'required|string|in:hotel,lodge,guesthouse,apartment',
+            'type' => 'required|string|in:hotel,lodge,guesthouse,apartment,other',
+            'subtype' => ['nullable', 'string', 'max:30', function ($attribute, $value, $fail) use ($request) {
+                $allowed = Accommodation::SUBTYPES[$request->type] ?? [];
+                if ($value && !array_key_exists($value, $allowed)) {
+                    $fail("Cette sous-catégorie n'est pas valide pour ce type d'établissement.");
+                }
+            }],
+            'type_other_label' => 'required_if:type,other|nullable|string|max:191',
             'description' => 'required|string',
             'description_en' => 'nullable|string',
             'address' => 'required|string',
@@ -651,6 +662,9 @@ class AccommodationController extends Controller
             'whatsapp' => $request->whatsapp,
             'slug' => $slug,
             'type' => $request->type,
+            'subtype' => $request->type === 'other' ? null : $request->subtype,
+            'type_other_label' => $request->type === 'other' ? $request->type_other_label : null,
+            'establishment_code' => Accommodation::generateEstablishmentCode(),
             'description' => $request->description,
             'description_en' => $request->description_en,
             'address' => $request->address,
@@ -712,7 +726,15 @@ class AccommodationController extends Controller
         $request->validate([
             'name' => 'sometimes|string|max:255',
             'whatsapp' => 'nullable|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/',
-            'type' => 'sometimes|string|in:hotel,lodge,guesthouse,apartment',
+            'type' => 'sometimes|string|in:hotel,lodge,guesthouse,apartment,other',
+            'subtype' => ['nullable', 'string', 'max:30', function ($attribute, $value, $fail) use ($request, $accommodation) {
+                $type = $request->input('type', $accommodation->type);
+                $allowed = Accommodation::SUBTYPES[$type] ?? [];
+                if ($value && !array_key_exists($value, $allowed)) {
+                    $fail("Cette sous-catégorie n'est pas valide pour ce type d'établissement.");
+                }
+            }],
+            'type_other_label' => 'nullable|string|max:191',
             'description' => 'sometimes|string',
             'description_en' => 'nullable|string',
             'address' => 'sometimes|string',
@@ -767,7 +789,7 @@ class AccommodationController extends Controller
         }
 
         $updateData = $request->only([
-            'name', 'whatsapp', 'type', 'description', 'description_en', 'address', 'city',
+            'name', 'whatsapp', 'type', 'subtype', 'type_other_label', 'description', 'description_en', 'address', 'city',
             'latitude', 'longitude', 'price_per_night', 'max_guests',
             'bedrooms', 'bathrooms', 'amenities', 'status',
             // Nouveaux champs
@@ -786,6 +808,14 @@ class AccommodationController extends Controller
             'pricing_modifiable_surcharge', 'pricing_long_stay_enabled',
             'pricing_long_stay_discount', 'pricing_long_stay_nights',
         ]);
+
+        // Cohérence type / sous-catégorie / libellé libre
+        $effectiveType = $request->input('type', $accommodation->type);
+        if ($effectiveType === 'other') {
+            $updateData['subtype'] = null;
+        } elseif ($request->has('type') || $request->has('subtype')) {
+            $updateData['type_other_label'] = null;
+        }
 
         // Convertir les valeurs boolean si elles sont présentes
         if ($request->has('shuttle_service')) {

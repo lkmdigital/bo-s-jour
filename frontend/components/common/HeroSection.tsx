@@ -30,7 +30,7 @@ const PROPERTY_TYPES = [
   { key: 'hotel', label: 'Hôtel', icon: Building2 },
   { key: 'lodge', label: 'Écolodge', icon: TreePalm },
   { key: 'guesthouse', label: "Maison d'hôtes", icon: BedDouble },
-  { key: 'apartment', label: 'Appartement', icon: Home },
+  { key: 'apartment', label: 'Résidence', icon: Home },
 ];
 
 // Diaporama du hero (change toutes les 3 s)

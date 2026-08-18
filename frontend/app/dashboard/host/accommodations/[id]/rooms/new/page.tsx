@@ -15,6 +15,7 @@ import {
 interface RoomFormData {
   name: string; // Nom personnalisé de la chambre
   type: string;
+  type_other?: string; // Libellé libre si type === 'other' (non envoyé tel quel : remplace `type` à la soumission)
   description?: string;
   description_en?: string;
   capacity: number;
@@ -156,8 +157,10 @@ export default function NewRoomPage() {
       if (data.has_balcony) equipmentList.push('Balcon');
       if (data.has_terrace) equipmentList.push('Terrasse');
 
+      const { type_other, ...roomData } = data;
       const response = await api.post(`/accommodations/${accommodationId}/rooms`, {
-        ...data,
+        ...roomData,
+        type: data.type === 'other' ? (type_other?.trim() || 'Autre') : data.type,
         amenities: equipmentList,
         bathroom_features: selectedBathroomFeatures,
       });
@@ -240,6 +243,23 @@ export default function NewRoomPage() {
                   <p className="text-red-500 text-sm mt-1">{errors.type.message}</p>
                 )}
               </div>
+
+              {selectedType === 'other' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Précisez le type de chambre <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    {...register('type_other', { required: 'Veuillez préciser le type de chambre' })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                    placeholder="Ex : Case traditionnelle, Chambre mezzanine..."
+                  />
+                  {errors.type_other && (
+                    <p className="text-red-500 text-sm mt-1">{errors.type_other.message}</p>
+                  )}
+                </div>
+              )}
 
               {/* Description */}
               <div>

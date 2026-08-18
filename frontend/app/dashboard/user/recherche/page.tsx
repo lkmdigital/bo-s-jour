@@ -52,7 +52,7 @@ const TYPES = [
   { key: 'hotel', label: 'Hôtel' },
   { key: 'lodge', label: 'Écolodge' },
   { key: 'guesthouse', label: "Maison d'hôtes" },
-  { key: 'apartment', label: 'Appartement' },
+  { key: 'apartment', label: 'Résidence' },
 ];
 const AMENITIES = ['Wifi', 'Parking', 'Piscine', 'Climatisation', 'Petit-déjeuner', 'Restaurant', 'Salle de sport', 'Animaux acceptés'];
 const CANCELLATION = [

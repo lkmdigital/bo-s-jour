@@ -15,7 +15,9 @@ import { compressImages } from '@/lib/utils';
 interface AccommodationFormData {
   name: string;
   whatsapp?: string;
-  type: 'hotel' | 'lodge' | 'guesthouse' | 'apartment';
+  type: 'hotel' | 'lodge' | 'guesthouse' | 'apartment' | 'other';
+  subtype?: string;
+  type_other_label?: string;
   description: string;
   description_en?: string;
   address: string;
@@ -65,10 +67,26 @@ interface RoomTypePricingEntry {
 
 const typeOptions = [
   { value: 'hotel', label: 'Hôtel' },
-  { value: 'lodge', label: 'Lodge' },
+  { value: 'lodge', label: 'Écolodge' },
   { value: 'guesthouse', label: 'Maison d\'hôtes' },
-  { value: 'apartment', label: 'Appartement' },
+  { value: 'apartment', label: 'Résidence' },
+  { value: 'other', label: 'Autre' },
 ];
+
+// Sous-catégories par famille — miroir de Accommodation::SUBTYPES (backend).
+const subtypeOptionsByType: Record<string, { value: string; label: string }[]> = {
+  hotel: [
+    { value: '', label: 'Hôtel (standard)' },
+    { value: 'apart_hotel', label: 'Appart-Hôtel' },
+    { value: 'motel', label: 'Motel' },
+    { value: 'auberge', label: 'Auberge' },
+  ],
+  apartment: [
+    { value: '', label: 'Résidence (standard)' },
+    { value: 'furnished', label: 'Résidence Meublée' },
+    { value: 'luxury', label: 'Résidence luxueuse' },
+  ],
+};
 
 const commonAmenities = [
   'Wi-Fi',
@@ -208,13 +226,22 @@ export default function AccommodationCreationWizard({
     const typeMapping: Record<string, 'hotel' | 'lodge' | 'guesthouse' | 'apartment'> = {
       'hotel': 'hotel',
       'motel': 'hotel',
+      'apartment_hotel': 'hotel',
       'guesthouse': 'guesthouse',
       'apartment': 'apartment',
-      'apartment_hotel': 'apartment',
       'residence': 'apartment',
       'lodge': 'lodge',
     };
     return typeMapping[type || ''] || 'hotel';
+  };
+
+  // Sous-catégorie déduite de l'inscription, quand elle est identifiable sans ambiguïté.
+  const mapAccommodationSubtype = (type?: string): string => {
+    const subtypeMapping: Record<string, string> = {
+      'motel': 'motel',
+      'apartment_hotel': 'apart_hotel',
+    };
+    return subtypeMapping[type || ''] || '';
   };
 
   // Pré-remplir les données du formulaire avec les informations d'inscription de l'hôte
@@ -224,6 +251,7 @@ export default function AccommodationCreationWizard({
         name: user.establishment_name || '',
         whatsapp: user.whatsapp || '',
         type: mapAccommodationType(user.accommodation_type),
+        subtype: mapAccommodationSubtype(user.accommodation_type),
         classification_mode: 'unclassified',
         address: user.address_line1 || '',
         city: user.city || '',
@@ -343,6 +371,8 @@ export default function AccommodationCreationWizard({
 
       const formData = {
         ...data,
+        subtype: data.type === 'other' ? null : (data.subtype?.trim() || null),
+        type_other_label: data.type === 'other' ? (data.type_other_label?.trim() || null) : null,
         latitude: normalizedLatitude,
         longitude: normalizedLongitude,
         amenities: selectedAmenities,
@@ -669,6 +699,7 @@ export default function AccommodationCreationWizard({
       }
       if (user.accommodation_type) {
         setValue('type', mapAccommodationType(user.accommodation_type));
+        setValue('subtype', mapAccommodationSubtype(user.accommodation_type));
       }
     }
   }, [mode, user, setValue, getValues]);
@@ -907,6 +938,41 @@ export default function AccommodationCreationWizard({
                   ))}
                 </select>
               </div>
+
+              {subtypeOptionsByType[watch('type')] && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Sous-catégorie <span className="text-gray-500">(optionnel)</span>
+                  </label>
+                  <select
+                    {...register('subtype')}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                  >
+                    {subtypeOptionsByType[watch('type')].map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {watch('type') === 'other' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Précisez le type d'hébergement <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    {...register('type_other_label', { required: "Veuillez préciser le type d'hébergement" })}
+                    type="text"
+                    placeholder="Ex : Camp de brousse, Chambre chez l'habitant..."
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                  />
+                  {errors.type_other_label && (
+                    <p className="text-red-500 text-sm mt-1">{errors.type_other_label.message}</p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium mb-2">

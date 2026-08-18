@@ -9,12 +9,34 @@ class Accommodation extends Model
 {
     use HasFactory;
 
+    /** Code pays utilisé pour l'identifiant unique d'établissement (plateforme Côte d'Ivoire uniquement). */
+    public const COUNTRY_CODE = '+225';
+
+    /**
+     * Sous-catégories par famille (`type`), cf. rapport de vérification point 5.
+     * `type` sans `subtype` correspond à la catégorie "standard" de la famille.
+     */
+    public const SUBTYPES = [
+        'hotel' => [
+            'apart_hotel' => 'Appart-Hôtel',
+            'motel' => 'Motel',
+            'auberge' => 'Auberge',
+        ],
+        'apartment' => [
+            'furnished' => 'Résidence Meublée',
+            'luxury' => 'Résidence luxueuse',
+        ],
+    ];
+
     protected $fillable = [
         'host_id',
         'name',
         'whatsapp',
         'slug',
         'type',
+        'subtype',
+        'type_other_label',
+        'establishment_code',
         'description',
         'description_en',
         'address',
@@ -173,6 +195,32 @@ class Accommodation extends Model
     public function scopeByType($query, $type)
     {
         return $query->where('type', $type);
+    }
+
+    public function scopeBySubtype($query, $subtype)
+    {
+        return $query->where('subtype', $subtype);
+    }
+
+    /**
+     * Génère l'identifiant unique d'établissement, format imposé :
+     * Code pays - Séquence à 5 chiffres - Année d'inscription (ex: +225-00001-26).
+     */
+    public static function generateEstablishmentCode(): string
+    {
+        $year = now()->format('y');
+
+        do {
+            $maxSeq = (int) \Illuminate\Support\Facades\DB::table('accommodations')
+                ->whereNotNull('establishment_code')
+                ->selectRaw("MAX(CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(establishment_code, '-', 2), '-', -1) AS UNSIGNED)) as max_seq")
+                ->value('max_seq');
+
+            $sequence = str_pad((string) ($maxSeq + 1), 5, '0', STR_PAD_LEFT);
+            $code = self::COUNTRY_CODE . '-' . $sequence . '-' . $year;
+        } while (self::where('establishment_code', $code)->exists());
+
+        return $code;
     }
 
     public function scopePriceRange($query, $min, $max)

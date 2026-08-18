@@ -37,7 +37,7 @@ const TYPES = [
   { key: 'hotel', label: 'Hôtel' },
   { key: 'lodge', label: 'Écolodge' },
   { key: 'guesthouse', label: "Maison d'hôtes" },
-  { key: 'apartment', label: 'Appartement' },
+  { key: 'apartment', label: 'Résidence' },
 ];
 // Alignés sur la liste réelle proposée à l'hôte lors de la création de son établissement
 // (commonAmenities dans AccommodationCreationWizard.tsx) — un service coché ici doit

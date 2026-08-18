@@ -11,6 +11,7 @@ import Link from 'next/link';
 interface RoomFormData {
   name?: string; // plus saisi : le type sert de nom
   type: string;
+  type_other?: string; // Libellé libre si type === 'Autre' (remplace `type` à la soumission)
   description?: string;
   description_en?: string;
   capacity: number;
@@ -43,7 +44,8 @@ export default function EditRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [room, setRoom] = useState<any>(null);
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<RoomFormData>();
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<RoomFormData>();
+  const selectedType = watch('type');
 
   useEffect(() => {
     fetchRoom();
@@ -55,8 +57,14 @@ export default function EditRoomPage() {
       const roomData = response.data;
       setRoom(roomData);
 
-      // Pré-remplir le formulaire
-      setValue('type', roomData.type);
+      // Pré-remplir le formulaire — si le type stocké est un libellé libre (non listé),
+      // on affiche « Autre » sélectionné avec le texte d'origine dans le champ libre.
+      if (roomData.type && !ROOM_TYPES.includes(roomData.type)) {
+        setValue('type', 'Autre');
+        setValue('type_other', roomData.type);
+      } else {
+        setValue('type', roomData.type);
+      }
       setValue('description', roomData.description || '');
       setValue('description_en', roomData.description_en || '');
       setValue('capacity', roomData.capacity);
@@ -82,8 +90,10 @@ export default function EditRoomPage() {
         ? data.amenities.split(',').map((a) => a.trim()).filter(Boolean)
         : [];
 
+      const { type_other, ...roomData } = data;
       await api.put(`/accommodations/${accommodationId}/rooms/${roomId}`, {
-        ...data,
+        ...roomData,
+        type: data.type === 'Autre' ? (type_other?.trim() || 'Autre') : data.type,
         amenities,
       });
 
@@ -150,6 +160,23 @@ export default function EditRoomPage() {
                 <p className="text-red-500 text-sm mt-1">{errors.type.message}</p>
               )}
             </div>
+
+            {selectedType === 'Autre' && (
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Précisez le type de chambre <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  {...register('type_other', { required: 'Veuillez préciser le type de chambre' })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                  placeholder="Ex : Case traditionnelle, Chambre mezzanine..."
+                />
+                {errors.type_other && (
+                  <p className="text-red-500 text-sm mt-1">{errors.type_other.message}</p>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium mb-2">Description (Français)</label>

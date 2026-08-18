@@ -31,7 +31,11 @@ class AdminAccommodationController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('address', 'like', "%{$search}%")
-                  ->orWhere('city', 'like', "%{$search}%");
+                  ->orWhere('city', 'like', "%{$search}%")
+                  ->orWhereHas('host', function ($hq) use ($search) {
+                      $hq->where('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  });
             });
         }
 
@@ -45,6 +49,22 @@ class AdminAccommodationController extends Controller
 
         if ($request->has('host_id')) {
             $query->where('host_id', $request->host_id);
+        }
+
+        if ($request->filled('city')) {
+            $query->where('city', $request->city);
+        }
+
+        if ($request->filled('min_price')) {
+            $query->where('price_per_night', '>=', $request->min_price);
+        }
+
+        if ($request->filled('max_price')) {
+            $query->where('price_per_night', '<=', $request->max_price);
+        }
+
+        if ($request->filled('min_rating')) {
+            $query->where('rating', '>=', $request->min_rating);
         }
 
         // Tri
@@ -75,6 +95,20 @@ class AdminAccommodationController extends Controller
     }
 
     /**
+     * Villes distinctes des établissements, pour le filtre de recherche admin
+     */
+    public function cities()
+    {
+        $cities = Accommodation::query()
+            ->whereNotNull('city')
+            ->distinct()
+            ->orderBy('city')
+            ->pluck('city');
+
+        return response()->json(['data' => $cities]);
+    }
+
+    /**
      * Créer un établissement (par admin)
      */
     public function store(Request $request)
@@ -84,7 +118,14 @@ class AdminAccommodationController extends Controller
         $validated = $request->validate([
             'host_id' => 'required|exists:users,id',
             'name' => 'required|string|max:255',
-            'type' => 'required|string|in:hotel,lodge,guesthouse,apartment',
+            'type' => 'required|string|in:hotel,lodge,guesthouse,apartment,other',
+            'subtype' => ['nullable', 'string', 'max:30', function ($attribute, $value, $fail) use ($request) {
+                $allowed = Accommodation::SUBTYPES[$request->type] ?? [];
+                if ($value && !array_key_exists($value, $allowed)) {
+                    $fail("Cette sous-catégorie n'est pas valide pour ce type d'établissement.");
+                }
+            }],
+            'type_other_label' => 'required_if:type,other|nullable|string|max:191',
             'description' => 'required|string',
             'description_en' => 'nullable|string',
             'address' => 'required|string',
@@ -155,6 +196,9 @@ class AdminAccommodationController extends Controller
             'name' => $validated['name'],
             'slug' => $slug,
             'type' => $validated['type'],
+            'subtype' => $validated['type'] === 'other' ? null : ($validated['subtype'] ?? null),
+            'type_other_label' => $validated['type'] === 'other' ? ($validated['type_other_label'] ?? null) : null,
+            'establishment_code' => Accommodation::generateEstablishmentCode(),
             'description' => $validated['description'],
             'description_en' => $validated['description_en'] ?? null,
             'address' => $validated['address'],

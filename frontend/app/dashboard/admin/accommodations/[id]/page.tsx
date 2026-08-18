@@ -10,6 +10,7 @@ import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import { formatPrice } from '@/lib/utils';
+import { accommodationTypeLabel, accommodationSubtypeLabel } from '@/lib/accommodationTypes';
 import {
   ArrowLeft,
   Building2,
@@ -122,6 +123,9 @@ interface Accommodation {
   id: number;
   name: string;
   type: string;
+  subtype?: string | null;
+  type_other_label?: string | null;
+  establishment_code?: string | null;
   city: string;
   address: string;
   description?: string;
@@ -295,8 +299,18 @@ export default function AdminAccommodationDetailPage() {
               </span>
               <span className="flex items-center gap-1">
                 <Building2 className="w-4 h-4" />
-                {accommodation.type}
+                {accommodation.type === 'other'
+                  ? (accommodation.type_other_label || 'Autre')
+                  : accommodationTypeLabel(accommodation.type)}
+                {accommodationSubtypeLabel(accommodation.type, accommodation.subtype) && (
+                  <span className="text-gray-400"> · {accommodationSubtypeLabel(accommodation.type, accommodation.subtype)}</span>
+                )}
               </span>
+              {accommodation.establishment_code && (
+                <span className="flex items-center gap-1 font-mono text-xs text-gray-400">
+                  {accommodation.establishment_code}
+                </span>
+              )}
               {host && (
                 <span className="flex items-center gap-1">
                   <Users className="w-4 h-4" />
