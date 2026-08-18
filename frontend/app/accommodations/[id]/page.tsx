@@ -97,15 +97,16 @@ interface Accommodation {
     rating: number;
     comment: string;
     category_ratings?: {
-      cleanliness?: number;
-      equipment?: number;
       staff?: number;
-      value_for_money?: number;
-      location?: number;
+      cleanliness?: number;
       comfort?: number;
-      wifi?: number;
-      bed?: number;
       breakfast?: number;
+      wifi?: number;
+      accessibility?: number;
+      shuttle?: number;
+      activities?: number;
+      value_for_money?: number;
+      restaurant?: number;
     };
     user: { name: string; avatar?: string | null };
     created_at: string;

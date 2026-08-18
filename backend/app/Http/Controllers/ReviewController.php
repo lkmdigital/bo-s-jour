@@ -98,20 +98,7 @@ class ReviewController extends Controller
      */
     public function submitByToken(Request $request)
     {
-        $mainCategories = [
-            'cleanliness' => 'Propreté',
-            'equipment' => 'Equipements',
-            'staff' => 'Personnel',
-            'value_for_money' => 'Rapport qualité/prix',
-            'location' => 'Situation géographique',
-            'comfort' => 'Confort',
-        ];
-        $additionalCategories = [
-            'wifi' => 'Wi-Fi',
-            'bed' => 'Evaluation du lit',
-            'breakfast' => 'Petit déjeuner',
-        ];
-        $allCategories = array_merge($mainCategories, $additionalCategories);
+        $allCategories = Review::CATEGORIES;
 
         $rules = [
             'token' => 'required|string|size:64',
@@ -119,10 +106,7 @@ class ReviewController extends Controller
             'comment' => 'required|string|max:1000',
             'comment_en' => 'nullable|string|max:1000',
         ];
-        foreach (array_keys($mainCategories) as $category) {
-            $rules["category_ratings.{$category}"] = 'required|integer|min:1|max:5';
-        }
-        foreach (array_keys($additionalCategories) as $category) {
+        foreach (array_keys($allCategories) as $category) {
             $rules["category_ratings.{$category}"] = 'nullable|integer|min:1|max:5';
         }
 
@@ -189,24 +173,8 @@ class ReviewController extends Controller
 
     public function store(Request $request)
     {
-        // Catégories principales
-        $mainCategories = [
-            'cleanliness' => 'Propreté',
-            'equipment' => 'Equipements',
-            'staff' => 'Personnel',
-            'value_for_money' => 'Rapport qualité/prix',
-            'location' => 'Situation géographique',
-            'comfort' => 'Confort',
-        ];
-
-        // Catégories supplémentaires
-        $additionalCategories = [
-            'wifi' => 'Wi-Fi',
-            'bed' => 'Evaluation du lit',
-            'breakfast' => 'Petit déjeuner',
-        ];
-
-        $allCategories = array_merge($mainCategories, $additionalCategories);
+        // Critères de notation par catégorie (1-5, tous facultatifs)
+        $allCategories = Review::CATEGORIES;
 
         $rules = [
             'accommodation_id' => 'required|exists:accommodations,id',
@@ -215,13 +183,7 @@ class ReviewController extends Controller
             'comment_en' => 'nullable|string|max:1000',
         ];
 
-        // Validation des catégories principales (requises)
-        foreach (array_keys($mainCategories) as $category) {
-            $rules["category_ratings.{$category}"] = 'required|integer|min:1|max:5';
-        }
-
-        // Validation des catégories supplémentaires (optionnelles)
-        foreach (array_keys($additionalCategories) as $category) {
+        foreach (array_keys($allCategories) as $category) {
             $rules["category_ratings.{$category}"] = 'nullable|integer|min:1|max:5';
         }
 

@@ -23,13 +23,18 @@ interface PendingReview {
   accommodation: { id: number; name: string; city: string } | null;
 }
 
+// Critères de notation (1 à 5 étoiles), tous facultatifs — cf. Review::CATEGORIES (backend).
 const CATEGORIES: { key: string; label: string }[] = [
-  { key: 'cleanliness', label: 'Propreté' },
-  { key: 'equipment', label: 'Équipements' },
   { key: 'staff', label: 'Personnel' },
-  { key: 'value_for_money', label: 'Rapport qualité/prix' },
-  { key: 'location', label: 'Situation géographique' },
+  { key: 'cleanliness', label: 'Propreté' },
   { key: 'comfort', label: 'Confort' },
+  { key: 'breakfast', label: 'Petits déjeuners' },
+  { key: 'wifi', label: 'Wifi' },
+  { key: 'accessibility', label: 'Accessibilité' },
+  { key: 'shuttle', label: 'Navette' },
+  { key: 'activities', label: 'Autres activités' },
+  { key: 'value_for_money', label: 'Rapport qualité-prix' },
+  { key: 'restaurant', label: 'Restaurant' },
 ];
 
 function StarPicker({ value, onChange, size = 'w-6 h-6' }: { value: number; onChange: (v: number) => void; size?: string }) {
@@ -162,13 +167,10 @@ function ReviewModal({ pending, onClose, onSubmitted }: { pending: PendingReview
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const allCatsFilled = CATEGORIES.every((c) => (cats[c.key] ?? 0) > 0);
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!overall) { setError('Donnez une note globale.'); return; }
-    if (!allCatsFilled) { setError('Notez chaque catégorie.'); return; }
     if (comment.trim().length < 10) { setError('Décrivez votre séjour en quelques mots (10 caractères minimum).'); return; }
     setSaving(true);
     try {
@@ -203,6 +205,9 @@ function ReviewModal({ pending, onClose, onSubmitted }: { pending: PendingReview
             <StarPicker value={overall} onChange={setOverall} size="w-7 h-7" />
           </div>
 
+          <div>
+            <p className="text-sm font-medium mb-1.5">Critères de notation <span className="text-xs font-normal text-gray-500">(facultatif)</span></p>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {CATEGORIES.map((c) => (
               <div key={c.key}>

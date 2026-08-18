@@ -1,20 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, Home, Sparkles, MessageCircle, CheckCircle2, Wallet } from 'lucide-react';
+import { Star, Users, Sparkles, Sofa, Coffee, Wifi, Accessibility, Bus, Activity, Wallet, Utensils } from 'lucide-react';
 import { resolveImageUrl } from '@/lib/utils';
 import ReportReviewButton from '@/components/review/ReportReviewButton';
 
 interface CategoryRatings {
-  cleanliness?: number;
-  equipment?: number;
   staff?: number;
-  value_for_money?: number;
-  location?: number;
+  cleanliness?: number;
   comfort?: number;
-  wifi?: number;
-  bed?: number;
   breakfast?: number;
+  wifi?: number;
+  accessibility?: number;
+  shuttle?: number;
+  activities?: number;
+  value_for_money?: number;
+  restaurant?: number;
 }
 
 interface ReviewItem {
@@ -36,25 +37,31 @@ interface ReviewsSectionProps {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  cleanliness: 'Propreté',
-  equipment: 'Equipements',
   staff: 'Personnel',
-  value_for_money: 'Rapport qualité/prix',
-  location: 'Situation géographique',
+  cleanliness: 'Propreté',
   comfort: 'Confort',
-  wifi: 'Wi-Fi',
-  bed: 'Evaluation du lit',
-  breakfast: 'Petit déjeuner',
+  breakfast: 'Petits déjeuners',
+  wifi: 'Wifi',
+  accessibility: 'Accessibilité',
+  shuttle: 'Navette',
+  activities: 'Autres activités',
+  value_for_money: 'Rapport qualité-prix',
+  restaurant: 'Restaurant',
 };
 
-// Résumé "Note globale" du mockup : 5 catégories phares mappées sur les
-// category_ratings existants (pas de nouveau champ back nécessaire).
-const SUMMARY_CATEGORIES: Array<{ key: keyof CategoryRatings; label: string; icon: typeof Home }> = [
-  { key: 'equipment', label: 'Commodités', icon: Home },
+// Résumé "Note globale" : moyenne par critère, affichée uniquement pour les
+// critères effectivement notés par au moins un voyageur.
+const SUMMARY_CATEGORIES: Array<{ key: keyof CategoryRatings; label: string; icon: typeof Star }> = [
+  { key: 'staff', label: 'Personnel', icon: Users },
   { key: 'cleanliness', label: 'Propreté', icon: Sparkles },
-  { key: 'staff', label: 'Communications', icon: MessageCircle },
-  { key: 'location', label: 'Emplacement', icon: CheckCircle2 },
-  { key: 'value_for_money', label: 'Valeur', icon: Wallet },
+  { key: 'comfort', label: 'Confort', icon: Sofa },
+  { key: 'breakfast', label: 'Petits déjeuners', icon: Coffee },
+  { key: 'wifi', label: 'Wifi', icon: Wifi },
+  { key: 'accessibility', label: 'Accessibilité', icon: Accessibility },
+  { key: 'shuttle', label: 'Navette', icon: Bus },
+  { key: 'activities', label: 'Autres activités', icon: Activity },
+  { key: 'value_for_money', label: 'Rapport qualité-prix', icon: Wallet },
+  { key: 'restaurant', label: 'Restaurant', icon: Utensils },
 ];
 
 const PAGE_SIZE = 6;

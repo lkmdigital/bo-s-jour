@@ -9,6 +9,23 @@ class Review extends Model
 {
     use HasFactory;
 
+    /**
+     * Critères de notation par catégorie (1 à 5 étoiles), tous facultatifs.
+     * Le client peut noter tout ou partie de ces critères en plus de la note globale.
+     */
+    public const CATEGORIES = [
+        'staff' => 'Personnel',
+        'cleanliness' => 'Propreté',
+        'comfort' => 'Confort',
+        'breakfast' => 'Petits déjeuners',
+        'wifi' => 'Wifi',
+        'accessibility' => 'Accessibilité',
+        'shuttle' => 'Navette',
+        'activities' => 'Autres activités',
+        'value_for_money' => 'Rapport qualité-prix',
+        'restaurant' => 'Restaurant',
+    ];
+
     protected $fillable = [
         'user_id',
         'accommodation_id',

@@ -24,32 +24,21 @@ interface ReviewFormData {
   rating: number;
   comment: string;
   comment_en?: string;
-  category_ratings: {
-    cleanliness: number;
-    equipment: number;
-    staff: number;
-    value_for_money: number;
-    location: number;
-    comfort: number;
-    wifi?: number;
-    bed?: number;
-    breakfast?: number;
-  };
+  category_ratings: Record<string, number>;
 }
 
-const MAIN_CATEGORIES = [
-  { key: 'cleanliness', label: 'Propreté' },
-  { key: 'equipment', label: 'Equipements' },
+// Critères de notation (1 à 5 étoiles), tous facultatifs — cf. Review::CATEGORIES (backend).
+const CATEGORIES = [
   { key: 'staff', label: 'Personnel' },
-  { key: 'value_for_money', label: 'Rapport qualité/prix' },
-  { key: 'location', label: 'Situation géographique' },
+  { key: 'cleanliness', label: 'Propreté' },
   { key: 'comfort', label: 'Confort' },
-];
-
-const ADDITIONAL_CATEGORIES = [
-  { key: 'wifi', label: 'Wi-Fi' },
-  { key: 'bed', label: 'Evaluation du lit' },
-  { key: 'breakfast', label: 'Petit déjeuner' },
+  { key: 'breakfast', label: 'Petits déjeuners' },
+  { key: 'wifi', label: 'Wifi' },
+  { key: 'accessibility', label: 'Accessibilité' },
+  { key: 'shuttle', label: 'Navette' },
+  { key: 'activities', label: 'Autres activités' },
+  { key: 'value_for_money', label: 'Rapport qualité-prix' },
+  { key: 'restaurant', label: 'Restaurant' },
 ];
 
 export default function ReviewByTokenPage() {
@@ -99,14 +88,7 @@ export default function ReviewByTokenPage() {
     defaultValues: {
       rating: 0,
       comment: '',
-      category_ratings: {
-        cleanliness: 0,
-        equipment: 0,
-        staff: 0,
-        value_for_money: 0,
-        location: 0,
-        comfort: 0,
-      },
+      category_ratings: {},
     },
   });
 
@@ -114,19 +96,17 @@ export default function ReviewByTokenPage() {
   const categoryRatings = watch('category_ratings');
 
   const onSubmit = async (data: ReviewFormData) => {
-    const mainFilled = MAIN_CATEGORIES.every(
-      (c) => (data.category_ratings?.[c.key as keyof typeof data.category_ratings] ?? 0) > 0
-    );
-    if (!mainFilled || data.rating === 0) {
-      setSubmitError('Veuillez donner une note globale et évaluer toutes les catégories principales.');
+    if (data.rating === 0) {
+      setSubmitError('Veuillez donner une note globale.');
       return;
     }
     setSubmitLoading(true);
     setSubmitError(null);
     try {
-      const cleaned: Record<string, number> = { ...data.category_ratings };
-      ADDITIONAL_CATEGORIES.forEach((c) => {
-        if (!cleaned[c.key] || cleaned[c.key] === 0) delete cleaned[c.key];
+      const cleaned: Record<string, number> = {};
+      CATEGORIES.forEach((c) => {
+        const value = data.category_ratings?.[c.key];
+        if (value && value > 0) cleaned[c.key] = value;
       });
       await api.post('/reviews/submit-by-token', {
         token,
@@ -252,9 +232,10 @@ export default function ReviewByTokenPage() {
             </div>
 
             <div>
-              <h3 className="text-sm font-medium mb-3">Catégories principales <span className="text-red-500">*</span></h3>
+              <h3 className="text-sm font-medium mb-1">Critères de notation</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Facultatif — notez les critères de votre choix.</p>
               <div className="space-y-3">
-                {MAIN_CATEGORIES.map((cat) => {
+                {CATEGORIES.map((cat) => {
                   const val = categoryRatings?.[cat.key as keyof typeof categoryRatings] ?? 0;
                   return (
                     <div key={cat.key} className="flex items-center justify-between gap-4">

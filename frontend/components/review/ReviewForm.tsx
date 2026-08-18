@@ -14,34 +14,21 @@ interface ReviewFormProps {
 interface ReviewFormData {
   rating: number;
   comment: string;
-  category_ratings: {
-    // Catégories principales (requises)
-    cleanliness: number;
-    equipment: number;
-    staff: number;
-    value_for_money: number;
-    location: number;
-    comfort: number;
-    // Catégories supplémentaires (optionnelles)
-    wifi?: number;
-    bed?: number;
-    breakfast?: number;
-  };
+  category_ratings: Record<string, number>;
 }
 
-const MAIN_CATEGORIES = [
-  { key: 'cleanliness', label: 'Propreté' },
-  { key: 'equipment', label: 'Equipements' },
+// Critères de notation (1 à 5 étoiles), tous facultatifs — cf. Review::CATEGORIES (backend).
+const CATEGORIES = [
   { key: 'staff', label: 'Personnel' },
-  { key: 'value_for_money', label: 'Rapport qualité/prix' },
-  { key: 'location', label: 'Situation géographique' },
+  { key: 'cleanliness', label: 'Propreté' },
   { key: 'comfort', label: 'Confort' },
-];
-
-const ADDITIONAL_CATEGORIES = [
-  { key: 'wifi', label: 'Wi-Fi' },
-  { key: 'bed', label: 'Evaluation du lit' },
-  { key: 'breakfast', label: 'Petit déjeuner' },
+  { key: 'breakfast', label: 'Petits déjeuners' },
+  { key: 'wifi', label: 'Wifi' },
+  { key: 'accessibility', label: 'Accessibilité' },
+  { key: 'shuttle', label: 'Navette' },
+  { key: 'activities', label: 'Autres activités' },
+  { key: 'value_for_money', label: 'Rapport qualité-prix' },
+  { key: 'restaurant', label: 'Restaurant' },
 ];
 
 export default function ReviewForm({ accommodationId, onSuccess, onCancel }: ReviewFormProps) {
@@ -52,14 +39,7 @@ export default function ReviewForm({ accommodationId, onSuccess, onCancel }: Rev
     defaultValues: {
       rating: 0,
       comment: '',
-      category_ratings: {
-        cleanliness: 0,
-        equipment: 0,
-        staff: 0,
-        value_for_money: 0,
-        location: 0,
-        comfort: 0,
-      },
+      category_ratings: {},
     },
   });
 
@@ -75,19 +55,6 @@ export default function ReviewForm({ accommodationId, onSuccess, onCancel }: Rev
   };
 
   const onSubmit = async (data: ReviewFormData) => {
-    // Vérifier que toutes les catégories principales sont remplies
-    const mainCategoriesFilled = MAIN_CATEGORIES.every(
-      (cat) => {
-        const rating = data.category_ratings?.[cat.key as keyof typeof data.category_ratings];
-        return rating !== undefined && rating > 0;
-      }
-    );
-
-    if (!mainCategoriesFilled) {
-      setError('Veuillez évaluer toutes les catégories principales');
-      return;
-    }
-
     if (data.rating === 0) {
       setError('Veuillez donner une note globale');
       return;
@@ -97,11 +64,12 @@ export default function ReviewForm({ accommodationId, onSuccess, onCancel }: Rev
     setError(null);
 
     try {
-      // Nettoyer les catégories supplémentaires vides
-      const cleanedCategoryRatings: any = { ...data.category_ratings };
-      ADDITIONAL_CATEGORIES.forEach((cat) => {
-        if (!cleanedCategoryRatings[cat.key] || cleanedCategoryRatings[cat.key] === 0) {
-          delete cleanedCategoryRatings[cat.key];
+      // Ne transmettre que les catégories effectivement notées (toutes facultatives).
+      const cleanedCategoryRatings: Record<string, number> = {};
+      CATEGORIES.forEach((cat) => {
+        const value = data.category_ratings?.[cat.key];
+        if (value && value > 0) {
+          cleanedCategoryRatings[cat.key] = value;
         }
       });
 
@@ -157,66 +125,12 @@ export default function ReviewForm({ accommodationId, onSuccess, onCancel }: Rev
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-4">Catégories principales <span className="text-red-500">*</span></h3>
+        <h3 className="text-lg font-semibold mb-1">Critères de notation</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Facultatif — notez les critères de votre choix.</p>
         <div className="space-y-4">
-          {MAIN_CATEGORIES.map((category) => {
-            const categoryKey = category.key as keyof typeof categoryRatings;
-            const categoryRating = categoryRatings?.[categoryKey] || 0;
-            
-            return (
-              <div key={category.key}>
-                <label className="block text-sm font-medium mb-2">
-                  {category.label}
-                </label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => handleCategoryRatingClick(category.key, value)}
-                      className="focus:outline-none"
-                    >
-                      <Star
-                        className={`w-6 h-6 transition-colors ${
-                          value <= categoryRating
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-300 dark:text-gray-600'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                  {categoryRating > 0 && (
-                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
-                      {categoryRating}/5
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="hidden"
-                  {...register(`category_ratings.${category.key}` as any, {
-                    required: `${category.label} est requis`,
-                    min: { value: 1, message: 'Note minimale: 1' },
-                    max: { value: 5, message: 'Note maximale: 5' },
-                  })}
-                />
-                {errors.category_ratings?.[categoryKey] && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.category_ratings[categoryKey]?.message}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+          {CATEGORIES.map((category) => {
+            const categoryRating = categoryRatings?.[category.key] || 0;
 
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Catégories supplémentaires</h3>
-        <div className="space-y-4">
-          {ADDITIONAL_CATEGORIES.map((category) => {
-            const categoryKey = category.key as keyof typeof categoryRatings;
-            const categoryRating = categoryRatings?.[categoryKey] || 0;
-            
             return (
               <div key={category.key}>
                 <label className="block text-sm font-medium mb-2">
@@ -297,4 +211,3 @@ export default function ReviewForm({ accommodationId, onSuccess, onCancel }: Rev
     </form>
   );
 }
-
