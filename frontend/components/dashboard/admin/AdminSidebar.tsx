@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
+import Logo from '@/components/common/Logo';
 
 interface NavItem {
   href: string;
@@ -137,14 +138,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-white/10">
-        <div className="w-9 h-9 rounded-lg bg-bosejour-red flex items-center justify-center font-bold text-white shrink-0">
-          BJ
-        </div>
-        <div className="leading-tight">
-          <p className="font-bold text-white text-sm">Bosejour</p>
-          <p className="text-xs text-gray-400">Administration</p>
-        </div>
+      <div className="flex items-center justify-between gap-3 px-4 py-5 border-b border-white/10">
+        <Logo href="/dashboard/admin" size="sm" variant="white" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 border border-white/15 rounded-full px-2 py-1 shrink-0">
+          Admin
+        </span>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-4">

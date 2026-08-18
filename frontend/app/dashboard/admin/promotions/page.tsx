@@ -144,14 +144,14 @@ export default function AdminPromotionsPage() {
           <Gift className="w-6 h-6 text-primary" /> Promotions
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Mises en avant Bosejour et supervision des offres créées par les établissements.
+          Mises en avant bo séjour et supervision des offres créées par les établissements.
         </p>
       </div>
 
-      {/* Section 1 : Mises en avant Bosejour */}
+      {/* Section 1 : Mises en avant bo séjour */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-primary" /> Mises en avant Bosejour
+          <Sparkles className="w-4 h-4 text-primary" /> Mises en avant bo séjour
         </h2>
         <p className="text-xs text-gray-500 -mt-2">
           Établissements affichés dans « Offres promotionnelles » côté voyageur. Décision plateforme, indépendante
