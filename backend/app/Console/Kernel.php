@@ -29,6 +29,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('bookings:detect-no-show')->dailyAt('11:00');
         $schedule->command('users:remind-guest-activation')->hourly();
         $schedule->command('hosts:remind-onboarding')->hourly();
+        $schedule->command('compliance:remind-hosts')->dailyAt('08:00');
         $schedule->command('sanctum:prune-expired --hours=24')->daily();
     }
 
