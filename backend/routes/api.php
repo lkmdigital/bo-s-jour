@@ -22,6 +22,8 @@ use App\Http\Controllers\Admin\AdminActivityLogController;
 use App\Http\Controllers\Admin\AdminComplianceController;
 use App\Http\Controllers\Admin\AdminLegalDocumentController;
 use App\Http\Controllers\Admin\AdminPaymentMethodController;
+use App\Http\Controllers\Admin\AdminPromotionController;
+use App\Http\Controllers\Admin\AdminStrategicController;
 use App\Http\Controllers\Admin\InspectionController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminBookingController;
@@ -338,6 +340,18 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::get('/payment-methods', [AdminPaymentMethodController::class, 'index'])->middleware('role:admin');
         Route::put('/payment-methods/{id}', [AdminPaymentMethodController::class, 'update'])->middleware('role:admin')->where('id', '[0-9]+');
 
+        // Promotions (supervision admin des offres créées par les établissements)
+        Route::get('/promotions', [AdminPromotionController::class, 'index'])->middleware('role:admin');
+        Route::post('/promotions/{id}/toggle', [AdminPromotionController::class, 'toggle'])->middleware('role:admin')->where('id', '[0-9]+');
+
+        // Tableau stratégique (vue exécutive)
+        Route::prefix('strategic')->middleware('role:admin')->group(function () {
+            Route::get('/rankings', [AdminStrategicController::class, 'rankings']);
+            Route::get('/forecast', [AdminStrategicController::class, 'forecast']);
+            Route::get('/alerts', [AdminStrategicController::class, 'alerts']);
+            Route::get('/geography', [AdminStrategicController::class, 'geography']);
+        });
+
         // Journal d'activité (fusion UserActivityLog + AccommodationAuditLog)
         Route::get('/activity-log', [AdminActivityLogController::class, 'index'])->middleware('role:admin');
         Route::get('/activity-log/actions', [AdminActivityLogController::class, 'actions'])->middleware('role:admin');
@@ -402,6 +416,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::post('/{id}/remove', [AdminAccommodationController::class, 'remove'])->middleware('permission:accommodations.remove');
             Route::post('/{id}/disable', [AdminAccommodationController::class, 'disable'])->middleware('permission:accommodations.disable');
             Route::post('/{id}/enable', [AdminAccommodationController::class, 'enable'])->middleware('permission:accommodations.update');
+            Route::post('/{id}/toggle-featured', [AdminAccommodationController::class, 'toggleFeatured'])->middleware('permission:accommodations.update');
             Route::post('/{id}/media', [AccommodationController::class, 'uploadMedia'])->middleware('permission:accommodations.update');
             Route::delete('/{id}/media/{imageId}', [AccommodationController::class, 'deleteMedia'])
                 ->middleware('permission:accommodations.update')

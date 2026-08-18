@@ -51,6 +51,10 @@ class AdminAccommodationController extends Controller
             $query->where('host_id', $request->host_id);
         }
 
+        if ($request->has('is_featured')) {
+            $query->where('is_featured', $request->boolean('is_featured'));
+        }
+
         if ($request->filled('city')) {
             $query->where('city', $request->city);
         }
@@ -462,6 +466,35 @@ class AdminAccommodationController extends Controller
         return response()->json([
             'message' => 'Établissement réactivé avec succès',
             'data' => $accommodation->load('auditLogs'),
+        ]);
+    }
+
+    /**
+     * Mettre en avant / retirer un établissement des offres promotionnelles
+     * Bosejour (module Promotions). Distinct des offres créées par les hôtes
+     * (Promotion) : ceci est une mise en avant pilotée par la plateforme,
+     * jamais par le propriétaire de l'établissement lui-même.
+     */
+    public function toggleFeatured(Request $request, $id)
+    {
+        $accommodation = Accommodation::findOrFail($id);
+        $this->authorize('update', $accommodation);
+
+        $accommodation->is_featured = !$accommodation->is_featured;
+        $accommodation->save();
+
+        AccommodationAuditLog::create([
+            'accommodation_id' => $accommodation->id,
+            'user_id' => $request->user()->id,
+            'action' => $accommodation->is_featured ? 'featured' : 'unfeatured',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'message' => $accommodation->is_featured
+                ? 'Établissement mis en avant dans les offres promotionnelles'
+                : 'Établissement retiré des offres promotionnelles',
+            'data' => $accommodation,
         ]);
     }
 
