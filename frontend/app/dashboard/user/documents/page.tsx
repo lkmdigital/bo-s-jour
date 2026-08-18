@@ -18,6 +18,7 @@ interface Booking {
   status: string;
   payment_status?: string;
   confirmation_code?: string | null;
+  booking_number?: string | null;
   accommodation?: { name: string; city: string };
 }
 
@@ -97,6 +98,9 @@ export default function MemberDocumentsPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-gray-900 dark:text-white truncate">{b.accommodation?.name || `Réservation #${b.id}`}</h3>
+                        {b.booking_number && (
+                          <p className="text-xs text-gray-400 mt-0.5">N° {b.booking_number}</p>
+                        )}
                         <p className="text-sm text-gray-500 flex items-center gap-1 mt-1"><MapPin className="w-4 h-4 text-primary" /> {b.accommodation?.city}</p>
                         <p className="text-sm text-gray-500 flex items-center gap-1 mt-1"><Calendar className="w-4 h-4" /> {fmt(b.check_in)} – {fmt(b.check_out)}</p>
                         {b.confirmation_code && (

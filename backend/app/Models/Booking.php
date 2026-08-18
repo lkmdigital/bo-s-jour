@@ -26,6 +26,7 @@ class Booking extends Model
         'status',
         'payment_status',
         'confirmation_code',
+        'booking_number',
         'checked_in_at',
         'is_non_refundable',
         'cancellation_policy_hours_snapshot',
@@ -199,6 +200,30 @@ class Booking extends Model
             $code = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
         } while (self::where('confirmation_code', $code)->exists());
         return $code;
+    }
+
+    /**
+     * Génère le numéro de réservation — référence stable et séquentielle
+     * (facturation, support, export compta), distincte du confirmation_code
+     * (clé aléatoire de vérification à l'arrivée). Format RES-{année}-{séquence
+     * 5 chiffres}, remise à 1 chaque nouvelle année.
+     */
+    public static function generateBookingNumber(?\Carbon\Carbon $at = null): string
+    {
+        $year = ($at ?? now())->format('Y');
+        $prefix = "RES-{$year}-";
+
+        do {
+            $maxSeq = (int) \Illuminate\Support\Facades\DB::table('bookings')
+                ->where('booking_number', 'like', $prefix . '%')
+                ->selectRaw("MAX(CAST(SUBSTRING(booking_number, ?) AS UNSIGNED)) as max_seq", [strlen($prefix) + 1])
+                ->value('max_seq');
+
+            $sequence = str_pad((string) ($maxSeq + 1), 5, '0', STR_PAD_LEFT);
+            $number = $prefix . $sequence;
+        } while (self::where('booking_number', $number)->exists());
+
+        return $number;
     }
 
     public function isCheckedIn(): bool

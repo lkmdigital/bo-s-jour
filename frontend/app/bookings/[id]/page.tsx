@@ -45,6 +45,7 @@ interface BookingDetail {
   status: 'pending' | 'confirmed' | 'cancelled';
   payment_status?: 'pending' | 'paid' | 'failed' | 'refunded';
   confirmation_code?: string | null;
+  booking_number?: string | null;
   checked_in_at?: string | null;
   special_requests?: string;
   created_at: string;
@@ -313,9 +314,14 @@ export default function BookingDetailPage() {
             Retour aux réservations
           </Link>
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">
-              {isHost ? 'Détails de la réservation client' : 'Détails de la réservation'}
-            </h1>
+            <div>
+              <h1 className="text-3xl font-bold">
+                {isHost ? 'Détails de la réservation client' : 'Détails de la réservation'}
+              </h1>
+              {booking.booking_number && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">N° {booking.booking_number}</p>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <StatusIcon className="w-5 h-5" />
               <span className={`px-4 py-2 rounded-full text-sm font-medium ${status.color}`}>

@@ -12,6 +12,7 @@ import { CheckCircle, Calendar, CalendarPlus, Sparkles, Home, List, FileText, Ke
 
 interface SuccessBooking {
   confirmation_code?: string;
+  booking_number?: string;
   check_in?: string;
   check_out?: string;
   accommodation?: { name: string; city?: string };
@@ -101,7 +102,9 @@ function BookingSuccessContent() {
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
                 <Calendar className="w-5 h-5" />
-                <span className="font-semibold">Réservation #{bookingId}</span>
+                <span className="font-semibold">
+                  Réservation {booking?.booking_number || `#${bookingId}`}
+                </span>
               </div>
               
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">

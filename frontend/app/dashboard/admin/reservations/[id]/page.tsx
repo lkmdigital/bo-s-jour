@@ -48,6 +48,7 @@ interface BookingDetail {
   traveler_phone?: string;
   traveler_email?: string;
   confirmation_code?: string;
+  booking_number?: string | null;
   created_at: string;
   user: { id: number; name: string; email: string; phone?: string };
   accommodation: { id: number; name: string; city: string; address?: string; host?: { id: number; name: string; email: string; phone?: string; whatsapp?: string } };
@@ -107,7 +108,9 @@ export default function AdminReservationDetailPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Réservation #{booking.id}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Réservation {booking.booking_number || `#${booking.id}`}
+            </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
               Créée le {format(new Date(booking.created_at), 'dd MMM yyyy à HH:mm', { locale: fr })}
               {booking.confirmation_code && <> · Code : {booking.confirmation_code}</>}

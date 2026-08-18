@@ -114,9 +114,18 @@ class BookingService
     {
         $this->transition($booking, BookingStatus::Confirmed, 'confirmed', $actorId);
 
-        // Générer le code de confirmation si absent (doit exister avant l'envoi des emails)
+        // Générer le code de confirmation et le numéro de réservation si absents
+        // (doivent exister avant l'envoi des emails/WhatsApp).
+        $needsSave = false;
         if (empty($booking->confirmation_code)) {
             $booking->confirmation_code = \App\Models\Booking::generateConfirmationCode();
+            $needsSave = true;
+        }
+        if (empty($booking->booking_number)) {
+            $booking->booking_number = \App\Models\Booking::generateBookingNumber();
+            $needsSave = true;
+        }
+        if ($needsSave) {
             $booking->save();
         }
 

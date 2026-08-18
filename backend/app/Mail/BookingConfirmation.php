@@ -26,9 +26,9 @@ class BookingConfirmation extends Mailable
      */
     public function build()
     {
-        $code = $this->booking->confirmation_code ?? '#' . $this->booking->id;
+        $reference = $this->booking->booking_number ?? $this->booking->confirmation_code ?? '#' . $this->booking->id;
 
-        return $this->subject('Votre réservation Bosejour est confirmée — ' . $code)
+        return $this->subject('Votre réservation Bosejour est confirmée — ' . $reference)
                     ->view('emails.booking-confirmation')
                     ->with([
                         'booking'       => $this->booking,

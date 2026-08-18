@@ -889,6 +889,9 @@ class PaymentController extends Controller
                 if (empty($booking->confirmation_code)) {
                     $booking->confirmation_code = Booking::generateConfirmationCode();
                 }
+                if (empty($booking->booking_number)) {
+                    $booking->booking_number = Booking::generateBookingNumber();
+                }
             }
         }
 
@@ -899,6 +902,9 @@ class PaymentController extends Controller
                 $booking->status = 'confirmed';
                 if (empty($booking->confirmation_code)) {
                     $booking->confirmation_code = Booking::generateConfirmationCode();
+                }
+                if (empty($booking->booking_number)) {
+                    $booking->booking_number = Booking::generateBookingNumber();
                 }
             }
         } elseif ($payment->purpose === 'guarantee') {
@@ -911,6 +917,9 @@ class PaymentController extends Controller
                 $booking->status = 'confirmed';
                 if (empty($booking->confirmation_code)) {
                     $booking->confirmation_code = Booking::generateConfirmationCode();
+                }
+                if (empty($booking->booking_number)) {
+                    $booking->booking_number = Booking::generateBookingNumber();
                 }
             }
         } else {

@@ -73,6 +73,7 @@ export default function AdminTemplatesSettingsPage() {
               Envoyé au voyageur en double canal avec l&apos;e-mail (si WhatsApp Business est configuré dans
               Réglages avancés). Espaces réservés disponibles :{' '}
               <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">{'{etablissement}'}</code>{' '}
+              <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">{'{numero}'}</code>{' '}
               <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">{'{code}'}</code>{' '}
               <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">{'{arrivee}'}</code>{' '}
               <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">{'{depart}'}</code>.

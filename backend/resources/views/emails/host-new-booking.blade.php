@@ -29,6 +29,17 @@
             </td>
           </tr>
 
+          {{-- Numéro de réservation --}}
+          @if ($booking->booking_number)
+          <tr>
+            <td style="padding:20px 40px 0;text-align:center;">
+              <p style="margin:0;font-size:13px;color:#6b7280;">
+                N° de réservation : <strong style="color:#111827;">{{ $booking->booking_number }}</strong>
+              </p>
+            </td>
+          </tr>
+          @endif
+
           {{-- Code réservation --}}
           <tr>
             <td style="padding:24px 40px;">
@@ -36,7 +47,7 @@
                 <tr>
                   <td align="center">
                     <div style="background:#f0fdf4;border:2px solid #0d9488;border-radius:12px;padding:20px 40px;display:inline-block;">
-                      <p style="margin:0 0 4px;font-size:12px;color:#6b7280;letter-spacing:1px;text-transform:uppercase;text-align:center;">Code de réservation</p>
+                      <p style="margin:0 0 4px;font-size:12px;color:#6b7280;letter-spacing:1px;text-transform:uppercase;text-align:center;">Code de vérification à l'arrivée</p>
                       <p style="margin:0;font-size:36px;font-weight:800;color:#0f766e;letter-spacing:8px;font-family:'Courier New',monospace;text-align:center;">{{ $booking->confirmation_code ?? '#'.$booking->id }}</p>
                     </div>
                   </td>

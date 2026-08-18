@@ -16,13 +16,14 @@ class WhatsAppService
 {
     /**
      * Modèle par défaut du message de confirmation, éditable dans
-     * Paramètres > Modèles. Espaces réservés : {etablissement}, {code},
-     * {arrivee}, {depart}.
+     * Paramètres > Modèles. Espaces réservés : {etablissement}, {numero},
+     * {code}, {arrivee}, {depart}.
      */
     public const DEFAULT_CONFIRMATION_TEMPLATE =
         "bo séjour — Réservation confirmée ✅\n"
         . "Établissement : {etablissement}\n"
-        . "Code de réservation : {code}\n"
+        . "N° de réservation : {numero}\n"
+        . "Code de confirmation (à présenter à l'arrivée) : {code}\n"
         . "Séjour : du {arrivee} au {depart}\n"
         . "Merci et bon séjour ! Votre séjour commence ici.";
 
@@ -86,6 +87,7 @@ class WhatsAppService
             return;
         }
         $code = $booking->confirmation_code ?: ('#' . $booking->id);
+        $number = $booking->booking_number ?: $code;
         $acc = optional($booking->accommodation)->name ?? 'votre établissement';
         $ci = \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y');
         $co = \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y');
@@ -93,6 +95,7 @@ class WhatsAppService
         $template = (string) Setting::get('whatsapp_template_confirmation', self::DEFAULT_CONFIRMATION_TEMPLATE);
         $msg = strtr($template, [
             '{etablissement}' => $acc,
+            '{numero}' => $number,
             '{code}' => $code,
             '{arrivee}' => $ci,
             '{depart}' => $co,

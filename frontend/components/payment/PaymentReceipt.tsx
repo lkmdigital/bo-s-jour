@@ -24,6 +24,7 @@ interface PaymentReceiptProps {
   bookingId: number;
   booking: {
     id: number;
+    booking_number?: string | null;
     check_in: string;
     check_out: string;
     guests: number;
@@ -49,6 +50,9 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
   const [payments, setPayments] = useState<Payment[]>(initialPayments || []);
   const [loading, setLoading] = useState(!initialPayments);
   const [copied, setCopied] = useState(false);
+  // N° de réservation stable (facturation/support), à défaut l'ID interne pour
+  // les réservations antérieures à l'introduction du champ.
+  const bookingReference = booking.booking_number || `#${booking.id}`;
 
   useEffect(() => {
     if (!initialPayments) {
@@ -106,7 +110,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `recu-paiement-${booking.id}-${format(new Date(), 'yyyy-MM-dd')}.html`;
+    link.download = `recu-paiement-${(booking.booking_number || booking.id).toString().replace(/[^a-zA-Z0-9-]/g, '')}-${format(new Date(), 'yyyy-MM-dd')}.html`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -119,8 +123,8 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Reçu de paiement - Réservation #${booking.id}`,
-          text: `Reçu de paiement pour la réservation #${booking.id} - ${booking.accommodation.name}`,
+          title: `Reçu de paiement - Réservation ${bookingReference}`,
+          text: `Reçu de paiement pour la réservation ${bookingReference} - ${booking.accommodation.name}`,
           url: receiptUrl,
         });
       } catch (err) {
@@ -160,7 +164,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reçu de paiement - Réservation #${booking.id}</title>
+  <title>Reçu de paiement - Réservation ${bookingReference}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
     body {
@@ -251,7 +255,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
     <h2>Informations de la réservation</h2>
     <div class="info-row">
       <span class="info-label">Numéro de réservation:</span>
-      <span>#${booking.id}</span>
+      <span>${bookingReference}</span>
     </div>
     <div class="info-row">
       <span class="info-label">Hébergement:</span>
@@ -384,7 +388,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
           <div>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Reçu de paiement</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Réservation #{booking.id} • {format(new Date(), 'dd MMMM yyyy', { locale: fr })}
+              Réservation {bookingReference} • {format(new Date(), 'dd MMMM yyyy', { locale: fr })}
             </p>
           </div>
         </div>
