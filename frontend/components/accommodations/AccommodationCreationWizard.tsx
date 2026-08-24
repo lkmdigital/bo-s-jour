@@ -821,7 +821,7 @@ export default function AccommodationCreationWizard({
                   }`}
                 >
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
+                    className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-all ${
                       currentStep === step.id
                         ? 'border-primary bg-primary text-white'
                         : currentStep > step.id
@@ -830,16 +830,16 @@ export default function AccommodationCreationWizard({
                     }`}
                   >
                     {currentStep > step.id ? (
-                      <Check className="w-5 h-5" />
+                      <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                     ) : (
-                      <span className="font-semibold">{index + 1}</span>
+                      <span className="text-xs sm:text-base font-semibold">{index + 1}</span>
                     )}
                   </div>
                   <span className="text-xs mt-2 text-center hidden sm:block">{step.title}</span>
                 </button>
                 {index < totalSteps - 1 && (
                   <div
-                    className={`h-1 flex-1 mx-2 transition-all ${
+                    className={`h-1 flex-1 mx-1 sm:mx-2 transition-all ${
                       currentStep > step.id
                         ? 'bg-green-600 dark:bg-green-400'
                         : 'bg-gray-300 dark:bg-gray-600'

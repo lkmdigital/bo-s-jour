@@ -503,24 +503,24 @@ export default function EditAccommodationPage() {
         </Link>
 
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold mb-2">Modifier l'hébergement</h1>
               <p className="text-gray-600 dark:text-gray-400">
                 Modifiez les informations de votre hébergement.
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href={`/dashboard/host/accommodations/${params.id}/rooms`}
-                className="btn-secondary flex items-center gap-2"
+                className="btn-secondary flex items-center justify-center gap-2"
               >
                 <Bed className="w-5 h-5" />
                 Gérer les chambres
               </Link>
               <Link
                 href={`/dashboard/host/accommodations/${params.id}/promotions`}
-                className="btn-primary flex items-center gap-2"
+                className="btn-primary flex items-center justify-center gap-2"
               >
                 <Tag className="w-5 h-5" />
                 Gérer les promotions

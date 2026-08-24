@@ -260,7 +260,7 @@ export default function AccommodationPromotionsPage() {
             <ArrowLeft className="w-4 h-4" />
             Retour à l'édition
           </Link>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold">Gestion des promotions</h1>
               <p className="text-gray-600 dark:text-gray-400 mt-2">
@@ -273,7 +273,7 @@ export default function AccommodationPromotionsPage() {
                 setEditingPromotion(null);
                 setFormData(emptyForm);
               }}
-              className="btn-primary flex items-center gap-2"
+              className="btn-primary flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" />
               {showForm ? 'Annuler' : 'Nouvelle promotion'}

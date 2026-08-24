@@ -259,7 +259,7 @@ export default function BookingRequestsPage() {
             Retour au tableau de bord
           </Link>
           
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-4xl font-bold text-primary mb-2">Demandes de réservation</h1>
               <p className="text-gray-600 dark:text-gray-400">
@@ -268,7 +268,7 @@ export default function BookingRequestsPage() {
             </div>
             <Link
               href="/dashboard/host/bookings"
-              className="btn-secondary flex items-center gap-2"
+              className="btn-secondary flex items-center justify-center gap-2"
             >
               <Calendar className="w-5 h-5" />
               Vue calendrier
@@ -305,7 +305,7 @@ export default function BookingRequestsPage() {
               <span className="font-medium">Filtres :</span>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {(['all', 'pending', 'confirmed', 'cancelled'] as const).map((status) => (
                 <button
                   key={status}
@@ -321,7 +321,7 @@ export default function BookingRequestsPage() {
               ))}
             </div>
 
-            <div className="flex gap-2 ml-auto">
+            <div className="flex gap-2 flex-wrap sm:ml-auto">
               {(['all', 'pending', 'paid', 'failed'] as const).map((payment) => (
                 <button
                   key={payment}
@@ -367,7 +367,7 @@ export default function BookingRequestsPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Informations principales */}
                     <div className="lg:col-span-2 space-y-4">
-                      <div className="flex items-start justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                         <div>
                           <h3 className="text-xl font-bold mb-1">{booking.accommodation.name}</h3>
                           <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
@@ -375,7 +375,7 @@ export default function BookingRequestsPage() {
                             {booking.accommodation.city}
                           </p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${StatusConfig.color}`}>
                             <StatusIcon className="w-3 h-3" />
                             {StatusConfig.label}

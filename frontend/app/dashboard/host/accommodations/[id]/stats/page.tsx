@@ -224,7 +224,7 @@ export default function AccommodationStatsPage() {
             Retour au tableau de bord
           </Link>
           
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-4xl font-bold text-primary mb-2">
                 {stats.accommodation.name}
@@ -233,17 +233,17 @@ export default function AccommodationStatsPage() {
                 {typeLabels[stats.accommodation.type] || stats.accommodation.type} • {stats.accommodation.city}
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href={`/dashboard/host/accommodations/${stats.accommodation.id}/rooms`}
-                className="btn-secondary flex items-center gap-2"
+                className="btn-secondary flex items-center justify-center gap-2"
               >
                 <Bed className="w-5 h-5" />
                 Gérer les chambres
               </Link>
               <Link
                 href={`/dashboard/host/accommodations/${stats.accommodation.id}/edit`}
-                className="btn-primary"
+                className="btn-primary text-center"
               >
                 Modifier l'établissement
               </Link>
