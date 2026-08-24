@@ -331,7 +331,7 @@ export default function UserDetailPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <main className="container mx-auto px-4 py-8">
         {/* En-tête */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link
               href="/dashboard/admin/users"
@@ -348,7 +348,7 @@ export default function UserDetailPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {userDetail.status === 'blocked' ? (
               <button
                 onClick={handleUnblock}
