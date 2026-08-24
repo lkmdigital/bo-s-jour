@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\Accommodation;
+use App\Models\LoyaltyVoucher;
 use App\Models\Promotion;
 use App\Models\Room;
 use App\Models\User;
@@ -364,10 +365,38 @@ class BookingController extends Controller
             ]);
         }
 
-        // Appliquer la réduction si une promotion existe
+        // Bon de fidélité (mutuellement exclusif avec un code promo hôte — V1,
+        // voir Décision #1 du plan Programme de Fidélité) : recherché seulement
+        // pour un voyageur authentifié, sur un établissement participant.
+        $loyaltyVoucher = null;
+        $submittedVoucherCode = trim((string) $request->input('loyalty_voucher_code', ''));
+        if ($submittedVoucherCode !== '') {
+            if ($submittedPromoCode !== '') {
+                return response()->json([
+                    'message' => "Vous ne pouvez pas utiliser un code promo et un bon de fidélité sur la même réservation.",
+                ], 422);
+            }
+
+            if (!$user || !$accommodation->loyalty_program_joined_at) {
+                return response()->json(['message' => "Ce bon n'est pas utilisable sur cet établissement."], 422);
+            }
+
+            $loyaltyVoucher = LoyaltyVoucher::where('code', $submittedVoucherCode)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (!$loyaltyVoucher || !$loyaltyVoucher->isAvailable()) {
+                return response()->json(['message' => "Ce bon de fidélité est invalide ou n'est plus disponible."], 422);
+            }
+        }
+
+        // Appliquer la réduction si une promotion ou un bon de fidélité existe
         $totalPrice = $basePrice;
         if ($promotion) {
             $discountAmount = $promotion->computeDiscount($basePrice, $effectivePricePerNight);
+            $totalPrice = $basePrice - $discountAmount;
+        } elseif ($loyaltyVoucher) {
+            $discountAmount = $loyaltyVoucher->computeDiscount($basePrice);
             $totalPrice = $basePrice - $discountAmount;
         }
 
@@ -388,9 +417,10 @@ class BookingController extends Controller
         // ─── ANTI-SURBOOKING TRANSACTIONNEL ──────────────────────────────────
         // Le verrou, la vérification ET la création sont dans la même transaction
         // pour garantir qu'aucune autre requête concurrente ne peut s'intercaler.
+        try {
         $booking = DB::transaction(function () use (
             $request, $room, $accommodation, $user, $bookedForThirdParty,
-            $totalPrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion
+            $totalPrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion, $loyaltyVoucher
         ) {
             if ($room) {
                 Room::lockForUpdate()->findOrFail($room->id);
@@ -402,11 +432,21 @@ class BookingController extends Controller
                 );
             }
 
+            // Reverrouille le bon dans la transaction pour empêcher une double
+            // utilisation en cas de requêtes concurrentes (même bon, deux onglets).
+            if ($loyaltyVoucher) {
+                $lockedVoucher = LoyaltyVoucher::lockForUpdate()->findOrFail($loyaltyVoucher->id);
+                if (!$lockedVoucher->isAvailable()) {
+                    throw new \DomainException("Ce bon de fidélité vient d'être utilisé.");
+                }
+            }
+
             $newBooking = Booking::create([
                 'user_id' => $user->id,
                 'accommodation_id' => $request->accommodation_id,
                 'room_id' => $request->room_id,
                 'promotion_id' => $promotion?->id,
+                'loyalty_voucher_id' => $loyaltyVoucher?->id,
                 'check_in' => $request->check_in,
                 'check_out' => $request->check_out,
                 'guests' => $request->guests,
@@ -446,8 +486,19 @@ class BookingController extends Controller
             // NOTE: Les dates ne sont bloquées que lors de la confirmation (après paiement)
             // dans BookingService::confirm() pour permettre les réservations concurrentes en pending
 
+            if ($loyaltyVoucher) {
+                $loyaltyVoucher->update([
+                    'status' => 'used',
+                    'used_for_booking_id' => $newBooking->id,
+                    'used_at' => now(),
+                ]);
+            }
+
             return $newBooking;
         });
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
         // ─────────────────────────────────────────────────────────────────────
 
         // Historique de création

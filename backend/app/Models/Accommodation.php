@@ -96,12 +96,14 @@ class Accommodation extends Model
         'ical_last_sync_error',
         'ical_last_sync_events_count',
         'channel_manager_interest_requested_at',
+        'loyalty_program_joined_at',
     ];
 
     protected function casts(): array
     {
         return [
             'submitted_for_review_at' => 'datetime',
+            'loyalty_program_joined_at' => 'datetime',
             'amenities' => 'array',
             'room_types' => 'array',
             'room_type_pricing' => 'array',

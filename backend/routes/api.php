@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\AdminHostController;
 use App\Http\Controllers\Admin\AdminAccommodationController;
 use App\Http\Controllers\Admin\AdminActivityLogController;
 use App\Http\Controllers\Admin\AdminComplianceController;
+use App\Http\Controllers\Admin\AdminLoyaltyController;
 use App\Http\Controllers\Admin\AdminLegalDocumentController;
 use App\Http\Controllers\Admin\AdminPaymentMethodController;
 use App\Http\Controllers\Admin\AdminPromotionController;
@@ -48,6 +49,7 @@ use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\BookingMessageController;
 use App\Http\Controllers\UserInboxController;
 use App\Http\Controllers\UserProfileController;
+use App\Http\Controllers\LoyaltyController;
 use App\Http\Controllers\MemberNotificationController;
 use App\Http\Controllers\Admin\AdminReviewController;
 use App\Http\Controllers\NotificationController;
@@ -140,6 +142,11 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::get('/me/notifications', [MemberNotificationController::class, 'index']);
         Route::post('/me/notifications/{id}/read', [MemberNotificationController::class, 'markAsRead']);
         Route::post('/me/notifications/read-all', [MemberNotificationController::class, 'markAllAsRead']);
+
+        // Programme de fidélité (voyageur)
+        Route::get('/me/loyalty', [LoyaltyController::class, 'show']);
+        Route::get('/me/loyalty/history', [LoyaltyController::class, 'history']);
+        Route::post('/me/loyalty/claim-voucher', [LoyaltyController::class, 'claimVoucher']);
 
         // Notifications push (OneSignal)
         Route::post('/notifications/trigger', [NotificationController::class, 'trigger']);
@@ -374,6 +381,22 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
         // Conformité documentaire des hôtes
         Route::get('/compliance', [AdminComplianceController::class, 'index'])->middleware('role:admin');
+
+        // Programme de fidélité (admin)
+        Route::prefix('loyalty')->middleware('role:admin')->group(function () {
+            Route::get('/stats', [AdminLoyaltyController::class, 'stats']);
+            Route::get('/tiers', [AdminLoyaltyController::class, 'tiers']);
+            Route::post('/tiers', [AdminLoyaltyController::class, 'storeTier']);
+            Route::put('/tiers/{id}', [AdminLoyaltyController::class, 'updateTier'])->where('id', '[0-9]+');
+            Route::get('/reward-tiers', [AdminLoyaltyController::class, 'rewardTiers']);
+            Route::post('/reward-tiers', [AdminLoyaltyController::class, 'storeRewardTier']);
+            Route::put('/reward-tiers/{id}', [AdminLoyaltyController::class, 'updateRewardTier'])->where('id', '[0-9]+');
+            Route::get('/campaigns', [AdminLoyaltyController::class, 'campaigns']);
+            Route::post('/campaigns', [AdminLoyaltyController::class, 'storeCampaign']);
+            Route::put('/campaigns/{id}', [AdminLoyaltyController::class, 'updateCampaign'])->where('id', '[0-9]+');
+            Route::get('/vouchers', [AdminLoyaltyController::class, 'vouchers']);
+            Route::get('/establishments', [AdminLoyaltyController::class, 'establishments']);
+        });
 
         // Dashboard & Analytics
         Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats'])

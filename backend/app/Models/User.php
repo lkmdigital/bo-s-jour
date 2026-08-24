@@ -107,6 +107,12 @@ class User extends Authenticatable
         // Champs OTP email
         'email_otp_code',
         'email_otp_expires_at',
+        // Programme de fidélité
+        'loyalty_points_lifetime',
+        'loyalty_points_balance',
+        'loyalty_tier',
+        'referral_code',
+        'referred_by_user_id',
     ];
 
     protected $hidden = [
@@ -138,6 +144,9 @@ class User extends Authenticatable
             'notif_whatsapp' => 'boolean',
             'notif_sms' => 'boolean',
             'staff_permissions' => 'array',
+            // Programme de fidélité
+            'loyalty_points_lifetime' => 'integer',
+            'loyalty_points_balance' => 'integer',
         ];
     }
 
@@ -459,6 +468,38 @@ class User extends Authenticatable
     public function blockedByUser()
     {
         return $this->belongsTo(User::class, 'blocked_by');
+    }
+
+    /**
+     * Programme de fidélité — grand livre des mouvements de points
+     */
+    public function loyaltyPointsTransactions()
+    {
+        return $this->hasMany(LoyaltyPointsTransaction::class);
+    }
+
+    /**
+     * Programme de fidélité — bons émis pour cet utilisateur
+     */
+    public function loyaltyVouchers()
+    {
+        return $this->hasMany(LoyaltyVoucher::class);
+    }
+
+    /**
+     * Filleul → parrain (l'utilisateur qui a fourni le code de parrainage utilisé)
+     */
+    public function referredBy()
+    {
+        return $this->belongsTo(User::class, 'referred_by_user_id');
+    }
+
+    /**
+     * Parrain → filleuls (utilisateurs inscrits avec le code de parrainage de cet utilisateur)
+     */
+    public function referredUsers()
+    {
+        return $this->hasMany(User::class, 'referred_by_user_id');
     }
 }
 

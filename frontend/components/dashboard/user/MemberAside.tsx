@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
-import { ArrowRight, Bell, Sparkles, CheckCircle2, XCircle, Clock, Mail } from 'lucide-react';
+import { ArrowRight, Bell, Sparkles, CheckCircle2, XCircle, Clock, Mail, Award } from 'lucide-react';
 
 interface Notif {
   id: string;
@@ -11,6 +11,11 @@ interface Notif {
   message: string | null;
   created_at: string;
   read_at: string | null;
+}
+
+interface LoyaltySummary {
+  tier: { key: string; label: string } | null;
+  points_balance: number;
 }
 
 const ICONS: Record<string, typeof Bell> = {
@@ -35,12 +40,17 @@ export default function MemberAside() {
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [unread, setUnread] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [loyalty, setLoyalty] = useState<LoyaltySummary | null>(null);
 
   useEffect(() => {
     api.get('/me/notifications')
       .then((r) => { setNotifs((r.data?.data ?? []).slice(0, 3)); setUnread(r.data?.unread_count ?? 0); })
       .catch(() => {})
       .finally(() => setLoaded(true));
+
+    api.get('/me/loyalty')
+      .then((r) => setLoyalty(r.data?.data ?? null))
+      .catch(() => {});
   }, []);
 
   return (
@@ -48,14 +58,20 @@ export default function MemberAside() {
       {/* Programme Membre */}
       <div className="bg-gray-900 text-white rounded-2xl p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold">Programme Membre</h3>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-white/10">Bientôt</span>
+          <h3 className="font-bold flex items-center gap-1.5"><Award className="w-4 h-4" /> Programme Membre</h3>
+          {loyalty?.tier && <span className="text-xs px-2 py-0.5 rounded-full bg-white/10">{loyalty.tier.label}</span>}
         </div>
-        <p className="text-sm text-gray-300">
-          Niveaux de fidélité, points et récompenses exclusives arrivent prochainement.
-        </p>
+        {loyalty ? (
+          <p className="text-sm text-gray-300">
+            Vous avez <span className="text-white font-semibold">{loyalty.points_balance} points</span> à échanger contre des récompenses.
+          </p>
+        ) : (
+          <p className="text-sm text-gray-300">
+            Niveaux de fidélité, points et récompenses exclusives vous attendent.
+          </p>
+        )}
         <Link href="/dashboard/user/programme" className="inline-flex items-center gap-1 text-sm text-primary-light mt-4 hover:underline">
-          En savoir plus <ArrowRight className="w-4 h-4" />
+          Voir mon programme <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
 

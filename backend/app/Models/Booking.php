@@ -56,6 +56,8 @@ class Booking extends Model
         'expires_at',
         'review_token',
         'review_link_sent_at',
+        'loyalty_voucher_id',
+        'loyalty_points_awarded_at',
     ];
 
     protected function casts(): array
@@ -69,6 +71,7 @@ class Booking extends Model
             'deposit_paid_at'         => 'datetime',
             'expires_at'              => 'datetime',
             'review_link_sent_at'     => 'datetime',
+            'loyalty_points_awarded_at' => 'datetime',
             'checked_in_at'           => 'datetime',
             'status'                  => BookingStatus::class,
             'booked_for_third_party'  => 'boolean',
@@ -94,6 +97,11 @@ class Booking extends Model
     public function promotion()
     {
         return $this->belongsTo(Promotion::class);
+    }
+
+    public function loyaltyVoucher()
+    {
+        return $this->belongsTo(LoyaltyVoucher::class);
     }
 
     public function payment()
