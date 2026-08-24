@@ -10,7 +10,6 @@ import {
   Building2,
   CalendarCheck,
   User,
-  LogIn,
   LayoutDashboard,
   Users,
   Inbox,
@@ -19,6 +18,15 @@ import {
   Settings,
   BarChart3,
   MessageSquare,
+  Menu,
+  Heart,
+  Zap,
+  CreditCard,
+  Wallet,
+  FileText,
+  Compass,
+  Globe2,
+  HelpCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -45,8 +53,8 @@ export default function MobileBottomBar() {
     return pathname?.startsWith(href) || false;
   };
 
-  // Obtenir les items principaux (max 5 en bottom bar) + items secondaires (dans le menu "Plus")
-  const getNavItems = (): { main: NavItem[]; more: NavItem[] } => {
+  // Obtenir les items principaux (max 5 en bottom bar) + items secondaires (dans le menu "Plus"/"Menu")
+  const getNavItems = (): { main: NavItem[]; more: NavItem[]; moreTrigger?: { icon: React.ReactNode; label: string } } => {
     // Admin
     if (isAdmin(user)) {
       return {
@@ -86,15 +94,31 @@ export default function MobileBottomBar() {
 
     // User connecté
     if (isAuthenticated && user?.role === 'user') {
+      const isCorporate = user?.traveler_type === 'corporate';
       return {
         main: [
           { href: '/', icon: <Home className="w-5 h-5" />, label: 'Accueil', isActive: isActive('/', true) },
           { href: '/accommodations', icon: <Search className="w-5 h-5" />, label: 'Explorer', isActive: isActive('/accommodations') },
           { href: '/bookings', icon: <CalendarCheck className="w-5 h-5" />, label: 'Réservations', isActive: isActive('/bookings') },
           { href: '/dashboard/user/inbox', icon: <Inbox className="w-5 h-5" />, label: 'Messages', isActive: isActive('/dashboard/user/inbox') },
-          { href: '/dashboard', icon: <User className="w-5 h-5" />, label: 'Profil', isActive: isActive('/dashboard', true) || isActive('/dashboard/user', true) },
         ],
-        more: [],
+        // Reprend le contenu de l'ancien menu burger (app/dashboard/user/layout.tsx,
+        // désormais retiré) : plus accessible en 1 tap depuis n'importe quelle page.
+        more: [
+          { href: '/favorites', icon: <Heart className="w-5 h-5" />, label: 'Favoris', isActive: isActive('/favorites') },
+          { href: '/dashboard/user/programme', icon: <Zap className="w-5 h-5" />, label: 'Programme', isActive: isActive('/dashboard/user/programme') },
+          { href: '/dashboard/user/paiements', icon: <CreditCard className="w-5 h-5" />, label: 'Paiements', isActive: isActive('/dashboard/user/paiements') },
+          { href: '/dashboard/user/avoirs', icon: <Wallet className="w-5 h-5" />, label: 'Mes avoirs', isActive: isActive('/dashboard/user/avoirs') },
+          ...(isCorporate ? [{ href: '/dashboard/user/entreprise', icon: <Building2 className="w-5 h-5" />, label: 'Entreprise', isActive: isActive('/dashboard/user/entreprise') }] : []),
+          { href: '/dashboard/user/avis', icon: <MessageSquare className="w-5 h-5" />, label: 'Avis', isActive: isActive('/dashboard/user/avis') },
+          { href: '/dashboard/user/profil', icon: <User className="w-5 h-5" />, label: 'Profil', isActive: isActive('/dashboard/user/profil') },
+          { href: '/dashboard/user/documents', icon: <FileText className="w-5 h-5" />, label: 'Documents', isActive: isActive('/dashboard/user/documents') },
+          { href: '/dashboard/user/voyages', icon: <Compass className="w-5 h-5" />, label: 'Mes voyages', isActive: isActive('/dashboard/user/voyages') },
+          { href: '/dashboard/user/decouvrir', icon: <Globe2 className="w-5 h-5" />, label: 'Découvrir', isActive: isActive('/dashboard/user/decouvrir') },
+          { href: '/dashboard/user/parametres', icon: <Settings className="w-5 h-5" />, label: 'Paramètres', isActive: isActive('/dashboard/user/parametres') },
+          { href: '/dashboard/user/aide', icon: <HelpCircle className="w-5 h-5" />, label: 'Aide', isActive: isActive('/dashboard/user/aide') },
+        ],
+        moreTrigger: { icon: <Menu className="w-5 h-5" />, label: 'Menu' },
       };
     }
 
@@ -103,15 +127,23 @@ export default function MobileBottomBar() {
       main: [
         { href: '/', icon: <Home className="w-5 h-5" />, label: 'Accueil', isActive: isActive('/', true) },
         { href: '/accommodations', icon: <Search className="w-5 h-5" />, label: 'Explorer', isActive: isActive('/accommodations') },
-        { href: '/auth/login', icon: <LogIn className="w-5 h-5" />, label: 'Mon espace', isActive: isActive('/auth/login') },
+        { href: '/partenaire', icon: <Building2 className="w-5 h-5" />, label: 'Établissement', isActive: isActive('/partenaire') },
         { href: '/auth/register', icon: <User className="w-5 h-5" />, label: 'Créer', isActive: isActive('/auth/register') },
       ],
       more: [],
     };
   };
 
-  const { main, more } = getNavItems();
+  const { main, more, moreTrigger } = getNavItems();
   const hasMore = more.length > 0;
+  const triggerIcon = moreTrigger?.icon ?? (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="5" cy="12" r="1.5" />
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="19" cy="12" r="1.5" />
+    </svg>
+  );
+  const triggerLabel = moreTrigger?.label ?? 'Plus';
 
   return (
     <>
@@ -186,12 +218,8 @@ export default function MobileBottomBar() {
                 showMore ? 'text-primary' : 'text-gray-500 dark:text-gray-400'
               }`}
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="5" cy="12" r="1.5" />
-                <circle cx="12" cy="12" r="1.5" />
-                <circle cx="19" cy="12" r="1.5" />
-              </svg>
-              <span className="text-[10px] font-medium leading-tight">Plus</span>
+              {triggerIcon}
+              <span className="text-[10px] font-medium leading-tight">{triggerLabel}</span>
             </button>
           )}
         </div>

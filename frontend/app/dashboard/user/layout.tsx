@@ -12,7 +12,7 @@ import { resolveImageUrl } from '@/lib/utils';
 import {
   Home, Search, Calendar, Heart, Zap, CreditCard, MessageSquare, MessagesSquare,
   User as UserIcon, FileText, Compass, Globe2, Settings, HelpCircle,
-  Gift, Bell, Menu, X, LogOut, Wallet, Building2,
+  Gift, Bell, LogOut, Wallet, Building2,
 } from 'lucide-react';
 
 interface NavItem {
@@ -52,7 +52,6 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   const tNav = useTranslations('member.nav');
   const tNavbar = useTranslations('member.navbar');
   const { user, isAuthenticated, logout } = useAuthStore();
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -82,7 +81,6 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
           <Link
             key={href}
             href={href}
-            onClick={() => setMobileOpen(false)}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
               active
                 ? 'bg-primary/10 text-primary'
@@ -102,14 +100,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
       {/* Top navbar */}
       <header className="sticky top-0 z-30 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-stretch">
         {/* Zone logo = largeur de la sidebar (avec séparateur aligné sur celle-ci) */}
-        <div className="flex items-center gap-2 px-4 lg:w-64 lg:flex-shrink-0 lg:border-r border-gray-200 dark:border-gray-700">
-          <button
-            className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Menu"
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+        <div className="flex items-center gap-2 px-4 md:w-64 md:flex-shrink-0 md:border-r border-gray-200 dark:border-gray-700">
           <Logo size="md" href="/" className="flex-shrink-0" />
         </div>
 
@@ -170,7 +161,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
 
       <div className="flex flex-1">
         {/* Sidebar desktop */}
-        <aside className="hidden lg:flex w-64 flex-shrink-0 flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+        <aside className="hidden md:flex w-64 flex-shrink-0 flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
           <SidebarNav />
           <button
             onClick={() => { logout(); router.push('/'); }}
@@ -179,22 +170,6 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
             <LogOut className="w-5 h-5" /> {tNavbar("logout")}
           </button>
         </aside>
-
-        {/* Sidebar mobile (overlay) */}
-        {mobileOpen && (
-          <div className="lg:hidden fixed inset-0 z-40 flex">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-            <aside className="relative w-64 bg-white dark:bg-gray-800 h-full overflow-y-auto shadow-xl flex flex-col">
-              <SidebarNav />
-              <button
-                onClick={() => { logout(); router.push('/'); }}
-                className="mt-auto m-3 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                <LogOut className="w-5 h-5" /> {tNavbar("logout")}
-              </button>
-            </aside>
-          </div>
-        )}
 
         <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 bg-[#FAF7F1] dark:bg-gray-950">{children}</main>
       </div>

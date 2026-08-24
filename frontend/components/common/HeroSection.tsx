@@ -56,7 +56,7 @@ function DateField({ label, value, onChange, min, disabled }: {
     else el?.focus();
   };
   return (
-    <div className="relative flex-1 px-5 py-3 md:border-r border-gray-200">
+    <div className="relative flex-1 px-5 py-3 lg:border-r border-gray-200">
       <p className="text-[15px] font-semibold text-gray-900 mb-0.5">{label}</p>
       <button type="button" onClick={open} disabled={disabled}
         className={cn('text-sm text-left w-full', formatted ? 'text-gray-700' : 'text-gray-400', disabled && 'opacity-50')}>
@@ -160,13 +160,13 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center text-white w-full px-4 pb-28">
           <motion.h1
             initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-            className="text-4xl md:text-6xl font-bold drop-shadow-lg md:whitespace-nowrap"
+            className="text-4xl md:text-6xl font-bold drop-shadow-lg xl:whitespace-nowrap"
           >
             Votre séjour commence ici
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-4 text-lg md:text-2xl font-medium drop-shadow md:whitespace-nowrap"
+            className="mt-4 text-lg md:text-2xl font-medium drop-shadow xl:whitespace-nowrap"
           >
             Trouvez des séjours uniques dans des hôtels, des villas et bien plus encore.
           </motion.p>
@@ -204,9 +204,9 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
 
         {/* Formulaire (chevauche les onglets) */}
         <form onSubmit={handleSubmit} className="-mt-6 bg-white rounded-3xl shadow-2xl px-2 pt-8 pb-2">
-          <div className="flex flex-col md:flex-row md:items-stretch">
+          <div className="flex flex-col lg:flex-row lg:items-stretch">
             {/* Emplacement */}
-            <div className="flex-[1.4] px-5 py-3 md:border-r border-gray-200">
+            <div className="flex-[1.4] px-5 py-3 lg:border-r border-gray-200">
               <p className="text-[15px] font-semibold text-gray-900 mb-0.5">Emplacement</p>
               <SearchInputWithAutocomplete
                 value={city || search}
@@ -231,7 +231,7 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
               onChange={setCheckOut} />
 
             {/* Chambres et invités */}
-            <div className="relative flex-[1.3] px-5 py-3 md:border-r border-gray-200">
+            <div className="relative flex-[1.3] px-5 py-3 lg:border-r border-gray-200">
               <p className="text-[15px] font-semibold text-gray-900 mb-0.5">Chambres et invités</p>
               <button type="button" onClick={() => setGuestsOpen((o) => !o)} className="w-full text-left text-sm text-gray-500 truncate">
                 {guestsSummary}

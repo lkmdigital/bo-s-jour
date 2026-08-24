@@ -24,7 +24,7 @@ interface LoginFormData {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, user } = useAuthStore();
+  const { login, user, isAuthenticated, isLoading: authLoading } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryAfter, setRetryAfter] = useState<number | null>(null);
@@ -44,6 +44,24 @@ function LoginContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Voyageur/hôte déjà connecté (session valide restaurée au chargement) : ne pas
+  // le laisser bloqué sur ce formulaire, le renvoyer vers sa destination.
+  useEffect(() => {
+    if (authLoading || !isAuthenticated || !user) return;
+    if (isAdmin(user) || isController(user)) return;
+
+    const redirectPath = searchParams.get('redirect');
+    if (redirectPath && !redirectPath.startsWith('/dashboard/admin')) {
+      router.push(decodeURIComponent(redirectPath));
+    } else if (user.role === 'host') {
+      router.push('/dashboard/host');
+    } else {
+      const landingPage = useAppearanceStore.getState().landingPage;
+      router.push(LANDING_PAGE_ROUTES[landingPage] || '/');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, isAuthenticated, user]);
 
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
@@ -102,6 +120,21 @@ function LoginContent() {
       setLoading(false);
     }
   };
+
+  // Session valide déjà restaurée : évite d'afficher le formulaire une fraction de
+  // seconde avant la redirection déclenchée par l'effet ci-dessus.
+  const redirectingAway = isAuthenticated && !!user && !isAdmin(user) && !isController(user);
+  if (authLoading || redirectingAway) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <main className="container mx-auto px-4 py-6 sm:py-12">
+          <p className="text-center text-gray-600 dark:text-gray-400">Chargement...</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
