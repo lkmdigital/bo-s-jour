@@ -98,13 +98,14 @@ export default function MobileBottomBar() {
       return {
         main: [
           { href: '/', icon: <Home className="w-5 h-5" />, label: 'Accueil', isActive: isActive('/', true) },
+          { href: '/dashboard/user', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Tableau de bord', isActive: isActive('/dashboard/user', true) },
           { href: '/accommodations', icon: <Search className="w-5 h-5" />, label: 'Explorer', isActive: isActive('/accommodations') },
           { href: '/bookings', icon: <CalendarCheck className="w-5 h-5" />, label: 'Réservations', isActive: isActive('/bookings') },
-          { href: '/dashboard/user/inbox', icon: <Inbox className="w-5 h-5" />, label: 'Messages', isActive: isActive('/dashboard/user/inbox') },
         ],
         // Reprend le contenu de l'ancien menu burger (app/dashboard/user/layout.tsx,
         // désormais retiré) : plus accessible en 1 tap depuis n'importe quelle page.
         more: [
+          { href: '/dashboard/user/inbox', icon: <Inbox className="w-5 h-5" />, label: 'Messages', isActive: isActive('/dashboard/user/inbox') },
           { href: '/favorites', icon: <Heart className="w-5 h-5" />, label: 'Favoris', isActive: isActive('/favorites') },
           { href: '/dashboard/user/programme', icon: <Zap className="w-5 h-5" />, label: 'Programme', isActive: isActive('/dashboard/user/programme') },
           { href: '/dashboard/user/paiements', icon: <CreditCard className="w-5 h-5" />, label: 'Paiements', isActive: isActive('/dashboard/user/paiements') },
