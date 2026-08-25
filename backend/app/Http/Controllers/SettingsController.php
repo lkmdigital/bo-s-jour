@@ -80,6 +80,15 @@ class SettingsController extends Controller
             'billing_rccm' => (string) Setting::get('billing_rccm', ''),
             'billing_ncc' => (string) Setting::get('billing_ncc', ''),
             'billing_address' => (string) Setting::get('billing_address', ''),
+            // Paramètres > Programme de fidélité (montants des bonus, cf. Setting::get()
+            // dans LoyaltyService/AwardLoyaltyPoints/AwardLoyaltyBirthdayBonus/ReviewController)
+            'loyalty_points_per_fcfa' => (float) Setting::get('loyalty_points_per_fcfa', 1 / 1000),
+            'loyalty_first_booking_bonus' => (int) Setting::get('loyalty_first_booking_bonus', 0),
+            'loyalty_birthday_bonus' => (int) Setting::get('loyalty_birthday_bonus', 50),
+            'loyalty_review_bonus' => (int) Setting::get('loyalty_review_bonus', 50),
+            'loyalty_referral_bonus_parrain' => (int) Setting::get('loyalty_referral_bonus_parrain', 50),
+            'loyalty_referral_bonus_filleul' => (int) Setting::get('loyalty_referral_bonus_filleul', 50),
+            'loyalty_voucher_validity_days' => (int) Setting::get('loyalty_voucher_validity_days', 180),
         ]);
     }
 
@@ -126,6 +135,13 @@ class SettingsController extends Controller
             'billing_rccm' => 'sometimes|nullable|string|max:100',
             'billing_ncc' => 'sometimes|nullable|string|max:100',
             'billing_address' => 'sometimes|nullable|string|max:500',
+            'loyalty_points_per_fcfa' => 'sometimes|numeric|min:0',
+            'loyalty_first_booking_bonus' => 'sometimes|integer|min:0',
+            'loyalty_birthday_bonus' => 'sometimes|integer|min:0',
+            'loyalty_review_bonus' => 'sometimes|integer|min:0',
+            'loyalty_referral_bonus_parrain' => 'sometimes|integer|min:0',
+            'loyalty_referral_bonus_filleul' => 'sometimes|integer|min:0',
+            'loyalty_voucher_validity_days' => 'sometimes|integer|min:0',
         ]);
 
         if (array_key_exists('maintenance_enabled', $data)) {
@@ -251,6 +267,34 @@ class SettingsController extends Controller
 
         if (array_key_exists('billing_address', $data)) {
             Setting::set('billing_address', $data['billing_address'] ?? '', 'string', 'Adresse de facturation');
+        }
+
+        if (array_key_exists('loyalty_points_per_fcfa', $data)) {
+            Setting::set('loyalty_points_per_fcfa', (float) $data['loyalty_points_per_fcfa'], 'number', 'Points fidélité par FCFA dépensé');
+        }
+
+        if (array_key_exists('loyalty_first_booking_bonus', $data)) {
+            Setting::set('loyalty_first_booking_bonus', (int) $data['loyalty_first_booking_bonus'], 'number', 'Bonus 1ère réservation (fidélité)');
+        }
+
+        if (array_key_exists('loyalty_birthday_bonus', $data)) {
+            Setting::set('loyalty_birthday_bonus', (int) $data['loyalty_birthday_bonus'], 'number', 'Bonus anniversaire (fidélité)');
+        }
+
+        if (array_key_exists('loyalty_review_bonus', $data)) {
+            Setting::set('loyalty_review_bonus', (int) $data['loyalty_review_bonus'], 'number', 'Bonus avis après séjour (fidélité)');
+        }
+
+        if (array_key_exists('loyalty_referral_bonus_parrain', $data)) {
+            Setting::set('loyalty_referral_bonus_parrain', (int) $data['loyalty_referral_bonus_parrain'], 'number', 'Bonus parrainage — parrain');
+        }
+
+        if (array_key_exists('loyalty_referral_bonus_filleul', $data)) {
+            Setting::set('loyalty_referral_bonus_filleul', (int) $data['loyalty_referral_bonus_filleul'], 'number', 'Bonus parrainage — filleul');
+        }
+
+        if (array_key_exists('loyalty_voucher_validity_days', $data)) {
+            Setting::set('loyalty_voucher_validity_days', (int) $data['loyalty_voucher_validity_days'], 'number', 'Durée de validité des bons (jours)');
         }
 
         return $this->getAdminSettings($request);

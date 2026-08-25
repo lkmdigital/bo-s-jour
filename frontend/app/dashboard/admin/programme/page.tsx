@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Award, Users, Gift, Megaphone, Ticket, Building2, Plus, Pencil,
+  Award, Users, Gift, Megaphone, Ticket, Building2, Plus, Pencil, Settings as SettingsIcon,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/common/ToastContext';
@@ -111,6 +111,18 @@ export default function AdminProgrammePage() {
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [establishmentsLoading, setEstablishmentsLoading] = useState(true);
 
+  const [loyaltySettings, setLoyaltySettings] = useState({
+    loyalty_points_per_fcfa: 0.001,
+    loyalty_first_booking_bonus: 0,
+    loyalty_birthday_bonus: 50,
+    loyalty_review_bonus: 50,
+    loyalty_referral_bonus_parrain: 50,
+    loyalty_referral_bonus_filleul: 50,
+    loyalty_voucher_validity_days: 180,
+  });
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+
   const loadStats = () => {
     setStatsLoading(true);
     api.get('/admin/loyalty/stats').then((r) => setStats(r.data?.data ?? null)).catch(() => setStats(null)).finally(() => setStatsLoading(false));
@@ -131,8 +143,37 @@ export default function AdminProgrammePage() {
     setEstablishmentsLoading(true);
     api.get('/admin/loyalty/establishments').then((r) => setEstablishments(r.data?.data ?? [])).catch(() => setEstablishments([])).finally(() => setEstablishmentsLoading(false));
   };
+  const loadSettings = () => {
+    setSettingsLoading(true);
+    api.get('/settings/admin')
+      .then((r) => {
+        const d = r.data || {};
+        setLoyaltySettings({
+          loyalty_points_per_fcfa: d.loyalty_points_per_fcfa ?? 0.001,
+          loyalty_first_booking_bonus: d.loyalty_first_booking_bonus ?? 0,
+          loyalty_birthday_bonus: d.loyalty_birthday_bonus ?? 50,
+          loyalty_review_bonus: d.loyalty_review_bonus ?? 50,
+          loyalty_referral_bonus_parrain: d.loyalty_referral_bonus_parrain ?? 50,
+          loyalty_referral_bonus_filleul: d.loyalty_referral_bonus_filleul ?? 50,
+          loyalty_voucher_validity_days: d.loyalty_voucher_validity_days ?? 180,
+        });
+      })
+      .catch(() => {})
+      .finally(() => setSettingsLoading(false));
+  };
+  const saveSettings = async () => {
+    setSettingsSaving(true);
+    try {
+      await api.put('/settings/admin', loyaltySettings);
+      showSuccess('Réglages enregistrés.');
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Erreur lors de l’enregistrement.');
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
 
-  useEffect(() => { loadStats(); loadTiers(); loadRewardTiers(); loadCampaigns(); loadEstablishments(); }, []);
+  useEffect(() => { loadStats(); loadTiers(); loadRewardTiers(); loadCampaigns(); loadEstablishments(); loadSettings(); }, []);
 
   useEffect(() => {
     setVouchersLoading(true);
@@ -461,6 +502,53 @@ export default function AdminProgrammePage() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      </section>
+
+      {/* Réglages */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+          <SettingsIcon className="w-4 h-4 text-primary" /> Réglages des bonus et points
+        </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+          {settingsLoading ? (
+            <div className="p-8"><LoadingSpinner /></div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {([
+                  ['loyalty_points_per_fcfa', 'Points par FCFA dépensé', 0.0001],
+                  ['loyalty_first_booking_bonus', 'Bonus première réservation (points)', 1],
+                  ['loyalty_birthday_bonus', "Bonus d'anniversaire (points)", 1],
+                  ['loyalty_review_bonus', 'Bonus avis publié (points)', 1],
+                  ['loyalty_referral_bonus_parrain', 'Bonus parrainage — parrain (points)', 1],
+                  ['loyalty_referral_bonus_filleul', 'Bonus parrainage — filleul (points)', 1],
+                  ['loyalty_voucher_validity_days', 'Validité des bons (jours)', 1],
+                ] as const).map(([key, label, step]) => (
+                  <label key={key} className="block">
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{label}</span>
+                    <input
+                      type="number"
+                      step={step}
+                      min={0}
+                      value={loyaltySettings[key]}
+                      onChange={(e) => setLoyaltySettings({ ...loyaltySettings, [key]: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                    />
+                  </label>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={saveSettings}
+                  disabled={settingsSaving}
+                  className="btn-primary text-xs inline-flex items-center gap-1.5 disabled:opacity-60"
+                >
+                  {settingsSaving ? 'Enregistrement…' : 'Enregistrer'}
+                </button>
+              </div>
+            </>
           )}
         </div>
       </section>
