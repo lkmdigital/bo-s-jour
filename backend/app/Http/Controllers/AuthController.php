@@ -8,6 +8,7 @@ use App\Models\HostStaff;
 use App\Services\TwoFactorService;
 use App\Services\OneSignalService;
 use App\Services\SmsService;
+use App\Services\LoyaltyService;
 use App\Mail\OtpMail;
 use App\Mail\PasswordResetMail;
 use Illuminate\Http\Request;
@@ -54,6 +55,7 @@ class AuthController extends Controller
         }
         $user->save();
         CorporateCollaborator::linkPendingInvitations($user);
+        $this->notifyLoyaltyWelcome($user);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -62,6 +64,25 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
         ]);
+    }
+
+    /**
+     * "Rejoint le programme" (brief Programme de Fidélité, notification #1) —
+     * le voyageur est automatiquement membre Bronze dès qu'il a un compte actif
+     * (colonnes loyalty_* déjà à leurs valeurs par défaut depuis la création).
+     */
+    private function notifyLoyaltyWelcome(User $user): void
+    {
+        if ($user->role !== 'user') {
+            return;
+        }
+
+        app(LoyaltyService::class)->notify(
+            $user,
+            'loyalty_welcome',
+            'Bienvenue dans le Programme Membre bo séjour ! Vous démarrez au niveau Bronze.',
+            ['tier' => $user->loyalty_tier]
+        );
     }
 
     /**
@@ -183,6 +204,7 @@ class AuthController extends Controller
             'company_project'       => 'nullable|string|max:255',
             'company_billing_email' => 'nullable|string|email|max:255',
             'accept_terms'          => 'accepted',
+            'referral_code'         => 'nullable|string|max:20',
         ]);
 
         $existing = User::where('email', $data['email'])->first();
@@ -198,6 +220,16 @@ class AuthController extends Controller
         $clean = fn ($v) => $v !== null ? strip_tags($v) : null;
 
         $user = $existing ?: new User(['email' => $data['email'], 'role' => 'user']);
+
+        // Parrainage : résolu une seule fois, jamais écrasé si le compte (invité
+        // finalisant son inscription) en a déjà un — et un compte ne peut pas se
+        // parrainer lui-même.
+        if (!$user->referred_by_user_id && !empty($data['referral_code'])) {
+            $referrer = User::where('referral_code', $data['referral_code'])->first();
+            if ($referrer && $referrer->id !== $user->id) {
+                $user->referred_by_user_id = $referrer->id;
+            }
+        }
 
         $user->fill([
             'name'                  => trim($clean($data['first_name']) . ' ' . $clean($data['last_name'])),
@@ -221,8 +253,12 @@ class AuthController extends Controller
         $user->role     = 'user';
         $user->password = Hash::make($data['password']);
         $user->is_guest = false;
+        $isNewAccount = !$existing;
         $user->save();
         CorporateCollaborator::linkPendingInvitations($user);
+        if ($isNewAccount) {
+            $this->notifyLoyaltyWelcome($user);
+        }
 
         // Vérification e-mail obligatoire : on envoie un code OTP et on NE connecte PAS
         // tant que l'e-mail n'est pas vérifié (aucun token renvoyé ici).
@@ -440,6 +476,7 @@ class AuthController extends Controller
 
         $user = User::create($userData);
         CorporateCollaborator::linkPendingInvitations($user);
+        $this->notifyLoyaltyWelcome($user);
 
         // Gérer l'upload des fichiers d'identité pour les voyageurs
         if ($role === 'user') {

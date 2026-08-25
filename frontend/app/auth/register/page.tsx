@@ -30,6 +30,7 @@ interface FormState {
   company_project: string;
   company_billing_email: string;
   accept_terms: boolean;
+  referral_code: string;
 }
 
 const EMPTY: FormState = {
@@ -40,6 +41,7 @@ const EMPTY: FormState = {
   company_name: '', company_vat: '', company_address: '', company_city: '', company_country: '',
   company_service: '', company_project: '', company_billing_email: '',
   accept_terms: false,
+  referral_code: '',
 };
 
 function Field({
@@ -111,6 +113,8 @@ function RegisterContent() {
       set('email', email);
       tryPrefill(email);
     }
+    const ref = params.get('ref');
+    if (ref) set('referral_code', ref.toUpperCase());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -154,6 +158,7 @@ function RegisterContent() {
         company_project: form.company_project || undefined,
         company_billing_email: form.company_billing_email || undefined,
         accept_terms: form.accept_terms,
+        referral_code: form.referral_code.trim() || undefined,
       };
       const res = await api.post('/auth/register-traveler', payload);
 
@@ -405,6 +410,15 @@ function RegisterContent() {
           )}
 
           {passwordBlock}
+
+          <Field label="Code de parrainage" hint="Un ami vous a invité ? Renseignez son code pour que vous receviez tous les deux un bonus de points.">
+            <input
+              className={inputCls + ' max-w-xs uppercase'}
+              value={form.referral_code}
+              onChange={(e) => set('referral_code', e.target.value.toUpperCase())}
+              placeholder="Ex : ABC12345"
+            />
+          </Field>
 
           {/* CGV + erreur + submit */}
           <label className="flex items-start gap-2.5 text-sm text-gray-600 dark:text-gray-300">

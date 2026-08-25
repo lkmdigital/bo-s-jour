@@ -27,6 +27,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('bookings:remind-cancel-unpaid')->hourly();
         $schedule->command('reviews:send-post-stay-links')->dailyAt('09:00');
         $schedule->command('loyalty:award-points')->dailyAt('09:30');
+        $schedule->command('loyalty:award-birthday-bonus')->dailyAt('08:30');
+        $schedule->command('loyalty:notify-expiring-vouchers')->dailyAt('09:45');
         $schedule->command('bookings:detect-no-show')->dailyAt('11:00');
         $schedule->command('users:remind-guest-activation')->hourly();
         $schedule->command('hosts:remind-onboarding')->hourly();

@@ -68,6 +68,29 @@ class AwardLoyaltyPoints extends Command
                     "Points gagnés pour le séjour du {$booking->check_in?->format('d/m/Y')} au {$booking->check_out?->format('d/m/Y')}"
                 );
 
+                // Campagne active (Double/Triple Points, Week-end/Vacances Bonus) : une
+                // seule campagne, la plus avantageuse, jamais cumulée — bonus séparé du
+                // gain de base pour rester lisible dans le grand livre du voyageur.
+                $campaign = $loyaltyService->bestActiveCampaign();
+                if ($campaign) {
+                    $campaignExtra = 0;
+                    if ($campaign->multiplier) {
+                        $campaignExtra += (int) floor($points * ((float) $campaign->multiplier - 1));
+                    }
+                    if ($campaign->bonus_points) {
+                        $campaignExtra += (int) $campaign->bonus_points;
+                    }
+                    if ($campaignExtra > 0) {
+                        $loyaltyService->awardPoints(
+                            $booking->user,
+                            $campaignExtra,
+                            LoyaltyPointsTransaction::TYPE_CAMPAIGN_BONUS,
+                            $booking,
+                            "Bonus campagne « {$campaign->name} »"
+                        );
+                    }
+                }
+
                 if ($isFirstBooking) {
                     $bonus = (int) Setting::get('loyalty_first_booking_bonus', 0);
                     if ($bonus > 0) {
@@ -79,6 +102,8 @@ class AwardLoyaltyPoints extends Command
                             'Bonus de bienvenue pour votre première réservation'
                         );
                     }
+
+                    $loyaltyService->creditReferralBonus($booking->user);
                 }
 
                 $booking->update(['loyalty_points_awarded_at' => now()]);

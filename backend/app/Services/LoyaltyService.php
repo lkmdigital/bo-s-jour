@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use App\Models\LoyaltyCampaign;
 use App\Models\LoyaltyPointsTransaction;
 use App\Models\LoyaltyRewardTier;
 use App\Models\LoyaltyTier;
@@ -28,6 +29,8 @@ class LoyaltyService
     public function awardPoints(User $user, int $points, string $type, ?Booking $booking = null, ?string $description = null): LoyaltyPointsTransaction
     {
         return DB::transaction(function () use ($user, $points, $type, $booking, $description) {
+            $balanceBefore = (int) $user->loyalty_points_balance;
+
             $transaction = LoyaltyPointsTransaction::create([
                 'user_id' => $user->id,
                 'points' => $points,
@@ -50,8 +53,86 @@ class LoyaltyService
 
             $this->upgradeTierIfEligible($user);
 
+            if ($points > 0) {
+                $this->notifyIfApproachingReward($user, $balanceBefore);
+            }
+
             return $transaction;
         });
+    }
+
+    /**
+     * Prévient le voyageur lorsqu'un gain de points le fait passer sous la
+     * barre des 100 points restants avant sa prochaine récompense de cagnotte
+     * — une seule fois par palier (ne renotifie pas à chaque gain suivant tant
+     * que le palier n'est pas franchi, en comparant au solde avant ce gain).
+     */
+    protected function notifyIfApproachingReward(User $user, int $balanceBefore): void
+    {
+        $threshold = 100;
+
+        $nextTier = LoyaltyRewardTier::active()->ordered()
+            ->where('points_required', '>', $balanceBefore)
+            ->first();
+
+        if (!$nextTier) {
+            return;
+        }
+
+        $remainingNow = $nextTier->points_required - $user->loyalty_points_balance;
+        $remainingBefore = $nextTier->points_required - $balanceBefore;
+
+        if ($remainingNow > 0 && $remainingNow <= $threshold && $remainingBefore > $threshold) {
+            $this->notify(
+                $user,
+                'approaching_reward',
+                "Plus que {$remainingNow} points pour votre prochaine récompense (-{$nextTier->discount_percent}%) !",
+                ['reward_tier_id' => $nextTier->id, 'points_remaining' => $remainingNow]
+            );
+        }
+    }
+
+    /**
+     * Bonus de parrainage : crédité au parrain ET au filleul lors du premier
+     * séjour terminé du filleul (pas à l'inscription — le document client est
+     * explicite : "utilise ce code ET réalise son premier séjour"). Appelé
+     * depuis AwardLoyaltyPoints, dans le même passage que le bonus de
+     * première réservation — n'a donc besoin d'aucune idempotence propre :
+     * un utilisateur ne peut avoir "sa première réservation" qu'une fois.
+     */
+    public function creditReferralBonus(User $filleul): void
+    {
+        if (!$filleul->referred_by_user_id) {
+            return;
+        }
+
+        $parrain = User::find($filleul->referred_by_user_id);
+        if (!$parrain) {
+            return;
+        }
+
+        $bonusFilleul = (int) Setting::get('loyalty_referral_bonus_filleul', 50);
+        $bonusParrain = (int) Setting::get('loyalty_referral_bonus_parrain', 50);
+
+        if ($bonusFilleul > 0) {
+            $this->awardPoints(
+                $filleul,
+                $bonusFilleul,
+                LoyaltyPointsTransaction::TYPE_REFERRAL_FILLEUL,
+                null,
+                "Bonus de parrainage — bienvenue via le code de {$parrain->name}"
+            );
+        }
+
+        if ($bonusParrain > 0) {
+            $this->awardPoints(
+                $parrain,
+                $bonusParrain,
+                LoyaltyPointsTransaction::TYPE_REFERRAL_PARRAIN,
+                null,
+                "Bonus de parrainage — {$filleul->name} a réalisé son premier séjour"
+            );
+        }
     }
 
     /**
@@ -159,7 +240,22 @@ class LoyaltyService
         return $discount;
     }
 
-    protected function notify(User $user, string $type, string $message, array $data = []): void
+    /**
+     * Campagne active la plus avantageuse à l'instant présent (comme
+     * Promotion::computeDiscount() pour les réservations : une seule campagne
+     * s'applique, jamais de cumul).
+     */
+    public function bestActiveCampaign(): ?LoyaltyCampaign
+    {
+        return LoyaltyCampaign::where('active', true)
+            ->where('starts_at', '<=', now())
+            ->where('ends_at', '>=', now())
+            ->get()
+            ->sortByDesc(fn (LoyaltyCampaign $c) => (float) ($c->multiplier ?? 1))
+            ->first();
+    }
+
+    public function notify(User $user, string $type, string $message, array $data = []): void
     {
         try {
             $user->notify(new LoyaltyEventNotification($type, $message, $data));
@@ -169,6 +265,22 @@ class LoyaltyService
                 'type' => $type,
                 'error' => $e->getMessage(),
             ]);
+        }
+
+        // Canal WhatsApp — même principe que SendPostStayReviewLinks : pas un
+        // canal Notification standard dans ce projet, envoyé séparément via
+        // WhatsAppService (no-op silencieux si l'intégration n'est pas
+        // configurée par l'admin, ou si le voyageur n'a pas opté in).
+        if ($user->notif_whatsapp && ($user->whatsapp || $user->phone)) {
+            try {
+                app(WhatsAppService::class)->sendText($user->whatsapp ?: $user->phone, "bo séjour — {$message}");
+            } catch (\Throwable $e) {
+                \Log::warning('Échec notification WhatsApp fidélité', [
+                    'user_id' => $user->id,
+                    'type' => $type,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 }

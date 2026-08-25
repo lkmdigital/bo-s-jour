@@ -492,6 +492,12 @@ class BookingController extends Controller
                     'used_for_booking_id' => $newBooking->id,
                     'used_at' => now(),
                 ]);
+                app(\App\Services\LoyaltyService::class)->notify(
+                    $user,
+                    'voucher_used',
+                    "Votre bon {$loyaltyVoucher->code} a été appliqué à votre réservation.",
+                    ['voucher_id' => $loyaltyVoucher->id, 'booking_id' => $newBooking->id]
+                );
             }
 
             return $newBooking;

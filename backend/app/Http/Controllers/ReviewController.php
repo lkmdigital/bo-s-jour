@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Review;
 use App\Models\Booking;
 use App\Models\Accommodation;
+use App\Models\LoyaltyPointsTransaction;
+use App\Models\Setting;
+use App\Services\LoyaltyService;
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
@@ -147,6 +150,7 @@ class ReviewController extends Controller
         ]);
 
         $this->refreshAccommodationRating($booking->accommodation_id);
+        $this->awardReviewBonus($review);
 
         return response()->json([
             'message' => 'Merci pour votre avis !',
@@ -222,6 +226,7 @@ class ReviewController extends Controller
         ]);
 
         $this->refreshAccommodationRating((int) $request->accommodation_id);
+        $this->awardReviewBonus($review);
 
         return response()->json($review->load('user'), 201);
     }
@@ -269,6 +274,33 @@ class ReviewController extends Controller
             'rating' => round((float) $approved->avg('rating'), 2),
             'total_reviews' => $approved->count(),
         ]);
+    }
+
+    /**
+     * Bonus fidélité "avis après séjour" (brief Programme de Fidélité) — un
+     * seul bonus par avis, la contrainte "un avis par (user, établissement)"
+     * déjà vérifiée plus haut dans les deux points d'entrée suffit comme
+     * garde d'idempotence (impossible de laisser deux fois un avis).
+     */
+    private function awardReviewBonus(Review $review): void
+    {
+        $bonus = (int) Setting::get('loyalty_review_bonus', 50);
+        if ($bonus <= 0) {
+            return;
+        }
+
+        $user = \App\Models\User::find($review->user_id);
+        if (!$user) {
+            return;
+        }
+
+        app(LoyaltyService::class)->awardPoints(
+            $user,
+            $bonus,
+            LoyaltyPointsTransaction::TYPE_REVIEW_BONUS,
+            null,
+            'Merci pour votre avis !'
+        );
     }
 }
 
