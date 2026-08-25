@@ -267,6 +267,11 @@ class BookingController extends Controller
             return response()->json(['message' => 'Accommodation not available'], 400);
         }
 
+        // Membre du Programme Membre : compte authentifié et activé (les comptes
+        // invités créés à la volée pour une réservation anonyme n'en font pas
+        // partie tant qu'ils ne sont pas activés — voir AuthController::activateGuest).
+        $isMember = $isAuthenticated && !$user->is_guest;
+
         $room          = null;
         $pricePerNight = $accommodation->price_per_night;
 
@@ -340,8 +345,13 @@ class BookingController extends Controller
                 })
                 ->validForPeriod($request->check_in, $request->check_out)
                 ->get()
-                ->filter(function (Promotion $p) use ($nights, $submittedPromoCode) {
+                ->filter(function (Promotion $p) use ($nights, $submittedPromoCode, $isMember) {
                     if ($p->min_stay_nights && $nights < $p->min_stay_nights) {
+                        return false;
+                    }
+                    // Avantage réservé aux membres du Programme Membre (compte
+                    // authentifié et activé — pas un compte invité créé à la volée).
+                    if ($p->members_only && !$isMember) {
                         return false;
                     }
                     // Sans code : promo automatique. Avec code : ne s'applique que si le

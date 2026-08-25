@@ -86,6 +86,7 @@ class AdminPromotionController extends Controller
                 'end_date' => $promo->end_date,
                 'description' => $promo->description,
                 'is_active' => $promo->is_active,
+                'members_only' => $promo->members_only,
                 'computed_status' => $status,
                 'created_at' => $promo->created_at,
             ];

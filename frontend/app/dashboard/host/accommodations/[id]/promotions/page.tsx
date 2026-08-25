@@ -8,7 +8,7 @@ import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Edit, Trash2, Calendar, Percent, Tag, Power, PowerOff, BarChart3, Loader2, Ticket, Moon } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Calendar, Percent, Tag, Power, PowerOff, BarChart3, Loader2, Ticket, Moon, Award } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatPrice } from '@/lib/utils';
@@ -28,6 +28,7 @@ interface Promotion {
   end_date: string;
   description: string | null;
   is_active: boolean;
+  members_only: boolean;
   created_at: string;
   updated_at: string;
   room?: {
@@ -75,10 +76,11 @@ export default function AccommodationPromotionsPage() {
     start_date: '',
     end_date: '',
     description: '',
+    members_only: false,
   });
   const emptyForm = {
     room_id: '', discount_type: 'percent' as DiscountType, discount_percent: '', discount_amount: '',
-    min_stay_nights: '', promo_code: '', start_date: '', end_date: '', description: '',
+    min_stay_nights: '', promo_code: '', start_date: '', end_date: '', description: '', members_only: false,
   };
   const [statsByPromo, setStatsByPromo] = useState<Record<number, PromoStats | 'loading' | undefined>>({});
 
@@ -165,6 +167,7 @@ export default function AccommodationPromotionsPage() {
         start_date: formData.start_date,
         end_date: formData.end_date,
         description: formData.description || null,
+        members_only: formData.members_only,
       };
 
       if (editingPromotion) {
@@ -196,6 +199,7 @@ export default function AccommodationPromotionsPage() {
       start_date: promotion.start_date,
       end_date: promotion.end_date,
       description: promotion.description || '',
+      members_only: promotion.members_only || false,
     });
     setShowForm(true);
   };
@@ -448,6 +452,21 @@ export default function AccommodationPromotionsPage() {
                 />
               </div>
 
+              <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.members_only}
+                  onChange={(e) => setFormData({ ...formData, members_only: e.target.checked })}
+                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <span>
+                  <span className="block text-sm font-medium">Réservée aux membres du programme fidélité</span>
+                  <span className="block text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                    Seuls les voyageurs connectés avec un compte activé en bénéficient (pas les réservations invité).
+                  </span>
+                </span>
+              </label>
+
               <div className="flex gap-3">
                 <button
                   type="submit"
@@ -533,6 +552,11 @@ export default function AccommodationPromotionsPage() {
                           {promotion.promo_code && (
                             <span className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary flex items-center gap-1 font-mono">
                               <Ticket className="w-3 h-3" /> {promotion.promo_code}
+                            </span>
+                          )}
+                          {promotion.members_only && (
+                            <span className="px-2 py-1 rounded-full text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                              <Award className="w-3 h-3" /> Membres uniquement
                             </span>
                           )}
                         </div>

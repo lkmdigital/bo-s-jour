@@ -22,6 +22,7 @@ class Promotion extends Model
         'end_date',
         'description',
         'is_active',
+        'members_only',
     ];
 
     protected function casts(): array
@@ -33,6 +34,7 @@ class Promotion extends Model
             'start_date' => 'date',
             'end_date' => 'date',
             'is_active' => 'boolean',
+            'members_only' => 'boolean',
         ];
     }
 

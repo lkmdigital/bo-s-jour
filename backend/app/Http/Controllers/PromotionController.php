@@ -67,6 +67,7 @@ class PromotionController extends Controller
             'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after:start_date',
             'description' => 'nullable|string|max:500',
+            'members_only' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -104,6 +105,7 @@ class PromotionController extends Controller
             'end_date' => $request->end_date,
             'description' => $request->description,
             'is_active' => true,
+            'members_only' => $request->boolean('members_only'),
         ]);
 
         return response()->json($promotion->load('room'), 201);
@@ -138,6 +140,7 @@ class PromotionController extends Controller
             'end_date' => 'sometimes|date|after:start_date',
             'description' => 'nullable|string|max:500',
             'is_active' => 'sometimes|boolean',
+            'members_only' => 'sometimes|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -170,6 +173,7 @@ class PromotionController extends Controller
             'end_date',
             'description',
             'is_active',
+            'members_only',
         ]);
         // discount_percent est NOT NULL en base : jamais null, 0 si non applicable.
         if (array_key_exists('discount_percent', $updateData) && $updateData['discount_percent'] === null) {
