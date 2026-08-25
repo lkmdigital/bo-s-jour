@@ -65,6 +65,13 @@ export default function AdminAccommodationsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [cityFilter, setCityFilter] = useState<string>('all');
+  const [cities, setCities] = useState<string[]>([]);
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [minRating, setMinRating] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortOrder, setSortOrder] = useState<string>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({
     total: 0,
@@ -99,7 +106,15 @@ export default function AdminAccommodationsPage() {
     if (isAuthenticated && user && isAdmin(user)) {
       fetchAccommodations();
     }
-  }, [isAuthenticated, user, currentPage, statusFilter, typeFilter, search]);
+  }, [isAuthenticated, user, currentPage, statusFilter, typeFilter, cityFilter, minPrice, maxPrice, minRating, sortBy, sortOrder, search]);
+
+  useEffect(() => {
+    if (isAuthenticated && user && isAdmin(user)) {
+      api.get('/admin/accommodations/cities')
+        .then((res) => setCities(res.data?.data || []))
+        .catch(() => {});
+    }
+  }, [isAuthenticated, user]);
 
   const fetchAccommodations = async () => {
     try {
@@ -108,10 +123,16 @@ export default function AdminAccommodationsPage() {
       const params: any = {
         page: currentPage,
         per_page: 15,
+        sort_by: sortBy,
+        sort_order: sortOrder,
       };
       if (search) params.search = search;
       if (statusFilter !== 'all') params.status = statusFilter;
       if (typeFilter !== 'all') params.type = typeFilter;
+      if (cityFilter !== 'all') params.city = cityFilter;
+      if (minPrice) params.min_price = minPrice;
+      if (maxPrice) params.max_price = maxPrice;
+      if (minRating !== 'all') params.min_rating = minRating;
 
       const response = await api.get('/admin/accommodations', { params });
       setAccommodations(response.data.data || []);
@@ -250,56 +271,124 @@ export default function AdminAccommodationsPage() {
         )}
 
         {/* Filtres et recherche */}
-        <div className="card mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Rechercher par nom, adresse, ville..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                />
-              </div>
-            </div>
-            <div>
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="pending">En attente</option>
-                <option value="published">Publiés</option>
-                <option value="rejected">Rejetés</option>
-                <option value="removed">Retirés</option>
-                <option value="disabled">Désactivés</option>
-              </select>
-            </div>
-            <div>
-              <select
-                value={typeFilter}
-                onChange={(e) => {
-                  setTypeFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              >
-                <option value="all">Tous les types</option>
-                <option value="hotel">Hôtel</option>
-                <option value="lodge">Lodge</option>
-                <option value="guesthouse">Maison d'hôtes</option>
-                <option value="apartment">Appartement</option>
-              </select>
-            </div>
+        <div className="card mb-6 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Rechercher par nom, adresse, ville, hôte..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+            >
+              <option value="all">Tous les statuts</option>
+              <option value="pending">En attente</option>
+              <option value="published">Publiés</option>
+              <option value="rejected">Rejetés</option>
+              <option value="removed">Retirés</option>
+              <option value="disabled">Désactivés</option>
+            </select>
+
+            <select
+              value={typeFilter}
+              onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+            >
+              <option value="all">Tous les types</option>
+              <option value="hotel">Hôtel</option>
+              <option value="lodge">Lodge</option>
+              <option value="guesthouse">Maison d'hôtes</option>
+              <option value="apartment">Appartement</option>
+            </select>
+
+            <select
+              value={cityFilter}
+              onChange={(e) => { setCityFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+            >
+              <option value="all">Toutes les villes</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            <select
+              value={minRating}
+              onChange={(e) => { setMinRating(e.target.value); setCurrentPage(1); }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+            >
+              <option value="all">Toutes les notes</option>
+              <option value="4.5">4.5 et plus</option>
+              <option value="4">4 et plus</option>
+              <option value="3">3 et plus</option>
+              <option value="2">2 et plus</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <input
+              type="number"
+              min="0"
+              placeholder="Prix min (FCFA)"
+              value={minPrice}
+              onChange={(e) => { setMinPrice(e.target.value); setCurrentPage(1); }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+            />
+            <input
+              type="number"
+              min="0"
+              placeholder="Prix max (FCFA)"
+              value={maxPrice}
+              onChange={(e) => { setMaxPrice(e.target.value); setCurrentPage(1); }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+            />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+            >
+              <option value="created_at">Trier par date</option>
+              <option value="price_per_night">Trier par prix</option>
+              <option value="name">Trier par nom</option>
+              <option value="rating">Trier par note</option>
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+            >
+              <option value="desc">Décroissant</option>
+              <option value="asc">Croissant</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('all');
+                setTypeFilter('all');
+                setCityFilter('all');
+                setMinPrice('');
+                setMaxPrice('');
+                setMinRating('all');
+                setSortBy('created_at');
+                setSortOrder('desc');
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium transition-colors"
+            >
+              Réinitialiser
+            </button>
           </div>
         </div>
 
@@ -436,38 +525,42 @@ export default function AdminAccommodationsPage() {
                     </div>
                   )}
                   
-                  <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <Link
                       href={`/dashboard/admin/accommodations/${acc.id}`}
-                      className="flex-1 btn-primary text-center text-sm"
+                      title="Gérer"
+                      aria-label="Gérer"
+                      className="w-10 h-10 flex items-center justify-center rounded-full bg-primary hover:bg-primary-dark text-white transition-all hover:scale-105"
                     >
-                      <Bed className="w-4 h-4 inline mr-1" />
-                      Gérer
+                      <Bed className="w-4 h-4" />
                     </Link>
                     <Link
                       href={`/accommodations/${acc.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 btn-secondary text-center text-sm"
+                      title="Voir"
+                      aria-label="Voir"
+                      className="w-10 h-10 flex items-center justify-center rounded-full bg-black hover:bg-gray-800 text-white transition-all hover:scale-105"
                     >
-                      <Eye className="w-4 h-4 inline mr-1" />
-                      Voir
+                      <Eye className="w-4 h-4" />
                     </Link>
                     {acc.status === 'pending' && (
                       <>
                         <button
                           onClick={() => setShowActionModal({ type: 'approve', accommodationId: acc.id })}
-                          className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                          title="Approuver"
+                          aria-label="Approuver"
+                          className="w-10 h-10 flex items-center justify-center rounded-full bg-green-600 hover:bg-green-700 text-white transition-all hover:scale-105"
                         >
-                          <CheckCircle className="w-4 h-4 inline mr-1" />
-                          Approuver
+                          <CheckCircle className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setShowActionModal({ type: 'reject', accommodationId: acc.id })}
-                          className="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                          title="Rejeter"
+                          aria-label="Rejeter"
+                          className="w-10 h-10 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white transition-all hover:scale-105"
                         >
-                          <XCircle className="w-4 h-4 inline mr-1" />
-                          Rejeter
+                          <XCircle className="w-4 h-4" />
                         </button>
                       </>
                     )}
@@ -475,27 +568,30 @@ export default function AdminAccommodationsPage() {
                       <>
                         <button
                           onClick={() => setShowActionModal({ type: 'remove', accommodationId: acc.id })}
-                          className="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                          title="Retirer"
+                          aria-label="Retirer"
+                          className="w-10 h-10 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-700 text-white transition-all hover:scale-105"
                         >
-                          <Trash2 className="w-4 h-4 inline mr-1" />
-                          Retirer
+                          <Trash2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setShowActionModal({ type: 'disable', accommodationId: acc.id })}
-                          className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                          title="Désactiver"
+                          aria-label="Désactiver"
+                          className="w-10 h-10 flex items-center justify-center rounded-full bg-yellow-600 hover:bg-yellow-700 text-white transition-all hover:scale-105"
                         >
-                          <Ban className="w-4 h-4 inline mr-1" />
-                          Désactiver
+                          <Ban className="w-4 h-4" />
                         </button>
                       </>
                     )}
                     {acc.status === 'disabled' && (
                       <button
                         onClick={() => setShowActionModal({ type: 'enable', accommodationId: acc.id })}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                        title="Réactiver"
+                        aria-label="Réactiver"
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-green-600 hover:bg-green-700 text-white transition-all hover:scale-105"
                       >
-                        <CheckCircle className="w-4 h-4 inline mr-1" />
-                        Réactiver
+                        <CheckCircle className="w-4 h-4" />
                       </button>
                     )}
                   </div>
