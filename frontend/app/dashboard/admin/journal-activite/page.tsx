@@ -141,7 +141,7 @@ export default function AdminActivityLogPage() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
           <div className="relative lg:col-span-2">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -171,7 +171,7 @@ export default function AdminActivityLogPage() {
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
-          <div className="flex gap-2">
+          <div className="flex gap-2 lg:col-span-2">
             <input
               type="date"
               value={dateFrom}
