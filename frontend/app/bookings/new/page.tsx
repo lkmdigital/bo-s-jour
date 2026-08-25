@@ -18,6 +18,7 @@ interface Accommodation {
   city?: string;
   price_per_night: number;
   cancellation_policy_hours?: number | null;
+  loyalty_program_joined_at?: string | null;
   images?: Array<{ url: string; is_primary: boolean }>;
   room_type_pricing?: Array<{
     type: string;
@@ -135,6 +136,7 @@ function NewBookingContent() {
             city={accommodation.city}
             pricePerNight={room?.price_per_night || accommodation.price_per_night}
             cancellationPolicyHours={accommodation.cancellation_policy_hours}
+            loyaltyProgramJoined={!!accommodation.loyalty_program_joined_at}
             roomId={room?.id}
             roomName={room?.name}
             initialCheckIn={initialCheckIn}

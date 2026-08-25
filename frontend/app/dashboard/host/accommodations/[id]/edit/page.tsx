@@ -9,7 +9,7 @@ import api from '@/lib/api';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import SuccessDisplay from '@/components/common/SuccessDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { ArrowLeft, MapPin, Trash2, Star, Tag, Bed, Clock, MessageCircle, ShieldCheck, Rocket, CheckCircle2, Circle, Loader2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Trash2, Star, Tag, Bed, Clock, MessageCircle, ShieldCheck, Rocket, CheckCircle2, Circle, Loader2, Award } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { compressImages } from '@/lib/utils';
@@ -141,6 +141,7 @@ export default function EditAccommodationPage() {
     longStayDiscount: 15,
     longStayNights: 7,
   });
+  const [loyaltyProgramJoined, setLoyaltyProgramJoined] = useState(false);
   const confirmAction = useConfirm();
 
   const { register, handleSubmit, formState: { errors }, setValue, reset, watch } = useForm<AccommodationFormData>();
@@ -209,6 +210,7 @@ export default function EditAccommodationPage() {
         longStayDiscount: acc.pricing_long_stay_discount ?? 15,
         longStayNights: acc.pricing_long_stay_nights ?? 7,
       });
+      setLoyaltyProgramJoined(!!acc.loyalty_program_joined_at);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement de l\'hébergement');
     } finally {
@@ -303,6 +305,7 @@ export default function EditAccommodationPage() {
         pricing_long_stay_enabled: pricingPlans.longStayEnabled,
         pricing_long_stay_discount: pricingPlans.longStayEnabled ? pricingPlans.longStayDiscount : null,
         pricing_long_stay_nights: pricingPlans.longStayEnabled ? pricingPlans.longStayNights : null,
+        loyalty_program_joined: loyaltyProgramJoined,
       };
 
       await api.put(`/accommodations/${params.id}`, formData);
@@ -1026,6 +1029,26 @@ export default function EditAccommodationPage() {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Programme de fidélité : participation volontaire de l'établissement */}
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2"><Award className="w-5 h-5 text-primary" /> Programme de fidélité</h2>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={loyaltyProgramJoined}
+                onChange={(e) => setLoyaltyProgramJoined(e.target.checked)}
+                className="rounded mt-1"
+              />
+              <span>
+                <span className="font-medium block">Rejoindre le programme fidélité bo séjour</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Les voyageurs pourront utiliser leurs bons de réduction sur cet établissement. La commission reste
+                  calculée sur le montant réellement encaissé, réduction incluse.
+                </span>
+              </span>
+            </label>
           </div>
 
           {/* Plans tarifaires : options à cocher par l'hôte, affichées à la réservation */}

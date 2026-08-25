@@ -781,6 +781,7 @@ class AccommodationController extends Controller
             'pricing_long_stay_enabled' => 'nullable|boolean',
             'pricing_long_stay_discount' => 'nullable|numeric|min:0|max:100',
             'pricing_long_stay_nights' => 'nullable|integer|min:1|max:90',
+            'loyalty_program_joined' => 'nullable|boolean',
         ]);
 
         // Only admin can set published/rejected
@@ -850,6 +851,15 @@ class AccommodationController extends Controller
         }
         if ($request->has('pricing_long_stay_enabled')) {
             $updateData['pricing_long_stay_enabled'] = $request->boolean('pricing_long_stay_enabled');
+        }
+
+        // Participation au programme de fidélité : décision de l'hôte, pas un
+        // simple passthrough (le client n'envoie qu'un booléen, jamais la date
+        // elle-même) — on horodate à l'adhésion, on efface au retrait.
+        if ($request->has('loyalty_program_joined')) {
+            $updateData['loyalty_program_joined_at'] = $request->boolean('loyalty_program_joined')
+                ? ($accommodation->loyalty_program_joined_at ?? now())
+                : null;
         }
 
         $accommodation->update($updateData);

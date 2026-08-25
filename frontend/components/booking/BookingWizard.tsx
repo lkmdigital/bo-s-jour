@@ -35,6 +35,15 @@ interface Props {
   initialCheckOut?: string;
   initialGuests?: number;
   cancellationPolicyHours?: number | null;
+  loyaltyProgramJoined?: boolean;
+}
+
+interface LoyaltyVoucherOption {
+  id: number;
+  code: string;
+  discount_percent: number;
+  status: 'available' | 'used' | 'expired';
+  expires_at: string | null;
 }
 
 const STEPS = ['Récapitulatif', 'Compte', 'Voyageur', 'Coordonnées', 'Vérification'];
@@ -126,10 +135,25 @@ export default function BookingWizard(props: Props) {
   };
 
   const [promoCode, setPromoCode] = useState('');
+  const [loyaltyVouchers, setLoyaltyVouchers] = useState<LoyaltyVoucherOption[]>([]);
+  const [loyaltyVoucherCode, setLoyaltyVoucherCode] = useState('');
+  const [discountMode, setDiscountMode] = useState<'promo' | 'loyalty'>('promo');
   const [cgv, setCgv] = useState(false);
   const [quote, setQuote] = useState<PriceQuote | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Bons de fidélité disponibles — uniquement si l'établissement participe au
+  // programme et que le voyageur est connecté (le backend rejette sinon).
+  useEffect(() => {
+    if (!isAuthenticated || !props.loyaltyProgramJoined) return;
+    api.get('/me/loyalty')
+      .then((r) => {
+        const vouchers = (r.data?.data?.vouchers ?? []) as LoyaltyVoucherOption[];
+        setLoyaltyVouchers(vouchers.filter((v) => v.status === 'available'));
+      })
+      .catch(() => {});
+  }, [isAuthenticated, props.loyaltyProgramJoined]);
 
   const hasDates = !!(checkIn && checkOut);
 
@@ -191,7 +215,8 @@ export default function BookingWizard(props: Props) {
         traveler_type: travelerType,
         residence_country: residenceCountry || null,
         residence_city: residenceCity || null,
-        promo_code: promoCode.trim() || undefined,
+        promo_code: discountMode === 'promo' ? (promoCode.trim() || undefined) : undefined,
+        loyalty_voucher_code: discountMode === 'loyalty' ? (loyaltyVoucherCode || undefined) : undefined,
         special_requests: specialRequests.trim() || undefined,
         booked_for_third_party: bookedForThirdParty,
       };
@@ -447,16 +472,58 @@ export default function BookingWizard(props: Props) {
                 ))}
               </div>
 
-              {/* Code promo (facultatif) */}
+              {/* Réduction : code promo OU bon de fidélité (exclusifs) */}
               <div>
-                <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">Code promo <span className="text-gray-400 font-normal">(facultatif)</span></label>
-                <input
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                  placeholder="Ex: ETE2026"
-                  className="w-full max-w-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm uppercase focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                />
-                <p className="text-xs text-gray-400 mt-1">Vérifié et appliqué à la confirmation de votre réservation.</p>
+                {loyaltyVouchers.length > 0 && (
+                  <div className="flex gap-2 mb-2">
+                    {([
+                      { key: 'promo' as const, label: 'Code promo' },
+                      { key: 'loyalty' as const, label: 'Bon de fidélité' },
+                    ]).map((o) => (
+                      <button
+                        key={o.key}
+                        type="button"
+                        onClick={() => setDiscountMode(o.key)}
+                        className={cn(
+                          'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                          discountMode === o.key ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                        )}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {discountMode === 'promo' ? (
+                  <>
+                    <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">Code promo <span className="text-gray-400 font-normal">(facultatif)</span></label>
+                    <input
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      placeholder="Ex: ETE2026"
+                      className="w-full max-w-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm uppercase focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Vérifié et appliqué à la confirmation de votre réservation.</p>
+                  </>
+                ) : (
+                  <>
+                    <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">Bon de fidélité</label>
+                    <select
+                      value={loyaltyVoucherCode}
+                      onChange={(e) => setLoyaltyVoucherCode(e.target.value)}
+                      className="w-full max-w-xs px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    >
+                      <option value="">Aucun</option>
+                      {loyaltyVouchers.map((v) => (
+                        <option key={v.id} value={v.code}>
+                          {v.code} — -{v.discount_percent}%
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">Retrouvez tous vos bons dans votre espace Programme Membre.</p>
+                  </>
+                )}
               </div>
 
               {/* Demandes particulières (facultatif) */}
