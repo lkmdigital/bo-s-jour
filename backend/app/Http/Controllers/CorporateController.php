@@ -77,6 +77,7 @@ class CorporateController extends Controller
         $data = $request->validate([
             'email' => 'required|email|max:255',
             'name' => 'nullable|string|max:255',
+            'department' => 'nullable|string|max:100',
             'spending_limit' => 'nullable|numeric|min:0',
         ]);
 
@@ -94,6 +95,7 @@ class CorporateController extends Controller
             'collaborator_user_id' => $existingUser?->id,
             'email' => $data['email'],
             'name' => $data['name'] ?? $existingUser?->name,
+            'department' => $data['department'] ?? null,
             'spending_limit' => $data['spending_limit'] ?? null,
             'status' => $existingUser ? CorporateCollaborator::STATUS_ACTIVE : CorporateCollaborator::STATUS_INVITED,
             'invited_at' => now(),
@@ -130,10 +132,20 @@ class CorporateController extends Controller
 
         $data = $request->validate([
             'spending_limit' => 'nullable|numeric|min:0',
+            'department' => 'nullable|string|max:100',
             'status' => ['nullable', Rule::in([CorporateCollaborator::STATUS_ACTIVE, CorporateCollaborator::STATUS_SUSPENDED])],
         ]);
 
-        $collaborator->update(array_filter($data, fn ($v) => $v !== null));
+        // department : chaîne vide acceptée pour "retirer" le département (array_filter
+        // l'exclurait sinon comme toute valeur "null"), contrairement à spending_limit/status
+        // où null signifie "champ non fourni, ne pas toucher".
+        if ($request->has('department')) {
+            $collaborator->department = $data['department'] ?: null;
+        }
+        $collaborator->update(array_filter(
+            collect($data)->except('department')->all(),
+            fn ($v) => $v !== null
+        ));
 
         return response()->json($collaborator->fresh()->load('collaboratorUser:id,name,email,avatar'));
     }
@@ -209,12 +221,16 @@ class CorporateController extends Controller
             return response()->json(['message' => "Réservé aux comptes voyageur Entreprise."], 403);
         }
 
-        $collaboratorIds = CorporateCollaborator::where('owner_id', $owner->id)
+        $collaborators = CorporateCollaborator::where('owner_id', $owner->id)
             ->where('status', CorporateCollaborator::STATUS_ACTIVE)
             ->whereNotNull('collaborator_user_id')
-            ->pluck('collaborator_user_id');
+            ->get(['collaborator_user_id', 'department']);
 
-        $userIds = $collaboratorIds->push($owner->id)->unique();
+        $userIds = $collaborators->pluck('collaborator_user_id')->push($owner->id)->unique();
+
+        // Département par utilisateur (doc §13 : "ses dépenses par département") —
+        // le responsable lui-même n'appartient à aucun département déclaré.
+        $departmentByUserId = $collaborators->pluck('department', 'collaborator_user_id');
 
         $months = max(1, min(24, (int) $request->input('months', 6)));
         $since = now()->startOfMonth()->subMonths($months - 1);
@@ -238,10 +254,20 @@ class CorporateController extends Controller
                 ];
             })->values()->sortByDesc('month')->values();
 
+        $byDepartment = $bookings->groupBy(fn ($b) => $departmentByUserId->get($b->user_id) ?: 'Non assigné')
+            ->map(function ($group, $department) {
+                return [
+                    'department' => $department,
+                    'count' => $group->count(),
+                    'total' => (float) $group->sum('total_price'),
+                ];
+            })->values()->sortByDesc('total')->values();
+
         return response()->json([
             'total' => (float) $bookings->sum('total_price'),
             'count' => $bookings->count(),
             'by_month' => $byMonth,
+            'by_department' => $byDepartment,
             'bookings' => $bookings->map(fn ($b) => [
                 'id' => $b->id,
                 'confirmation_code' => $b->confirmation_code,
@@ -252,6 +278,7 @@ class CorporateController extends Controller
                 'total_price' => $b->total_price,
                 'amount_paid' => $b->amount_paid,
                 'status' => $b->status,
+                'department' => $departmentByUserId->get($b->user_id) ?: null,
                 'company_service' => $b->company_service,
                 'company_project' => $b->company_project,
                 'created_at' => $b->created_at,

@@ -18,6 +18,7 @@ interface Collaborator {
   id: number;
   email: string;
   name: string | null;
+  department: string | null;
   spending_limit: string | number | null;
   status: 'invited' | 'active' | 'suspended';
   collaborator_user?: { id: number; name: string; email: string; avatar?: string } | null;
@@ -43,12 +44,13 @@ interface CorporateLoyalty {
   last_year_reward: { year: number; revenue_total: number; reward_label: string | null } | null;
 }
 interface ExpenseMonth { month: string; count: number; total: number; paid: number }
+interface ExpenseDepartment { department: string; count: number; total: number }
 interface ExpenseBooking {
   id: number; confirmation_code?: string;
   accommodation?: { id: number; name: string; city: string } | null;
   traveler?: { id: number; name: string; email: string } | null;
   check_in: string; check_out: string; total_price: number; amount_paid: number; status: string;
-  company_service?: string | null; company_project?: string | null; created_at: string;
+  department?: string | null; company_service?: string | null; company_project?: string | null; created_at: string;
 }
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
@@ -72,17 +74,20 @@ export default function MemberCompanyPage() {
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [loyalty, setLoyalty] = useState<CorporateLoyalty | null>(null);
-  const [expenses, setExpenses] = useState<{ total: number; count: number; by_month: ExpenseMonth[]; bookings: ExpenseBooking[] } | null>(null);
+  const [expenses, setExpenses] = useState<{ total: number; count: number; by_month: ExpenseMonth[]; by_department: ExpenseDepartment[]; bookings: ExpenseBooking[] } | null>(null);
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
+  const [inviteDepartment, setInviteDepartment] = useState('');
   const [inviteLimit, setInviteLimit] = useState('');
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteErr, setInviteErr] = useState<string | null>(null);
 
   const [editingLimit, setEditingLimit] = useState<number | null>(null);
   const [limitDraft, setLimitDraft] = useState('');
+  const [editingDepartment, setEditingDepartment] = useState<number | null>(null);
+  const [departmentDraft, setDepartmentDraft] = useState('');
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push('/auth/login?redirect=/dashboard/user/entreprise');
@@ -121,9 +126,10 @@ export default function MemberCompanyPage() {
       await api.post('/me/corporate/collaborators', {
         email: inviteEmail,
         name: inviteName || undefined,
+        department: inviteDepartment || undefined,
         spending_limit: inviteLimit ? Number(inviteLimit) : undefined,
       });
-      setInviteEmail(''); setInviteName(''); setInviteLimit(''); setShowInvite(false);
+      setInviteEmail(''); setInviteName(''); setInviteDepartment(''); setInviteLimit(''); setShowInvite(false);
       load();
     } catch (err: any) {
       setInviteErr(err.response?.data?.message || err.response?.data?.errors?.email?.[0] || "Impossible d'ajouter ce collaborateur.");
@@ -135,6 +141,12 @@ export default function MemberCompanyPage() {
   const saveLimit = async (id: number) => {
     await api.put(`/me/corporate/collaborators/${id}`, { spending_limit: limitDraft ? Number(limitDraft) : null });
     setEditingLimit(null);
+    load();
+  };
+
+  const saveDepartment = async (id: number) => {
+    await api.put(`/me/corporate/collaborators/${id}`, { department: departmentDraft || '' });
+    setEditingDepartment(null);
     load();
   };
 
@@ -277,8 +289,12 @@ export default function MemberCompanyPage() {
                 <input placeholder="Nom (facultatif)" value={inviteName} onChange={(e) => setInviteName(e.target.value)}
                   className="px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
               </div>
-              <input type="number" min={0} placeholder="Limite de dépenses mensuelle en FCFA (facultatif)" value={inviteLimit} onChange={(e) => setInviteLimit(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input placeholder="Département (facultatif)" value={inviteDepartment} onChange={(e) => setInviteDepartment(e.target.value)}
+                  className="px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                <input type="number" min={0} placeholder="Limite de dépenses mensuelle en FCFA (facultatif)" value={inviteLimit} onChange={(e) => setInviteLimit(e.target.value)}
+                  className="px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+              </div>
               {inviteErr && <p className="text-sm text-red-600 dark:text-red-400">{inviteErr}</p>}
               <div className="flex items-center gap-2">
                 <button type="submit" disabled={inviteBusy} className="btn-primary text-sm disabled:opacity-50 inline-flex items-center gap-2">
@@ -306,6 +322,21 @@ export default function MemberCompanyPage() {
                     <p className="text-sm font-medium text-gray-900 dark:text-white">{c.collaborator_user?.name || c.name || c.email}</p>
                     <p className="text-xs text-gray-500">{c.email}</p>
                   </div>
+
+                  {editingDepartment === c.id ? (
+                    <div className="flex items-center gap-1.5">
+                      <input autoFocus value={departmentDraft} onChange={(e) => setDepartmentDraft(e.target.value)}
+                        placeholder="Sans département"
+                        className="w-32 px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs outline-none focus:border-primary" />
+                      <button onClick={() => saveDepartment(c.id)} className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"><Check className="w-4 h-4" /></button>
+                      <button onClick={() => setEditingDepartment(null)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setEditingDepartment(c.id); setDepartmentDraft(c.department || ''); }}
+                      className="text-xs text-gray-500 hover:text-primary whitespace-nowrap">
+                      {c.department || 'Sans département'}
+                    </button>
+                  )}
 
                   {editingLimit === c.id ? (
                     <div className="flex items-center gap-1.5">
@@ -374,6 +405,20 @@ export default function MemberCompanyPage() {
                       <span className="text-gray-900 dark:text-white font-medium">{m.count} rés. · {formatPrice(m.total)} F</span>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {expenses.by_department.length > 1 && (
+                <div className="mb-5">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Par département</p>
+                  <div className="space-y-1.5">
+                    {expenses.by_department.map((d) => (
+                      <div key={d.department} className="flex items-center justify-between text-sm py-1.5 border-b border-gray-50 dark:border-gray-700 last:border-0">
+                        <span className="text-gray-600 dark:text-gray-400">{d.department}</span>
+                        <span className="text-gray-900 dark:text-white font-medium">{d.count} rés. · {formatPrice(d.total)} F</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

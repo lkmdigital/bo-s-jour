@@ -18,6 +18,7 @@ class CorporateCollaborator extends Model
         'collaborator_user_id',
         'email',
         'name',
+        'department',
         'spending_limit',
         'status',
         'invited_at',
