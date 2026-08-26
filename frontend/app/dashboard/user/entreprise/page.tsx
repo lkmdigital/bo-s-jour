@@ -374,12 +374,38 @@ export default function MemberCompanyPage() {
 
         {/* Dépenses professionnelles */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><TrendingUp className="w-5 h-5" /></span>
-            <div>
-              <h2 className="font-bold">Dépenses professionnelles</h2>
-              <p className="text-xs text-gray-500">Réservations de l&apos;entreprise sur les 6 derniers mois</p>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><TrendingUp className="w-5 h-5" /></span>
+              <div>
+                <h2 className="font-bold">Dépenses professionnelles</h2>
+                <p className="text-xs text-gray-500">Réservations de l&apos;entreprise sur les 6 derniers mois</p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const response = await api.get('/me/corporate/expenses/export', {
+                    params: { months: 12 },
+                    responseType: 'blob',
+                  });
+                  const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+                  const link = document.createElement('a');
+                  link.href = blobUrl;
+                  link.download = `depenses-corporate-${new Date().toISOString().slice(0, 10)}.csv`;
+                  document.body.appendChild(link);
+                  link.click();
+                  link.remove();
+                  window.URL.revokeObjectURL(blobUrl);
+                } catch (err) {
+                  console.error('Erreur export CSV', err);
+                }
+              }}
+              className="btn-outline text-xs inline-flex items-center gap-1.5 flex-shrink-0"
+            >
+              <Download className="w-3.5 h-3.5" /> Exporter (CSV)
+            </button>
           </div>
 
           {!expenses || expenses.count === 0 ? (

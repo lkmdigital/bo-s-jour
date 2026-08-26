@@ -285,6 +285,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::get('/overview', [CorporateController::class, 'overview']);
         Route::get('/loyalty', [CorporateController::class, 'loyalty']);
         Route::get('/expenses', [CorporateController::class, 'expenses']);
+        Route::get('/expenses/export', [CorporateController::class, 'exportExpensesCsv']);
         Route::post('/collaborators', [CorporateController::class, 'inviteCollaborator'])->middleware('throttle:20,1,corporate-collaborator-invite');
         Route::put('/collaborators/{collaborator}', [CorporateController::class, 'updateCollaborator']);
         Route::delete('/collaborators/{collaborator}', [CorporateController::class, 'removeCollaborator']);

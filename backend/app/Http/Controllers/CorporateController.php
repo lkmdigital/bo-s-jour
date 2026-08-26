@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Espace "Mon entreprise" du voyageur Corporate (brief Parcours Voyageur, Étapes 21-22) :
@@ -221,28 +222,8 @@ class CorporateController extends Controller
             return response()->json(['message' => "Réservé aux comptes voyageur Entreprise."], 403);
         }
 
-        $collaborators = CorporateCollaborator::where('owner_id', $owner->id)
-            ->where('status', CorporateCollaborator::STATUS_ACTIVE)
-            ->whereNotNull('collaborator_user_id')
-            ->get(['collaborator_user_id', 'department']);
-
-        $userIds = $collaborators->pluck('collaborator_user_id')->push($owner->id)->unique();
-
-        // Département par utilisateur (doc §13 : "ses dépenses par département") —
-        // le responsable lui-même n'appartient à aucun département déclaré.
-        $departmentByUserId = $collaborators->pluck('department', 'collaborator_user_id');
-
         $months = max(1, min(24, (int) $request->input('months', 6)));
-        $since = now()->startOfMonth()->subMonths($months - 1);
-
-        $bookings = Booking::where(function ($q) use ($userIds, $owner) {
-                $q->whereIn('user_id', $userIds)->orWhere('corporate_owner_id', $owner->id);
-            })
-            ->where('traveler_type', 'corporate')
-            ->where('created_at', '>=', $since)
-            ->with(['accommodation:id,name,city', 'user:id,name,email'])
-            ->orderByDesc('created_at')
-            ->get();
+        [$bookings, $departmentByUserId] = $this->corporateBookingsSince($owner, now()->startOfMonth()->subMonths($months - 1));
 
         $byMonth = $bookings->groupBy(fn ($b) => $b->created_at->format('Y-m'))
             ->map(function ($group, $month) {
@@ -284,5 +265,88 @@ class CorporateController extends Controller
                 'created_at' => $b->created_at,
             ]),
         ]);
+    }
+
+    /**
+     * Export comptable des réservations professionnelles (doc client §13 :
+     * "L'entreprise peut également accéder à ses factures, télécharger ses
+     * documents et exporter ses données." — l'interopérabilité logicielle
+     * évoquée juste après reste un objectif non spécifié par le doc, pas
+     * couverte ici). Un an d'historique par défaut, contre 6 mois pour le
+     * tableau de bord, plus adapté à un usage comptable/fiscal annuel.
+     */
+    public function exportExpensesCsv(Request $request): StreamedResponse
+    {
+        $owner = $request->user();
+        if ($owner->traveler_type !== 'corporate') {
+            abort(403, "Réservé aux comptes voyageur Entreprise.");
+        }
+
+        $months = max(1, min(60, (int) $request->input('months', 12)));
+        [$bookings, $departmentByUserId] = $this->corporateBookingsSince($owner, now()->startOfMonth()->subMonths($months - 1));
+
+        $filename = 'depenses-corporate-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($bookings, $departmentByUserId) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($out, [
+                'Date de réservation', 'Code confirmation', 'Voyageur', 'E-mail voyageur', 'Département',
+                'Établissement', 'Ville', 'Arrivée', 'Départ', 'Statut',
+                'Montant total (FCFA)', 'Montant payé (FCFA)', 'Service', 'Projet',
+            ]);
+            foreach ($bookings as $b) {
+                fputcsv($out, [
+                    optional($b->created_at)->format('Y-m-d'),
+                    $b->confirmation_code,
+                    $b->user->name ?? '',
+                    $b->user->email ?? '',
+                    $departmentByUserId->get($b->user_id) ?: '',
+                    $b->accommodation->name ?? '',
+                    $b->accommodation->city ?? '',
+                    optional($b->check_in)->format('Y-m-d'),
+                    optional($b->check_out)->format('Y-m-d'),
+                    $b->status instanceof \BackedEnum ? $b->status->value : $b->status,
+                    $b->total_price,
+                    $b->amount_paid,
+                    $b->company_service,
+                    $b->company_project,
+                ]);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * Réservations professionnelles (traveler_type=corporate) du responsable
+     * et de ses collaborateurs actifs depuis une date donnée, plus le
+     * département de chaque utilisateur — base commune à expenses() et
+     * exportExpensesCsv().
+     *
+     * @return array{0: \Illuminate\Support\Collection, 1: \Illuminate\Support\Collection}
+     */
+    private function corporateBookingsSince(User $owner, \Illuminate\Support\Carbon $since): array
+    {
+        $collaborators = CorporateCollaborator::where('owner_id', $owner->id)
+            ->where('status', CorporateCollaborator::STATUS_ACTIVE)
+            ->whereNotNull('collaborator_user_id')
+            ->get(['collaborator_user_id', 'department']);
+
+        $userIds = $collaborators->pluck('collaborator_user_id')->push($owner->id)->unique();
+
+        // Département par utilisateur (doc §13 : "ses dépenses par département") —
+        // le responsable lui-même n'appartient à aucun département déclaré.
+        $departmentByUserId = $collaborators->pluck('department', 'collaborator_user_id');
+
+        $bookings = Booking::where(function ($q) use ($userIds, $owner) {
+                $q->whereIn('user_id', $userIds)->orWhere('corporate_owner_id', $owner->id);
+            })
+            ->where('traveler_type', 'corporate')
+            ->where('created_at', '>=', $since)
+            ->with(['accommodation:id,name,city', 'user:id,name,email'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        return [$bookings, $departmentByUserId];
     }
 }
