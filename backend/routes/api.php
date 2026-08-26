@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\AdminHostController;
 use App\Http\Controllers\Admin\AdminAccommodationController;
 use App\Http\Controllers\Admin\AdminActivityLogController;
 use App\Http\Controllers\Admin\AdminComplianceController;
+use App\Http\Controllers\Admin\AdminAiController;
 use App\Http\Controllers\Admin\AdminCorporateController;
 use App\Http\Controllers\Admin\AdminLoyaltyController;
 use App\Http\Controllers\Admin\AdminLegalDocumentController;
@@ -412,6 +413,11 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::put('/reward-tiers/{id}', [AdminCorporateController::class, 'updateRewardTier'])->where('id', '[0-9]+');
             Route::get('/annual-rewards', [AdminCorporateController::class, 'annualRewards']);
         });
+
+        // Module IA — Assistant conversationnel admin (doc "MODULE IA BOSÉJOUR" §1.1)
+        // Throttle serré : chaque appel facture l'API Claude, pas de budget défini par le client.
+        Route::post('/ai/ask', [AdminAiController::class, 'ask'])
+            ->middleware(['role:admin', 'throttle:15,1,admin-ai-ask']);
 
         // Dashboard & Analytics
         Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats'])

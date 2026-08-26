@@ -73,5 +73,13 @@ return [
         'default_country_code' => env('SMSTO_DEFAULT_COUNTRY_CODE', '225'),
     ],
 
+    // Module IA (doc client "MODULE IA BOSÉJOUR") — Assistant IA Administrateur,
+    // §1.1 "Assistant Conversationnel". Tant que la clé est vide, l'assistant
+    // répond avec un message d'indisponibilité plutôt que d'échouer en 500.
+    'anthropic' => [
+        'api_key' => env('ANTHROPIC_API_KEY', ''),
+        'model'   => env('ANTHROPIC_MODEL', 'claude-opus-5'),
+    ],
+
 ];
 
