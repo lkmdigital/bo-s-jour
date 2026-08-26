@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Award, Users, Gift, Megaphone, Ticket, Building2, Plus, Pencil, Settings as SettingsIcon,
+  Award, Users, Gift, Megaphone, Ticket, Building2, Plus, Pencil, Settings as SettingsIcon, Briefcase,
 } from 'lucide-react';
 import api from '@/lib/api';
+import { formatPrice } from '@/lib/utils';
 import { useToast } from '@/components/common/ToastContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Pagination from '@/components/common/Pagination';
@@ -66,6 +67,23 @@ interface Establishment {
   joined_at: string;
 }
 
+interface CorporateRewardTier {
+  id: number;
+  revenue_threshold: number;
+  reward_label: string;
+  sort_order: number;
+  active: boolean;
+}
+
+interface CorporateAnnualReward {
+  id: number;
+  year: number;
+  revenue_total: number;
+  reward_label: string | null;
+  owner: { id: number; name: string; company_name: string | null; email: string } | null;
+  reward_tier: { id: number; reward_label: string } | null;
+}
+
 const CAMPAIGN_TYPES = [
   { value: 'double_points', label: 'Points doublés' },
   { value: 'triple_points', label: 'Points triplés' },
@@ -111,6 +129,18 @@ export default function AdminProgrammePage() {
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [establishmentsLoading, setEstablishmentsLoading] = useState(true);
 
+  const [corporateTiers, setCorporateTiers] = useState<CorporateRewardTier[]>([]);
+  const [corporateTiersLoading, setCorporateTiersLoading] = useState(true);
+  const [corporateTierModal, setCorporateTierModal] = useState<CorporateRewardTier | 'new' | null>(null);
+  const [corporateTierForm, setCorporateTierForm] = useState({ revenue_threshold: 0, reward_label: '', active: true });
+  const [corporateTierSaving, setCorporateTierSaving] = useState(false);
+
+  const [annualRewards, setAnnualRewards] = useState<CorporateAnnualReward[]>([]);
+  const [annualRewardsLoading, setAnnualRewardsLoading] = useState(true);
+  const [annualRewardsPage, setAnnualRewardsPage] = useState(1);
+  const [annualRewardsLastPage, setAnnualRewardsLastPage] = useState(1);
+  const [annualRewardsYear, setAnnualRewardsYear] = useState('');
+
   const [loyaltySettings, setLoyaltySettings] = useState({
     loyalty_points_per_fcfa: 0.001,
     loyalty_first_booking_bonus: 0,
@@ -143,6 +173,10 @@ export default function AdminProgrammePage() {
     setEstablishmentsLoading(true);
     api.get('/admin/loyalty/establishments').then((r) => setEstablishments(r.data?.data ?? [])).catch(() => setEstablishments([])).finally(() => setEstablishmentsLoading(false));
   };
+  const loadCorporateTiers = () => {
+    setCorporateTiersLoading(true);
+    api.get('/admin/corporate/reward-tiers').then((r) => setCorporateTiers(r.data?.data ?? [])).catch(() => setCorporateTiers([])).finally(() => setCorporateTiersLoading(false));
+  };
   const loadSettings = () => {
     setSettingsLoading(true);
     api.get('/settings/admin')
@@ -173,7 +207,7 @@ export default function AdminProgrammePage() {
     }
   };
 
-  useEffect(() => { loadStats(); loadTiers(); loadRewardTiers(); loadCampaigns(); loadEstablishments(); loadSettings(); }, []);
+  useEffect(() => { loadStats(); loadTiers(); loadRewardTiers(); loadCampaigns(); loadEstablishments(); loadSettings(); loadCorporateTiers(); }, []);
 
   useEffect(() => {
     setVouchersLoading(true);
@@ -182,6 +216,14 @@ export default function AdminProgrammePage() {
       .catch(() => setVouchers([]))
       .finally(() => setVouchersLoading(false));
   }, [voucherPage]);
+
+  useEffect(() => {
+    setAnnualRewardsLoading(true);
+    api.get('/admin/corporate/annual-rewards', { params: { page: annualRewardsPage, year: annualRewardsYear || undefined } })
+      .then((r) => { setAnnualRewards(r.data?.data ?? []); setAnnualRewardsLastPage(r.data?.pagination?.last_page ?? 1); })
+      .catch(() => setAnnualRewards([]))
+      .finally(() => setAnnualRewardsLoading(false));
+  }, [annualRewardsPage, annualRewardsYear]);
 
   // ─── Niveaux ─────────────────────────────────────────────────────────
 
@@ -247,6 +289,36 @@ export default function AdminProgrammePage() {
     }
   };
 
+  // ─── Programme Corporate (paliers de CA annuel) ─────────────────────
+
+  const openCorporateTierModal = (rt: CorporateRewardTier | 'new') => {
+    if (rt === 'new') {
+      setCorporateTierForm({ revenue_threshold: 0, reward_label: '', active: true });
+    } else {
+      setCorporateTierForm({ revenue_threshold: rt.revenue_threshold, reward_label: rt.reward_label, active: rt.active });
+    }
+    setCorporateTierModal(rt);
+  };
+
+  const saveCorporateTier = async () => {
+    setCorporateTierSaving(true);
+    try {
+      if (corporateTierModal === 'new') {
+        await api.post('/admin/corporate/reward-tiers', corporateTierForm);
+        showSuccess('Palier Corporate créé.');
+      } else if (corporateTierModal) {
+        await api.put(`/admin/corporate/reward-tiers/${corporateTierModal.id}`, corporateTierForm);
+        showSuccess('Palier Corporate mis à jour.');
+      }
+      setCorporateTierModal(null);
+      loadCorporateTiers();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Erreur lors de l’enregistrement.');
+    } finally {
+      setCorporateTierSaving(false);
+    }
+  };
+
   // ─── Campagnes ───────────────────────────────────────────────────────
 
   const openCampaignModal = (c: Campaign | 'new') => {
@@ -300,7 +372,7 @@ export default function AdminProgrammePage() {
           <Award className="w-6 h-6 text-primary" /> Membre du programme
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Niveaux, récompenses, campagnes et bons du programme de fidélité.
+          Niveaux, récompenses, campagnes et bons du Programme Membre, ainsi que les paliers de CA annuel du Programme Corporate.
         </p>
       </div>
 
@@ -506,6 +578,88 @@ export default function AdminProgrammePage() {
         </div>
       </section>
 
+      {/* Programme Corporate — Paliers de CA annuel */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+            <Briefcase className="w-4 h-4 text-primary" /> Programme Corporate — Paliers de CA annuel
+          </h2>
+          <button onClick={() => openCorporateTierModal('new')} className="btn-outline text-xs inline-flex items-center gap-1.5">
+            <Plus className="w-3.5 h-3.5" /> Ajouter un palier
+          </button>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+          {corporateTiersLoading ? (
+            <div className="p-8"><LoadingSpinner /></div>
+          ) : corporateTiers.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 p-8 text-center">Aucun palier Corporate configuré.</p>
+          ) : (
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              {corporateTiers.map((rt) => (
+                <div key={rt.id} className="p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">{rt.reward_label}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      dès {formatPrice(rt.revenue_threshold)} F de CA annuel · {rt.active ? (
+                        <span className="text-green-700 dark:text-green-400">actif</span>
+                      ) : (
+                        <span className="text-gray-400">inactif</span>
+                      )}
+                    </p>
+                  </div>
+                  <button onClick={() => openCorporateTierModal(rt)} className="text-gray-400 hover:text-primary">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Programme Corporate — Récompenses annuelles figées */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+            <Award className="w-4 h-4 text-primary" /> Bilans Corporate figés
+          </h2>
+          <input
+            type="number"
+            placeholder="Filtrer par année"
+            value={annualRewardsYear}
+            onChange={(e) => { setAnnualRewardsYear(e.target.value); setAnnualRewardsPage(1); }}
+            className="w-40 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-900 dark:text-white"
+          />
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+          {annualRewardsLoading ? (
+            <div className="p-8"><LoadingSpinner /></div>
+          ) : annualRewards.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 p-8 text-center">
+              Aucun bilan Corporate figé pour le moment (calculé par la commande annuelle corporate:compute-annual-rewards).
+            </p>
+          ) : (
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              {annualRewards.map((r) => (
+                <div key={r.id} className="p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {r.owner?.company_name || r.owner?.name || 'Entreprise supprimée'} · {r.year}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {formatPrice(r.revenue_total)} F de CA — {r.reward_label || 'aucun palier atteint'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {annualRewardsLastPage > 1 && (
+          <Pagination currentPage={annualRewardsPage} totalPages={annualRewardsLastPage} onPageChange={setAnnualRewardsPage} />
+        )}
+      </section>
+
       {/* Réglages */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
@@ -617,6 +771,39 @@ export default function AdminProgrammePage() {
                 <button onClick={() => setRewardModal(null)} className="flex-1 btn-secondary">Annuler</button>
                 <button onClick={saveReward} disabled={rewardSaving} className="flex-1 btn-primary disabled:opacity-50">
                   {rewardSaving ? 'Enregistrement…' : 'Enregistrer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Palier Corporate */}
+      {corporateTierModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold mb-4">{corporateTierModal === 'new' ? 'Nouveau palier Corporate' : 'Modifier le palier Corporate'}</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">CA annuel requis (FCFA)</label>
+                <input type="number" min={0} step={1} value={corporateTierForm.revenue_threshold}
+                  onChange={(e) => setCorporateTierForm({ ...corporateTierForm, revenue_threshold: Number(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Récompense (libellé)</label>
+                <input type="text" value={corporateTierForm.reward_label} placeholder="ex : Bon Corporate de 50 000 FCFA"
+                  onChange={(e) => setCorporateTierForm({ ...corporateTierForm, reward_label: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm" />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={corporateTierForm.active} onChange={(e) => setCorporateTierForm({ ...corporateTierForm, active: e.target.checked })} />
+                Actif
+              </label>
+              <div className="flex gap-3">
+                <button onClick={() => setCorporateTierModal(null)} className="flex-1 btn-secondary">Annuler</button>
+                <button onClick={saveCorporateTier} disabled={corporateTierSaving} className="flex-1 btn-primary disabled:opacity-50">
+                  {corporateTierSaving ? 'Enregistrement…' : 'Enregistrer'}
                 </button>
               </div>
             </div>
