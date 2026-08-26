@@ -2,27 +2,24 @@
 
 namespace App\Services;
 
-use Anthropic\Client;
-use Anthropic\Messages\ToolUseBlock;
 use App\Models\Accommodation;
 use App\Models\Booking;
-use App\Models\Setting;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Assistant IA Administrateur (doc client "MODULE IA BOSÉJOUR" §1.1 —
  * "Assistant Conversationnel" : l'administrateur interroge la plateforme en
  * langage naturel). V1 volontairement restreinte aux 4 questions données en
- * exemple dans le doc — chacune un outil séparé, aucune requête SQL libre
- * générée par le modèle (surface d'attaque nulle : Claude ne choisit que
- * PARMI des requêtes Eloquent fixes et paramétrées, jamais leur contenu SQL).
+ * exemple dans le doc — chacune un outil séparé. Voir AiAssistantService
+ * pour le socle commun (client Anthropic, boucle d'outils).
  *
  * Rapports automatiques, détection d'anomalies/fraude, contrôle de conformité
  * IA (§1.3 à §1.8 du doc) : hors périmètre de cette V1, à construire ensuite.
  */
-class AdminAiAssistantService
+class AdminAiAssistantService extends AiAssistantService
 {
-    private const SYSTEM_PROMPT = <<<'PROMPT'
+    protected function systemPrompt(): string
+    {
+        return <<<'PROMPT'
 Tu es l'assistant IA administrateur de la plateforme bo séjour (hébergements
 en Côte d'Ivoire). Réponds aux questions de l'administrateur UNIQUEMENT à
 partir des résultats des outils fournis, qui interrogent les données réelles
@@ -36,102 +33,9 @@ Règles :
   longue analyse sauf si la question le demande explicitement).
 - Les montants sont en FCFA.
 PROMPT;
-
-    private ?Client $client = null;
-    private bool $clientResolved = false;
-
-    /**
-     * Clé API : réglage admin (Paramètres > Réglages avancés > Intégrations,
-     * modifiable sans toucher au code — même principe que whatsapp_token) en
-     * priorité, sinon repli sur ANTHROPIC_API_KEY en .env. Résolu paresseusement
-     * (pas dans le constructeur) — même convention que WhatsAppService, qui lit
-     * Setting::get() au moment de l'appel plutôt qu'à la construction.
-     */
-    private function getClient(): ?Client
-    {
-        if ($this->clientResolved) {
-            return $this->client;
-        }
-        $this->clientResolved = true;
-
-        $apiKey = (string) Setting::get('anthropic_api_key', '') ?: config('services.anthropic.api_key', '');
-        if ($apiKey) {
-            $this->client = new Client(apiKey: $apiKey);
-        }
-
-        return $this->client;
     }
 
-    public function isConfigured(): bool
-    {
-        return $this->getClient() !== null;
-    }
-
-    /**
-     * @throws \RuntimeException si le module n'est pas configuré (clé API absente)
-     */
-    public function ask(string $question): string
-    {
-        $client = $this->getClient();
-        if (!$client) {
-            throw new \RuntimeException("Le module IA n'est pas configuré (clé API manquante).");
-        }
-
-        $model = config('services.anthropic.model', 'claude-opus-5');
-        $tools = $this->toolDefinitions();
-
-        $messages = [
-            ['role' => 'user', 'content' => $question],
-        ];
-
-        $response = $client->messages->create(
-            model: $model,
-            maxTokens: 2000,
-            system: self::SYSTEM_PROMPT,
-            tools: $tools,
-            messages: $messages,
-        );
-
-        // Boucle d'outils bornée (6 itérations max) — évite un enchaînement
-        // incontrôlé et coûteux si le modèle boucle sur un appel d'outil.
-        $iterations = 0;
-        while ($response->stopReason === 'tool_use' && $iterations < 6) {
-            $iterations++;
-            $toolResults = [];
-
-            foreach ($response->content as $block) {
-                if ($block instanceof ToolUseBlock) {
-                    $result = $this->executeTool($block->name, $block->input);
-                    $toolResults[] = [
-                        'type' => 'tool_result',
-                        'toolUseID' => $block->id,
-                        'content' => $result,
-                    ];
-                }
-            }
-
-            $messages[] = ['role' => 'assistant', 'content' => $response->content];
-            $messages[] = ['role' => 'user', 'content' => $toolResults];
-
-            $response = $client->messages->create(
-                model: $model,
-                maxTokens: 2000,
-                system: self::SYSTEM_PROMPT,
-                tools: $tools,
-                messages: $messages,
-            );
-        }
-
-        foreach ($response->content as $block) {
-            if ($block->type === 'text') {
-                return $block->text;
-            }
-        }
-
-        return "Je n'ai pas pu formuler de réponse à cette question.";
-    }
-
-    private function toolDefinitions(): array
+    protected function toolDefinitions(): array
     {
         return [
             [
@@ -169,20 +73,15 @@ PROMPT;
         ];
     }
 
-    private function executeTool(string $name, array $input): string
+    protected function executeTool(string $name, array $input): string
     {
-        try {
-            return match ($name) {
-                'get_pending_establishments' => $this->getPendingEstablishments(),
-                'count_bookings' => $this->countBookings((int) ($input['days'] ?? 7)),
-                'get_inactive_establishments' => $this->getInactiveEstablishments((int) ($input['days'] ?? 90)),
-                'get_revenue_by_city' => $this->getRevenueByCity(),
-                default => json_encode(['error' => "Outil inconnu : {$name}"]),
-            };
-        } catch (\Throwable $e) {
-            Log::error('Erreur outil assistant IA admin', ['tool' => $name, 'input' => $input, 'error' => $e->getMessage()]);
-            return json_encode(['error' => "Erreur lors de l'exécution de l'outil {$name}."]);
-        }
+        return match ($name) {
+            'get_pending_establishments' => $this->getPendingEstablishments(),
+            'count_bookings' => $this->countBookings((int) ($input['days'] ?? 7)),
+            'get_inactive_establishments' => $this->getInactiveEstablishments((int) ($input['days'] ?? 90)),
+            'get_revenue_by_city' => $this->getRevenueByCity(),
+            default => json_encode(['error' => "Outil inconnu : {$name}"]),
+        };
     }
 
     private function getPendingEstablishments(): string

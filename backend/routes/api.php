@@ -47,6 +47,7 @@ use App\Http\Controllers\Host\HostInboxController;
 use App\Http\Controllers\Host\HostCheckInController;
 use App\Http\Controllers\Host\HostWithdrawalController;
 use App\Http\Controllers\Host\HostClientController;
+use App\Http\Controllers\Host\HostAiController;
 use App\Http\Controllers\Host\HostLoyaltyController;
 use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\BookingMessageController;
@@ -245,6 +246,10 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
         // Suivi du Programme de fidélité (établissement participant)
         Route::get('/host/loyalty/stats', [HostLoyaltyController::class, 'stats']);
+
+        // Module IA — Assistant conversationnel partenaire (doc "MODULE IA BOSÉJOUR" §2.1)
+        // Throttle serré : chaque appel facture l'API Claude, pas de budget défini par le client.
+        Route::post('/host/ai/ask', [HostAiController::class, 'ask'])->middleware('throttle:15,1,host-ai-ask');
 
         // Boîte de réception (messages plateforme et voyageurs)
         Route::get('/host/inbox', [HostInboxController::class, 'index']);
