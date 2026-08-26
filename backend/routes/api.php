@@ -46,6 +46,7 @@ use App\Http\Controllers\Host\HostInboxController;
 use App\Http\Controllers\Host\HostCheckInController;
 use App\Http\Controllers\Host\HostWithdrawalController;
 use App\Http\Controllers\Host\HostClientController;
+use App\Http\Controllers\Host\HostLoyaltyController;
 use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\BookingMessageController;
 use App\Http\Controllers\UserInboxController;
@@ -240,6 +241,9 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
         // Clients (voyageurs ayant réservé chez l'hôte)
         Route::get('/host/clients', [HostClientController::class, 'index']);
+
+        // Suivi du Programme de fidélité (établissement participant)
+        Route::get('/host/loyalty/stats', [HostLoyaltyController::class, 'stats']);
 
         // Boîte de réception (messages plateforme et voyageurs)
         Route::get('/host/inbox', [HostInboxController::class, 'index']);

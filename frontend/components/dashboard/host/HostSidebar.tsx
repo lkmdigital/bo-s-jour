@@ -16,6 +16,7 @@ import {
   FileText,
   UserCog,
   BarChart3,
+  Award,
   Sparkles,
   HelpCircle,
   Settings,
@@ -41,6 +42,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/host/documents', label: 'Documents', icon: FileText },
   { href: '/dashboard/host/staff', label: 'Personnel', icon: UserCog },
   { href: '/dashboard/host/stats', label: 'Statistiques', icon: BarChart3 },
+  { href: '/dashboard/host/programme', label: 'Programme fidélité', icon: Award },
   { href: '/dashboard/host/ai', label: 'Assistant IA', icon: Sparkles },
 ];
 
@@ -60,6 +62,7 @@ const NAV_ITEM_PERMISSION: Record<string, string> = {
   '/dashboard/host/documents': 'documents',
   '/dashboard/host/staff': 'staff',
   '/dashboard/host/stats': 'stats',
+  '/dashboard/host/programme': 'stats',
   '/dashboard/host/ai': 'ai',
 };
 
