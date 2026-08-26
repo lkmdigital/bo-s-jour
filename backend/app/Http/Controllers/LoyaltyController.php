@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LoyaltyCampaign;
 use App\Models\LoyaltyRewardTier;
 use App\Models\LoyaltyTier;
 use App\Models\LoyaltyVoucher;
@@ -49,6 +50,21 @@ class LoyaltyController extends Controller
             'claimable' => $user->loyalty_points_balance >= $rt->points_required,
         ]);
 
+        // "Mes bonus" (doc §16) : bons disponibles (ci-dessus), code de
+        // parrainage et campagnes en cours — jusqu'ici absentes de cet espace
+        // alors qu'administrables depuis longtemps côté admin.
+        $activeCampaigns = LoyaltyCampaign::currentlyActive()
+            ->orderBy('ends_at')
+            ->get()
+            ->map(fn (LoyaltyCampaign $c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'type' => $c->type,
+                'multiplier' => $c->multiplier !== null ? (float) $c->multiplier : null,
+                'bonus_points' => $c->bonus_points,
+                'ends_at' => $c->ends_at,
+            ]);
+
         return response()->json([
             'data' => [
                 'tier' => $currentTier ? [
@@ -66,6 +82,7 @@ class LoyaltyController extends Controller
                 'referral_code' => $user->referral_code,
                 'reward_tiers' => $rewardTiers,
                 'vouchers' => $vouchers,
+                'active_campaigns' => $activeCampaigns,
             ],
         ]);
     }

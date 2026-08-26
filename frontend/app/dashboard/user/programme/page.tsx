@@ -10,7 +10,7 @@ import MemberAside from '@/components/dashboard/user/MemberAside';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Pagination from '@/components/common/Pagination';
 import {
-  Award, Gift, TrendingUp, Copy, Ticket, History,
+  Award, Gift, TrendingUp, Copy, Ticket, History, Megaphone,
   CheckCircle2, Clock, XCircle,
 } from 'lucide-react';
 
@@ -41,6 +41,15 @@ interface Voucher {
   used_at: string | null;
 }
 
+interface ActiveCampaign {
+  id: number;
+  name: string;
+  type: string;
+  multiplier: number | null;
+  bonus_points: number | null;
+  ends_at: string;
+}
+
 interface LoyaltyData {
   tier: Tier | null;
   next_tier: NextTier | null;
@@ -49,7 +58,16 @@ interface LoyaltyData {
   referral_code: string | null;
   reward_tiers: RewardTier[];
   vouchers: Voucher[];
+  active_campaigns: ActiveCampaign[];
 }
+
+const CAMPAIGN_TYPE_LABELS: Record<string, string> = {
+  double_points: 'Points doublés',
+  triple_points: 'Points triplés',
+  weekend_bonus: 'Bonus week-end',
+  vacances_bonus: 'Bonus vacances',
+  custom: 'Offre spéciale',
+};
 
 interface HistoryItem {
   id: number;
@@ -301,6 +319,30 @@ export default function MemberProgrammePage() {
             </>
           )}
         </div>
+
+        {/* Campagnes en cours */}
+        {(data?.active_campaigns.length ?? 0) > 0 && (
+          <div className="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-5">
+            <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-3 flex items-center gap-1.5">
+              <Megaphone className="w-4 h-4 text-amber-600" /> Campagnes en cours
+            </h3>
+            <div className="space-y-2">
+              {data!.active_campaigns.map((c) => (
+                <div key={c.id} className="flex items-center justify-between gap-3 text-sm">
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">{c.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {CAMPAIGN_TYPE_LABELS[c.type] ?? c.type}
+                      {c.multiplier ? ` · x${c.multiplier}` : ''}
+                      {c.bonus_points ? ` · +${c.bonus_points} pts` : ''}
+                    </p>
+                  </div>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">jusqu&apos;au {fmtDate(c.ends_at)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Parrainage */}
         {data?.referral_code && (
