@@ -33,6 +33,10 @@ class UserProfileController extends Controller
             // Entreprise (corporate)
             'company_name'          => 'nullable|string|max:255',
             'company_vat'           => 'nullable|string|max:255',
+            'company_rccm'          => 'nullable|string|max:100',
+            'company_tax_number'    => 'nullable|string|max:100',
+            'company_unique_id'     => 'nullable|string|max:100',
+            'company_sector'        => 'nullable|string|max:255',
             'company_address'       => 'nullable|string|max:255',
             'company_city'          => 'nullable|string|max:255',
             'company_country'       => 'nullable|string|max:255',
@@ -68,7 +72,7 @@ class UserProfileController extends Controller
         ]);
 
         // Nettoyage anti-XSS des champs texte libres
-        foreach (['first_name', 'last_name', 'profession', 'company_name', 'company_service', 'company_project', 'region', 'commune', 'address_line1'] as $f) {
+        foreach (['first_name', 'last_name', 'profession', 'company_name', 'company_rccm', 'company_tax_number', 'company_unique_id', 'company_sector', 'company_service', 'company_project', 'region', 'commune', 'address_line1'] as $f) {
             if (array_key_exists($f, $data) && is_string($data[$f])) {
                 $data[$f] = strip_tags($data[$f]);
             }

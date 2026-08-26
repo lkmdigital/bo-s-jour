@@ -46,6 +46,10 @@ class CorporateController extends Controller
             'company' => $isOwner ? [
                 'company_name' => $user->company_name,
                 'company_vat' => $user->company_vat,
+                'company_rccm' => $user->company_rccm,
+                'company_tax_number' => $user->company_tax_number,
+                'company_unique_id' => $user->company_unique_id,
+                'company_sector' => $user->company_sector,
                 'company_address' => $user->company_address,
                 'company_city' => $user->company_city,
                 'company_country' => $user->company_country,

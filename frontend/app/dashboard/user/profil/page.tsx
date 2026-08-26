@@ -16,6 +16,7 @@ interface Profile {
   traveler_type?: string;
   company_name?: string; company_vat?: string; company_address?: string; company_city?: string;
   company_country?: string; company_service?: string; company_project?: string; company_billing_email?: string;
+  company_rccm?: string; company_tax_number?: string; company_unique_id?: string; company_sector?: string;
   date_of_birth?: string; gender?: string; profession?: string; preferred_language?: string;
   region?: string; commune?: string; address_line1?: string;
   preferred_accommodation_type?: string; average_budget?: number | string | null;
@@ -159,6 +160,8 @@ export default function MemberProfilePage() {
           company_name: p.company_name, company_vat: p.company_vat, company_address: p.company_address,
           company_city: p.company_city, company_country: p.company_country, company_service: p.company_service,
           company_project: p.company_project, company_billing_email: p.company_billing_email || null,
+          company_rccm: p.company_rccm, company_tax_number: p.company_tax_number,
+          company_unique_id: p.company_unique_id, company_sector: p.company_sector,
         });
       }
       const res = await api.put('/me/profile', payload);
@@ -383,7 +386,11 @@ export default function MemberProfilePage() {
           <Card icon={Building2} title="Mon entreprise">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Nom de l'entreprise"><input className={inputCls} value={p.company_name || ''} onChange={(e) => set('company_name', e.target.value)} /></Field>
-              <Field label="N° TVA / Contribuable"><input className={inputCls} value={p.company_vat || ''} onChange={(e) => set('company_vat', e.target.value)} /></Field>
+              <Field label="N° TVA"><input className={inputCls} value={p.company_vat || ''} onChange={(e) => set('company_vat', e.target.value)} /></Field>
+              <Field label="RCCM"><input className={inputCls} value={p.company_rccm || ''} onChange={(e) => set('company_rccm', e.target.value)} /></Field>
+              <Field label="Numéro de Compte Contribuable"><input className={inputCls} value={p.company_tax_number || ''} onChange={(e) => set('company_tax_number', e.target.value)} /></Field>
+              <Field label="Identifiant Unique"><input className={inputCls} value={p.company_unique_id || ''} onChange={(e) => set('company_unique_id', e.target.value)} /></Field>
+              <Field label="Secteur d'activité"><input className={inputCls} value={p.company_sector || ''} onChange={(e) => set('company_sector', e.target.value)} /></Field>
               <Field label="Adresse"><input className={inputCls} value={p.company_address || ''} onChange={(e) => set('company_address', e.target.value)} /></Field>
               <Field label="Ville"><input className={inputCls} value={p.company_city || ''} onChange={(e) => set('company_city', e.target.value)} /></Field>
               <Field label="Pays"><input className={inputCls} value={p.company_country || ''} onChange={(e) => set('company_country', e.target.value)} /></Field>

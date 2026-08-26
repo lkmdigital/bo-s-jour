@@ -26,7 +26,11 @@ interface Collaborator {
 interface Overview {
   is_owner: boolean;
   is_collaborator: boolean;
-  company: { company_name?: string; company_vat?: string; company_address?: string; company_city?: string; company_country?: string; company_billing_email?: string; owner_name?: string } | null;
+  company: {
+    company_name?: string; company_vat?: string; company_rccm?: string; company_tax_number?: string;
+    company_unique_id?: string; company_sector?: string; company_address?: string; company_city?: string;
+    company_country?: string; company_billing_email?: string; owner_name?: string;
+  } | null;
   collaborators: Collaborator[];
 }
 
@@ -167,7 +171,7 @@ export default function MemberCompanyPage() {
               <span className="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center flex-shrink-0"><Building2 className="w-5 h-5" /></span>
               <div>
                 <h2 className="font-bold">{company?.company_name || 'Entreprise'}</h2>
-                <p className="text-xs text-gray-500">{company?.company_vat ? `TVA/Contribuable : ${company.company_vat}` : 'Informations société'}</p>
+                <p className="text-xs text-gray-500">{company?.company_sector || 'Informations société'}</p>
               </div>
             </div>
             <Link href="/dashboard/user/profil" className="btn-outline text-sm inline-flex items-center gap-2">
@@ -182,6 +186,22 @@ export default function MemberCompanyPage() {
             <div>
               <p className="text-xs text-gray-400">E-mail de facturation</p>
               <p className="text-gray-700 dark:text-gray-300">{company?.company_billing_email || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">N° TVA</p>
+              <p className="text-gray-700 dark:text-gray-300">{company?.company_vat || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">RCCM</p>
+              <p className="text-gray-700 dark:text-gray-300">{company?.company_rccm || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Numéro de Compte Contribuable</p>
+              <p className="text-gray-700 dark:text-gray-300">{company?.company_tax_number || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Identifiant Unique</p>
+              <p className="text-gray-700 dark:text-gray-300">{company?.company_unique_id || '—'}</p>
             </div>
           </div>
         </section>
