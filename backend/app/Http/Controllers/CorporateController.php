@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\CorporateAnnualReward;
 use App\Models\CorporateCollaborator;
+use App\Models\CorporateRewardTier;
 use App\Models\User;
+use App\Services\CorporateLoyaltyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
@@ -141,6 +144,54 @@ class CorporateController extends Controller
         $collaborator->delete();
 
         return response()->json(['message' => 'Collaborateur retiré.']);
+    }
+
+    /**
+     * Progression du Programme Corporate pour l'année en cours (CA "live", pas
+     * encore figé — voir CorporateAnnualReward pour le cliché de fin d'année) :
+     * palier atteint, palier suivant et montant restant, plus la récompense de
+     * l'année précédente si elle a déjà été figée par
+     * corporate:compute-annual-rewards (doc client §13 : "sa progression vers
+     * le prochain objectif", "les récompenses estimées").
+     */
+    public function loyalty(Request $request, CorporateLoyaltyService $corporateLoyaltyService)
+    {
+        $owner = $request->user();
+        if ($owner->traveler_type !== 'corporate') {
+            return response()->json(['message' => "Réservé aux comptes voyageur Entreprise."], 403);
+        }
+
+        $year = (int) now()->year;
+        $revenue = $corporateLoyaltyService->computeAnnualRevenue($owner, $year);
+        $currentTier = $corporateLoyaltyService->determineRewardTier($revenue);
+
+        $nextTier = CorporateRewardTier::active()
+            ->where('revenue_threshold', '>', $revenue)
+            ->orderBy('revenue_threshold')
+            ->first();
+
+        $lastYearReward = CorporateAnnualReward::where('owner_id', $owner->id)
+            ->where('year', $year - 1)
+            ->first();
+
+        return response()->json([
+            'year' => $year,
+            'revenue_total' => $revenue,
+            'current_tier' => $currentTier ? [
+                'revenue_threshold' => (float) $currentTier->revenue_threshold,
+                'reward_label' => $currentTier->reward_label,
+            ] : null,
+            'next_tier' => $nextTier ? [
+                'revenue_threshold' => (float) $nextTier->revenue_threshold,
+                'reward_label' => $nextTier->reward_label,
+                'remaining' => (float) $nextTier->revenue_threshold - $revenue,
+            ] : null,
+            'last_year_reward' => $lastYearReward ? [
+                'year' => $lastYearReward->year,
+                'revenue_total' => (float) $lastYearReward->revenue_total,
+                'reward_label' => $lastYearReward->reward_label,
+            ] : null,
+        ]);
     }
 
     /**

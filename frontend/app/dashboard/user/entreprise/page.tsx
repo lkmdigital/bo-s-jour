@@ -11,7 +11,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { formatPrice } from '@/lib/utils';
 import {
   Building2, Users, UserPlus, Trash2, Pencil, Check, X, Loader2,
-  Briefcase, TrendingUp, Download, MapPin, Calendar,
+  Briefcase, TrendingUp, Download, MapPin, Calendar, Award,
 } from 'lucide-react';
 
 interface Collaborator {
@@ -30,6 +30,14 @@ interface Overview {
   collaborators: Collaborator[];
 }
 
+interface RewardTierInfo { revenue_threshold: number; reward_label: string; remaining?: number }
+interface CorporateLoyalty {
+  year: number;
+  revenue_total: number;
+  current_tier: RewardTierInfo | null;
+  next_tier: RewardTierInfo | null;
+  last_year_reward: { year: number; revenue_total: number; reward_label: string | null } | null;
+}
 interface ExpenseMonth { month: string; count: number; total: number; paid: number }
 interface ExpenseBooking {
   id: number; confirmation_code?: string;
@@ -59,6 +67,7 @@ export default function MemberCompanyPage() {
   const { isAuthenticated, isLoading, user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState<Overview | null>(null);
+  const [loyalty, setLoyalty] = useState<CorporateLoyalty | null>(null);
   const [expenses, setExpenses] = useState<{ total: number; count: number; by_month: ExpenseMonth[]; bookings: ExpenseBooking[] } | null>(null);
 
   const [showInvite, setShowInvite] = useState(false);
@@ -84,9 +93,11 @@ export default function MemberCompanyPage() {
   const load = () => {
     Promise.all([
       api.get('/me/corporate/overview').then((r) => r.data).catch(() => null),
+      api.get('/me/corporate/loyalty').then((r) => r.data).catch(() => null),
       api.get('/me/corporate/expenses', { params: { months: 6 } }).then((r) => r.data).catch(() => null),
-    ]).then(([ov, exp]) => {
+    ]).then(([ov, loy, exp]) => {
       setOverview(ov);
+      setLoyalty(loy);
       setExpenses(exp);
       setLoading(false);
     });
@@ -174,6 +185,54 @@ export default function MemberCompanyPage() {
             </div>
           </div>
         </section>
+
+        {/* Programme Corporate — progression CA annuel */}
+        {loyalty && (
+          <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0"><Award className="w-5 h-5" /></span>
+              <div>
+                <h2 className="font-bold">Programme Corporate {loyalty.year}</h2>
+                <p className="text-xs text-gray-500">Récompenses selon le chiffre d&apos;affaires annuel de l&apos;entreprise</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-900 p-4 mb-4">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatPrice(loyalty.revenue_total)} F</p>
+              <p className="text-xs text-gray-500 mt-0.5">Chiffre d&apos;affaires réalisé depuis le 1er janvier</p>
+            </div>
+
+            {loyalty.current_tier && (
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                🎉 Palier atteint : <strong>{loyalty.current_tier.reward_label}</strong>
+              </p>
+            )}
+
+            {loyalty.next_tier ? (
+              <div className="mb-2">
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+                  <span>Prochain palier : {loyalty.next_tier.reward_label}</span>
+                  <span>{formatPrice(loyalty.next_tier.remaining ?? 0)} F restants</span>
+                </div>
+                <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                  <div
+                    className="h-full bg-amber-500 rounded-full"
+                    style={{ width: `${Math.min(100, Math.max(0, (loyalty.revenue_total / loyalty.next_tier.revenue_threshold) * 100))}%` }}
+                  />
+                </div>
+              </div>
+            ) : loyalty.current_tier ? (
+              <p className="text-xs text-gray-500">Tous les paliers de l&apos;année sont atteints — félicitations !</p>
+            ) : null}
+
+            {loyalty.last_year_reward && (
+              <p className="text-xs text-gray-500 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                Bilan {loyalty.last_year_reward.year} : {formatPrice(loyalty.last_year_reward.revenue_total)} F de CA —{' '}
+                {loyalty.last_year_reward.reward_label || "aucun palier atteint"}
+              </p>
+            )}
+          </section>
+        )}
 
         {/* Collaborateurs */}
         <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">

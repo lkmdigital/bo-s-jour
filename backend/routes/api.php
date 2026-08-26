@@ -283,6 +283,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     // Espace "Mon entreprise" du voyageur Corporate (brief Étapes 21-22)
     Route::prefix('me/corporate')->group(function () {
         Route::get('/overview', [CorporateController::class, 'overview']);
+        Route::get('/loyalty', [CorporateController::class, 'loyalty']);
         Route::get('/expenses', [CorporateController::class, 'expenses']);
         Route::post('/collaborators', [CorporateController::class, 'inviteCollaborator'])->middleware('throttle:20,1,corporate-collaborator-invite');
         Route::put('/collaborators/{collaborator}', [CorporateController::class, 'updateCollaborator']);
