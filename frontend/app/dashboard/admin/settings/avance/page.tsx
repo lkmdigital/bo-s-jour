@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SlidersHorizontal, ShieldCheck, Sparkles, Calendar, UserPlus, Bell, KeyRound, Map } from 'lucide-react';
+import { SlidersHorizontal, ShieldCheck, Sparkles, Calendar, UserPlus, Bell, KeyRound, Map, BrainCircuit } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/common/ToastContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -25,6 +25,7 @@ export default function AdminAdvancedSettingsPage() {
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [whatsappToken, setWhatsappToken] = useState('');
   const [whatsappPhoneId, setWhatsappPhoneId] = useState('');
+  const [anthropicApiKey, setAnthropicApiKey] = useState('');
 
   useEffect(() => {
     api.get('/settings/admin')
@@ -43,6 +44,7 @@ export default function AdminAdvancedSettingsPage() {
         setWhatsappEnabled(!!s.whatsapp_enabled);
         setWhatsappToken(s.whatsapp_token ?? '');
         setWhatsappPhoneId(s.whatsapp_phone_id ?? '');
+        setAnthropicApiKey(s.anthropic_api_key ?? '');
       })
       .catch(() => showError('Erreur lors du chargement'))
       .finally(() => setLoading(false));
@@ -70,6 +72,7 @@ export default function AdminAdvancedSettingsPage() {
         whatsapp_enabled: whatsappEnabled,
         whatsapp_token: whatsappToken.trim() || null,
         whatsapp_phone_id: whatsappPhoneId.trim() || null,
+        anthropic_api_key: anthropicApiKey.trim() || null,
       };
       if (maintenanceEnabled) {
         payload.maintenance_message = maintenanceMessage.trim()
@@ -239,6 +242,19 @@ export default function AdminAdvancedSettingsPage() {
                     <input type="text" value={whatsappPhoneId} onChange={(e) => setWhatsappPhoneId(e.target.value)} placeholder="1234567890"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono" />
                   </div>
+                </div>
+              </div>
+              <div className="pt-4 mt-2 border-t border-gray-200 dark:border-gray-700">
+                <span className="text-sm font-medium flex items-center gap-1.5 mb-3">
+                  <BrainCircuit className="w-4 h-4" /> Module IA (Renseignement IA — Claude / Anthropic)
+                </span>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Clé API Anthropic</label>
+                  <input type="password" value={anthropicApiKey} onChange={(e) => setAnthropicApiKey(e.target.value)} placeholder="sk-ant-..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono" />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Tant qu'elle est vide, l'assistant IA administrateur reste indisponible.
+                  </p>
                 </div>
               </div>
             </div>

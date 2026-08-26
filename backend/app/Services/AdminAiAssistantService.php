@@ -6,6 +6,7 @@ use Anthropic\Client;
 use Anthropic\Messages\ToolUseBlock;
 use App\Models\Accommodation;
 use App\Models\Booking;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -37,22 +38,33 @@ Règles :
 PROMPT;
 
     private ?Client $client = null;
+    private bool $clientResolved = false;
 
-    public function __construct()
+    /**
+     * Clé API : réglage admin (Paramètres > Réglages avancés > Intégrations,
+     * modifiable sans toucher au code — même principe que whatsapp_token) en
+     * priorité, sinon repli sur ANTHROPIC_API_KEY en .env. Résolu paresseusement
+     * (pas dans le constructeur) — même convention que WhatsAppService, qui lit
+     * Setting::get() au moment de l'appel plutôt qu'à la construction.
+     */
+    private function getClient(): ?Client
     {
-        // Pas de paramètre `?Client` dans le constructeur : le conteneur Laravel
-        // auto-résout tout paramètre de type classe qu'il sait construire, même
-        // nullable avec valeur par défaut à null — masquant silencieusement la
-        // vérification "clé API absente" ci-dessous (bug trouvé en vérification).
-        $apiKey = config('services.anthropic.api_key');
+        if ($this->clientResolved) {
+            return $this->client;
+        }
+        $this->clientResolved = true;
+
+        $apiKey = (string) Setting::get('anthropic_api_key', '') ?: config('services.anthropic.api_key', '');
         if ($apiKey) {
             $this->client = new Client(apiKey: $apiKey);
         }
+
+        return $this->client;
     }
 
     public function isConfigured(): bool
     {
-        return $this->client !== null;
+        return $this->getClient() !== null;
     }
 
     /**
@@ -60,7 +72,8 @@ PROMPT;
      */
     public function ask(string $question): string
     {
-        if (!$this->client) {
+        $client = $this->getClient();
+        if (!$client) {
             throw new \RuntimeException("Le module IA n'est pas configuré (clé API manquante).");
         }
 
@@ -71,7 +84,7 @@ PROMPT;
             ['role' => 'user', 'content' => $question],
         ];
 
-        $response = $this->client->messages->create(
+        $response = $client->messages->create(
             model: $model,
             maxTokens: 2000,
             system: self::SYSTEM_PROMPT,
@@ -100,7 +113,7 @@ PROMPT;
             $messages[] = ['role' => 'assistant', 'content' => $response->content];
             $messages[] = ['role' => 'user', 'content' => $toolResults];
 
-            $response = $this->client->messages->create(
+            $response = $client->messages->create(
                 model: $model,
                 maxTokens: 2000,
                 system: self::SYSTEM_PROMPT,

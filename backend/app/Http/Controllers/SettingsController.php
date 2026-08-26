@@ -62,6 +62,9 @@ class SettingsController extends Controller
             'whatsapp_enabled' => (bool) Setting::get('whatsapp_enabled', false),
             'whatsapp_token' => (string) Setting::get('whatsapp_token', ''),
             'whatsapp_phone_id' => (string) Setting::get('whatsapp_phone_id', ''),
+            // Module IA (Claude/Anthropic) — sensible, jamais exposé publiquement.
+            // Fallback .env géré côté AdminAiAssistantService, pas ici.
+            'anthropic_api_key' => (string) Setting::get('anthropic_api_key', ''),
             // Paramètres > Langues
             'languages_enabled' => (array) Setting::get('languages_enabled', ['fr', 'en']),
             // Paramètres > Taxes de séjour
@@ -119,6 +122,7 @@ class SettingsController extends Controller
             'whatsapp_enabled' => 'sometimes|boolean',
             'whatsapp_token' => 'sometimes|nullable|string|max:1000',
             'whatsapp_phone_id' => 'sometimes|nullable|string|max:100',
+            'anthropic_api_key' => 'sometimes|nullable|string|max:255',
             'languages_enabled' => ['sometimes', 'array', 'min:1', function ($attribute, $value, $fail) {
                 if (!in_array('fr', $value, true)) {
                     $fail('Le français ne peut pas être désactivé (langue de base de la plateforme).');
@@ -218,6 +222,9 @@ class SettingsController extends Controller
         }
         if (array_key_exists('whatsapp_phone_id', $data)) {
             Setting::set('whatsapp_phone_id', $data['whatsapp_phone_id'] ?? '', 'string', 'Phone Number ID WhatsApp');
+        }
+        if (array_key_exists('anthropic_api_key', $data)) {
+            Setting::set('anthropic_api_key', $data['anthropic_api_key'] ?? '', 'string', 'Clé API Anthropic (Module IA)');
         }
 
         if (array_key_exists('languages_enabled', $data)) {
