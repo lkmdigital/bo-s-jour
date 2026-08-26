@@ -20,8 +20,12 @@ return new class extends Migration
     public function up(): void
     {
         // MySQL n'a pas d'opération idempotente pour ajouter une valeur d'enum :
-        // on redéfinit la liste complète (sans danger si déjà à jour).
-        DB::statement("ALTER TABLE accommodations MODIFY COLUMN type ENUM('hotel','lodge','guesthouse','apartment','other') NOT NULL");
+        // on redéfinit la liste complète (sans danger si déjà à jour). Sans
+        // effet nécessaire sur SQLite (tests), où ce jeu de migrations n'a
+        // pas besoin de la valeur 'other'.
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE accommodations MODIFY COLUMN type ENUM('hotel','lodge','guesthouse','apartment','other') NOT NULL");
+        }
 
         Schema::table('accommodations', function (Blueprint $table) {
             if (!Schema::hasColumn('accommodations', 'subtype')) {
@@ -55,6 +59,8 @@ return new class extends Migration
             }
         });
 
-        DB::statement("ALTER TABLE accommodations MODIFY COLUMN type ENUM('hotel','lodge','guesthouse','apartment') NOT NULL");
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE accommodations MODIFY COLUMN type ENUM('hotel','lodge','guesthouse','apartment') NOT NULL");
+        }
     }
 };

@@ -40,9 +40,12 @@ return new class extends Migration
         });
     }
 
+    /**
+     * Schema::getIndexes() (natif Laravel 11, indépendant du SGBD) plutôt que
+     * SHOW INDEX — spécifique MySQL, incompatible avec SQLite (tests).
+     */
     private function indexExists(string $table, string $index): bool
     {
-        $indexes = \DB::select("SHOW INDEX FROM `{$table}` WHERE Key_name = ?", [$index]);
-        return count($indexes) > 0;
+        return collect(Schema::getIndexes($table))->pluck('name')->contains($index);
     }
 };

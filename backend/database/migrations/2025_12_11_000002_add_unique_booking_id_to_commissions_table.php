@@ -12,14 +12,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Nettoyer les doublons avant d'ajouter la contrainte unique
-        // Garder la commission la plus récente pour chaque réservation
-        DB::statement('
-            DELETE c1 FROM commissions c1
-            INNER JOIN commissions c2 
-            WHERE c1.id < c2.id 
-            AND c1.booking_id = c2.booking_id
-        ');
+        // DELETE ... JOIN est une syntaxe MySQL — sur SQLite (tests), une
+        // base fraîchement migrée ne contient de toute façon aucun doublon
+        // à nettoyer, la contrainte unique posée ci-dessous suffit.
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            // Nettoyer les doublons avant d'ajouter la contrainte unique
+            // Garder la commission la plus récente pour chaque réservation
+            DB::statement('
+                DELETE c1 FROM commissions c1
+                INNER JOIN commissions c2
+                WHERE c1.id < c2.id
+                AND c1.booking_id = c2.booking_id
+            ');
+        }
 
         // Ajouter la contrainte unique sur booking_id
         Schema::table('commissions', function (Blueprint $table) {
