@@ -33,6 +33,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('users:remind-guest-activation')->hourly();
         $schedule->command('hosts:remind-onboarding')->hourly();
         $schedule->command('compliance:remind-hosts')->dailyAt('08:00');
+        // 2 janvier à 02h : laisse une journée de marge après le 31/12 pour
+        // que les check-out de la Saint-Sylvestre soient bien enregistrés
+        // avant de figer le CA de l'année écoulée (doc §12).
+        $schedule->command('corporate:compute-annual-rewards')->yearlyOn(1, 2, '02:00');
         $schedule->command('sanctum:prune-expired --hours=24')->daily();
     }
 

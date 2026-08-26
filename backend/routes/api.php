@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\AdminHostController;
 use App\Http\Controllers\Admin\AdminAccommodationController;
 use App\Http\Controllers\Admin\AdminActivityLogController;
 use App\Http\Controllers\Admin\AdminComplianceController;
+use App\Http\Controllers\Admin\AdminCorporateController;
 use App\Http\Controllers\Admin\AdminLoyaltyController;
 use App\Http\Controllers\Admin\AdminLegalDocumentController;
 use App\Http\Controllers\Admin\AdminPaymentMethodController;
@@ -396,6 +397,14 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::put('/campaigns/{id}', [AdminLoyaltyController::class, 'updateCampaign'])->where('id', '[0-9]+');
             Route::get('/vouchers', [AdminLoyaltyController::class, 'vouchers']);
             Route::get('/establishments', [AdminLoyaltyController::class, 'establishments']);
+        });
+
+        // Programme Corporate (admin) — paliers de CA annuel et récompenses figées
+        Route::prefix('corporate')->middleware('role:admin')->group(function () {
+            Route::get('/reward-tiers', [AdminCorporateController::class, 'rewardTiers']);
+            Route::post('/reward-tiers', [AdminCorporateController::class, 'storeRewardTier']);
+            Route::put('/reward-tiers/{id}', [AdminCorporateController::class, 'updateRewardTier'])->where('id', '[0-9]+');
+            Route::get('/annual-rewards', [AdminCorporateController::class, 'annualRewards']);
         });
 
         // Dashboard & Analytics
