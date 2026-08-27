@@ -13,9 +13,11 @@
 
           {{-- Header --}}
           <tr>
-            <td style="background:linear-gradient(135deg,#0f766e,#0d9488);padding:32px 40px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">Bosejour</h1>
-              <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">bosejour.ci</p>
+            <td style="background:#000000;padding:32px 40px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;letter-spacing:-0.5px;">
+                <span style="color:#FF0000;">bo</span> séjour
+              </h1>
+              <p style="margin:6px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">bosejour.ci</p>
             </td>
           </tr>
 
@@ -46,9 +48,9 @@
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <div style="background:#f0fdf4;border:2px solid #0d9488;border-radius:12px;padding:20px 40px;display:inline-block;">
+                    <div style="background:#fef2f2;border:2px solid #FF0000;border-radius:12px;padding:20px 40px;display:inline-block;">
                       <p style="margin:0 0 4px;font-size:12px;color:#6b7280;letter-spacing:1px;text-transform:uppercase;text-align:center;">Code de vérification à l'arrivée</p>
-                      <p style="margin:0;font-size:36px;font-weight:800;color:#0f766e;letter-spacing:8px;font-family:'Courier New',monospace;text-align:center;">{{ $booking->confirmation_code ?? '#'.$booking->id }}</p>
+                      <p style="margin:0;font-size:36px;font-weight:800;color:#FF0000;letter-spacing:8px;font-family:'Courier New',monospace;text-align:center;">{{ $booking->confirmation_code ?? '#'.$booking->id }}</p>
                     </div>
                   </td>
                 </tr>
@@ -161,7 +163,7 @@
           {{-- Montant --}}
           <tr>
             <td style="padding:0 40px 24px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f766e;border-radius:10px;padding:18px 24px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#000000;border-radius:10px;padding:18px 24px;">
                 <tr>
                   <td style="padding:0;">
                     <span style="font-size:14px;color:rgba(255,255,255,0.85);">Montant de la réservation</span>
@@ -177,7 +179,7 @@
           {{-- CTA --}}
           <tr>
             <td style="padding:0 40px 32px;text-align:center;">
-              <a href="https://bosejour.ci/host/bookings" style="display:inline-block;background:linear-gradient(135deg,#0f766e,#0d9488);color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 36px;border-radius:8px;">
+              <a href="https://bosejour.ci/host/bookings" style="display:inline-block;background:#FF0000;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 36px;border-radius:9999px;">
                 Gérer la réservation
               </a>
             </td>
@@ -187,7 +189,7 @@
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb;text-align:center;">
               <p style="margin:0;font-size:12px;color:#9ca3af;">
-                © {{ date('Y') }} Bosejour · <a href="https://bosejour.ci" style="color:#0d9488;text-decoration:none;">bosejour.ci</a>
+                © {{ date('Y') }} bo séjour · <a href="https://bosejour.ci" style="color:#FF0000;text-decoration:none;">bosejour.ci</a>
                 · Plateforme de réservation d'hébergements en Côte d'Ivoire
               </p>
             </td>

@@ -37,16 +37,16 @@ const COLUMNS = [
   },
 ];
 
-// Logos affichés dans le footer (marketing). NB : MTN MoMo et Moov Money (Flooz)
-// sont montrés ici comme moyens « à venir » mais NE SONT PAS encore proposés au
-// checkout — à configurer plus tard côté passerelle Malia Pay (cf. PaymentController
-// ::createPaymentLink $channelMap et PaymentMethodSeeder).
+// Logos affichés dans le footer (marketing) — uniquement les moyens de
+// paiement réellement proposés au checkout. MTN MoMo et Moov Money (Flooz)
+// ne sont PAS dans cette liste : Malia Pay ne fournit pas encore leurs codes
+// de canal (cf. PaymentController::createPaymentLink $channelMap et
+// PaymentMethodSeeder) — à les réintégrer ici une fois réellement actifs au
+// checkout, pas avant, pour ne jamais laisser croire qu'ils sont acceptés.
 const PAYMENT_LOGOS = [
   { src: '/images/payment-methods/visa_mastercard.png', alt: 'Visa / Mastercard' },
   { src: '/images/payment-methods/wave.png', alt: 'Wave' },
   { src: '/images/payment-methods/orange-ci.png', alt: 'Orange Money' },
-  { src: '/images/payment-methods/mtn_momo.png', alt: 'MTN MoMo' },
-  { src: '/images/payment-methods/moov.png', alt: 'Moov Money (Flooz)' },
   { src: '/images/payment-methods/djamo.jpeg', alt: 'Djamo' },
 ];
 
