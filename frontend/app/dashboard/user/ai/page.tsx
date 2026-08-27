@@ -11,6 +11,7 @@ const EXAMPLE_QUESTIONS = [
   'Je cherche un hôtel avec piscine à Assinie.',
   'Quel est mon niveau et combien de points ai-je ?',
   'Quelle est la politique d\'annulation de mes réservations ?',
+  'Que me recommandes-tu selon mes précédents séjours ?',
 ];
 
 interface Exchange {

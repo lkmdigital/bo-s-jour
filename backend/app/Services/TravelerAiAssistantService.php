@@ -27,6 +27,12 @@ use App\Models\User;
  *   exactement la même logique que LoyaltyController::show())
  * - §3.14 Assistance en Cas de Problème (get_my_bookings — premier niveau de
  *   support en s'appuyant sur les réservations réelles du voyageur)
+ * - §3.2 Recommandations Personnalisées + §3.13 Recommandations Prédictives
+ *   (get_my_travel_profile — préférences déclarées + historique réel de
+ *   séjours, combiné par Claude avec search_accommodations pour proposer des
+ *   établissements PUBLIÉS RÉELS qui correspondent, jamais une recommandation
+ *   inventée. Aucune donnée d'événement local : la plateforme n'en a pas,
+ *   assumé explicitement plutôt que simulé)
  *
  * Chaque outil touchant des données personnelles est scopé côté serveur au
  * voyageur authentifié via $this->traveler->id — jamais un paramètre que le
@@ -38,8 +44,7 @@ use App\Models\User;
  * alertes intelligentes (§3.5, §3.7, §3.9, §3.12 du doc) : hors périmètre,
  * nécessitent des données externes (météo, tourisme local) absentes de la
  * plateforme — vague séparée du plan, question de périmètre pas de
- * confidentialité. Recommandations personnalisées/prédictives (§3.2, §3.13,
- * utilisant l'historique du voyageur) : vague suivante également.
+ * confidentialité.
  */
 class TravelerAiAssistantService extends AiAssistantService
 {
@@ -70,6 +75,12 @@ Règles :
   pose la question, jamais celui d'un autre voyageur.
 - Si le voyageur colle un texte à traduire (message reçu d'un hôte, par
   exemple), traduis-le directement — ce n'est pas une donnée à interroger.
+- Pour une recommandation personnalisée, croise get_my_travel_profile (ses
+  préférences et son historique) avec search_accommodations (les
+  établissements publiés réellement disponibles) : ne recommande jamais un
+  établissement qui ne sort pas de search_accommodations. La plateforme ne
+  connaît pas les événements locaux à venir — dis-le si le voyageur en
+  demande, ne l'invente jamais.
 - Si la question sort de ton périmètre (assistance en cas de litige grave,
   remboursement, problème de paiement bloquant), oriente clairement vers le
   support bo séjour plutôt que d'improviser une solution.
@@ -137,6 +148,11 @@ PROMPT;
                 'description' => "Dernier séjour terminé du voyageur (30 derniers jours) et indique s'il a déjà laissé un avis, pour l'inviter à partager son expérience.",
                 'inputSchema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
+            [
+                'name' => 'get_my_travel_profile',
+                'description' => "Préférences déclarées du voyageur (type d'hébergement préféré, budget moyen, région) et résumé de son historique de séjours confirmés (villes visitées, prix moyen payé, types d'établissements réservés, équipements fréquemment présents). À combiner avec search_accommodations pour des recommandations personnalisées ancrées dans des établissements réels.",
+                'inputSchema' => ['type' => 'object', 'properties' => new \stdClass()],
+            ],
         ];
     }
 
@@ -149,6 +165,7 @@ PROMPT;
             'get_my_bookings' => $this->getMyBookings($input['status'] ?? null),
             'get_loyalty_status' => $this->getLoyaltyStatus(),
             'get_recent_stay_for_review' => $this->getRecentStayForReview(),
+            'get_my_travel_profile' => $this->getMyTravelProfile(),
             default => json_encode(['error' => "Outil inconnu : {$name}"]),
         };
     }
@@ -372,6 +389,56 @@ PROMPT;
             'accommodation_name' => $booking->accommodation->name ?? null,
             'check_out' => $booking->check_out,
             'already_reviewed' => $alreadyReviewed,
+        ]);
+    }
+
+    /**
+     * §3.2 + §3.13 — préférences déclarées (déjà collectées via le profil,
+     * doc §9-équivalent voyageur) + historique réel de séjours confirmés.
+     * Ne calcule aucun "score de préférence" propriétaire : transmet les
+     * faits bruts, c'est Claude qui infère et croise avec
+     * search_accommodations. Pas de données d'événements locaux/saisonniers
+     * dans la plateforme — assumé explicitement dans le prompt système
+     * plutôt que simulé ici.
+     */
+    private function getMyTravelProfile(): string
+    {
+        $user = $this->traveler;
+
+        $pastBookings = Booking::where('user_id', $user->id)
+            ->where('status', 'confirmed')
+            ->with('accommodation:id,city,type,price_per_night,amenities')
+            ->orderByDesc('check_in')
+            ->limit(20)
+            ->get();
+
+        $citiesVisited = $pastBookings->pluck('accommodation.city')->filter()->unique()->values();
+        $avgPricePaid = $pastBookings->avg(fn ($b) => (float) $b->total_price);
+        $typesBooked = $pastBookings->pluck('accommodation.type')->filter()->countBy();
+
+        $amenityCounts = [];
+        foreach ($pastBookings as $b) {
+            foreach ((array) ($b->accommodation->amenities ?? []) as $amenity) {
+                $key = mb_strtolower((string) $amenity);
+                $amenityCounts[$key] = ($amenityCounts[$key] ?? 0) + 1;
+            }
+        }
+        arsort($amenityCounts);
+
+        return json_encode([
+            'stated_preferences' => [
+                'preferred_accommodation_type' => $user->preferred_accommodation_type,
+                'average_budget_fcfa' => $user->average_budget,
+                'region' => $user->region,
+            ],
+            'booking_history' => [
+                'total_confirmed_stays' => $pastBookings->count(),
+                'cities_visited' => $citiesVisited,
+                'average_price_paid_per_stay_fcfa' => $avgPricePaid ? round($avgPricePaid) : null,
+                'accommodation_types_booked' => $typesBooked,
+                'frequently_present_amenities' => array_slice(array_keys($amenityCounts), 0, 5),
+            ],
+            'note' => "Aucune donnée d'événement local ou de saisonnalité disponible sur la plateforme — les recommandations doivent se baser uniquement sur ces préférences et cet historique.",
         ]);
     }
 }
