@@ -48,6 +48,7 @@ use App\Http\Controllers\Host\HostCheckInController;
 use App\Http\Controllers\Host\HostWithdrawalController;
 use App\Http\Controllers\Host\HostClientController;
 use App\Http\Controllers\Host\HostAiController;
+use App\Http\Controllers\Host\HostAiContentController;
 use App\Http\Controllers\Host\HostLoyaltyController;
 use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\BookingMessageController;
@@ -250,6 +251,15 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         // Module IA — Assistant conversationnel partenaire (doc "MODULE IA BOSÉJOUR" §2.1)
         // Throttle serré : chaque appel facture l'API Claude, pas de budget défini par le client.
         Route::post('/host/ai/ask', [HostAiController::class, 'ask'])->middleware('throttle:15,1,host-ai-ask');
+
+        // Module IA — Génération de contenu partenaire (doc "MODULE IA BOSÉJOUR" §2.2-2.4, §2.10 partiel)
+        Route::prefix('host/ai/content')->middleware('throttle:15,1,host-ai-content')->group(function () {
+            Route::post('/accommodation-description', [HostAiContentController::class, 'accommodationDescription']);
+            Route::post('/room-description', [HostAiContentController::class, 'roomDescription']);
+            Route::post('/translate', [HostAiContentController::class, 'translate']);
+            Route::post('/seo-suggestions', [HostAiContentController::class, 'seoSuggestions']);
+            Route::post('/review-reply', [HostAiContentController::class, 'reviewReply']);
+        });
 
         // Boîte de réception (messages plateforme et voyageurs)
         Route::get('/host/inbox', [HostInboxController::class, 'index']);

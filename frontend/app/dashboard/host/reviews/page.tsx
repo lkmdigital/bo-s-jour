@@ -8,7 +8,7 @@ import Footer from '@/components/common/Footer';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Link from 'next/link';
-import { ArrowLeft, Star, MessageSquare, Send, Building2 } from 'lucide-react';
+import { ArrowLeft, Star, MessageSquare, Send, Building2, Sparkles, Loader2 } from 'lucide-react';
 
 interface Review {
   id: number;
@@ -31,6 +31,7 @@ export default function HostReviewsPage() {
   const [replyingId, setReplyingId] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [saving, setSaving] = useState(false);
+  const [generatingId, setGeneratingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -51,6 +52,18 @@ export default function HostReviewsPage() {
       setError(err.response?.data?.message || 'Erreur lors du chargement des avis.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generateReply = async (reviewId: number) => {
+    setGeneratingId(reviewId);
+    try {
+      const res = await api.post('/host/ai/content/review-reply', { review_id: reviewId });
+      setReplyText(res.data?.data?.text || '');
+    } catch (err: any) {
+      setError(err.response?.data?.message || "L'assistant IA n'a pas pu générer de brouillon.");
+    } finally {
+      setGeneratingId(null);
     }
   };
 
@@ -159,7 +172,18 @@ export default function HostReviewsPage() {
 
                       {replyingId === review.id && (
                         <div className="mt-4">
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Votre réponse</label>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Votre réponse</label>
+                            <button
+                              type="button"
+                              onClick={() => generateReply(review.id)}
+                              disabled={generatingId === review.id}
+                              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline disabled:opacity-50"
+                            >
+                              {generatingId === review.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                              {generatingId === review.id ? 'Génération…' : 'Générer avec l’IA'}
+                            </button>
+                          </div>
                           <textarea
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}

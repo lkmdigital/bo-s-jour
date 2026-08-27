@@ -137,4 +137,35 @@ abstract class AiAssistantService
             return json_encode(['error' => "Erreur lors de l'exécution de l'outil {$name}."]);
         }
     }
+
+    /**
+     * Appel simple sans boucle d'outils, pour les personas de génération de
+     * contenu (description d'établissement, traduction, réponse à un avis…)
+     * qui n'ont pas besoin d'interroger la plateforme — juste transformer un
+     * texte fourni par l'appelant.
+     *
+     * @throws \RuntimeException si le module n'est pas configuré (clé API absente)
+     */
+    public function complete(string $systemPrompt, string $userPrompt, int $maxTokens = 1500): string
+    {
+        $client = $this->getClient();
+        if (!$client) {
+            throw new \RuntimeException("Le module IA n'est pas configuré (clé API manquante).");
+        }
+
+        $response = $client->messages->create(
+            model: config('services.anthropic.model', 'claude-opus-5'),
+            maxTokens: $maxTokens,
+            system: $systemPrompt,
+            messages: [['role' => 'user', 'content' => $userPrompt]],
+        );
+
+        foreach ($response->content as $block) {
+            if ($block->type === 'text') {
+                return trim($block->text);
+            }
+        }
+
+        return '';
+    }
 }
