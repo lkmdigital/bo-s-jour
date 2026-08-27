@@ -550,7 +550,7 @@ export default function BookingWizard(props: Props) {
 
               <label className="flex items-start gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={cgv} onChange={(e) => setCgv(e.target.checked)} className="accent-[#FF0000] mt-0.5" />
-                <span>J'ai lu et j'accepte les <Link href="/terms" className="text-primary hover:underline">conditions générales de vente</Link>. Conformément à la politique de l'établissement, la première nuitée est garantie par le paiement en ligne.</span>
+                <span>J'ai lu et j'accepte les <Link href="/cgv" className="text-primary hover:underline">conditions générales de vente</Link>. Conformément à la politique de l'établissement, la première nuitée est garantie par le paiement en ligne.</span>
               </label>
             </div>
           )}
