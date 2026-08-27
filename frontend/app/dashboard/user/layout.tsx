@@ -12,7 +12,7 @@ import { resolveImageUrl } from '@/lib/utils';
 import {
   Home, Search, Calendar, Heart, Zap, CreditCard, MessageSquare, MessagesSquare,
   User as UserIcon, FileText, Compass, Globe2, Settings, HelpCircle,
-  Gift, Bell, LogOut, Wallet, Building2,
+  Gift, Bell, LogOut, Wallet, Building2, Sparkles,
 } from 'lucide-react';
 
 interface NavItem {
@@ -28,6 +28,7 @@ const NAV: NavItem[] = [
   { labelKey: 'reservations', href: '/dashboard/user/reservations', icon: Calendar },
   { labelKey: 'favorites', href: '/favorites', icon: Heart },
   { labelKey: 'loyaltyProgram', href: '/dashboard/user/programme', icon: Zap },
+  { labelKey: 'aiAssistant', href: '/dashboard/user/ai', icon: Sparkles },
   { labelKey: 'payments', href: '/dashboard/user/paiements', icon: CreditCard },
   { labelKey: 'credits', href: '/dashboard/user/avoirs', icon: Wallet },
   { labelKey: 'company', href: '/dashboard/user/entreprise', icon: Building2, corporateOnly: true },

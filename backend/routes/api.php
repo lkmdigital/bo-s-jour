@@ -55,6 +55,7 @@ use App\Http\Controllers\BookingMessageController;
 use App\Http\Controllers\UserInboxController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\LoyaltyController;
+use App\Http\Controllers\TravelerAiController;
 use App\Http\Controllers\MemberNotificationController;
 use App\Http\Controllers\Admin\AdminReviewController;
 use App\Http\Controllers\NotificationController;
@@ -147,6 +148,10 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::get('/me/notifications', [MemberNotificationController::class, 'index']);
         Route::post('/me/notifications/{id}/read', [MemberNotificationController::class, 'markAsRead']);
         Route::post('/me/notifications/read-all', [MemberNotificationController::class, 'markAllAsRead']);
+
+        // Module IA — Assistant conversationnel voyageur (doc "MODULE IA BOSÉJOUR" §3)
+        // Throttle serré : chaque appel facture l'API Claude, pas de budget défini par le client.
+        Route::post('/me/ai/ask', [TravelerAiController::class, 'ask'])->middleware('throttle:15,1,traveler-ai-ask');
 
         // Programme de fidélité (voyageur)
         Route::get('/me/loyalty', [LoyaltyController::class, 'show']);

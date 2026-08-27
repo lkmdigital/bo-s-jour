@@ -111,22 +111,21 @@ export default function MemberAside() {
         )}
       </div>
 
-      {/* Assistant IA — Bientôt */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-primary/20 p-5">
+      {/* Assistant IA */}
+      <Link href="/dashboard/user/ai" className="block bg-white dark:bg-gray-800 rounded-2xl border border-primary/20 p-5 hover:border-primary/40 transition-colors">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
             <Sparkles className="w-4 h-4" />
           </span>
-          <div className="leading-tight">
-            <h3 className="font-bold text-sm">Assistant IA bo séjour</h3>
-            <span className="text-[10px] font-semibold text-primary">BIENTÔT</span>
-          </div>
+          <h3 className="font-bold text-sm">Assistant IA bo séjour</h3>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Bientôt, votre assistant vous proposera des recommandations d&apos;hébergements personnalisées
-          selon vos goûts et vos voyages.
+          Recherchez un hébergement, comparez, ou posez une question sur vos réservations et votre programme fidélité.
         </p>
-      </div>
+        <span className="inline-flex items-center gap-1 text-sm text-primary mt-3 hover:underline">
+          Ouvrir l&apos;assistant <ArrowRight className="w-4 h-4" />
+        </span>
+      </Link>
     </aside>
   );
 }
