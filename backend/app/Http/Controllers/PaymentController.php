@@ -765,56 +765,6 @@ class PaymentController extends Controller
     }
 
     /**
-     * Callback pour confirmer le paiement (méthode alternative)
-     */
-    public function callback(Request $request, $paymentId)
-    {
-        $payment = Payment::with('booking')->findOrFail($paymentId);
-
-        // Vérifier la signature du webhook si nécessaire
-        // TODO: Ajouter la vérification de signature pour la sécurité
-
-        $status = $request->input('status'); // 'success', 'failed', etc.
-
-        if ($status === 'success' || $status === 'completed') {
-            $payment->update([
-                'status' => 'completed',
-                'transaction_id' => $request->input('transaction_id', $payment->transaction_id),
-                'paid_at' => now(),
-                'payment_data' => $request->input('payment_data', []),
-            ]);
-
-            $booking = $this->updateBookingPaymentState($payment);
-
-            if ($booking->payment_status === 'paid') {
-                $this->createCommission($payment);
-                $this->sendBookingCodeNotification($booking);
-                // Envoyer les emails de confirmation hôte + client (avec le bon confirmation_code)
-                $this->sendBookingEmails($booking);
-            }
-
-            return response()->json([
-                'message' => 'Paiement confirmé',
-                'payment' => $payment->load('booking')
-            ]);
-        } else {
-            $payment->update([
-                'status' => 'failed',
-                'payment_data' => $request->input('payment_data', []),
-            ]);
-
-            $payment->booking->update([
-                'payment_status' => 'failed'
-            ]);
-
-            return response()->json([
-                'message' => 'Paiement échoué',
-                'payment' => $payment->load('booking')
-            ], 400);
-        }
-    }
-
-    /**
      * Obtenir les détails d'un paiement
      */
     public function show(Request $request, $paymentId)

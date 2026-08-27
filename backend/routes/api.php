@@ -325,9 +325,6 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     // Payment Methods (détails nécessitent authentification)
     Route::get('/payment-methods/{id}', [PaymentMethodController::class, 'show']);
 
-    // Payment callback (webhook, pas de rate limit - déjà publique, voir plus haut)
-    Route::post('/payments/{paymentId}/callback', [PaymentController::class, 'callback']); // Webhook, pas de rate limit
-
     // Réservations (vue globale admin, tous établissements confondus)
     Route::get('/admin/bookings', [AdminBookingController::class, 'index'])->middleware('role:admin');
     Route::get('/admin/bookings/cities', [AdminBookingController::class, 'cities'])->middleware('role:admin');
