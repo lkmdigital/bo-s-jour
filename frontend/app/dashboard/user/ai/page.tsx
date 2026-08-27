@@ -12,6 +12,7 @@ const EXAMPLE_QUESTIONS = [
   'Quel est mon niveau et combien de points ai-je ?',
   'Quelle est la politique d\'annulation de mes réservations ?',
   'Que me recommandes-tu selon mes précédents séjours ?',
+  'Quels restaurants et activités recommandes-tu à Grand-Bassam ?',
 ];
 
 interface Exchange {

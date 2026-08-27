@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Promotion;
 use App\Models\Accommodation;
+use App\Models\Favorite;
 use App\Models\Room;
+use App\Models\User;
+use App\Notifications\NewPromotionForFavoriteNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
@@ -108,7 +112,37 @@ class PromotionController extends Controller
             'members_only' => $request->boolean('members_only'),
         ]);
 
+        $this->notifyFavoritesOfNewPromotion($promotion);
+
         return response()->json($promotion->load('room'), 201);
+    }
+
+    /**
+     * §3.12 du doc "MODULE IA BOSÉJOUR" ("nouvelles promotions" parmi les
+     * alertes intelligentes) : prévient les voyageurs ayant mis cet
+     * établissement en favori. Best-effort — un échec d'envoi ne doit
+     * jamais faire échouer la création de la promotion.
+     */
+    private function notifyFavoritesOfNewPromotion(Promotion $promotion): void
+    {
+        $userIds = Favorite::where('accommodation_id', $promotion->accommodation_id)->pluck('user_id');
+        if ($userIds->isEmpty()) {
+            return;
+        }
+
+        $promotion->loadMissing('accommodation:id,name');
+
+        foreach (User::whereIn('id', $userIds)->get() as $user) {
+            try {
+                $user->notify(new NewPromotionForFavoriteNotification($promotion));
+            } catch (\Throwable $e) {
+                Log::warning('Échec notification nouvelle promo (favori)', [
+                    'user_id' => $user->id,
+                    'promotion_id' => $promotion->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**

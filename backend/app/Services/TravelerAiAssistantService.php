@@ -40,11 +40,24 @@ use App\Models\User;
  * search_accommodations/get_accommodation_details/compare_accommodations
  * n'exposent que des établissements publiés, déjà publics sur la plateforme.
  *
- * Planificateur de séjour, concierge numérique, recommandations in-séjour,
- * alertes intelligentes (§3.5, §3.7, §3.9, §3.12 du doc) : hors périmètre,
- * nécessitent des données externes (météo, tourisme local) absentes de la
- * plateforme — vague séparée du plan, question de périmètre pas de
- * confidentialité.
+ * - §3.5 Planificateur de Séjour + §3.7 Concierge Numérique + §3.9
+ *   Recommandations Pendant le Séjour : la plateforme n'a aucune base
+ *   restaurants/activités/météo/urgences — plutôt que de l'inventer,
+ *   ces trois points s'appuient sur l'outil serveur `web_search` de Claude
+ *   (recherche web réelle, pas une donnée maison), combiné à
+ *   search_accommodations pour l'hébergement. Les numéros d'urgence en
+ *   particulier ne sont JAMAIS écrits en dur dans ce code : une info fausse
+ *   ici serait dangereuse, le prompt système impose de les rechercher à
+ *   chaque fois plutôt que de mémoriser une valeur qui pourrait devenir
+ *   fausse ou l'avoir toujours été.
+ *
+ * §3.12 Alertes Intelligentes : pas un outil conversationnel — traité
+ * séparément comme une notification événementielle (voir
+ * PromotionController::notifyFavoritesOfNewPromotion, "nouvelles
+ * promotions" sur les établissements favoris). La confirmation de
+ * réservation existe déjà (BookingConfirmedNotification) ; la baisse de
+ * prix nécessiterait un historique de prix qui n'existe pas dans la
+ * plateforme — non traité, chantier distinct.
  */
 class TravelerAiAssistantService extends AiAssistantService
 {
@@ -81,6 +94,12 @@ Règles :
   établissement qui ne sort pas de search_accommodations. La plateforme ne
   connaît pas les événements locaux à venir — dis-le si le voyageur en
   demande, ne l'invente jamais.
+- Pour un itinéraire, des recommandations de restaurants/activités/sites
+  touristiques, la météo ou des informations pratiques (transports, numéros
+  d'urgence), utilise l'outil de recherche web — ce ne sont pas des données
+  de la plateforme. Ne mémorise et n'invente JAMAIS un numéro d'urgence :
+  recherche-le systématiquement et rappelle au voyageur de le vérifier
+  localement, une information erronée serait dangereuse.
 - Si la question sort de ton périmètre (assistance en cas de litige grave,
   remboursement, problème de paiement bloquant), oriente clairement vers le
   support bo séjour plutôt que d'improviser une solution.
@@ -152,6 +171,15 @@ PROMPT;
                 'name' => 'get_my_travel_profile',
                 'description' => "Préférences déclarées du voyageur (type d'hébergement préféré, budget moyen, région) et résumé de son historique de séjours confirmés (villes visitées, prix moyen payé, types d'établissements réservés, équipements fréquemment présents). À combiner avec search_accommodations pour des recommandations personnalisées ancrées dans des établissements réels.",
                 'inputSchema' => ['type' => 'object', 'properties' => new \stdClass()],
+            ],
+            // Outil serveur Anthropic (exécuté par Claude, pas par ce code) —
+            // restaurants, activités, sites touristiques, météo, transports,
+            // numéros d'urgence : aucune de ces données n'existe dans la
+            // plateforme (§3.5, §3.7, §3.9 du doc).
+            [
+                'type' => 'web_search_20260318',
+                'name' => 'web_search',
+                'maxUses' => 3,
             ],
         ];
     }
