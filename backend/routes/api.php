@@ -130,7 +130,9 @@ Route::get('/auth/{provider}/redirect', [OAuthController::class, 'redirect'])->w
 Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->where('provider', 'google|microsoft');
 
     // Route pour finaliser la connexion après 2FA (accessible avec token temporaire)
-    Route::post('/login/complete-2fa', [AuthController::class, 'complete2FALogin'])->middleware('auth:sanctum');
+    // Throttle serré : sans lui, un code TOTP à 6 chiffres pourrait être attaqué par force brute
+    // (voir audit sécurité 2026-08 — la cible était en plus mal vérifiée, corrigé séparément).
+    Route::post('/login/complete-2fa', [AuthController::class, 'complete2FALogin'])->middleware(['auth:sanctum', 'throttle:10,1,auth-complete-2fa']);
 
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {

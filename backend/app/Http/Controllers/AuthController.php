@@ -700,12 +700,25 @@ class AuthController extends Controller
     public function complete2FALogin(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id',
             'code' => 'required_without:recovery_code|string|size:6',
             'recovery_code' => 'required_without:code|string|size:8',
         ]);
 
-        $user = User::findOrFail($request->user_id);
+        // La cible est TOUJOURS le porteur du token temporaire authentifié par le middleware
+        // auth:sanctum — jamais un `user_id` fourni par le client. Avant ce correctif, le
+        // contrôleur faisait confiance à `$request->user_id` : n'importe quel compte, muni
+        // de son propre token valide (temporaire OU même un token normal), pouvait tenter de
+        // vérifier le code 2FA d'un AUTRE compte en indiquant son user_id dans le corps de la
+        // requête — un contournement/brute-force possible du 2FA de n'importe qui.
+        $user = $request->user();
+
+        // Le token doit être le token temporaire de vérification 2FA émis par login(), pas un
+        // token de session normal déjà pleinement authentifié. NB : on vérifie le NOM du token
+        // plutôt que tokenCan('verify-2fa') — un token normal a par défaut l'ability '*', qui
+        // satisferait n'importe quel tokenCan(), rendant ce contrôle inopérant.
+        if (!$user->currentAccessToken() || $user->currentAccessToken()->name !== '2fa-verification') {
+            return response()->json(['message' => 'Jeton de vérification 2FA invalide ou expiré.'], 403);
+        }
 
         if (!$user->two_factor_enabled) {
             return response()->json([
