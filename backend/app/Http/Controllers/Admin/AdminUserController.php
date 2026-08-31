@@ -157,6 +157,15 @@ class AdminUserController extends Controller
             'status' => ['sometimes', Rule::in(['active', 'inactive', 'blocked', 'suspended'])],
         ]);
 
+        // Le changement de rôle est un pouvoir distinct et plus sensible qu'une simple mise à
+        // jour de profil (le rôle legacy "admin" court-circuite tout le RBAC — voir
+        // User::hasPermission()) : il doit passer par la même barrière que assignRoles(),
+        // jamais être accordé par la simple autorisation "update" — qui, elle, s'auto-accorde
+        // à tout utilisateur sur son propre compte et permettrait sinon une auto-promotion.
+        if (array_key_exists('role', $validated)) {
+            $this->authorize('manageRoles', $user);
+        }
+
         $user->update($validated);
 
         // Log de l'action
