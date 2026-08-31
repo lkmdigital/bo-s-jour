@@ -48,6 +48,14 @@ function initials(name?: string) {
   return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join('');
 }
 
+// NB (audit sécurité 2026-08) : contrairement aux layouts admin/host, ce layout ne redirige pas
+// lui-même les visiteurs non authentifiés — c'est volontaire : /dashboard/user/aide, /decouvrir
+// et /recherche sont des pages publiques par design (contenu générique, navigables sans compte),
+// et /dashboard/user/[section] est un simple placeholder "bientôt disponible" sans donnée réelle.
+// Chaque page réellement sensible (réservations, paiements, profil, documents, etc.) a donc sa
+// propre garde (if (!isLoading && !isAuthenticated) router.push('/auth/login')) — vérifié : les
+// 13 pages concernées l'ont toutes. Toute NOUVELLE page affichant des données de compte doit
+// reproduire cette garde individuellement, ce layout ne la fournit pas automatiquement.
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
