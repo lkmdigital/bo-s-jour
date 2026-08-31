@@ -6,19 +6,37 @@ use App\Http\Controllers\Controller;
 use App\Models\Commission;
 use App\Models\WithdrawalRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class HostWithdrawalController extends Controller
 {
+    /**
+     * Solde réellement disponible pour un NOUVEAU retrait : commissions released non
+     * versées, moins ce qu'un retrait déjà en attente réserve déjà. Sans cette soustraction,
+     * l'hôte pouvait soumettre plusieurs demandes consécutives pour la totalité de son solde
+     * avant qu'aucune ne soit traitée (double reversement possible si l'admin en approuve
+     * plus d'une — voir AdminWithdrawalController::approve()).
+     */
+    private function availableForNewWithdrawal(int $hostId): float
+    {
+        $commissions = (float) Commission::where('host_id', $hostId)
+            ->whereNotNull('released_at')
+            ->where('status', 'pending')
+            ->sum('host_amount');
+
+        $alreadyPending = (float) WithdrawalRequest::where('host_id', $hostId)
+            ->where('status', 'pending')
+            ->sum('amount');
+
+        return max(0, $commissions - $alreadyPending);
+    }
+
     /**
      * Solde disponible pour retrait (commissions released, non encore versées).
      */
     public function availableBalance(Request $request)
     {
-        $hostId = $request->user()->hostScopeId();
-        $balance = (float) Commission::where('host_id', $hostId)
-            ->whereNotNull('released_at')
-            ->where('status', 'pending')
-            ->sum('host_amount');
+        $balance = $this->availableForNewWithdrawal($request->user()->hostScopeId());
         return response()->json(['available_balance' => $balance]);
     }
 
@@ -63,24 +81,37 @@ class HostWithdrawalController extends Controller
         $hostId = $request->user()->id;
         $amount = (float) $request->amount;
 
-        $available = (float) Commission::where('host_id', $hostId)
-            ->whereNotNull('released_at')
-            ->where('status', 'pending')
-            ->sum('host_amount');
+        $withdrawal = DB::transaction(function () use ($hostId, $amount, $request) {
+            // Verrouille les commissions du host le temps du calcul + de la création, pour
+            // qu'une deuxième demande soumise en parallèle voie bien celle-ci une fois créée.
+            Commission::where('host_id', $hostId)
+                ->whereNotNull('released_at')
+                ->where('status', 'pending')
+                ->lockForUpdate()
+                ->get();
+            WithdrawalRequest::where('host_id', $hostId)->where('status', 'pending')->lockForUpdate()->get();
 
-        if ($amount > $available) {
+            $available = $this->availableForNewWithdrawal($hostId);
+
+            if ($amount > $available) {
+                return null;
+            }
+
+            return WithdrawalRequest::create([
+                'host_id' => $hostId,
+                'amount' => $amount,
+                'status' => 'pending',
+                'payment_method' => $request->payment_method,
+                'host_note' => $request->host_note,
+            ]);
+        });
+
+        if ($withdrawal === null) {
+            $available = $this->availableForNewWithdrawal($hostId);
             return response()->json([
                 'message' => 'Le montant demandé dépasse votre solde disponible (' . number_format($available, 0, ',', ' ') . ' FCFA).',
             ], 422);
         }
-
-        $withdrawal = WithdrawalRequest::create([
-            'host_id' => $hostId,
-            'amount' => $amount,
-            'status' => 'pending',
-            'payment_method' => $request->payment_method,
-            'host_note' => $request->host_note,
-        ]);
 
         return response()->json($withdrawal, 201);
     }

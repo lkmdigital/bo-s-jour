@@ -7,6 +7,7 @@ use App\Models\Commission;
 use App\Models\User;
 use App\Models\WithdrawalRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminWithdrawalController extends Controller
@@ -78,18 +79,24 @@ class AdminWithdrawalController extends Controller
             return response()->json(['message' => "Cet utilisateur n'est pas un hôte."], 422);
         }
 
-        $withdrawal = WithdrawalRequest::create([
-            'host_id' => $host->id,
-            'amount' => $validated['amount'],
-            'status' => 'approved',
-            'payment_method' => $validated['payment_method'],
-            'payment_reference' => $validated['payment_reference'] ?? null,
-            'admin_note' => $validated['admin_note'] ?? null,
-            'processed_at' => now(),
-            'processed_by' => $request->user()->id,
-        ]);
+        $withdrawal = DB::transaction(function () use ($host, $validated, $request) {
+            $withdrawal = WithdrawalRequest::create([
+                'host_id' => $host->id,
+                'amount' => $validated['amount'],
+                'status' => 'approved',
+                'payment_method' => $validated['payment_method'],
+                'payment_reference' => $validated['payment_reference'] ?? null,
+                'admin_note' => $validated['admin_note'] ?? null,
+                'processed_at' => now(),
+                'processed_by' => $request->user()->id,
+            ]);
 
-        $this->markCommissionsPaid($withdrawal);
+            // Reversement à l'initiative de l'admin : override volontaire, pas conditionné à
+            // la couverture par des commissions "pending" (contrairement à approve() ci-dessous).
+            $this->markCommissionsPaid($withdrawal);
+
+            return $withdrawal;
+        });
 
         return response()->json($withdrawal->load('host'), 201);
     }
@@ -98,21 +105,38 @@ class AdminWithdrawalController extends Controller
     {
         $request->validate(['admin_note' => 'nullable|string|max:500']);
 
-        $withdrawal = WithdrawalRequest::with('host')->findOrFail($id);
-        if ($withdrawal->status !== 'pending') {
-            return response()->json(['message' => 'Cette demande a déjà été traitée.'], 422);
+        $result = DB::transaction(function () use ($request, $id) {
+            // Verrou sur la demande elle-même : empêche une double approbation si deux
+            // requêtes admin arrivent en parallèle sur la même demande "pending".
+            $withdrawal = WithdrawalRequest::with('host')->lockForUpdate()->findOrFail($id);
+            if ($withdrawal->status !== 'pending') {
+                return ['error' => 'Cette demande a déjà été traitée.'];
+            }
+
+            // Ne marque "approuvé" que si les commissions "pending" du host couvrent
+            // réellement le montant — avant ce correctif, une deuxième demande de retrait
+            // pouvait être approuvée alors que la première avait déjà consommé tout le solde
+            // de commissions disponible, sans qu'aucune vérification ne le signale (double
+            // reversement possible côté virement bancaire manuel).
+            if (!$this->markCommissionsPaid($withdrawal)) {
+                return ['error' => "Solde de commissions disponible insuffisant pour couvrir ce montant (probablement déjà consommé par une autre demande approuvée) — vérifiez avant d'approuver."];
+            }
+
+            $withdrawal->update([
+                'status' => 'approved',
+                'admin_note' => $request->admin_note,
+                'processed_at' => now(),
+                'processed_by' => $request->user()->id,
+            ]);
+
+            return ['withdrawal' => $withdrawal];
+        });
+
+        if (isset($result['error'])) {
+            return response()->json(['message' => $result['error']], 422);
         }
 
-        $withdrawal->update([
-            'status' => 'approved',
-            'admin_note' => $request->admin_note,
-            'processed_at' => now(),
-            'processed_by' => $request->user()->id,
-        ]);
-
-        $this->markCommissionsPaid($withdrawal);
-
-        return response()->json($withdrawal->load('host'));
+        return response()->json($result['withdrawal']->load('host'));
     }
 
     public function reject(Request $request, int $id)
@@ -135,17 +159,28 @@ class AdminWithdrawalController extends Controller
     }
 
     /**
-     * Marque les commissions dues (FIFO par released_at) comme payées
-     * jusqu'à couvrir le montant du reversement.
+     * Marque les commissions dues (FIFO par released_at) comme payées jusqu'à couvrir le
+     * montant du reversement. Verrouillées (lockForUpdate) pour empêcher qu'une même
+     * commission soit consommée deux fois par deux approbations concurrentes.
+     *
+     * @return bool false si les commissions "pending" disponibles ne couvrent pas le
+     *              montant demandé — rien n'est marqué payé dans ce cas, à l'appelant de
+     *              décider (approve() refuse l'approbation ; store() l'ignore sciemment).
      */
-    private function markCommissionsPaid(WithdrawalRequest $withdrawal): void
+    private function markCommissionsPaid(WithdrawalRequest $withdrawal): bool
     {
         $remaining = (float) $withdrawal->amount;
         $commissions = Commission::where('host_id', $withdrawal->host_id)
             ->whereNotNull('released_at')
             ->where('status', 'pending')
             ->orderBy('released_at')
+            ->lockForUpdate()
             ->get();
+
+        if ((float) $commissions->sum('host_amount') + 0.01 < $remaining) {
+            return false;
+        }
+
         foreach ($commissions as $c) {
             if ($remaining <= 0) {
                 break;
@@ -153,5 +188,7 @@ class AdminWithdrawalController extends Controller
             $c->update(['status' => 'paid', 'paid_at' => now()]);
             $remaining -= (float) $c->host_amount;
         }
+
+        return true;
     }
 }
