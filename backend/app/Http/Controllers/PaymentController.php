@@ -704,6 +704,25 @@ class PaymentController extends Controller
         }
 
         return DB::transaction(function () use ($payment, $status, $transactionId, $montant, $data) {
+            // Reverrouille dans la transaction : empêche un traitement concurrent si Malia Pay
+            // rejoue le webhook en parallèle (retry réseau) avant que le premier appel n'ait fini.
+            $payment = Payment::where('id', $payment->id)->lockForUpdate()->first();
+
+            // Idempotence : un webhook déjà traité (rejeu) ne doit jamais redéclencher la
+            // commission ni renvoyer une deuxième fois les notifications/e-mails de
+            // confirmation — avant ce correctif, chaque rejeu créait un nouveau Message et
+            // relançait les envois, sans aucune garde.
+            if ($payment->status === 'completed') {
+                \Log::info('Webhook malia-pay: paiement déjà confirmé, rejeu ignoré', [
+                    'payment_id' => $payment->id,
+                    'reference' => $payment->payment_reference,
+                ]);
+                return response()->json([
+                    'message' => 'Paiement déjà confirmé',
+                    'payment' => $payment->load('booking'),
+                ]);
+            }
+
             if ($status === 'Success' || $status === 'success' || $status === 'completed') {
                 // Paiement réussi
                 $payment->update([
