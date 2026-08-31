@@ -15,6 +15,7 @@ use App\Services\RoomPricingService;
 use App\Services\CancellationPolicyService;
 use App\Models\RoomAvailability;
 use App\Models\CorporateCollaborator;
+use App\Support\Security\SensitiveUserFields;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -759,6 +760,12 @@ class BookingController extends Controller
     public function show(Request $request, $id)
     {
         $booking = Booking::with(['accommodation.images', 'room', 'user', 'payment', 'payments'])->findOrFail($id);
+
+        // Cet endpoint reste accessible sans authentification (réservations invité) et n'importe
+        // quel appelant, authentifié ou non, peut donc potentiellement l'atteindre : ni le
+        // frontend hôte/admin ni voyageur ne lisent jamais de documents/coordonnées bancaires
+        // depuis booking.user, donc masquage systématique — pas seulement pour un tiers anonyme.
+        $booking->user?->makeHidden(SensitiveUserFields::DOCUMENTS_AND_FINANCIAL);
 
         // Vérifier les permissions
         $user = $request->user();

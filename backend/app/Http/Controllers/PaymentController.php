@@ -10,6 +10,7 @@ use App\Models\Setting;
 use App\Services\PaymentOptionsService;
 use App\Mail\BookingConfirmation;
 use App\Mail\HostNewBooking;
+use App\Support\Security\SensitiveUserFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -770,6 +771,11 @@ class PaymentController extends Controller
     public function show(Request $request, $paymentId)
     {
         $payment = Payment::with(['booking.accommodation', 'user'])->findOrFail($paymentId);
+
+        // Accessible sans authentification (réservations invité) — jamais de documents/
+        // coordonnées bancaires dans payment.user quel que soit l'appelant.
+        $payment->user?->makeHidden(SensitiveUserFields::DOCUMENTS_AND_FINANCIAL);
+
         $user = $request->user();
 
         // Si l'utilisateur est authentifié, vérifier les permissions

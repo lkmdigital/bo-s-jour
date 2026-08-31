@@ -7,6 +7,7 @@ use App\Models\AccommodationImage;
 use App\Models\Room;
 use App\Services\RoomPricingService;
 use App\Services\ImageUploadService;
+use App\Support\Security\SensitiveUserFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -16,6 +17,17 @@ use Illuminate\Support\Str;
 
 class AccommodationController extends Controller
 {
+    /**
+     * Un avis public affiche l'auteur (nom, avatar) — jamais ses coordonnées de contact,
+     * qui n'ont rien à faire sur une page d'hébergement consultée par n'importe qui.
+     */
+    private function hideReviewerSensitiveFields($accommodation): void
+    {
+        foreach ($accommodation->reviews as $review) {
+            $review->user?->makeHidden(SensitiveUserFields::DOCUMENTS_FINANCIAL_AND_CONTACT);
+        }
+    }
+
     public function index(Request $request)
     {
         $query = Accommodation::with(['host', 'images', 'reviews'])->published();
@@ -147,6 +159,12 @@ class AccommodationController extends Controller
         $perPage = $request->get('per_page', 12);
         $accommodations = $query->paginate($perPage);
 
+        // Endpoint public (aucune authentification requise) : jamais les données
+        // sensibles de l'hôte (documents, coordonnées bancaires, identifiants fiscaux).
+        foreach ($accommodations->getCollection() as $accommodation) {
+            $accommodation->host?->makeHidden(SensitiveUserFields::DOCUMENTS_AND_FINANCIAL);
+        }
+
         return response()->json($accommodations);
     }
 
@@ -182,7 +200,16 @@ class AccommodationController extends Controller
         } else {
             // Public: only published accommodations with active rooms
             $accommodation = $query->published()->findOrFail($id);
+            // Endpoint public (aucune authentification requise) : jamais les données
+            // sensibles de l'hôte. La branche propriétaire/admin ci-dessus garde un accès
+            // complet, légitime (voir /dashboard/admin/accommodations/{id} et le profil hôte).
+            $accommodation->host?->makeHidden(SensitiveUserFields::DOCUMENTS_AND_FINANCIAL);
         }
+
+        // Un avis affiche son auteur (nom, avatar) — jamais ses coordonnées de contact ni
+        // ses documents, quel que soit qui consulte la fiche (public, hôte ou admin) : cette
+        // page n'a jamais eu vocation à exposer les données d'un voyageur tiers.
+        $this->hideReviewerSensitiveFields($accommodation);
 
         return response()->json($accommodation);
     }
