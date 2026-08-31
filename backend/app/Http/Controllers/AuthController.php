@@ -788,9 +788,13 @@ class AuthController extends Controller
     /**
      * Vérifier si un utilisateur a un rôle spécifique (pour NestJS)
      */
-    public function checkRole($id, $role)
+    public function checkRole(Request $request, $id, $role)
     {
         $user = User::findOrFail($id);
+        // Endpoint hérité ("pour NestJS") sans aucun contrôle d'accès jusqu'ici : tout
+        // utilisateur authentifié pouvait consulter les rôles/permissions de N'IMPORTE QUI
+        // d'autre. Réutilise UserPolicy::view() (déjà correcte : soi-même, ou admin/gerant).
+        $this->authorize('view', $user);
         $hasRole = $user->hasRole($role);
 
         return response()->json([
@@ -803,9 +807,10 @@ class AuthController extends Controller
     /**
      * Vérifier si un utilisateur a une permission spécifique (pour NestJS)
      */
-    public function checkPermission($id, $permission)
+    public function checkPermission(Request $request, $id, $permission)
     {
         $user = User::findOrFail($id);
+        $this->authorize('view', $user);
         $hasPermission = $user->hasPermission($permission);
 
         return response()->json([
@@ -818,9 +823,10 @@ class AuthController extends Controller
     /**
      * Récupérer tous les rôles d'un utilisateur (pour NestJS)
      */
-    public function getUserRoles($id)
+    public function getUserRoles(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $this->authorize('view', $user);
         $roles = $user->roles()->get();
 
         return response()->json([
@@ -831,9 +837,10 @@ class AuthController extends Controller
     /**
      * Récupérer toutes les permissions d'un utilisateur (pour NestJS)
      */
-    public function getUserPermissions($id)
+    public function getUserPermissions(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $this->authorize('view', $user);
         $permissions = $user->permissions();
 
         return response()->json([
