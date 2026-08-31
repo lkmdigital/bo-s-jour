@@ -26,7 +26,6 @@
     "react-leaflet": "^4.2.1",
     "react-phone-input-2": "^2.15.0",
     "recharts": "^3.10.1",
-    "swiper": "^11.1.0",
     "zustand": "^4.5.0"
   },
   "devDependencies": {
