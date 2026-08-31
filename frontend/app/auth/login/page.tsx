@@ -77,12 +77,7 @@ function LoginContent() {
       // Portail public réservé aux voyageurs et partenaires :
       // le personnel bo séjour (admin / contrôleur) doit passer par le portail dédié.
       if (isAdmin(currentUser) || isController(currentUser)) {
-        // Invalidation de la session locale
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-        }
-        useAuthStore.getState().setToken(null);
+        // Invalidation de la session (cookie httpOnly — voir authService.logout())
         useAuthStore.getState().setUser(null);
         useAuthStore.getState().logout().catch(() => {});
         // Redirection dure vers ce même portail public avec le message (fiable)

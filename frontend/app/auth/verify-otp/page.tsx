@@ -82,10 +82,10 @@ function VerifyOtpContent() {
     setError(null);
 
     try {
-      const { user, token } = await authService.verifyEmailOtp(userId, fullCode);
+      const { user } = await authService.verifyEmailOtp(userId, fullCode);
 
       // Mettre à jour le store
-      useAuthStore.setState({ user, token, isAuthenticated: true });
+      useAuthStore.setState({ user, isAuthenticated: true });
 
       try {
         const freshUser = await authService.getCurrentUser();

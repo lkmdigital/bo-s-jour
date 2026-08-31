@@ -14,52 +14,37 @@ export const dynamic = 'force-dynamic';
 function OAuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setUser, setToken } = useAuthStore();
+  const { setUser } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Récupérer les données depuis l'URL (si le backend les passe en query params)
-        // Ou faire une requête au backend pour récupérer les données
-        const provider = searchParams.get('provider');
-        const token = searchParams.get('token');
-        const userData = searchParams.get('user');
+        // Le cookie de session est déjà posé par OAuthController::callback() avant cette
+        // redirection (migration 2026-08-31) — rien à lire dans l'URL, il suffit de
+        // récupérer l'utilisateur courant.
+        const { user } = await authService.handleOAuthCallback();
 
-        if (token && userData) {
-          const user = JSON.parse(decodeURIComponent(userData));
-          
-          // Stocker les données d'authentification
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-          }
-
-          // Mettre à jour le store
-          setUser(user);
-          setToken(token);
-
-          // Rediriger selon le rôle
-          const currentUser = user;
-          
-          if (isController(currentUser)) {
-            router.push('/dashboard/admin/inspections');
-            return;
-          }
-          
-          if (currentUser?.role === 'host') {
-            router.push('/dashboard/host');
-          } else if (isAdmin(currentUser)) {
-            router.push('/dashboard/admin');
-          } else {
-            router.push('/');
-          }
-        } else {
-          // Si les données ne sont pas dans l'URL, le backend devrait rediriger vers une page avec ces données
-          // Pour l'instant, on affiche une erreur
-          setError('Données d\'authentification manquantes. Veuillez réessayer.');
+        if (!user) {
+          setError('Impossible de récupérer votre session. Veuillez réessayer.');
           setLoading(false);
+          return;
+        }
+
+        setUser(user);
+
+        if (isController(user)) {
+          router.push('/dashboard/admin/inspections');
+          return;
+        }
+
+        if (user.role === 'host') {
+          router.push('/dashboard/host');
+        } else if (isAdmin(user)) {
+          router.push('/dashboard/admin');
+        } else {
+          router.push('/');
         }
       } catch (err: any) {
         console.error('OAuth callback error:', err);
@@ -69,7 +54,7 @@ function OAuthCallbackContent() {
     };
 
     handleCallback();
-  }, [router, searchParams, setUser, setToken]);
+  }, [router, searchParams, setUser]);
 
   if (loading) {
     return (

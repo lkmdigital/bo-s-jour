@@ -4,7 +4,8 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowLeft } from 'lucide-react';
-import api from '@/lib/api';
+import api, { ensureCsrfCookie } from '@/lib/api';
+import { markAuthenticated } from '@/lib/tokenStorage';
 import { useAuthStore } from '@/stores/authStore';
 import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
@@ -12,7 +13,7 @@ import Footer from '@/components/common/Footer';
 function ActivateContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const { setToken, setUser } = useAuthStore();
+  const { setUser } = useAuthStore();
 
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -34,20 +35,17 @@ function ActivateContent() {
     if (password !== confirm) { setError('Les mots de passe ne correspondent pas.'); return; }
     setLoading(true);
     try {
+      await ensureCsrfCookie();
       const res = await api.post('/auth/activate-guest', {
         email,
         password,
         password_confirmation: confirm,
         name: name || undefined,
       });
-      const { token, user } = res.data || {};
-      if (token) {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('token', token);
-          if (user) localStorage.setItem('user', JSON.stringify(user));
-        }
-        setToken(token);
-        if (user) setUser(user);
+      const { user } = res.data || {};
+      if (user) {
+        markAuthenticated(true);
+        setUser(user);
       }
       router.push('/bookings');
     } catch (err: unknown) {

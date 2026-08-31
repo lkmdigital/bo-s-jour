@@ -117,14 +117,19 @@ class OAuthController extends Controller
             // Charger les rôles RBAC
             $user->load('roles');
 
-            // Créer le token d'authentification
-            $token = $user->createToken('auth_token')->plainTextToken;
+            // Cookie de session (Sanctum stateful) : posé sur CETTE réponse (avant la
+            // redirection), le navigateur l'envoie ensuite vers n'importe quel sous-domaine
+            // de bosejour.ci (SESSION_DOMAIN=.bosejour.ci en prod) — donc déjà valide une fois
+            // arrivé sur le frontend, sans rien transporter dans l'URL. Avant ce correctif, le
+            // token ET l'utilisateur complet (JSON) transitaient en clair dans l'URL de
+            // redirection — visibles dans l'historique du navigateur, les logs serveur/proxy,
+            // et les en-têtes Referer d'une éventuelle requête sortante depuis cette page.
+            Auth::guard('web')->login($user);
+            // Token Bearer conservé en parallèle (fallback, sans effet pour ce frontend).
+            $user->createToken('auth_token')->plainTextToken;
 
-            // Rediriger vers le frontend avec les données d'authentification
             $frontendUrl = config('app.frontend_url', env('FRONTEND_URL', 'https://monbeaupays.loyerpay.ci'));
             $redirectUrl = $frontendUrl . '/auth/oauth-callback?' . http_build_query([
-                'token' => $token,
-                'user' => json_encode($user),
                 'provider' => $provider,
             ]);
 

@@ -20,6 +20,12 @@ const nextConfig = {
         source: '/tunnel-storage/:path*',
         destination: 'http://localhost:8000/storage/:path*',
       },
+      {
+        // Cookie CSRF Sanctum (migration cookie httpOnly, 2026-08-31) — route Laravel hors du
+        // préfixe /api, donc un rewrite dédié plutôt qu'un chemin dérivé de /tunnel-api.
+        source: '/tunnel-csrf-cookie',
+        destination: 'http://localhost:8000/sanctum/csrf-cookie',
+      },
     ];
   },
   images: {

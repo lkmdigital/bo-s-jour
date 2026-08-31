@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { markAuthenticated } from '@/lib/tokenStorage';
 import Header from '@/components/common/Header';
 import { useAuthStore } from '@/stores/authStore';
 import { User, Building2, Eye, EyeOff, Loader2, CheckCircle2, Info } from 'lucide-react';
@@ -64,7 +65,7 @@ const inputCls =
 function RegisterContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const { setToken, setUser } = useAuthStore();
+  const { setUser } = useAuthStore();
 
   const [form, setForm] = useState<FormState>(EMPTY);
   const [showPwd, setShowPwd] = useState(false);
@@ -172,15 +173,13 @@ function RegisterContent() {
         return;
       }
 
-      // Repli (si un token est renvoyé) : connexion directe.
-      const { token, user } = res.data || {};
-      if (token) {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('token', token);
-          if (user) localStorage.setItem('user', JSON.stringify(user));
-        }
-        setToken(token);
-        if (user) setUser(user);
+      // Repli (si l'API connecte directement, sans passer par l'OTP) : le cookie de
+      // session est alors déjà posé côté serveur (Auth::login()), il ne reste qu'à
+      // mettre à jour le store local.
+      const { user } = res.data || {};
+      if (user) {
+        markAuthenticated(true);
+        setUser(user);
       }
       const redirect = params.get('redirect');
       router.push(redirect ? decodeURIComponent(redirect) : '/dashboard/user');

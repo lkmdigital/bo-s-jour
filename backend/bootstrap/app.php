@@ -12,11 +12,18 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Removed EnsureFrontendRequestsAreStateful for API-only mode with Bearer tokens
-        // If you need stateful authentication, uncomment the line below and configure CORS/CSRF properly
-        // $middleware->api(prepend: [
-        //     \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        // ]);
+        // Réactivé le 2026-08-31 (migration localStorage -> cookie httpOnly, audit sécurité) :
+        // sans ce middleware, un token Bearer stocké côté client (localStorage) était la seule
+        // option — une faille XSS ailleurs sur le site suffisait à voler la session de façon
+        // totale et persistante. Avec ce middleware actif, une requête provenant d'un domaine
+        // listé dans SANCTUM_STATEFUL_DOMAINS s'authentifie via le cookie de session (httpOnly,
+        // invisible au JS) + CSRF, au lieu d'un token lisible par script. Un appelant qui ne
+        // correspond à aucun domaine stateful (ex. un futur client mobile) retombe
+        // automatiquement sur l'authentification par token Bearer — les deux coexistent sans
+        // conflit, c'est le mécanisme de résolution de garde natif de Sanctum.
+        $middleware->api(prepend: [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        ]);
 
         // Middleware globaux de sécurité
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);

@@ -4,7 +4,8 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, Eye, EyeOff, UserCog, ArrowLeft, Loader2 } from 'lucide-react';
-import api from '@/lib/api';
+import api, { ensureCsrfCookie } from '@/lib/api';
+import { markAuthenticated } from '@/lib/tokenStorage';
 import { useAuthStore } from '@/stores/authStore';
 import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
@@ -21,7 +22,7 @@ function ActivateStaffContent() {
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get('token') || '';
-  const { setToken, setUser } = useAuthStore();
+  const { setUser } = useAuthStore();
 
   const [info, setInfo] = useState<InvitationInfo | null>(null);
   const [checking, setChecking] = useState(true);
@@ -48,19 +49,16 @@ function ActivateStaffContent() {
     if (password !== confirm) { setError('Les mots de passe ne correspondent pas.'); return; }
     setLoading(true);
     try {
+      await ensureCsrfCookie();
       const res = await api.post('/auth/activate-staff', {
         token,
         password,
         password_confirmation: confirm,
       });
-      const { token: authToken, user } = res.data || {};
-      if (authToken) {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('token', authToken);
-          if (user) localStorage.setItem('user', JSON.stringify(user));
-        }
-        setToken(authToken);
-        if (user) setUser(user);
+      const { user } = res.data || {};
+      if (user) {
+        markAuthenticated(true);
+        setUser(user);
       }
       router.push('/dashboard/host');
     } catch (err: unknown) {

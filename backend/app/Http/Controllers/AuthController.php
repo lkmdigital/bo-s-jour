@@ -12,6 +12,7 @@ use App\Services\LoyaltyService;
 use App\Mail\OtpMail;
 use App\Mail\PasswordResetMail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -57,6 +58,9 @@ class AuthController extends Controller
         CorporateCollaborator::linkPendingInvitations($user);
         $this->notifyLoyaltyWelcome($user);
 
+        // Cookie de session (Sanctum stateful) pour le frontend web ; le token Bearer reste
+        // émis en parallèle, sans effet pour ce frontend mais laissé pour compatibilité.
+        Auth::guard('web')->login($user);
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -168,6 +172,7 @@ class AuthController extends Controller
             'invite_token' => null,
         ]);
 
+        Auth::guard('web')->login($user);
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -542,6 +547,7 @@ class AuthController extends Controller
         // Charger les rôles RBAC
         $user->load('roles');
 
+        Auth::guard('web')->login($user);
         $token = $user->createToken('auth_token')->plainTextToken;
 
         // Notification de bienvenue OneSignal (asynchrone, ne bloque pas la réponse)
@@ -627,6 +633,7 @@ class AuthController extends Controller
         if ($bypassOtp) {
             $user->update(['last_login_at' => now(), 'last_login_ip' => $request->ip(), 'login_count' => ($user->login_count ?? 0) + 1]);
             $user->load('roles');
+            Auth::guard('web')->login($user, $request->boolean('remember'));
             $token = $user->createToken('auth_token')->plainTextToken;
             return response()->json(['user' => $user, 'token' => $token]);
         }
@@ -653,6 +660,7 @@ class AuthController extends Controller
                 'login_count'   => ($user->login_count ?? 0) + 1,
             ]);
             $user->load('roles');
+            Auth::guard('web')->login($user, $request->boolean('remember'));
             $token = $user->createToken('auth_token')->plainTextToken;
             return response()->json(['user' => $user, 'token' => $token]);
         }
@@ -745,6 +753,7 @@ class AuthController extends Controller
         $request->user()->tokens()->delete();
 
         // Créer le token final
+        Auth::guard('web')->login($user);
         $token = $user->createToken('auth_token')->plainTextToken;
 
         // Enregistrer les informations de connexion
@@ -772,7 +781,18 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        // Authentifié par cookie de session (Sanctum stateful) : currentAccessToken() renvoie
+        // un TransientToken, qui n'a pas de méthode delete() (pas de ligne en base à
+        // supprimer) — l'appeler ferait planter la déconnexion pour tout utilisateur passé
+        // par le cookie. Dans ce cas, on invalide la session Laravel à la place.
+        $accessToken = $request->user()?->currentAccessToken();
+        if ($accessToken instanceof \Laravel\Sanctum\PersonalAccessToken) {
+            $accessToken->delete();
+        } else {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json(['message' => 'Logged out successfully']);
     }
@@ -936,6 +956,7 @@ class AuthController extends Controller
         ]);
 
         $user->load('roles');
+        Auth::guard('web')->login($user);
         $token = $user->createToken('auth_token')->plainTextToken;
 
         try {

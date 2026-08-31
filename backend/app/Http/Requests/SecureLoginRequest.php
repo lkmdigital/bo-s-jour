@@ -23,6 +23,10 @@ class SecureLoginRequest extends FormRequest
         return [
             'email' => 'required|email|max:255',
             'password' => 'required|string|max:255',
+            // "Se souvenir de moi" (cookie de session Sanctum, migration 2026-08-31) : prolonge
+            // la connexion au-delà de la fermeture du navigateur via le remember_token natif de
+            // Laravel (Auth::login($user, $remember)) au lieu d'un token stocké côté client.
+            'remember' => 'sometimes|boolean',
         ];
     }
 

@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { User, authService } from '@/lib/auth';
+import { markAuthenticated } from '@/lib/tokenStorage';
 import { oneSignal } from '@/lib/oneSignal';
 import { useFavoritesStore } from '@/stores/favoritesStore';
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<void>;
@@ -13,12 +13,19 @@ interface AuthState {
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   setUser: (user: User | null) => void;
-  setToken: (token: string | null) => void;
+}
+
+function identifyForNotifications(user: User) {
+  if (!user?.id) return;
+  oneSignal.loginUser(user.id);
+  oneSignal.setTags({ role: user.role ?? 'user' });
+  if (user.email) {
+    oneSignal.syncEmail(user.email);
+  }
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: null,
   isLoading: true,
   isAuthenticated: false,
 
@@ -37,51 +44,29 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw error;
     }
 
-    const { user, token } = result as { user: User; token: string };
+    const { user } = result as { user: User };
 
     try {
       const freshUser = await authService.getCurrentUser();
       const activeUser = freshUser ?? user;
-      set({ user: activeUser, token, isAuthenticated: true });
-      if (activeUser?.id) {
-        oneSignal.loginUser(activeUser.id);
-        oneSignal.setTags({ role: activeUser.role ?? 'user' });
-        if (activeUser.email) {
-          oneSignal.syncEmail(activeUser.email);
-        }
-      }
+      set({ user: activeUser, isAuthenticated: true });
+      identifyForNotifications(activeUser);
     } catch {
-      set({ user, token, isAuthenticated: true });
-      if (user?.id) {
-        oneSignal.loginUser(user.id);
-        if (user.email) {
-          oneSignal.syncEmail(user.email);
-        }
-      }
+      set({ user, isAuthenticated: true });
+      identifyForNotifications(user);
     }
   },
 
   register: async (data: any) => {
-    const { user, token } = await authService.register(data);
+    const { user } = await authService.register(data);
     try {
       const freshUser = await authService.getCurrentUser();
       const activeUser = freshUser ?? user;
-      set({ user: activeUser, token, isAuthenticated: true });
-      if (activeUser?.id) {
-        oneSignal.loginUser(activeUser.id);
-        oneSignal.setTags({ role: activeUser.role ?? 'user' });
-        if (activeUser.email) {
-          oneSignal.syncEmail(activeUser.email);
-        }
-      }
+      set({ user: activeUser, isAuthenticated: true });
+      identifyForNotifications(activeUser);
     } catch {
-      set({ user, token, isAuthenticated: true });
-      if (user?.id) {
-        oneSignal.loginUser(user.id);
-        if (user.email) {
-          oneSignal.syncEmail(user.email);
-        }
-      }
+      set({ user, isAuthenticated: true });
+      identifyForNotifications(user);
     }
   },
 
@@ -89,55 +74,32 @@ export const useAuthStore = create<AuthState>((set) => ({
     oneSignal.logoutUser();
     await authService.logout();
     useFavoritesStore.getState().reset();
-    set({ user: null, token: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false });
   },
 
+  // Authentification par cookie de session httpOnly (migration 2026-08-31) : il n'y a plus
+  // de token/utilisateur en cache à lire en premier — le navigateur envoie le cookie
+  // automatiquement, donc on interroge systématiquement /me pour connaître l'état réel.
   checkAuth: async () => {
-    const storedUser = authService.getStoredUser();
-    const token = authService.getToken();
+    try {
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 5000)
+      );
 
-    if (storedUser && token) {
-      try {
-        // Timeout de sécurité pour éviter que l'app reste bloquée
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 5000)
-        );
-        
-        const user = await Promise.race([
-          authService.getCurrentUser(),
-          timeoutPromise
-        ]) as User | null;
-        
-        set({ user, token, isAuthenticated: true, isLoading: false });
-        if (user?.id) {
-          oneSignal.loginUser(user.id);
-          oneSignal.setTags({ role: user.role ?? 'user' });
-          if (user.email) {
-            oneSignal.syncEmail(user.email);
-          }
-        }
-      } catch {
-        // En cas d'erreur, utiliser les données stockées localement
-        set({ user: storedUser, token, isAuthenticated: !!storedUser, isLoading: false });
-        if (storedUser?.id) {
-          oneSignal.loginUser(storedUser.id);
-          oneSignal.setTags({ role: storedUser.role ?? 'user' });
-          if (storedUser.email) {
-            oneSignal.syncEmail(storedUser.email);
-          }
-        }
-      }
-    } else {
-      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+      const user = await Promise.race([
+        authService.getCurrentUser(),
+        timeoutPromise,
+      ]) as User | null;
+
+      set({ user, isAuthenticated: !!user, isLoading: false });
+      markAuthenticated(!!user);
+      if (user) identifyForNotifications(user);
+    } catch {
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 
   setUser: (user: User | null) => {
     set({ user, isAuthenticated: !!user });
   },
-
-  setToken: (token: string | null) => {
-    set({ token });
-  },
 }));
-

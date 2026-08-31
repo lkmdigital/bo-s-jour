@@ -1,5 +1,5 @@
-import api from './api';
-import { persistAuth, clearAuth, readToken, readUser, isRemembered, setRememberedEmail } from './tokenStorage';
+import api, { ensureCsrfCookie } from './api';
+import { markAuthenticated, setRememberedEmail } from './tokenStorage';
 
 export interface User {
   id: number;
@@ -44,14 +44,17 @@ export interface RegisterData {
 export const authService = {
   async login(credentials: LoginCredentials): Promise<{
     user?: User;
-    token?: string;
     requires_2fa?: boolean;
     requires_email_otp?: boolean;
     user_id?: number;
     temp_token?: string;
   }> {
     const { remember = true, ...creds } = credentials;
-    const response = await api.post('/login', creds);
+
+    // Cookie de session httpOnly (Sanctum stateful, migration 2026-08-31) : le token XSRF
+    // doit être posé avant toute requête qui modifie l'état (login/register/logout).
+    await ensureCsrfCookie();
+    const response = await api.post('/login', { ...creds, remember });
 
     // Mémoriser l'e-mail pour le préremplissage (si « se souvenir »)
     setRememberedEmail(remember ? credentials.email : null);
@@ -73,24 +76,23 @@ export const authService = {
       };
     }
 
-    const { user, token } = response.data;
-    persistAuth(token, user, remember);
-
-    return { user, token };
+    markAuthenticated(true);
+    return { user: response.data.user };
   },
 
   async register(data: RegisterData) {
+    await ensureCsrfCookie();
     const response = await api.post('/register', data);
-    const { user, token } = response.data;
-
-    persistAuth(token, user, isRemembered());
-
-    return { user, token };
+    markAuthenticated(true);
+    return { user: response.data.user as User };
   },
 
   async logout() {
-    await api.post('/logout');
-    clearAuth();
+    try {
+      await api.post('/logout');
+    } finally {
+      markAuthenticated(false);
+    }
   },
 
   async getCurrentUser(): Promise<User | null> {
@@ -102,15 +104,6 @@ export const authService = {
     }
   },
 
-  getStoredUser(): User | null {
-    const userStr = readUser();
-    return userStr ? JSON.parse(userStr) : null;
-  },
-
-  getToken(): string | null {
-    return readToken();
-  },
-
   /**
    * Rediriger vers le fournisseur OAuth
    */
@@ -120,23 +113,24 @@ export const authService = {
   },
 
   /**
-   * Gérer le callback OAuth (appelé depuis une page de callback)
+   * Gérer le callback OAuth (appelé depuis une page de callback) — le backend a déjà posé
+   * le cookie de session avant la redirection (voir OAuthController::callback()) ; il ne
+   * reste qu'à récupérer l'utilisateur courant, rien ne transite plus dans l'URL.
    */
-  async handleOAuthCallback(data: { user: User; token: string; provider: string }) {
-    persistAuth(data.token, data.user, isRemembered());
-    return { user: data.user, token: data.token };
+  async handleOAuthCallback(): Promise<{ user: User | null }> {
+    const user = await this.getCurrentUser();
+    if (user) markAuthenticated(true);
+    return { user };
   },
 
   /**
    * Vérifier le code OTP email et finaliser la connexion
    */
-  async verifyEmailOtp(userId: number, code: string): Promise<{ user: User; token: string }> {
+  async verifyEmailOtp(userId: number, code: string): Promise<{ user: User }> {
+    await ensureCsrfCookie();
     const response = await api.post('/auth/verify-otp', { user_id: userId, code });
-    const { user, token } = response.data;
-
-    persistAuth(token, user, isRemembered());
-
-    return { user, token };
+    markAuthenticated(true);
+    return { user: response.data.user };
   },
 
   /**
@@ -163,4 +157,3 @@ export const authService = {
     });
   },
 };
-
