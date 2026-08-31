@@ -21,7 +21,18 @@ interface Exchange {
   isError?: boolean;
 }
 
+// Module IA — masqué le 2026-08-27 en attendant un échange avec le client sur la
+// confidentialité documentaire (Vague 7 du plan Module IA). Code d'origine conservé
+// ci-dessous (non exporté) pour réactivation rapide une fois validé.
 export default function TravelerAiAssistantPage() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center text-gray-500 dark:text-gray-400">
+      <p className="text-sm">Cette fonctionnalité est temporairement indisponible.</p>
+    </div>
+  );
+}
+
+function TravelerAiAssistantPageOriginal() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuthStore();
   const [question, setQuestion] = useState('');

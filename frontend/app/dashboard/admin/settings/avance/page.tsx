@@ -244,6 +244,9 @@ export default function AdminAdvancedSettingsPage() {
                   </div>
                 </div>
               </div>
+              {/* Module IA masqué le 2026-08-27 en attendant un échange avec le client sur la
+              confidentialité documentaire — les routes /ai/* sont désactivées côté backend,
+              ce champ n'aurait donc aucun effet tant qu'elles ne sont pas réactivées.
               <div className="pt-4 mt-2 border-t border-gray-200 dark:border-gray-700">
                 <span className="text-sm font-medium flex items-center gap-1.5 mb-3">
                   <BrainCircuit className="w-4 h-4" /> Module IA (Renseignement IA — Claude / Anthropic)
@@ -257,6 +260,7 @@ export default function AdminAdvancedSettingsPage() {
                   </p>
                 </div>
               </div>
+              */}
             </div>
           </section>
 

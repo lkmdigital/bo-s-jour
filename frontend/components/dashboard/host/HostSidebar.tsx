@@ -43,7 +43,8 @@ const NAV_ITEMS = [
   { href: '/dashboard/host/staff', label: 'Personnel', icon: UserCog },
   { href: '/dashboard/host/stats', label: 'Statistiques', icon: BarChart3 },
   { href: '/dashboard/host/programme', label: 'Programme fidélité', icon: Award },
-  { href: '/dashboard/host/ai', label: 'Assistant IA', icon: Sparkles },
+  // Module IA masqué le 2026-08-27 en attendant un échange avec le client (voir page.tsx correspondante)
+  // { href: '/dashboard/host/ai', label: 'Assistant IA', icon: Sparkles },
 ];
 
 // Clé de permission (host_staff.permissions / users.staff_permissions, choisie
@@ -63,7 +64,7 @@ const NAV_ITEM_PERMISSION: Record<string, string> = {
   '/dashboard/host/staff': 'staff',
   '/dashboard/host/stats': 'stats',
   '/dashboard/host/programme': 'stats',
-  '/dashboard/host/ai': 'ai',
+  // '/dashboard/host/ai': 'ai',
 };
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {

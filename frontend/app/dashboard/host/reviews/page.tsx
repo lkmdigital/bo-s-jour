@@ -174,6 +174,7 @@ export default function HostReviewsPage() {
                         <div className="mt-4">
                           <div className="flex items-center justify-between mb-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Votre réponse</label>
+                            {/* Bouton "Générer avec l'IA" masqué le 2026-08-27 en attendant un échange avec le client
                             <button
                               type="button"
                               onClick={() => generateReply(review.id)}
@@ -183,6 +184,7 @@ export default function HostReviewsPage() {
                               {generatingId === review.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                               {generatingId === review.id ? 'Génération…' : 'Générer avec l’IA'}
                             </button>
+                            */}
                           </div>
                           <textarea
                             value={replyText}

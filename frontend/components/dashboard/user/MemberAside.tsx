@@ -111,7 +111,7 @@ export default function MemberAside() {
         )}
       </div>
 
-      {/* Assistant IA */}
+      {/* Assistant IA — masqué le 2026-08-27 en attendant un échange avec le client (voir page.tsx correspondante)
       <Link href="/dashboard/user/ai" className="block bg-white dark:bg-gray-800 rounded-2xl border border-primary/20 p-5 hover:border-primary/40 transition-colors">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -126,6 +126,7 @@ export default function MemberAside() {
           Ouvrir l&apos;assistant <ArrowRight className="w-4 h-4" />
         </span>
       </Link>
+      */}
     </aside>
   );
 }

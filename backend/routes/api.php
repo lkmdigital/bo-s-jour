@@ -150,8 +150,9 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::post('/me/notifications/read-all', [MemberNotificationController::class, 'markAllAsRead']);
 
         // Module IA — Assistant conversationnel voyageur (doc "MODULE IA BOSÉJOUR" §3)
-        // Throttle serré : chaque appel facture l'API Claude, pas de budget défini par le client.
-        Route::post('/me/ai/ask', [TravelerAiController::class, 'ask'])->middleware('throttle:15,1,traveler-ai-ask');
+        // Désactivé le 2026-08-27 en attendant un échange avec le client sur la confidentialité
+        // documentaire (Vague 7 du plan Module IA) — à réactiver après validation.
+        // Route::post('/me/ai/ask', [TravelerAiController::class, 'ask'])->middleware('throttle:15,1,traveler-ai-ask');
 
         // Programme de fidélité (voyageur)
         Route::get('/me/loyalty', [LoyaltyController::class, 'show']);
@@ -254,17 +255,17 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::get('/host/loyalty/stats', [HostLoyaltyController::class, 'stats']);
 
         // Module IA — Assistant conversationnel partenaire (doc "MODULE IA BOSÉJOUR" §2.1)
-        // Throttle serré : chaque appel facture l'API Claude, pas de budget défini par le client.
-        Route::post('/host/ai/ask', [HostAiController::class, 'ask'])->middleware('throttle:15,1,host-ai-ask');
-
         // Module IA — Génération de contenu partenaire (doc "MODULE IA BOSÉJOUR" §2.2-2.4, §2.10 partiel)
-        Route::prefix('host/ai/content')->middleware('throttle:15,1,host-ai-content')->group(function () {
-            Route::post('/accommodation-description', [HostAiContentController::class, 'accommodationDescription']);
-            Route::post('/room-description', [HostAiContentController::class, 'roomDescription']);
-            Route::post('/translate', [HostAiContentController::class, 'translate']);
-            Route::post('/seo-suggestions', [HostAiContentController::class, 'seoSuggestions']);
-            Route::post('/review-reply', [HostAiContentController::class, 'reviewReply']);
-        });
+        // Désactivés le 2026-08-27 en attendant un échange avec le client sur la confidentialité
+        // documentaire (Vague 7 du plan Module IA) — à réactiver après validation.
+        // Route::post('/host/ai/ask', [HostAiController::class, 'ask'])->middleware('throttle:15,1,host-ai-ask');
+        // Route::prefix('host/ai/content')->middleware('throttle:15,1,host-ai-content')->group(function () {
+        //     Route::post('/accommodation-description', [HostAiContentController::class, 'accommodationDescription']);
+        //     Route::post('/room-description', [HostAiContentController::class, 'roomDescription']);
+        //     Route::post('/translate', [HostAiContentController::class, 'translate']);
+        //     Route::post('/seo-suggestions', [HostAiContentController::class, 'seoSuggestions']);
+        //     Route::post('/review-reply', [HostAiContentController::class, 'reviewReply']);
+        // });
 
         // Boîte de réception (messages plateforme et voyageurs)
         Route::get('/host/inbox', [HostInboxController::class, 'index']);
@@ -432,9 +433,10 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         });
 
         // Module IA — Assistant conversationnel admin (doc "MODULE IA BOSÉJOUR" §1.1)
-        // Throttle serré : chaque appel facture l'API Claude, pas de budget défini par le client.
-        Route::post('/ai/ask', [AdminAiController::class, 'ask'])
-            ->middleware(['role:admin', 'throttle:15,1,admin-ai-ask']);
+        // Désactivé le 2026-08-27 en attendant un échange avec le client sur la confidentialité
+        // documentaire (Vague 7 du plan Module IA) — à réactiver après validation.
+        // Route::post('/ai/ask', [AdminAiController::class, 'ask'])
+        //     ->middleware(['role:admin', 'throttle:15,1,admin-ai-ask']);
 
         // Dashboard & Analytics
         Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats'])

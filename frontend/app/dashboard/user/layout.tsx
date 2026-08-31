@@ -28,7 +28,8 @@ const NAV: NavItem[] = [
   { labelKey: 'reservations', href: '/dashboard/user/reservations', icon: Calendar },
   { labelKey: 'favorites', href: '/favorites', icon: Heart },
   { labelKey: 'loyaltyProgram', href: '/dashboard/user/programme', icon: Zap },
-  { labelKey: 'aiAssistant', href: '/dashboard/user/ai', icon: Sparkles },
+  // Module IA masqué le 2026-08-27 en attendant un échange avec le client (voir page.tsx correspondante)
+  // { labelKey: 'aiAssistant', href: '/dashboard/user/ai', icon: Sparkles },
   { labelKey: 'payments', href: '/dashboard/user/paiements', icon: CreditCard },
   { labelKey: 'credits', href: '/dashboard/user/avoirs', icon: Wallet },
   { labelKey: 'company', href: '/dashboard/user/entreprise', icon: Building2, corporateOnly: true },

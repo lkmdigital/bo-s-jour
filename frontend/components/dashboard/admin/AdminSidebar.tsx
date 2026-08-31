@@ -92,7 +92,8 @@ const NAV_GROUPS: NavGroup[] = [
     title: 'Données',
     items: [
       { href: '/dashboard/admin/base-touristique', label: 'Base touristique', icon: Map },
-      { href: '/dashboard/admin/renseignement-ia', label: 'Renseignement IA', icon: BrainCircuit },
+      // Module IA masqué le 2026-08-27 en attendant un échange avec le client (voir page.tsx correspondante)
+      // { href: '/dashboard/admin/renseignement-ia', label: 'Renseignement IA', icon: BrainCircuit },
     ],
   },
   {
