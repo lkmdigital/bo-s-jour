@@ -373,15 +373,9 @@ export default function EditAccommodationPage() {
         fd.append('media[]', file);
       });
       
-      console.log('Uploading media files:', mediaFiles.length);
-      console.log('FormData entries:', Array.from(fd.entries()));
-      console.log('API URL:', `/accommodations/${params.id}/media`);
-      
       // Ne pas définir Content-Type pour FormData (le navigateur envoie multipart avec le boundary)
       const mediaResponse = await api.post(`/accommodations/${params.id}/media`, fd);
-      
-      console.log('Media uploaded successfully:', mediaResponse.data);
-      
+
       // Rafraîchir la liste des médias existants
       const uploadedImages = mediaResponse.data?.data || mediaResponse.data;
       if (uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0) {

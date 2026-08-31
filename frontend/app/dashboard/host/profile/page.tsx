@@ -201,21 +201,8 @@ export default function HostProfilePage() {
         formDataToSend.append('tax_document', files.tax_document);
       }
 
-      // Debug: vérifier ce qui est envoyé
-      console.log('Envoi des données du profil...', {
-        formData,
-        files: Object.keys(files).filter(key => files[key as keyof typeof files] !== null)
-      });
-      
-      // Afficher le contenu du FormData
-      for (let pair of formDataToSend.entries()) {
-        console.log('FormData:', pair[0], pair[1]);
-      }
-
       // Utiliser POST au lieu de PUT car Laravel a des problèmes avec PUT et FormData
       const response = await api.post('/host/profile', formDataToSend);
-
-      console.log('Réponse reçue:', response.data);
 
       if (!response.data || !response.data.user) {
         throw new Error('Réponse invalide du serveur');

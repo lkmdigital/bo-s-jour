@@ -112,11 +112,8 @@ export default function AccommodationStatsPage() {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching stats for accommodation:', accommodationId);
       const url = `/analytics/host/accommodation/${accommodationId}`;
-      console.log('API URL:', url);
       const response = await api.get(url);
-      console.log('Stats response:', response.data);
       setStats(response.data);
     } catch (err: any) {
       console.error('Error fetching stats:', err);

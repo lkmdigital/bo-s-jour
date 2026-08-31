@@ -409,9 +409,8 @@ export default function AccommodationCreationWizard({
 
           // Ne pas définir Content-Type : axios/lib/api supprime déjà le header pour FormData,
           // ce qui permet au navigateur d'envoyer multipart/form-data avec le boundary correct.
-          const mediaResponse = await api.post(mediaEndpoint, fd);
-          
-          console.log('Media uploaded successfully:', mediaResponse.data);
+          await api.post(mediaEndpoint, fd);
+
           mediaUploadSuccess = true;
         } catch (mediaError: any) {
           console.error('Error uploading media:', mediaError);

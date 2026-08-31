@@ -597,7 +597,6 @@ export default function EnhancedRoomForm({ accommodationId, onSuccess, onCancel 
             type="button"
             onClick={() => {
               // TODO: Submit form
-              console.log('Form data:', formData);
             }}
             className="btn-primary flex items-center gap-2"
           >
