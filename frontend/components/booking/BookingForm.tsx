@@ -234,7 +234,7 @@ export default function BookingForm({ accommodationId, pricePerNight }: BookingF
         <label className="block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">Date d'arrivée</label>
         <DatePicker
           selected={checkIn}
-          onChange={(date: Date) => setValue('check_in', date)}
+          onChange={(date: Date | null) => setValue('check_in', date as Date)}
           minDate={new Date()}
           className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
           placeholderText="Sélectionner une date"
@@ -248,7 +248,7 @@ export default function BookingForm({ accommodationId, pricePerNight }: BookingF
         <label className="block text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">Date de départ</label>
         <DatePicker
           selected={checkOut}
-          onChange={(date: Date) => setValue('check_out', date)}
+          onChange={(date: Date | null) => setValue('check_out', date as Date)}
           minDate={checkIn || new Date()}
           className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
           placeholderText="Sélectionner une date"

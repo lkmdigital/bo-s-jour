@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
@@ -69,7 +69,19 @@ interface Filters {
 }
 const DEFAULT_FILTERS: Filters = { minPrice: '', maxPrice: '', minRating: 0, type: '', amenities: [], cancellation: '', featured: false };
 
+// Next.js 15 : useSearchParams() dans un composant client doit être entouré d'un
+// Suspense pendant la génération statique (voir "missing-suspense-with-csr-bailout"),
+// même avec `dynamic = 'force-dynamic'" — la vérification a lieu avant que ce réglage
+// ne s'applique. Le fallback ne s'affiche jamais en pratique (contenu quasi instantané).
 export default function AccommodationsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AccommodationsPageContent />
+    </Suspense>
+  );
+}
+
+function AccommodationsPageContent() {
   const router = useRouter();
   const urlParams = useSearchParams();
   const { user, isAuthenticated, isLoading } = useAuthStore();

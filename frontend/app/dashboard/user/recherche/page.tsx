@@ -269,7 +269,7 @@ export default function MemberSearchPage() {
             {activeFilterCount > 0 && <span className="ml-1 w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center">{activeFilterCount}</span>}
           </button>
 
-          <select value={sort} onChange={(e) => setSort(e.target.value)} className="px-3 py-2 rounded-full text-sm font-medium border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary outline-none">
+          <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="px-3 py-2 rounded-full text-sm font-medium border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary outline-none">
             {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
 
