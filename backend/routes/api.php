@@ -185,115 +185,147 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::get('/users/{id}/permissions', [AuthController::class, 'getUserPermissions'])->where('id', '[0-9]+');
 
         // Accommodations (Host) - Must be before routes with {id} parameter
+        //
+        // Middleware hoststaff:<permission> (2026-08-31) : jusqu'ici, seules les cases à
+        // cocher HostStaff::PERMISSIONS filtraient l'affichage du menu côté frontend
+        // (HostSidebar.tsx) — un collaborateur invité pour un seul poste pouvait appeler
+        // n'importe quel endpoint host directement via l'API. Chaque groupe ci-dessous est
+        // maintenant gardé par la permission correspondant EXACTEMENT au mapping déjà utilisé
+        // par HostSidebar.tsx (NAV_ITEM_PERMISSION) — le propriétaire (non-staff) passe
+        // toujours, quelle que soit la permission demandée (voir EnsureHostStaffPermission).
         Route::middleware('role:host')->group(function () {
-            // Host Profile
+            // Host Profile — réservé au propriétaire (coordonnées bancaires + documents de
+            // conformité), aucune permission staff ne couvre ce module (voir HostProfileController).
             Route::get('/host/profile', [HostProfileController::class, 'show']);
-        Route::post('/host/profile', [HostProfileController::class, 'update']); // POST pour FormData
-        
-        Route::get('/accommodations/my', [AccommodationController::class, 'myAccommodations'])->name('accommodations.my');
-        Route::post('/accommodations', [AccommodationController::class, 'store']);
-        Route::post('/accommodations/{id}/media', [AccommodationController::class, 'uploadMedia'])->where('id', '[0-9]+');
-        Route::delete('/accommodations/{accommodationId}/media/{imageId}', [AccommodationController::class, 'deleteMedia'])
-            ->where(['accommodationId' => '[0-9]+', 'imageId' => '[0-9]+']);
-        Route::post('/accommodations/{accommodationId}/media/{imageId}/primary', [AccommodationController::class, 'setPrimaryMedia'])
-            ->where(['accommodationId' => '[0-9]+', 'imageId' => '[0-9]+']);
-        Route::post('/accommodations/{id}/appointments', [AppointmentController::class, 'store'])->where('id', '[0-9]+');
-        Route::put('/accommodations/{id}', [AccommodationController::class, 'update'])->where('id', '[0-9]+');
-        Route::delete('/accommodations/{id}', [AccommodationController::class, 'destroy'])->where('id', '[0-9]+');
-        Route::get('/accommodations/{id}/readiness', [AccommodationController::class, 'readiness'])->where('id', '[0-9]+');
-        Route::post('/accommodations/{id}/submit-for-review', [AccommodationController::class, 'submitForReview'])->where('id', '[0-9]+');
+            Route::post('/host/profile', [HostProfileController::class, 'update']); // POST pour FormData
 
-        // Synchronisation externe (iCal) — brief Extranet Partenaire, Étape 18
-        Route::get('/accommodations/{id}/ical', [IcalSyncController::class, 'show'])->where('id', '[0-9]+');
-        Route::post('/accommodations/{id}/ical/sync', [IcalSyncController::class, 'sync'])->where('id', '[0-9]+')->middleware('throttle:10,1,ical-sync');
-        Route::post('/accommodations/{id}/ical/resync', [IcalSyncController::class, 'resync'])->where('id', '[0-9]+')->middleware('throttle:10,1,ical-resync');
-        Route::delete('/accommodations/{id}/ical', [IcalSyncController::class, 'disconnect'])->where('id', '[0-9]+');
-        Route::post('/accommodations/{id}/channel-manager/interest', [IcalSyncController::class, 'requestChannelManagerAccess'])->where('id', '[0-9]+')->middleware('throttle:5,1,channel-manager-interest');
+            // Établissements — permission 'property'
+            Route::middleware('hoststaff:property')->group(function () {
+                Route::get('/accommodations/my', [AccommodationController::class, 'myAccommodations'])->name('accommodations.my');
+                Route::post('/accommodations', [AccommodationController::class, 'store']);
+                Route::post('/accommodations/{id}/media', [AccommodationController::class, 'uploadMedia'])->where('id', '[0-9]+');
+                Route::delete('/accommodations/{accommodationId}/media/{imageId}', [AccommodationController::class, 'deleteMedia'])
+                    ->where(['accommodationId' => '[0-9]+', 'imageId' => '[0-9]+']);
+                Route::post('/accommodations/{accommodationId}/media/{imageId}/primary', [AccommodationController::class, 'setPrimaryMedia'])
+                    ->where(['accommodationId' => '[0-9]+', 'imageId' => '[0-9]+']);
+                Route::post('/accommodations/{id}/appointments', [AppointmentController::class, 'store'])->where('id', '[0-9]+');
+                Route::put('/accommodations/{id}', [AccommodationController::class, 'update'])->where('id', '[0-9]+');
+                Route::delete('/accommodations/{id}', [AccommodationController::class, 'destroy'])->where('id', '[0-9]+');
+                Route::get('/accommodations/{id}/readiness', [AccommodationController::class, 'readiness'])->where('id', '[0-9]+');
+                Route::post('/accommodations/{id}/submit-for-review', [AccommodationController::class, 'submitForReview'])->where('id', '[0-9]+');
 
-        // Rooms (gestion hôte)
-        // Chemin distinct de /accommodations/{id}/rooms (public, cf. ligne ~53) pour éviter
-        // que Laravel n'écrase la route publique — deux Route::get() sur la même URI+méthode
-        // se remplacent silencieusement, seule la dernière déclarée reste joignable.
-        Route::get('/accommodations/{accommodationId}/rooms/manage', [RoomController::class, 'index']);
-        Route::get('/accommodations/{accommodationId}/rooms/manage/{id}', [RoomController::class, 'show']);
-        Route::post('/accommodations/{accommodationId}/rooms', [RoomController::class, 'store']);
-        Route::put('/accommodations/{accommodationId}/rooms/{id}', [RoomController::class, 'update']);
-        Route::delete('/accommodations/{accommodationId}/rooms/{id}', [RoomController::class, 'destroy']);
+                // Synchronisation externe (iCal) — brief Extranet Partenaire, Étape 18
+                Route::get('/accommodations/{id}/ical', [IcalSyncController::class, 'show'])->where('id', '[0-9]+');
+                Route::post('/accommodations/{id}/ical/sync', [IcalSyncController::class, 'sync'])->where('id', '[0-9]+')->middleware('throttle:10,1,ical-sync');
+                Route::post('/accommodations/{id}/ical/resync', [IcalSyncController::class, 'resync'])->where('id', '[0-9]+')->middleware('throttle:10,1,ical-resync');
+                Route::delete('/accommodations/{id}/ical', [IcalSyncController::class, 'disconnect'])->where('id', '[0-9]+');
+                Route::post('/accommodations/{id}/channel-manager/interest', [IcalSyncController::class, 'requestChannelManagerAccess'])->where('id', '[0-9]+')->middleware('throttle:5,1,channel-manager-interest');
+            });
 
-        // Room Images
-        Route::post('/accommodations/{accommodationId}/rooms/{roomId}/images', [RoomController::class, 'uploadImage']);
-        Route::delete('/accommodations/{accommodationId}/rooms/{roomId}/images/{imageId}', [RoomController::class, 'deleteImage']);
-        Route::post('/accommodations/{accommodationId}/rooms/{roomId}/images/{imageId}/primary', [RoomController::class, 'setPrimaryImage']);
-        Route::post('/accommodations/{accommodationId}/rooms/{roomId}/images/reorder', [RoomController::class, 'reorderImages']);
+            // Chambres et tarifs — permission 'rooms'
+            Route::middleware('hoststaff:rooms')->group(function () {
+                // Chemin distinct de /accommodations/{id}/rooms (public, cf. ligne ~53) pour éviter
+                // que Laravel n'écrase la route publique — deux Route::get() sur la même URI+méthode
+                // se remplacent silencieusement, seule la dernière déclarée reste joignable.
+                Route::get('/accommodations/{accommodationId}/rooms/manage', [RoomController::class, 'index']);
+                Route::get('/accommodations/{accommodationId}/rooms/manage/{id}', [RoomController::class, 'show']);
+                Route::post('/accommodations/{accommodationId}/rooms', [RoomController::class, 'store']);
+                Route::put('/accommodations/{accommodationId}/rooms/{id}', [RoomController::class, 'update']);
+                Route::delete('/accommodations/{accommodationId}/rooms/{id}', [RoomController::class, 'destroy']);
 
-        // Room Availability
-        Route::get('/accommodations/{accommodationId}/rooms/{roomId}/availability', [RoomAvailabilityController::class, 'index']);
-        Route::get('/accommodations/{accommodationId}/rooms/{roomId}/calendar', [RoomAvailabilityController::class, 'getCalendar']);
-        Route::post('/accommodations/{accommodationId}/rooms/{roomId}/availability', [RoomAvailabilityController::class, 'store']);
-        Route::post('/accommodations/{accommodationId}/rooms/{roomId}/availability/bulk', [RoomAvailabilityController::class, 'bulkUpdate']);
-        Route::put('/accommodations/{accommodationId}/rooms/{roomId}/availability/{id}', [RoomAvailabilityController::class, 'update']);
-        Route::delete('/accommodations/{accommodationId}/rooms/{roomId}/availability/{id}', [RoomAvailabilityController::class, 'destroy']);
+                // Room Images
+                Route::post('/accommodations/{accommodationId}/rooms/{roomId}/images', [RoomController::class, 'uploadImage']);
+                Route::delete('/accommodations/{accommodationId}/rooms/{roomId}/images/{imageId}', [RoomController::class, 'deleteImage']);
+                Route::post('/accommodations/{accommodationId}/rooms/{roomId}/images/{imageId}/primary', [RoomController::class, 'setPrimaryImage']);
+                Route::post('/accommodations/{accommodationId}/rooms/{roomId}/images/reorder', [RoomController::class, 'reorderImages']);
 
-        // Room Price Periods (tarification par période / saisonnière)
-        Route::get('/accommodations/{accommodationId}/rooms/{roomId}/price-periods', [RoomPricePeriodController::class, 'index']);
-        Route::post('/accommodations/{accommodationId}/rooms/{roomId}/price-periods', [RoomPricePeriodController::class, 'store']);
-        Route::put('/accommodations/{accommodationId}/rooms/{roomId}/price-periods/{id}', [RoomPricePeriodController::class, 'update']);
-        Route::delete('/accommodations/{accommodationId}/rooms/{roomId}/price-periods/{id}', [RoomPricePeriodController::class, 'destroy']);
+                // Room Price Periods (tarification par période / saisonnière)
+                Route::get('/accommodations/{accommodationId}/rooms/{roomId}/price-periods', [RoomPricePeriodController::class, 'index']);
+                Route::post('/accommodations/{accommodationId}/rooms/{roomId}/price-periods', [RoomPricePeriodController::class, 'store']);
+                Route::put('/accommodations/{accommodationId}/rooms/{roomId}/price-periods/{id}', [RoomPricePeriodController::class, 'update']);
+                Route::delete('/accommodations/{accommodationId}/rooms/{roomId}/price-periods/{id}', [RoomPricePeriodController::class, 'destroy']);
+            });
 
-        // Promotions
-        Route::get('/accommodations/{accommodationId}/promotions', [PromotionController::class, 'index']);
-        Route::post('/accommodations/{accommodationId}/promotions', [PromotionController::class, 'store']);
-        Route::put('/accommodations/{accommodationId}/promotions/{promotionId}', [PromotionController::class, 'update']);
-        Route::delete('/accommodations/{accommodationId}/promotions/{promotionId}', [PromotionController::class, 'destroy']);
-        Route::post('/accommodations/{accommodationId}/promotions/{promotionId}/toggle', [PromotionController::class, 'toggle']);
-        Route::get('/accommodations/{accommodationId}/promotions/{promotionId}/stats', [PromotionController::class, 'stats']);
+            // Calendrier — permission 'calendar'
+            Route::middleware('hoststaff:calendar')->group(function () {
+                Route::get('/accommodations/{accommodationId}/rooms/{roomId}/availability', [RoomAvailabilityController::class, 'index']);
+                Route::get('/accommodations/{accommodationId}/rooms/{roomId}/calendar', [RoomAvailabilityController::class, 'getCalendar']);
+                Route::post('/accommodations/{accommodationId}/rooms/{roomId}/availability', [RoomAvailabilityController::class, 'store']);
+                Route::post('/accommodations/{accommodationId}/rooms/{roomId}/availability/bulk', [RoomAvailabilityController::class, 'bulkUpdate']);
+                Route::put('/accommodations/{accommodationId}/rooms/{roomId}/availability/{id}', [RoomAvailabilityController::class, 'update']);
+                Route::delete('/accommodations/{accommodationId}/rooms/{roomId}/availability/{id}', [RoomAvailabilityController::class, 'destroy']);
+            });
 
-        // Commentaires clients (avis reçus + réponse)
-        Route::get('/host/reviews', [HostReviewController::class, 'index']);
-        Route::patch('/host/reviews/{id}/reply', [HostReviewController::class, 'reply'])->where('id', '[0-9]+');
+            // Promotions — permission 'promotions'
+            Route::middleware('hoststaff:promotions')->group(function () {
+                Route::get('/accommodations/{accommodationId}/promotions', [PromotionController::class, 'index']);
+                Route::post('/accommodations/{accommodationId}/promotions', [PromotionController::class, 'store']);
+                Route::put('/accommodations/{accommodationId}/promotions/{promotionId}', [PromotionController::class, 'update']);
+                Route::delete('/accommodations/{accommodationId}/promotions/{promotionId}', [PromotionController::class, 'destroy']);
+                Route::post('/accommodations/{accommodationId}/promotions/{promotionId}/toggle', [PromotionController::class, 'toggle']);
+                Route::get('/accommodations/{accommodationId}/promotions/{promotionId}/stats', [PromotionController::class, 'stats']);
+            });
 
-        // Clients (voyageurs ayant réservé chez l'hôte)
-        Route::get('/host/clients', [HostClientController::class, 'index']);
+            // Avis reçus — permission 'reviews'
+            Route::middleware('hoststaff:reviews')->group(function () {
+                Route::get('/host/reviews', [HostReviewController::class, 'index']);
+                Route::patch('/host/reviews/{id}/reply', [HostReviewController::class, 'reply'])->where('id', '[0-9]+');
+            });
 
-        // Suivi du Programme de fidélité (établissement participant)
-        Route::get('/host/loyalty/stats', [HostLoyaltyController::class, 'stats']);
+            // Clients (voyageurs ayant réservé chez l'hôte) — permission 'clients'
+            Route::middleware('hoststaff:clients')->group(function () {
+                Route::get('/host/clients', [HostClientController::class, 'index']);
+            });
 
-        // Module IA — Assistant conversationnel partenaire (doc "MODULE IA BOSÉJOUR" §2.1)
-        // Module IA — Génération de contenu partenaire (doc "MODULE IA BOSÉJOUR" §2.2-2.4, §2.10 partiel)
-        // Désactivés le 2026-08-27 en attendant un échange avec le client sur la confidentialité
-        // documentaire (Vague 7 du plan Module IA) — à réactiver après validation.
-        // Route::post('/host/ai/ask', [HostAiController::class, 'ask'])->middleware('throttle:15,1,host-ai-ask');
-        // Route::prefix('host/ai/content')->middleware('throttle:15,1,host-ai-content')->group(function () {
-        //     Route::post('/accommodation-description', [HostAiContentController::class, 'accommodationDescription']);
-        //     Route::post('/room-description', [HostAiContentController::class, 'roomDescription']);
-        //     Route::post('/translate', [HostAiContentController::class, 'translate']);
-        //     Route::post('/seo-suggestions', [HostAiContentController::class, 'seoSuggestions']);
-        //     Route::post('/review-reply', [HostAiContentController::class, 'reviewReply']);
-        // });
+            // Suivi du Programme de fidélité (établissement participant) — permission 'stats'
+            // (même mapping que /dashboard/host/programme côté frontend, voir HostSidebar.tsx)
+            Route::middleware('hoststaff:stats')->group(function () {
+                Route::get('/host/loyalty/stats', [HostLoyaltyController::class, 'stats']);
+            });
 
-        // Boîte de réception (messages plateforme et voyageurs)
-        Route::get('/host/inbox', [HostInboxController::class, 'index']);
-        Route::post('/host/inbox', [HostInboxController::class, 'reply']);
-        Route::patch('/host/inbox/{id}/read', [HostInboxController::class, 'markRead'])->where('id', '[0-9]+');
+            // Module IA — Assistant conversationnel partenaire (doc "MODULE IA BOSÉJOUR" §2.1)
+            // Module IA — Génération de contenu partenaire (doc "MODULE IA BOSÉJOUR" §2.2-2.4, §2.10 partiel)
+            // Désactivés le 2026-08-27 en attendant un échange avec le client sur la confidentialité
+            // documentaire (Vague 7 du plan Module IA) — à réactiver après validation.
+            // Route::post('/host/ai/ask', [HostAiController::class, 'ask'])->middleware('throttle:15,1,host-ai-ask');
+            // Route::prefix('host/ai/content')->middleware('throttle:15,1,host-ai-content')->group(function () {
+            //     Route::post('/accommodation-description', [HostAiContentController::class, 'accommodationDescription']);
+            //     Route::post('/room-description', [HostAiContentController::class, 'roomDescription']);
+            //     Route::post('/translate', [HostAiContentController::class, 'translate']);
+            //     Route::post('/seo-suggestions', [HostAiContentController::class, 'seoSuggestions']);
+            //     Route::post('/review-reply', [HostAiContentController::class, 'reviewReply']);
+            // });
 
-        // Check-in client (code réservation → début du séjour, commission released)
-        Route::post('/host/check-in', [HostCheckInController::class, 'store']);
+            // Boîte de réception (messages plateforme et voyageurs) — aucune permission dédiée
+            // dans HostStaff::PERMISSIONS ni dans HostSidebar.tsx : accessible à tout collaborateur,
+            // par conception (communication avec les voyageurs, pas un module sensible).
+            Route::get('/host/inbox', [HostInboxController::class, 'index']);
+            Route::post('/host/inbox', [HostInboxController::class, 'reply']);
+            Route::patch('/host/inbox/{id}/read', [HostInboxController::class, 'markRead'])->where('id', '[0-9]+');
 
-        // Demandes de retrait
-        Route::get('/host/withdrawal-requests/balance', [HostWithdrawalController::class, 'availableBalance']);
-        Route::get('/host/withdrawal-requests', [HostWithdrawalController::class, 'index']);
-        Route::post('/host/withdrawal-requests', [HostWithdrawalController::class, 'store']);
+            // Check-in client (code réservation → début du séjour, commission released) — permission 'reservations'
+            Route::middleware('hoststaff:reservations')->group(function () {
+                Route::post('/host/check-in', [HostCheckInController::class, 'store']);
+            });
 
-        // Personnel (collaborateurs : réceptionniste, comptabilité, commercial, housekeeping, maintenance)
-        Route::get('/host/staff', [HostStaffController::class, 'index']);
-        Route::post('/host/staff', [HostStaffController::class, 'store'])->middleware('throttle:20,1,host-staff-invite');
-        Route::put('/host/staff/{staffMember}', [HostStaffController::class, 'update']);
-        Route::delete('/host/staff/{staffMember}', [HostStaffController::class, 'destroy']);
-    });
+            // Demandes de retrait — réservé au propriétaire, voir HostWithdrawalController::assertOwnerOnly()
+            Route::get('/host/withdrawal-requests/balance', [HostWithdrawalController::class, 'availableBalance']);
+            Route::get('/host/withdrawal-requests', [HostWithdrawalController::class, 'index']);
+            Route::post('/host/withdrawal-requests', [HostWithdrawalController::class, 'store']);
+
+            // Personnel (collaborateurs : réceptionniste, comptabilité, commercial, housekeeping, maintenance)
+            // — déjà sécurisé indépendamment dans HostStaffController::assertCanManageStaff()
+            // (réservé au propriétaire ou à un collaborateur staff_role==='administrateur',
+            // une règle plus stricte que la simple case à cocher 'staff').
+            Route::get('/host/staff', [HostStaffController::class, 'index']);
+            Route::post('/host/staff', [HostStaffController::class, 'store'])->middleware('throttle:20,1,host-staff-invite');
+            Route::put('/host/staff/{staffMember}', [HostStaffController::class, 'update']);
+            Route::delete('/host/staff/{staffMember}', [HostStaffController::class, 'destroy']);
+        });
 
     // Bookings protégées (nécessitent authentification)
     Route::get('/bookings', [BookingController::class, 'index']);
-    Route::get('/bookings/host/overview', [BookingController::class, 'hostReservations'])->middleware('role:host');
+    Route::get('/bookings/host/overview', [BookingController::class, 'hostReservations'])->middleware(['role:host', 'hoststaff:reservations']);
     Route::put('/bookings/{id}', [BookingController::class, 'update']);
     Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('throttle:5,1,booking-cancel');
     Route::post('/bookings/{booking}/refuse', [BookingController::class, 'refuse'])->middleware(['role:host,admin', 'throttle:10,1,booking-refuse']);
@@ -338,7 +370,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     // Revenue
     Route::get('/revenue/admin', [RevenueController::class, 'adminRevenue'])->middleware('role:admin');
     Route::get('/revenue/admin/export', [RevenueController::class, 'exportCommissionsCsv'])->middleware('role:admin');
-    Route::get('/revenue/host', [RevenueController::class, 'hostRevenue'])->middleware('role:host');
+    Route::get('/revenue/host', [RevenueController::class, 'hostRevenue'])->middleware(['role:host', 'hoststaff:finances']);
     Route::get('/revenue/commission-rate', [RevenueController::class, 'getCommissionRate']);
     Route::put('/revenue/commission-rate', [RevenueController::class, 'updateCommissionRate'])->middleware('role:admin');
     Route::post('/revenue/commissions/mark-paid', [RevenueController::class, 'markCommissionsPaid'])->middleware('role:admin');
@@ -363,8 +395,8 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     // Analytics
     Route::prefix('analytics')->group(function () {
         // More specific routes first
-        Route::get('/host/accommodation/{id}', [AnalyticsController::class, 'accommodationStats'])->middleware('role:host')->where('id', '[0-9]+');
-        Route::get('/host', [AnalyticsController::class, 'hostDashboard'])->middleware('role:host');
+        Route::get('/host/accommodation/{id}', [AnalyticsController::class, 'accommodationStats'])->middleware(['role:host', 'hoststaff:stats'])->where('id', '[0-9]+');
+        Route::get('/host', [AnalyticsController::class, 'hostDashboard'])->middleware(['role:host', 'hoststaff:stats']);
         Route::get('/admin', [AnalyticsController::class, 'adminDashboard'])->middleware('role:admin');
         Route::get('/traveler', [AnalyticsController::class, 'travelerDashboard'])->middleware('role:user');
     });

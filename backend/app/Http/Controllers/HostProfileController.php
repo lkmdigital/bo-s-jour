@@ -13,6 +13,16 @@ class HostProfileController extends Controller
         if (!$request->user()->isHost()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
+        // Le profil complet (coordonnées bancaires + documents de conformité) reste réservé
+        // au propriétaire, même pour un collaborateur "Administrateur" — même règle déjà
+        // appliquée aux retraits (HostWithdrawalController::store()). Aucun des postes
+        // collaborateur n'a de permission "profile" dédiée dans HostStaff::PERMISSIONS ;
+        // ce n'est donc pas un module qu'une case à cocher peut débloquer.
+        if ($request->user()->isStaff()) {
+            return response()->json([
+                'message' => "Le profil de l'établissement (coordonnées bancaires, documents) est réservé au propriétaire du compte.",
+            ], 403);
+        }
 
         $user = $request->user();
         
@@ -37,6 +47,11 @@ class HostProfileController extends Controller
     {
         if (!$request->user()->isHost()) {
             return response()->json(['message' => 'Forbidden'], 403);
+        }
+        if ($request->user()->isStaff()) {
+            return response()->json([
+                'message' => "Le profil de l'établissement (coordonnées bancaires, documents) est réservé au propriétaire du compte.",
+            ], 403);
         }
 
         $user = $request->user();

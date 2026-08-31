@@ -11,6 +11,21 @@ use Illuminate\Support\Facades\DB;
 class HostWithdrawalController extends Controller
 {
     /**
+     * Les coordonnées bancaires et les retraits restent réservés au propriétaire, même pour
+     * un collaborateur "Administrateur" (brief Extranet Partenaire, Phase 13) — étendu ici
+     * à la consultation (solde, historique), pas seulement à la création d'une demande.
+     */
+    private function assertOwnerOnly(Request $request): ?\Illuminate\Http\JsonResponse
+    {
+        if ($request->user()->isStaff()) {
+            return response()->json([
+                'message' => "Les reversements sont réservés au propriétaire du compte.",
+            ], 403);
+        }
+        return null;
+    }
+
+    /**
      * Solde réellement disponible pour un NOUVEAU retrait : commissions released non
      * versées, moins ce qu'un retrait déjà en attente réserve déjà. Sans cette soustraction,
      * l'hôte pouvait soumettre plusieurs demandes consécutives pour la totalité de son solde
@@ -36,6 +51,9 @@ class HostWithdrawalController extends Controller
      */
     public function availableBalance(Request $request)
     {
+        if ($response = $this->assertOwnerOnly($request)) {
+            return $response;
+        }
         $balance = $this->availableForNewWithdrawal($request->user()->hostScopeId());
         return response()->json(['available_balance' => $balance]);
     }
@@ -45,6 +63,9 @@ class HostWithdrawalController extends Controller
      */
     public function index(Request $request)
     {
+        if ($response = $this->assertOwnerOnly($request)) {
+            return $response;
+        }
         $requests = WithdrawalRequest::where('host_id', $request->user()->hostScopeId())
             ->orderByDesc('created_at')
             ->paginate($request->get('per_page', 20));
