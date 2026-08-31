@@ -389,12 +389,14 @@ class PaymentController extends Controller
             "success_url" => "{$frontend}/bookings/{$booking->id}?payment=success",
         ];
 
+        // Ne jamais logger nom/téléphone/email du client en clair — seules les données
+        // nécessaires au diagnostic (montant, référence, canal) ont une valeur ici.
         \Log::info('Payment data prepared', [
-            'data' => $data,
+            'reference' => $data['reference'],
+            'montant' => $data['montant'],
+            'channel' => $data['channel'],
             'merchant_id' => $data['merchant_id'],
             'aggregated_merchant_id' => $data['aggregated_merchant_id'],
-            'phone_formatted' => $phoneNumber,
-            'original_phone' => $user->phone ?? 'NOT_SET',
         ]);
 
         // Encoder en JSON en s'assurant que les nombres sont des entiers (pas de décimales)

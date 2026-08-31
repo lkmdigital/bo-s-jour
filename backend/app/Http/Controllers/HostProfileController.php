@@ -41,16 +41,6 @@ class HostProfileController extends Controller
 
         $user = $request->user();
 
-        // Debug: voir ce qui est reçu
-        \Log::info('Données reçues pour mise à jour profil', [
-            'all' => $request->all(),
-            'input' => $request->input(),
-            'has_name' => $request->has('name'),
-            'name_value' => $request->input('name'),
-            'content_type' => $request->header('Content-Type'),
-            'method' => $request->method(),
-        ]);
-
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'phone' => 'sometimes|string|max:20',
@@ -204,11 +194,12 @@ class HostProfileController extends Controller
                 $user->avatar = Storage::url($user->avatar);
             }
             
+            // Ne jamais logger les valeurs (coordonnées bancaires, numéros fiscaux/identité)
+            // en clair — seuls les noms de champs modifiés ont une valeur de diagnostic ici.
             \Log::info('Profil mis à jour avec succès', [
                 'user_id' => $user->id,
                 'completion' => $completion,
                 'fields_updated' => array_keys($updateData ?? []),
-                'request_data' => $request->except(['password', '_token']),
             ]);
             
             return response()->json([

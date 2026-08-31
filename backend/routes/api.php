@@ -107,7 +107,9 @@ Route::post('/bookings/{bookingId}/payment/initiate', [PaymentController::class,
 Route::post('/payments/{paymentId}/process', [PaymentController::class, 'process'])->middleware('throttle:15,1,payment-process'); // idem : appelé en repli juste après /initiate, ne doit pas être le facteur limitant
 
 // Payment details (public - permet de consulter un paiement sans authentification)
-Route::get('/payments/{paymentId}', [PaymentController::class, 'show']);
+// Accessible sans authentification (réservations invité) avec un ID séquentiel énumérable —
+// le throttle limite l'énumération en masse en attendant un identifiant non séquentiel dédié.
+Route::get('/payments/{paymentId}', [PaymentController::class, 'show'])->middleware('throttle:20,1,payment-show');
 
 // Auth routes avec rate limiting strict pour prévenir les attaques de force brute
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1,auth-register'); // 5 tentatives par minute
