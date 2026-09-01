@@ -22,9 +22,18 @@ const api = axios.create({
   // Authentification par cookie de session httpOnly (Sanctum stateful, migration 2026-08-31)
   // au lieu d'un token Bearer stocké côté client (localStorage) — withCredentials permet
   // l'envoi/la réception du cookie de session ET du cookie XSRF-TOKEN sur les requêtes
-  // cross-origin (bosejour.ci -> api.bosejour.ci). axios lit XSRF-TOKEN et l'attache
-  // automatiquement en en-tête X-XSRF-TOKEN (noms par défaut, déjà ceux attendus par Laravel).
+  // cross-origin (bosejour.ci -> api.bosejour.ci).
   withCredentials: true,
+  // ⚠️ Indispensable pour ce cross-origin bosejour.ci → api.bosejour.ci : par défaut, axios
+  // ne relit et n'attache le cookie XSRF-TOKEN en en-tête X-XSRF-TOKEN que pour une requête
+  // SAME-ORIGIN (voir axios/lib/helpers/resolveConfig.js : shouldSendXSRF = withXSRFToken===true
+  // || (withXSRFToken==null && isURLSameOrigin(url))). bosejour.ci et api.bosejour.ci sont deux
+  // origines distinctes du point de vue du navigateur (sous-domaines différents), même si le
+  // cookie est bien partagé via `domain=.bosejour.ci` — sans ce flag, axios ne l'envoie JAMAIS,
+  // et Laravel rejette systématiquement en "CSRF token mismatch" quel que soit l'état du cookie.
+  // Bug réel trouvé en prod le 2026-09-01 (le commentaire précédent affirmait à tort que ce
+  // comportement était automatique — jamais vérifié jusqu'à ce que ça casse en conditions réelles).
+  withXSRFToken: true,
 });
 
 /**
