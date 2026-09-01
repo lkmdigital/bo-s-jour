@@ -78,11 +78,31 @@ api.interceptors.request.use(async (config) => {
 // Handle errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     // Handle network errors
     if (!error.response) {
       error.message = 'Erreur réseau. Vérifiez votre connexion internet.';
       return Promise.reject(error);
+    }
+
+    // Handle 419 CSRF token mismatch — le cookie XSRF-TOKEN posé une fois par
+    // l'intercepteur de requête n'est jamais revérifié tant qu'il est PRÉSENT
+    // (voir hasCsrfCookie()), même s'il est périmé (session expirée, ancien
+    // onglet…) : un utilisateur dans cet état restait bloqué en boucle sur
+    // "CSRF token mismatch" sur toute action mutante, même après un simple
+    // rechargement de page (découvert en prod le 2026-09-01). On redemande un
+    // cookie frais et on retente UNE fois, de façon transparente pour l'appelant.
+    if (
+      error.response?.status === 419 &&
+      typeof window !== 'undefined' &&
+      !error.config?._csrfRetried
+    ) {
+      try {
+        await ensureCsrfCookie();
+        return api({ ...error.config, _csrfRetried: true });
+      } catch {
+        // La redemande a elle-même échoué : on laisse tomber vers l'erreur normale.
+      }
     }
 
     // Handle 401 Unauthorized
