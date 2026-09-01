@@ -8,7 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { differenceInDays } from 'date-fns';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, toDateInputValue } from '@/lib/utils';
 import Link from 'next/link';
 import { LogIn, UserPlus } from 'lucide-react';
 
@@ -79,8 +79,8 @@ export default function BookingForm({ accommodationId, pricePerNight }: BookingF
     try {
       const bookingData: any = {
         accommodation_id: accommodationId,
-        check_in: data.check_in.toISOString().split('T')[0],
-        check_out: data.check_out.toISOString().split('T')[0],
+        check_in: toDateInputValue(data.check_in),
+        check_out: toDateInputValue(data.check_out),
         guests: data.guests,
         special_requests: data.special_requests,
       };

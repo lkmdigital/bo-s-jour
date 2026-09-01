@@ -7,6 +7,25 @@ export function cn(...inputs: Array<string | false | null | undefined>): string 
 }
 
 /**
+ * Formate une Date en "YYYY-MM-DD" à partir de ses composants en heure LOCALE.
+ *
+ * ⚠️ À utiliser à la place de `date.toISOString().split('T')[0]` partout où la date
+ * vient d'un calendrier/date-picker (minuit heure locale) : toISOString() convertit
+ * d'abord en UTC, ce qui fait basculer la date d'un jour en arrière pour tout visiteur
+ * dans un fuseau horaire en avance sur UTC (Europe, la majeure partie de l'Afrique dont
+ * le Nigeria/Cameroun voisins UTC+1, etc. — la Côte d'Ivoire est en UTC+0 donc épargnée,
+ * mais pas les voyageurs internationaux). Bug réel trouvé en prod le 2026-09-01 : un
+ * check-in "aujourd'hui" sélectionné dans le calendrier se faisait rejeter par la
+ * validation backend (after_or_equal:today) car déjà "hier" une fois converti en UTC.
+ */
+export function toDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Normalise une URL d'image renvoyée par l'API.
  * - En dev via tunnel, les images uploadées ont une URL `localhost:8000/storage`
  *   injoignable → on la fait passer par le proxy Next `/tunnel-storage`.

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Calendar, Users, Lock, ShieldCheck } from 'lucide-react';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, toDateInputValue } from '@/lib/utils';
 import DateSelector from '@/components/booking/DateSelector';
 
 export interface PaymentOptionItem {
@@ -68,8 +68,8 @@ export default function BookingSidebar({
   const bookingHref = (() => {
     const params = new URLSearchParams();
     params.set('accommodation', String(accommodationId));
-    if (selectedDates.checkIn) params.set('check_in', selectedDates.checkIn.toISOString().split('T')[0]);
-    if (selectedDates.checkOut) params.set('check_out', selectedDates.checkOut.toISOString().split('T')[0]);
+    if (selectedDates.checkIn) params.set('check_in', toDateInputValue(selectedDates.checkIn));
+    if (selectedDates.checkOut) params.set('check_out', toDateInputValue(selectedDates.checkOut));
     if (selectedDates.guests) params.set('guests', String(selectedDates.guests));
     return `/bookings/new?${params.toString()}`;
   })();

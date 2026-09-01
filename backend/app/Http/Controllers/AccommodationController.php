@@ -226,6 +226,9 @@ class AccommodationController extends Controller
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
             'room_id' => 'nullable|exists:rooms,id',
+        ], [
+            'check_in.after_or_equal' => "La date d'arrivée doit être aujourd'hui ou dans le futur.",
+            'check_out.after' => "La date de départ doit être postérieure à la date d'arrivée.",
         ]);
 
         $checkIn = $request->check_in;

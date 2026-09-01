@@ -10,7 +10,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { differenceInDays } from 'date-fns';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, toDateInputValue } from '@/lib/utils';
 import Link from 'next/link';
 import { LogIn, UserPlus } from 'lucide-react';
 import RoomList from '@/components/room/RoomList';
@@ -148,8 +148,8 @@ export default function EnhancedBookingForm({ accommodationId, pricePerNight, ro
     }
     try {
       const params = new URLSearchParams({
-        check_in: checkIn.toISOString().split('T')[0],
-        check_out: checkOut.toISOString().split('T')[0],
+        check_in: toDateInputValue(checkIn),
+        check_out: toDateInputValue(checkOut),
       });
       if (selectedRoom?.id) params.set('room_id', String(selectedRoom.id));
       const res = await api.get(`/accommodations/${accommodationId}/price-preview?${params}`);
@@ -183,8 +183,8 @@ export default function EnhancedBookingForm({ accommodationId, pricePerNight, ro
       const bookingData: any = {
         accommodation_id: accommodationId,
         room_id: data.room_id || null,
-        check_in: data.check_in.toISOString().split('T')[0],
-        check_out: data.check_out.toISOString().split('T')[0],
+        check_in: toDateInputValue(data.check_in),
+        check_out: toDateInputValue(data.check_out),
         guests: data.guests,
         special_requests: data.special_requests,
         booked_for_third_party: data.booked_for_third_party,
@@ -458,8 +458,8 @@ export default function EnhancedBookingForm({ accommodationId, pricePerNight, ro
             accommodationId={accommodationId}
             onRoomSelect={handleRoomSelect}
             selectedRoomId={selectedRoom?.id}
-            checkIn={checkIn ? checkIn.toISOString().split('T')[0] : undefined}
-            checkOut={checkOut ? checkOut.toISOString().split('T')[0] : undefined}
+            checkIn={checkIn ? toDateInputValue(checkIn) : undefined}
+            checkOut={checkOut ? toDateInputValue(checkOut) : undefined}
             guests={guests}
           />
           

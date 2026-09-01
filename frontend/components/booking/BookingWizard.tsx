@@ -11,7 +11,7 @@ import {
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppSettingsStore } from '@/stores/appSettingsStore';
-import { formatPrice, resolveImageUrl, cn } from '@/lib/utils';
+import { formatPrice, resolveImageUrl, cn, toDateInputValue } from '@/lib/utils';
 import { Input } from '@/components/ui';
 import DateSelector from '@/components/booking/DateSelector';
 
@@ -287,7 +287,7 @@ export default function BookingWizard(props: Props) {
               {editingDates ? (
                 <>
                   <DateSelector
-                    onDatesSelected={(ci, co, g) => { setCheckIn(ci.toISOString().split('T')[0]); setCheckOut(co.toISOString().split('T')[0]); setGuests(g); setEditingDates(false); }}
+                    onDatesSelected={(ci, co, g) => { setCheckIn(toDateInputValue(ci)); setCheckOut(toDateInputValue(co)); setGuests(g); setEditingDates(false); }}
                     initialCheckIn={checkIn ? new Date(checkIn) : undefined}
                     initialCheckOut={checkOut ? new Date(checkOut) : undefined}
                     initialGuests={guests}

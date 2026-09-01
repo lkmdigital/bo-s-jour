@@ -5,6 +5,7 @@ import { Search, Calendar, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SearchInputWithAutocomplete from './SearchInputWithAutocomplete';
 import { useSearchStore } from '@/stores/searchStore';
+import { toDateInputValue } from '@/lib/utils';
 
 interface AdvancedSearchBarProps {
   onSearch: (params: {
@@ -60,7 +61,7 @@ export default function AdvancedSearchBar({ onSearch, initialValues }: AdvancedS
   };
 
   // Date minimale = aujourd'hui
-  const today = new Date().toISOString().split('T')[0];
+  const today = toDateInputValue(new Date());
   // Date minimale pour check-out = check-in ou aujourd'hui
   const minCheckOut = checkIn || today;
 

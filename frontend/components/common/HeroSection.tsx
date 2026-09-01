@@ -6,7 +6,7 @@ import SearchInputWithAutocomplete from './SearchInputWithAutocomplete';
 import { useSearchStore } from '@/stores/searchStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
+import { cn, toDateInputValue } from '@/lib/utils';
 
 interface SearchParams {
   search?: string;
@@ -122,7 +122,7 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
     }
   }, [session]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toDateInputValue(new Date());
   const minCheckOut = checkIn || today;
 
   const handleSubmit = (e: React.FormEvent) => {

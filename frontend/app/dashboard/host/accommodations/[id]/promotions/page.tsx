@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { ArrowLeft, Plus, Edit, Trash2, Calendar, Percent, Tag, Power, PowerOff, BarChart3, Loader2, Ticket, Moon, Award } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, toDateInputValue } from '@/lib/utils';
 
 type DiscountType = 'percent' | 'fixed' | 'free_night';
 
@@ -418,7 +418,7 @@ export default function AccommodationPromotionsPage() {
                     type="date"
                     value={formData.start_date}
                     onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={toDateInputValue(new Date())}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-800"
                     required
                   />
@@ -432,7 +432,7 @@ export default function AccommodationPromotionsPage() {
                     type="date"
                     value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    min={formData.start_date || new Date().toISOString().split('T')[0]}
+                    min={formData.start_date || toDateInputValue(new Date())}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-800"
                     required
                   />

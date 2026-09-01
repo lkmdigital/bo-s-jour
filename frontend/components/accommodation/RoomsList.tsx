@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, toDateInputValue } from '@/lib/utils';
 import { Bed, Users, Expand, Image as ImageIcon, CheckCircle, XCircle, Calendar, Wifi, Coffee, Eye, Wind } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -61,8 +61,8 @@ export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, c
   const [bedroomFilter, setBedroomFilter] = useState<number | null>(null);
 
   // Utiliser les props en priorité, sinon les paramètres URL
-  const checkInStr = propCheckIn ? propCheckIn.toISOString().split('T')[0] : urlCheckIn;
-  const checkOutStr = propCheckOut ? propCheckOut.toISOString().split('T')[0] : urlCheckOut;
+  const checkInStr = propCheckIn ? toDateInputValue(propCheckIn) : urlCheckIn;
+  const checkOutStr = propCheckOut ? toDateInputValue(propCheckOut) : urlCheckOut;
   const nights = propCheckIn && propCheckOut ? differenceInDays(propCheckOut, propCheckIn) : 0;
 
   const bedroomCounts = useMemo(

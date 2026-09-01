@@ -13,7 +13,7 @@ import Pagination from '@/components/common/Pagination';
 import PropertyCard, { PropertyCardData } from '@/components/home/PropertyCard';
 import ResultsMap, { MapItem } from '@/components/accommodations/ResultsMap';
 import { Search, SlidersHorizontal, X, Star, Map, List, Minus, Plus, Users, Gift, LogIn, UserPlus } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toDateInputValue } from '@/lib/utils';
 
 interface Accommodation {
   id: number;
@@ -120,7 +120,7 @@ function AccommodationsPageContent() {
   // Valeurs "appliquées" (déclenchent le fetch) — pour ne chercher qu'au clic
   const [applied, setApplied] = useState({ search: search, checkIn, checkOut, guests });
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toDateInputValue(new Date());
 
   useEffect(() => {
     api.get('/settings/public')

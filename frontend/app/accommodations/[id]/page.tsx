@@ -9,7 +9,7 @@ import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, toDateInputValue } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
 import { useToast } from '@/components/common/ToastContext';
@@ -302,8 +302,8 @@ export default function AccommodationDetailPage() {
   const handleDatesSelected = async (checkIn: Date, checkOut: Date, guests: number) => {
     setSelectedDates({ checkIn, checkOut, guests });
     setSearchSession({
-      checkIn: checkIn.toISOString().split('T')[0],
-      checkOut: checkOut.toISOString().split('T')[0],
+      checkIn: toDateInputValue(checkIn),
+      checkOut: toDateInputValue(checkOut),
       guests,
     });
     await filterRoomsByDates(checkIn, checkOut, guests);
@@ -314,8 +314,8 @@ export default function AccommodationDetailPage() {
     
     try {
       setLoadingRooms(true);
-      const checkInStr = checkIn.toISOString().split('T')[0];
-      const checkOutStr = checkOut.toISOString().split('T')[0];
+      const checkInStr = toDateInputValue(checkIn);
+      const checkOutStr = toDateInputValue(checkOut);
       
       const response = await api.get(
         `/accommodations/${accommodation.id}/rooms?check_in=${checkInStr}&check_out=${checkOutStr}&guests=${guests}`
@@ -352,15 +352,15 @@ export default function AccommodationDetailPage() {
     let checkIn: string;
     let checkOut: string;
     if (selectedDates.checkIn && selectedDates.checkOut) {
-      checkIn = selectedDates.checkIn.toISOString().split('T')[0];
-      checkOut = selectedDates.checkOut.toISOString().split('T')[0];
+      checkIn = toDateInputValue(selectedDates.checkIn);
+      checkOut = toDateInputValue(selectedDates.checkOut);
     } else {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const dayAfter = new Date(tomorrow);
       dayAfter.setDate(dayAfter.getDate() + 1);
-      checkIn = tomorrow.toISOString().split('T')[0];
-      checkOut = dayAfter.toISOString().split('T')[0];
+      checkIn = toDateInputValue(tomorrow);
+      checkOut = toDateInputValue(dayAfter);
     }
     api
       .get(`/accommodations/${accommodation.id}/price-preview?check_in=${checkIn}&check_out=${checkOut}`)

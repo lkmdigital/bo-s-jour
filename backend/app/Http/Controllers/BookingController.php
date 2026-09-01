@@ -195,7 +195,15 @@ class BookingController extends Controller
         // authentifiée, donc les passer bruts (potentiellement null) à des méthodes
         // qui exigent une string plantait en TypeError (500) au lieu de renvoyer une
         // erreur 422 propre lorsque le champ était absent de la requête.
-        $request->validate($validationRules);
+        //
+        // Messages personnalisés pour after_or_equal/after : sans eux, Laravel affiche
+        // le paramètre de la règle tel quel ("today", "check_in") au lieu de le
+        // traduire — message confus signalé en prod le 2026-09-01 ("Le champ date
+        // d'arrivée doit être une date postérieure ou égale à today.").
+        $request->validate($validationRules, [
+            'check_in.after_or_equal' => "La date d'arrivée doit être aujourd'hui ou dans le futur.",
+            'check_out.after' => "La date de départ doit être postérieure à la date d'arrivée.",
+        ]);
 
         if (!$isAuthenticated) {
             // Validation supplémentaire avec SecurityService
@@ -665,6 +673,9 @@ class BookingController extends Controller
             'room_id'  => 'sometimes|nullable|exists:rooms,id',
             'guests'   => 'sometimes|integer|min:1',
             'reason'   => 'sometimes|string|max:500',
+        ], [
+            'check_in.after_or_equal' => "La date d'arrivée doit être aujourd'hui ou dans le futur.",
+            'check_out.after' => "La date de départ doit être postérieure à la date d'arrivée.",
         ]);
 
         // ── Annulation ────────────────────────────────────────────────────────

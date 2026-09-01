@@ -7,7 +7,7 @@ import PropertyCard, { PropertyCardData } from '@/components/home/PropertyCard';
 import ResultsMap, { MapItem } from '@/components/accommodations/ResultsMap';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import Pagination from '@/components/common/Pagination';
-import { formatPrice, resolveImageUrl } from '@/lib/utils';
+import { formatPrice, resolveImageUrl, toDateInputValue } from '@/lib/utils';
 import { useAppearanceStore } from '@/stores/appearanceStore';
 import {
   Search, MapPin, Calendar, Users, SlidersHorizontal, Star, Map as MapIcon, List, X,
@@ -149,7 +149,7 @@ export default function MemberSearchPage() {
   const [pagination, setPagination] = useState({ total: 0, per_page: resultsPerPage, current_page: 1, last_page: 1 });
   const [mapCfg, setMapCfg] = useState<{ provider: string; token: string }>({ provider: 'osm', token: '' });
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toDateInputValue(new Date());
 
   useEffect(() => {
     api.get('/settings/public')
