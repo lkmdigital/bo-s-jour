@@ -1,0 +1,129 @@
+name: bosejour
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - '3307:3306' # 3307 pour ne pas entrer en conflit avec un MySQL déjà installé en local
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${MYSQL_DATABASE}
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - backend_storage:/var/www/html/storage/app/public
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  backend-nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./backend/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - backend_storage:/var/www/html/storage/app/public:ro
+    ports:
+      - '8080:80'
+    depends_on:
+      - backend
+
+  # Traite les jobs asynchrones (ShouldQueue) — QUEUE_CONNECTION=redis dans
+  # docker-compose.env.example. Même image que "backend", commande différente.
+  queue-worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: ['php', 'artisan', 'queue:work', '--tries=3', '--sleep=3']
+    env_file: .env
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${MYSQL_DATABASE}
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - backend_storage:/var/www/html/storage/app/public
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Pas de vrai cron en conteneur : boucle minimaliste qui appelle le scheduler
+  # Laravel chaque minute — équivalent conteneurisé de la ligne crontab
+  # "* * * * * php artisan schedule:run" mentionnée dans routes/console.php
+  # (payments:flag-stuck-pending notamment, voir commit dbcf742e).
+  scheduler:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    entrypoint: ['sh', '-c']
+    command:
+      - 'while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done'
+    env_file: .env
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${MYSQL_DATABASE}
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - backend_storage:/var/www/html/storage/app/public
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_ONESIGNAL_APP_ID: ${NEXT_PUBLIC_ONESIGNAL_APP_ID}
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend-nginx
+
+volumes:
+  mysql_data:
+  redis_data:
+  backend_storage:
