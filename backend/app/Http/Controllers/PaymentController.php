@@ -309,19 +309,19 @@ class PaymentController extends Controller
 
         // Mapper les méthodes de paiement vers les channels MaliaPay. Codes confirmés par
         // la doc officielle du 2026-09-01 : WAVECI, OMCI, MTNCI, MOOVCI, CARD, DJAMO, PEYA_PAY.
-        // MTN/Moov et PeyaPay restent volontairement HORS checkout pour l'instant (décision
-        // du 2026-09-01, à reprendre dans une session dédiée — PeyaPay a un flux OTP à part).
+        // MTN activé le 2026-09-01 (confirmé fonctionnel). Moov et PeyaPay restent
+        // volontairement HORS checkout pour l'instant (PeyaPay a un flux OTP à part).
         $channelMap = [
             'wave-ci' => 'WAVECI',
             'visa-mastercard' => 'CARD',
             'orange-ci' => 'OMCI',
             'djamo' => 'DJAMO',
-            // 'mtn-ci' => 'MTNCI',   // canal confirmé par la doc MaliaPay, pas encore activé
+            'mtn-ci' => 'MTNCI',
             // 'moov-ci' => 'MOOVCI', // canal confirmé par la doc MaliaPay, pas encore activé
         ];
 
         // ⚠️ Repli sur WAVECI pour un moyen inconnu : ne JAMAIS exposer au checkout un
-        // moyen absent de $channelMap (ex. MTN/Moov) — le client serait routé vers Wave.
+        // moyen absent de $channelMap (ex. Moov) — le client serait routé vers Wave.
         $channel = $channelMap[$paymentMethod] ?? 'WAVECI';
 
         // Séparer le nom complet en prénom et nom

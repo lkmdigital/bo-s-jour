@@ -43,15 +43,18 @@ class PaymentMethodSeeder extends Seeder
                 'sort_order' => 4,
             ],
 
-            // TODO (paiement) : MTN Money et Moov Money (Flooz) sont à CONFIGURER plus tard.
-            // Ne pas les activer ici tant que Malia Pay n'a pas fourni leurs codes de canaux
-            // (voir $channelMap dans PaymentController::createPaymentLink). Exemple à décommenter :
-            // [
-            //     'name' => 'MTN MoMo', 'slug' => 'mtn-ci',
-            //     'icon' => '/images/payment-methods/mtn_momo.png',
-            //     'description' => 'Payer avec MTN Mobile Money',
-            //     'is_active' => true, 'sort_order' => 5,
-            // ],
+            [
+                'name' => 'MTN MoMo',
+                'slug' => 'mtn-ci',
+                'icon' => '/images/payment-methods/mtn_momo.png',
+                'description' => 'Payer avec MTN Mobile Money',
+                'is_active' => true,
+                'sort_order' => 5,
+            ],
+
+            // TODO (paiement) : Moov Money (Flooz) — canal confirmé par la doc MaliaPay
+            // (MOOVCI) mais pas encore activé. Ne pas activer ici tant que le $channelMap
+            // dans PaymentController::createPaymentLink n'a pas aussi 'moov-ci' décommenté.
             // [
             //     'name' => 'Moov Money', 'slug' => 'moov-ci',
             //     'icon' => '/images/payment-methods/moov.png',

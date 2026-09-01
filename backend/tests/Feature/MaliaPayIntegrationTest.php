@@ -103,6 +103,37 @@ class MaliaPayIntegrationTest extends TestCase
             && $request['channel'] === 'OMCI');
     }
 
+    public function test_mtn_channel_is_mapped_and_active(): void
+    {
+        // Activé le 2026-09-01 (confirmé fonctionnel) — voir $channelMap dans
+        // PaymentController::createPaymentLink et PaymentMethodSeeder.
+        $this->configureMaliaPay(sandbox: true);
+
+        Http::fake([
+            'business.malia.ci/api/v1/test' => Http::response([
+                'status' => 'success',
+                'link' => '',
+                'transaction_id' => 'FAKE_TX_MTN_1',
+            ], 201),
+        ]);
+
+        $traveler = User::factory()->create();
+        $booking = Booking::factory()->for($traveler)->create([
+            'total_price' => 20000,
+            'deposit_amount' => 20000,
+        ]);
+
+        Sanctum::actingAs($traveler);
+
+        $response = $this->postJson("/api/bookings/{$booking->id}/payment/initiate", [
+            'payment_method' => 'mtn-ci',
+        ]);
+
+        $response->assertOk();
+
+        Http::assertSent(fn ($request) => $request['channel'] === 'MTNCI');
+    }
+
     public function test_webhook_confirms_payment_on_success_status(): void
     {
         $this->configureMaliaPay();

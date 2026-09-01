@@ -21,12 +21,14 @@ MALIA_PAY_WEBHOOK_SECRET=      # à renseigner en prod, sinon le webhook accepte
 - **Visa/Mastercard** → `CARD`
 - **Orange CI** → `OMCI`
 - **Djamo** → `DJAMO`
+- **MTN Mobile Money** → `MTNCI` (activé le 2026-09-01)
 
-`MTNCI` et `MOOVCI` sont confirmés par la doc officielle MaliaPay mais **volontairement
-non activés** au checkout (décision du 2026-09-01) — voir le commentaire dans
-`PaymentController::createPaymentLink()`. `PEYA_PAY` (paiement par code OTP SMS, flux
-en 2 appels `/peyapay/init` + `/peyapay/verify`) n'est pas non plus intégré — nécessite
-un écran de saisie de code dédié côté front, reporté à une session ultérieure.
+`MOOVCI` est confirmé par la doc officielle MaliaPay mais **volontairement non activé**
+au checkout (même mécanique que MTN pour l'activer : décommenter dans `$channelMap` de
+`PaymentController::createPaymentLink()`, dans `PaymentMethodSeeder`, et ajouter le logo
+au footer). `PEYA_PAY` (paiement par code OTP SMS, flux en 2 appels `/peyapay/init` +
+`/peyapay/verify`) n'est pas non plus intégré — nécessite un écran de saisie de code
+dédié côté front, reporté à une session ultérieure.
 
 ## Flux de paiement
 
