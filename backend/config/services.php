@@ -33,13 +33,21 @@ return [
 
     'frontend_url' => env('FRONTEND_URL', 'https://bosejour.ci'),
 
+    // Intégration MaliaPay (business.malia.ci) migrée le 2026-09-01 — nouvelle API
+    // documentée (X-API-Key), remplace l'ancienne intégration malia-pay.com (deviné/
+    // reverse-engineered, sans documentation officielle). Voir docs/setup/PAYMENT_INTEGRATION.md.
     'malia_pay' => [
-        'api_url' => env('MALIA_PAY_API_URL', 'https://malia-pay.com/api/v1/OnlinePaymentService/add_payer'),
-        'merchant_id' => env('MALIA_PAY_MERCHANT_ID', 'MI_AOXBNNUD2J'),
-        'aggregated_merchant_id' => env('MALIA_PAY_AGGREGATED_MERCHANT_ID', 'am-1j54gkvb820we'),
-        // Secret partagé pour authentifier les webhooks entrants de Malia Pay.
+        'api_url' => env('MALIA_PAY_API_URL', 'https://business.malia.ci/api'),
+        // X-API-Key — jamais exposée côté client, jamais commitée (voir .env, gitignored).
+        'api_key' => env('MALIA_PAY_API_KEY', ''),
+        'merchant_id' => env('MALIA_PAY_MERCHANT_ID', ''),
+        // true en local/staging : les paiements passent par /api/v1/test (bac à sable
+        // MaliaPay, aucun appel opérateur réel) au lieu de /api/v1/payments. À laisser
+        // false en production uniquement, une fois l'intégration validée en sandbox.
+        'sandbox' => env('MALIA_PAY_SANDBOX', false),
+        // Secret partagé pour authentifier les webhooks entrants de MaliaPay.
         // Tant qu'il est vide, le webhook est accepté (rétrocompat) mais un avertissement
-        // est journalisé. À renseigner en prod (et côté Malia Pay) pour rejeter les faux appels.
+        // est journalisé. À renseigner en prod (et côté MaliaPay) pour rejeter les faux appels.
         'webhook_secret' => env('MALIA_PAY_WEBHOOK_SECRET', ''),
     ],
 

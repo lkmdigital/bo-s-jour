@@ -587,6 +587,11 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::get('/export', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'exportCsv']);
             Route::get('/credits', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'credits']);
             Route::get('/credits/export', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'exportCreditsCsv']);
+            // Filet de sécurité webhook Malia Pay : liste des paiements "pending" restés
+            // bloqués trop longtemps (probable webhook jamais reçu), et confirmation
+            // manuelle après vérification par l'admin dans le dashboard marchand Malia Pay.
+            Route::get('/stuck', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'stuckPending']);
+            Route::post('/{paymentId}/confirm-manually', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'confirmManually'])->where('paymentId', '[0-9]+');
         });
 
         // Modération des avis (admin)

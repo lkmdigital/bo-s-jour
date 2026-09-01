@@ -1,75 +1,95 @@
-# Intégration du système de paiement Malia-Pay
+# Intégration du système de paiement MaliaPay
+
+> Migrée le 2026-09-01 vers la nouvelle API documentée **business.malia.ci**
+> (remplace l'ancienne intégration malia-pay.com, non documentée officiellement).
 
 ## Configuration
 
 ### Variables d'environnement
 
-Ajoutez ces variables dans votre fichier `.env` :
-
 ```env
-# Configuration Malia-Pay
-MALIA_PAY_API_URL=https://malia-pay.com/api/v1/OnlinePaymentService/add_payer
-MALIA_PAY_MERCHANT_ID=MI_AOXBNNUD2J
-MALIA_PAY_AGGREGATED_MERCHANT_ID=am-1j54gkvb820we
+MALIA_PAY_API_URL=https://business.malia.ci/api
+MALIA_PAY_API_KEY=            # X-API-Key — jamais commitée, jamais exposée côté client
+MALIA_PAY_MERCHANT_ID=
+MALIA_PAY_SANDBOX=false        # true en local/staging : passe par /api/v1/test (aucun appel opérateur réel)
+MALIA_PAY_WEBHOOK_SECRET=      # à renseigner en prod, sinon le webhook accepte tout appel (rétrocompat)
 ```
 
-### Méthodes de paiement supportées
-
-Le système supporte les méthodes suivantes, mappées vers les channels Malia-Pay :
+### Méthodes de paiement actives
 
 - **Wave CI** → `WAVECI`
 - **Visa/Mastercard** → `CARD`
 - **Orange CI** → `OMCI`
 - **Djamo** → `DJAMO`
 
-**Note** : Les valeurs de channel doivent être exactement : `OMCI`, `WAVECI`, `CARD`, `DJAMO` (en majuscules, sans tirets ni espaces).
+`MTNCI` et `MOOVCI` sont confirmés par la doc officielle MaliaPay mais **volontairement
+non activés** au checkout (décision du 2026-09-01) — voir le commentaire dans
+`PaymentController::createPaymentLink()`. `PEYA_PAY` (paiement par code OTP SMS, flux
+en 2 appels `/peyapay/init` + `/peyapay/verify`) n'est pas non plus intégré — nécessite
+un écran de saisie de code dédié côté front, reporté à une session ultérieure.
 
 ## Flux de paiement
 
-### 1. Initiation du paiement
-
-L'utilisateur clique sur "Payer maintenant" depuis :
-- La page de détails de réservation
-- La liste des réservations
-- Le dashboard utilisateur
+### 1. Initiation
 
 **Endpoint** : `POST /api/bookings/{bookingId}/payment/initiate`
 
-**Réponse** : Retourne un objet `payment` et un `link` (URL de paiement externe)
+Appelle en interne `POST {MALIA_PAY_API_URL}/v1/payments` (ou `/v1/test` en sandbox)
+avec le header `X-API-Key`. Réponse MaliaPay : `{status, transaction_id, link, montant,
+channel, reference}`. Le `transaction_id` est enregistré sur le `Payment` **dès la
+création** (pas seulement à la confirmation), pour permettre une vérification de statut
+même si le webhook n'arrive jamais (voir §4).
 
-### 2. Redirection vers le paiement
+### 2. Redirection
 
-L'utilisateur est redirigé vers la plateforme Malia-Pay pour effectuer le paiement.
-
-**Endpoint** : `POST /api/payments/{paymentId}/process`
-
-**Réponse** : Retourne le `link` de paiement à utiliser pour rediriger l'utilisateur
+L'utilisateur est redirigé vers `link` (page de paiement de l'opérateur, hébergée par
+MaliaPay). En sandbox, `link` est vide (aucun appel opérateur simulé) — normal, pas une
+erreur.
 
 ### 3. Webhook de confirmation
 
-Malia-Pay envoie une notification au webhook après le paiement.
+**Endpoint** : `POST /api/payments/webhook` (sans authentification, secret partagé optionnel)
 
-**Endpoint** : `POST /api/payments/webhook` (sans authentification)
-
-**Données reçues** :
+**Payload reçu** :
 ```json
 {
-  "reference": "REF123456",
-  "status": "Success",
-  "transactionID": "TXN789",
-  "montant": 50000
+  "transaction_id": "MYLB8V4HHFXDAODU4IGH1NYBY",
+  "status": "success",
+  "reference": "CMD-2026-001",
+  "montant": 5000,
+  "channel": "WAVECI"
 }
 ```
 
-**Actions effectuées** :
-- Mise à jour du statut du paiement
-- Mise à jour du statut de paiement de la réservation
-- Calcul et enregistrement de la commission
-- Logs pour le suivi
+**Statuts possibles** : `pending`, `processing` (ignorés, en attente de la suite),
+`success` (confirme le paiement), `failed`/`cancelled` (marque le paiement échoué).
 
-### 4. Redirection après paiement
+### 4. Filet de sécurité — le webhook n'a AUCUNE garantie de livraison
 
-Après le paiement, l'utilisateur est redirigé vers :
+**Découverte du 2026-09-01** : avec l'ancienne intégration, le webhook a cessé de se
+déclencher après le 22 mai 2026 sans que rien ne le signale — 30 paiements réels sur 31
+sont restés "pending" pendant plus de 3 mois. Le webhook seul n'est jamais suffisant.
+
+Trois mécanismes complémentaires, tous dans `App\Console\Commands\FlagStuckPendingPayments`
+(planifiée quotidiennement à 8h — voir `routes/console.php` — **nécessite que le cron du
+serveur exécute `php artisan schedule:run` chaque minute**, à vérifier sur le VPS) :
+
+1. **Réconciliation automatique** : pour tout paiement "pending" resté bloqué au-delà du
+   seuil (`--hours`, 6h par défaut) ET disposant d'un `transaction_id` (paiements créés
+   depuis la migration du 2026-09-01), interroge `GET /v1/payments/{transaction_id}`
+   (`PaymentController::checkTransactionStatus()`) et confirme/échoue automatiquement
+   selon le vrai statut MaliaPay.
+2. **Digest e-mail admin** : pour les paiements non vérifiables automatiquement (ancienne
+   intégration sans `transaction_id`, ou API MaliaPay indisponible), envoie un e-mail
+   quotidien récapitulatif aux admins (`App\Mail\StuckPaymentsDigest`) — à croiser
+   manuellement avec le dashboard marchand MaliaPay.
+3. **Confirmation manuelle** : `POST /api/admin/payments/{paymentId}/confirm-manually`
+   (admin uniquement, `transaction_id` requis) — réutilise exactement la même logique de
+   confirmation que le webhook (`PaymentController::confirmPaymentSuccess()`, idempotent,
+   mêmes effets de bord : commission, e-mails, code de réservation).
+
+### 5. Redirection après paiement
+
 - **Succès** : `/bookings/{bookingId}?payment=success`
 - **Erreur** : `/bookings/{bookingId}/payment?error=1`
 
@@ -85,63 +105,32 @@ Après le paiement, l'utilisateur est redirigé vers :
   "amount": 50000,
   "status": "pending|completed|failed",
   "payment_method": "wave-ci|visa-mastercard|orange-ci|djamo",
-  "payment_reference": "ABC123XYZ456",
-  "transaction_id": "TXN789",
+  "payment_reference": "ABC123XYZ456",   // notre référence interne
+  "transaction_id": "MYLB8V4HHFXDAODU4IGH1NYBY", // ID MaliaPay, connu dès la création
   "payment_data": {
-    "payment_link": "https://malia-pay.com/pay/...",
+    "payment_link": "https://business.malia.ci/checkout/...",
     "method": "wave-ci",
+    "confirmation_source": "webhook|admin_manual|reconciliation_auto",
     "webhook_data": {...}
   },
-  "paid_at": "2025-11-11T15:30:00Z"
+  "paid_at": "2026-09-01T15:30:00Z"
 }
 ```
 
-## Gestion des erreurs
-
-### Erreurs possibles
-
-1. **Erreur lors de la création du lien** : L'API Malia-Pay peut retourner une erreur
-2. **Webhook invalide** : Référence manquante ou paiement non trouvé
-3. **Paiement déjà traité** : Tentative de traiter un paiement déjà complété
-
-### Logs
-
-Tous les événements sont loggés dans `storage/logs/laravel.log` :
-- Création de lien de paiement
-- Réception de webhook
-- Confirmation de paiement
-- Échecs de paiement
-
 ## Sécurité
 
-### Webhook
-
-Le webhook est accessible sans authentification. Pour sécuriser :
-
-1. Vérifier l'IP source (si possible)
-2. Ajouter une signature de vérification (si supporté par Malia-Pay)
-3. Valider la référence avant de traiter
-
-### Transactions
-
-Toutes les opérations de mise à jour sont effectuées dans des transactions DB pour garantir la cohérence.
+- Webhook accessible sans authentification par nature (appel serveur-à-serveur MaliaPay)
+  — sécurisé par `MALIA_PAY_WEBHOOK_SECRET` (secret partagé en header/query/body, ou
+  signature HMAC-SHA256) si configuré ; sinon accepté avec un avertissement journalisé
+  (`PaymentController::verifyWebhookSignature()`).
+- `MALIA_PAY_API_KEY` : jamais côté client, uniquement dans `.env` (gitignored).
+- Toutes les confirmations (webhook, manuelle, réconciliation auto) passent par la même
+  transaction DB verrouillée (`lockForUpdate`), garantissant l'idempotence — un paiement
+  déjà "completed" ne redéclenche jamais une seconde fois commission/e-mails.
 
 ## Test
 
-Pour tester le système :
-
-1. Créer une réservation
-2. Cliquer sur "Payer maintenant"
-3. Sélectionner une méthode de paiement
-4. Cliquer sur "Payer maintenant" → Redirection vers Malia-Pay
-5. Effectuer le paiement (ou simuler)
-6. Vérifier le webhook reçu
-7. Vérifier la mise à jour du statut
-
-## Notes importantes
-
-- Les liens de paiement sont stockés dans `payment_data['payment_link']`
-- Si un paiement échoue, une nouvelle référence est générée
-- Les commissions sont calculées automatiquement après confirmation du paiement
-- Le statut de la réservation passe à `paid` après confirmation
-
+En local, avec `MALIA_PAY_SANDBOX=true` : le flux complet (initiation → réponse
+`status: success` immédiate, `link` vide) fonctionne sans jamais appeler un opérateur
+réel — voir `/api/v1/test` dans la doc MaliaPay. Voir `tests/Feature/MaliaPayIntegrationTest.php`
+pour les tests automatisés (Http::fake, aucun appel réseau réel).

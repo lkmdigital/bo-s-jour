@@ -13,6 +13,7 @@ use App\Mail\HostNewBooking;
 use App\Support\Security\SensitiveUserFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -285,7 +286,12 @@ class PaymentController extends Controller
     }
 
     /**
-     * Créer un lien de paiement via l'API malia-pay.com
+     * Créer un lien de paiement via l'API MaliaPay (business.malia.ci).
+     *
+     * Migrée le 2026-09-01 depuis l'ancienne API malia-pay.com (non documentée,
+     * devinée par tâtonnement — d'où l'ancienne logique de repli sur plusieurs noms
+     * de champs/URLs possibles, plus nécessaire ici car le contrat est maintenant
+     * documenté : voir docs/setup/PAYMENT_INTEGRATION.md).
      */
     private function createPaymentLink($payment, $booking, $user, $paymentMethod)
     {
@@ -301,31 +307,22 @@ class PaymentController extends Controller
             'payment_method' => $paymentMethod,
         ]);
 
-        // Mapper les méthodes de paiement vers les channels de malia-pay
-        // Les valeurs attendues par l'API sont : OMCI, WAVECI, CARD, DJAMO
-        //
-        // TODO (paiement) : MTN Money et Moov Money (Flooz) sont à CONFIGURER plus tard
-        // comme moyens de paiement. Ils sont affichés dans le footer (marketing) mais
-        // NE SONT PAS proposés au checkout tant que Malia Pay ne fournit pas leurs codes
-        // de canaux (ex. attendus : 'mtn-ci' => 'MTNCI', 'moov-ci' => 'MOOVCI' — à confirmer).
-        // Une fois les codes obtenus : ajouter ici + créer les entrées dans PaymentMethodSeeder.
+        // Mapper les méthodes de paiement vers les channels MaliaPay. Codes confirmés par
+        // la doc officielle du 2026-09-01 : WAVECI, OMCI, MTNCI, MOOVCI, CARD, DJAMO, PEYA_PAY.
+        // MTN/Moov et PeyaPay restent volontairement HORS checkout pour l'instant (décision
+        // du 2026-09-01, à reprendre dans une session dédiée — PeyaPay a un flux OTP à part).
         $channelMap = [
             'wave-ci' => 'WAVECI',
             'visa-mastercard' => 'CARD',
             'orange-ci' => 'OMCI',
             'djamo' => 'DJAMO',
-            // 'mtn-ci' => 'MTNCI',    // à activer quand le canal Malia sera confirmé
-            // 'moov-ci' => 'MOOVCI',  // à activer quand le canal Malia sera confirmé
+            // 'mtn-ci' => 'MTNCI',   // canal confirmé par la doc MaliaPay, pas encore activé
+            // 'moov-ci' => 'MOOVCI', // canal confirmé par la doc MaliaPay, pas encore activé
         ];
 
         // ⚠️ Repli sur WAVECI pour un moyen inconnu : ne JAMAIS exposer au checkout un
         // moyen absent de $channelMap (ex. MTN/Moov) — le client serait routé vers Wave.
         $channel = $channelMap[$paymentMethod] ?? 'WAVECI';
-
-        \Log::info('Channel mapped', [
-            'payment_method' => $paymentMethod,
-            'channel' => $channel,
-        ]);
 
         // Séparer le nom complet en prénom et nom
         $fullName = trim($user ? ($user->name ?? 'Client') : 'Client');
@@ -333,242 +330,135 @@ class PaymentController extends Controller
         $customerName = $nameParts[0] ?? 'Client'; // Prénom
         $customerSurname = $nameParts[1] ?? $nameParts[0] ?? 'Client'; // Nom (ou prénom si un seul mot)
 
-        // Si le nom complet n'a qu'un seul mot, utiliser le même pour prénom et nom
         if (count($nameParts) === 1) {
             $customerSurname = $customerName;
         }
 
-        \Log::info('Customer name parsed', [
-            'full_name' => $fullName,
-            'customer_name' => $customerName,
-            'customer_surname' => $customerSurname,
-        ]);
-
-        // Convertir le montant en entier (sans décimales) car l'API Malia-Pay attend des entiers
-        // Exemple: 740000.00 devient 740000
+        // Montant en entier (XOF, pas de décimales) — attendu par l'API MaliaPay.
         $montant = (int) round($payment->amount);
-        
-        // S'assurer que c'est bien un entier et non un float
-        if (is_float($montant)) {
-            $montant = (int) $montant;
-        }
 
         // Formater le numéro de téléphone selon la documentation : "225XXXXXXXXX" (sans le +)
         $phoneNumber = $user ? ($user->phone ?? '') : '';
-        // Retirer le + et les espaces si présents
         $phoneNumber = str_replace(['+', ' ', '-'], '', $phoneNumber);
-        // S'assurer que ça commence par 225 (code pays Côte d'Ivoire)
         if (!empty($phoneNumber) && substr($phoneNumber, 0, 3) !== '225') {
-            // Si le numéro commence par 0, remplacer par 225
             if (substr($phoneNumber, 0, 1) === '0') {
                 $phoneNumber = '225' . substr($phoneNumber, 1);
             } else {
-                // Sinon, ajouter 225 au début
                 $phoneNumber = '225' . $phoneNumber;
             }
         }
 
-        // URLs de retour = FRONT (où revient le voyageur après paiement) ;
-        // notification_url = API (webhook serveur-à-serveur de Malia Pay).
+        // success_url/error_url = FRONT (où revient le voyageur après paiement) ;
+        // notification_url = API (webhook serveur-à-serveur de MaliaPay).
         $frontend = rtrim(config('services.frontend_url', 'https://bosejour.ci'), '/');
 
         $data = [
-            "montant" => $montant,
-            "reference" => $payment->payment_reference,
-            "description" => "Paiement de réservation #{$booking->id} - {$booking->accommodation->name}",
-            "channel" => $channel,
-            "merchant_id" => config('services.malia_pay.merchant_id', 'MI_AOXBNNUD2J'),
-            "aggregated_merchant_id" => config('services.malia_pay.aggregated_merchant_id', 'am-1j54gkvb820we'),
-            "customer_name" => $customerName,
-            "customer_surname" => $customerSurname,
-            "customer_phone_number" => $phoneNumber ?: '22500000000', // Valeur par défaut si vide
-            "customer_email" => $user ? $user->email : ($booking->user ? $booking->user->email : ''),
-            "notification_url" => url('/api/payments/webhook'),
-            "return_url" => "{$frontend}/bookings/{$booking->id}?payment=success",
-            "error_url" => "{$frontend}/bookings/{$booking->id}/payment?error=1",
-            "success_url" => "{$frontend}/bookings/{$booking->id}?payment=success",
+            'channel' => $channel,
+            'montant' => $montant,
+            'reference' => $payment->payment_reference,
+            'description' => "Paiement de réservation #{$booking->id} - {$booking->accommodation->name}",
+            'merchant_id' => config('services.malia_pay.merchant_id'),
+            'customer_name' => $customerName,
+            'customer_surname' => $customerSurname,
+            'customer_phone_number' => $phoneNumber ?: '22500000000', // Valeur par défaut si vide
+            'customer_email' => $user ? $user->email : ($booking->user ? $booking->user->email : ''),
+            'notification_url' => url('/api/payments/webhook'),
+            'success_url' => "{$frontend}/bookings/{$booking->id}?payment=success",
+            'error_url' => "{$frontend}/bookings/{$booking->id}/payment?error=1",
         ];
 
         // Ne jamais logger nom/téléphone/email du client en clair — seules les données
         // nécessaires au diagnostic (montant, référence, canal) ont une valeur ici.
-        \Log::info('Payment data prepared', [
+        $sandbox = (bool) config('services.malia_pay.sandbox');
+        \Log::info('MaliaPay: création du paiement', [
             'reference' => $data['reference'],
             'montant' => $data['montant'],
             'channel' => $data['channel'],
-            'merchant_id' => $data['merchant_id'],
-            'aggregated_merchant_id' => $data['aggregated_merchant_id'],
+            'sandbox' => $sandbox,
         ]);
 
-        // Encoder en JSON en s'assurant que les nombres sont des entiers (pas de décimales)
-        // Utiliser JSON_NUMERIC_CHECK pour forcer les nombres à être des entiers
-        $jsonData = json_encode($data, JSON_NUMERIC_CHECK);
-        $url = config('services.malia_pay.api_url', 'https://malia-pay.com/api/v1/OnlinePaymentService/add_payer');
-        
-        // Vérifier que le montant est bien un entier dans le JSON
-        $decodedCheck = json_decode($jsonData, true);
-        \Log::info('JSON encoding check', [
-            'montant_in_data' => $data['montant'],
-            'montant_type' => gettype($data['montant']),
-            'montant_in_json' => $decodedCheck['montant'] ?? 'NOT_FOUND',
-            'montant_type_in_json' => isset($decodedCheck['montant']) ? gettype($decodedCheck['montant']) : 'NOT_FOUND',
-        ]);
+        // En sandbox : /v1/test simule le paiement sans jamais appeler un opérateur réel
+        // (voir docs/setup/PAYMENT_INTEGRATION.md) — utilisé en local/staging uniquement.
+        $endpoint = rtrim(config('services.malia_pay.api_url'), '/') . ($sandbox ? '/v1/test' : '/v1/payments');
 
-        \Log::info('Sending request to malia-pay', [
-            'url' => $url,
-            'json_data' => $jsonData,
-        ]);
+        $response = Http::withHeaders(['X-API-Key' => config('services.malia_pay.api_key')])
+            ->timeout(15)
+            ->post($endpoint, $data);
 
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $jsonData);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen($jsonData)
-        ]);
-
-        $response = curl_exec($curl);
-        $curlError = curl_error($curl);
-        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-
-        \Log::info('Malia-pay API response', [
-            'http_code' => $httpCode,
-            'response' => $response,
-            'response_length' => strlen($response),
-            'curl_error' => $curlError,
-        ]);
-        
-        // Log détaillé de la réponse décodée
-        $decodedResponse = json_decode($response, true);
-        \Log::info('Malia-pay API response decoded', [
-            'decoded_response' => $decodedResponse,
-            'has_link' => isset($decodedResponse['link']),
-            'link_value' => $decodedResponse['link'] ?? 'NOT_SET',
-            'status' => $decodedResponse['status'] ?? 'NOT_SET',
-            'message' => $decodedResponse['message'] ?? 'NOT_SET',
-        ]);
-
-        if ($response === false) {
-            \Log::error('cURL error', [
-                'error' => $curlError,
+        if ($response->failed()) {
+            \Log::error('MaliaPay: erreur HTTP à la création du paiement', [
+                'reference' => $data['reference'],
+                'http_status' => $response->status(),
+                'body' => $response->body(),
             ]);
-            throw new \Exception('Erreur cURL: ' . $curlError);
+            throw new \Exception($response->json('message') ?? 'Impossible de créer le lien de paiement. Veuillez réessayer dans quelques instants.');
         }
 
-        // Accepter les codes HTTP 200 (OK) et 201 (Created) comme valides
-        if ($httpCode !== 200 && $httpCode !== 201) {
-            \Log::error('HTTP error from malia-pay', [
-                'http_code' => $httpCode,
-                'response' => $response,
+        $body = $response->json() ?? [];
+        $paymentLink = $body['link'] ?? null;
+        $transactionId = $body['transaction_id'] ?? null;
+
+        // En sandbox, l'API ne renvoie volontairement aucun lien réel (link: "", aucun
+        // appel opérateur) — ce n'est pas une erreur, contrairement à un vrai paiement.
+        if (!$paymentLink && !$sandbox) {
+            \Log::error('MaliaPay: pas de lien de paiement dans la réponse', [
+                'reference' => $data['reference'],
+                'body' => $body,
             ]);
-            
-            // Essayer de décoder la réponse pour obtenir le message d'erreur
-            $errorResp = json_decode($response);
-            if (isset($errorResp->message)) {
-                throw new \Exception($errorResp->message);
-            }
-            
-            throw new \Exception("Erreur HTTP {$httpCode}: {$response}");
-        }
-
-        $resp = json_decode($response);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            \Log::error('JSON decode error', [
-                'json_error' => json_last_error_msg(),
-                'response' => $response,
-            ]);
-            throw new \Exception('Erreur de décodage JSON: ' . json_last_error_msg() . ' - Réponse: ' . $response);
-        }
-
-        // Vérifier si l'API a retourné une erreur
-        if (isset($resp->status) && $resp->status === 'error') {
-            $errorMessage = $resp->message ?? 'Erreur inconnue de l\'API Malia-Pay';
-            \Log::error('Malia-pay API error', [
-                'message' => $errorMessage,
-                'response' => $response,
-            ]);
-            throw new \Exception($errorMessage);
-        }
-
-        // Vérifier si le lien est présent
-        // Le lien peut être dans 'link' ou 'payment_link' ou 'url' ou 'payment_url'
-        $paymentLink = $resp->link ?? $resp->payment_link ?? $resp->url ?? $resp->payment_url ?? null;
-
-        // Vérifier aussi dans les données imbriquées si elles existent
-        if (!$paymentLink && isset($resp->data)) {
-            $paymentLink = $resp->data->link ?? $resp->data->payment_link ?? $resp->data->url ?? null;
-        }
-
-        if (!$paymentLink) {
-            // Log très détaillé pour comprendre pourquoi le lien est null
-            $responseArray = json_decode($response, true);
-            \Log::error('Link not found in response - Detailed analysis', [
-                'raw_response' => $response,
-                'response_length' => strlen($response),
-                'http_code' => $httpCode,
-                'decoded_object' => $resp,
-                'decoded_array' => $responseArray,
-                'all_response_keys' => is_object($resp) ? array_keys((array)$resp) : (is_array($responseArray) ? array_keys($responseArray) : 'not an object/array'),
-                'link_field_exists' => isset($resp->link),
-                'link_value' => $resp->link ?? 'NULL',
-                'link_type' => isset($resp->link) ? gettype($resp->link) : 'NOT_SET',
-                'status_value' => $resp->status ?? 'NOT_SET',
-                'message_value' => $resp->message ?? 'NOT_SET',
-            ]);
-            
-            // Si le statut est success mais le lien est null, c'est peut-être une réponse asynchrone
-            // ou l'API utilise un autre mécanisme pour fournir le lien
-            if (isset($resp->status) && $resp->status === 'success') {
-                // Vérifier s'il y a une référence ou un ID qui pourrait être utilisé pour construire le lien
-                $reference = $payment->payment_reference ?? null;
-                
-                // Essayer de construire le lien manuellement avec la référence
-                // Format possible: https://malia-pay.com/pay/{reference} ou similaire
-                if ($reference) {
-                    // Essayer différents formats de lien possibles
-                    $possibleLinks = [
-                        "https://malia-pay.com/pay/{$reference}",
-                        "https://malia-pay.com/payment/{$reference}",
-                        "https://malia-pay.com/checkout/{$reference}",
-                        "https://pay.malia-pay.com/{$reference}",
-                    ];
-                    
-                    \Log::warning('Link is null but status is success, trying to construct link', [
-                        'reference' => $reference,
-                        'possible_links' => $possibleLinks,
-                        'api_response' => $response,
-                    ]);
-                    
-                    // Message d'erreur simple pour l'utilisateur
-                    throw new \Exception('Impossible d\'obtenir le lien de paiement. Veuillez réessayer dans quelques instants.');
-                } else {
-                    throw new \Exception('Impossible d\'obtenir le lien de paiement. Veuillez réessayer.');
-                }
-            }
-            
-            // Si un message d'erreur est présent, l'utiliser (mais le simplifier si nécessaire)
-            if (isset($resp->message)) {
-                $apiMessage = $resp->message;
-                // Si le message contient des détails techniques, le simplifier
-                if (strpos($apiMessage, 'Lien de paiement introuvable') !== false || 
-                    strpos($apiMessage, 'réponse API') !== false) {
-                    throw new \Exception('Impossible d\'obtenir le lien de paiement. Veuillez réessayer.');
-                }
-                throw new \Exception($apiMessage);
-            }
-            
             throw new \Exception('Impossible d\'obtenir le lien de paiement. Veuillez réessayer.');
         }
 
-        \Log::info('Payment link created successfully', [
-            'link' => $paymentLink,
-            'http_code' => $httpCode,
+        // Le transaction_id MaliaPay est indispensable pour interroger le statut plus tard
+        // (filet de sécurité si le webhook n'arrive jamais — voir checkTransactionStatus()
+        // et Console\Commands\FlagStuckPendingPayments), donc enregistré dès la création,
+        // pas seulement à la confirmation par webhook.
+        if ($transactionId) {
+            $payment->update(['transaction_id' => $transactionId]);
+        }
+
+        \Log::info('MaliaPay: paiement créé', [
+            'reference' => $data['reference'],
+            'transaction_id' => $transactionId,
+            'status' => $body['status'] ?? null,
         ]);
 
-        return $paymentLink;
+        return $paymentLink ?? '';
+    }
+
+    /**
+     * Interroge MaliaPay pour connaître le statut réel d'une transaction — filet de
+     * sécurité complémentaire au webhook (qui n'a aucune garantie de livraison, voir
+     * découverte du 2026-09-01 : 30 paiements sur 31 restés "pending" faute de webhook).
+     * Utilisée par Console\Commands\FlagStuckPendingPayments.
+     *
+     * @return array{status?: string, transaction_id?: string, montant?: int, channel?: string}|null
+     *         null si l'appel échoue — à traiter comme "indisponible", jamais comme "cancelled".
+     */
+    public function checkTransactionStatus(string $transactionId): ?array
+    {
+        $endpoint = rtrim(config('services.malia_pay.api_url'), '/') . '/v1/payments/' . urlencode($transactionId);
+
+        try {
+            $response = Http::withHeaders(['X-API-Key' => config('services.malia_pay.api_key')])
+                ->timeout(15)
+                ->get($endpoint);
+        } catch (\Throwable $e) {
+            \Log::warning('MaliaPay: échec de la vérification de statut', [
+                'transaction_id' => $transactionId,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+
+        if ($response->failed()) {
+            \Log::warning('MaliaPay: statut non vérifiable', [
+                'transaction_id' => $transactionId,
+                'http_status' => $response->status(),
+            ]);
+            return null;
+        }
+
+        return $response->json();
     }
 
     /**
@@ -705,7 +595,31 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Paiement non trouvé'], 404);
         }
 
-        return DB::transaction(function () use ($payment, $status, $transactionId, $montant, $data) {
+        if ($status === 'Success' || $status === 'success' || $status === 'completed') {
+            $result = $this->confirmPaymentSuccess($payment->id, $transactionId, $montant, $data, 'webhook');
+
+            return response()->json([
+                'message' => $result['already_completed'] ? 'Paiement déjà confirmé' : 'Paiement confirmé avec succès',
+                'payment' => $result['payment'],
+            ]);
+        }
+
+        // États intermédiaires MaliaPay (le client n'a pas fini l'opérateur, ou la
+        // transaction est encore en cours de traitement) — ce n'est PAS un échec, ne
+        // rien changer et attendre le prochain webhook (success/failed/cancelled).
+        if ($status === 'pending' || $status === 'processing') {
+            \Log::info('Webhook malia-pay: statut intermédiaire reçu, aucune action', [
+                'payment_id' => $payment->id,
+                'reference' => $payment->payment_reference,
+                'status' => $status,
+            ]);
+            return response()->json([
+                'message' => 'Statut intermédiaire pris en compte, en attente de confirmation',
+                'payment' => $payment->load('booking'),
+            ]);
+        }
+
+        return DB::transaction(function () use ($payment, $status, $data) {
             // Reverrouille dans la transaction : empêche un traitement concurrent si Malia Pay
             // rejoue le webhook en parallèle (retry réseau) avant que le premier appel n'ait fini.
             $payment = Payment::where('id', $payment->id)->lockForUpdate()->first();
@@ -725,64 +639,96 @@ class PaymentController extends Controller
                 ]);
             }
 
-            if ($status === 'Success' || $status === 'success' || $status === 'completed') {
-                // Paiement réussi
-                $payment->update([
-                    'status' => 'completed',
-                    'transaction_id' => $transactionId,
-                    'amount' => $montant ?? $payment->amount,
-                    'paid_at' => now(),
-                    'payment_data' => array_merge($payment->payment_data ?? [], [
-                        'webhook_data' => $data,
-                        'processed_at' => now()->toIso8601String(),
-                    ]),
-                ]);
+            // Paiement échoué
+            $payment->update([
+                'status' => 'failed',
+                'payment_data' => array_merge($payment->payment_data ?? [], [
+                    'webhook_data' => $data,
+                    'failed_at' => now()->toIso8601String(),
+                ]),
+            ]);
 
-                $booking = $this->updateBookingPaymentState($payment);
+            $payment->booking->update([
+                'payment_status' => 'failed'
+            ]);
 
-                if ($booking->payment_status === 'paid') {
-                    // Calculer et enregistrer la commission (released_at = null jusqu'au check-in)
-                    $this->createCommission($payment);
-                    $this->sendBookingCodeNotification($booking);
-                    // Envoyer les emails de confirmation hôte + client (avec le bon confirmation_code)
-                    $this->sendBookingEmails($booking);
-                }
+            \Log::warning('Webhook malia-pay: Paiement échoué', [
+                'payment_id' => $payment->id,
+                'reference' => $payment->payment_reference,
+                'status' => $status
+            ]);
 
-                \Log::info('Webhook malia-pay: Paiement confirmé', [
-                    'payment_id' => $payment->id,
-                    'reference' => $payment->payment_reference,
-                    'transaction_id' => $transactionId
-                ]);
+            return response()->json([
+                'message' => 'Paiement échoué',
+                'payment' => $payment->load('booking')
+            ], 400);
+        });
+    }
 
-                return response()->json([
-                    'message' => 'Paiement confirmé avec succès',
-                    'payment' => $payment->load('booking')
-                ]);
-            } else {
-                // Paiement échoué
-                $payment->update([
-                    'status' => 'failed',
-                    'payment_data' => array_merge($payment->payment_data ?? [], [
-                        'webhook_data' => $data,
-                        'failed_at' => now()->toIso8601String(),
-                    ]),
-                ]);
+    /**
+     * Confirme un paiement comme réussi — logique partagée entre le webhook automatique
+     * de Malia Pay et la confirmation manuelle admin (filet de sécurité si le webhook
+     * n'arrive jamais, voir Admin\AdminPaymentController::confirmManually()).
+     *
+     * Idempotent : un paiement déjà "completed" ne redéclenche jamais une seconde fois
+     * la commission ni les notifications/e-mails de confirmation, quelle que soit la
+     * source de l'appel.
+     *
+     * Public (et non une route) pour être appelable depuis Admin\AdminPaymentController —
+     * jamais exposée directement, toujours derrière un contrôleur qui applique ses propres
+     * garde-fous (signature webhook, ou rôle admin + validation).
+     *
+     * @return array{already_completed: bool, payment: Payment}
+     */
+    public function confirmPaymentSuccess(int $paymentId, ?string $transactionId, ?int $montant, array $rawData, string $source): array
+    {
+        return DB::transaction(function () use ($paymentId, $transactionId, $montant, $rawData, $source) {
+            // Verrouille dans la transaction : empêche un traitement concurrent si Malia Pay
+            // rejoue le webhook en parallèle, ou si un admin confirme manuellement au même
+            // moment qu'un webhook tardif arrive.
+            $payment = Payment::where('id', $paymentId)->lockForUpdate()->first();
 
-                $payment->booking->update([
-                    'payment_status' => 'failed'
-                ]);
-
-                \Log::warning('Webhook malia-pay: Paiement échoué', [
-                    'payment_id' => $payment->id,
-                    'reference' => $payment->payment_reference,
-                    'status' => $status
-                ]);
-
-                return response()->json([
-                    'message' => 'Paiement échoué',
-                    'payment' => $payment->load('booking')
-                ], 400);
+            if (!$payment) {
+                throw new \RuntimeException("Paiement #{$paymentId} introuvable.");
             }
+
+            if ($payment->status === 'completed') {
+                \Log::info("Paiement déjà confirmé, confirmation ignorée (source: {$source})", [
+                    'payment_id' => $payment->id,
+                    'reference' => $payment->payment_reference,
+                ]);
+                return ['already_completed' => true, 'payment' => $payment->load('booking')];
+            }
+
+            $payment->update([
+                'status' => 'completed',
+                'transaction_id' => $transactionId,
+                'amount' => $montant ?? $payment->amount,
+                'paid_at' => now(),
+                'payment_data' => array_merge($payment->payment_data ?? [], [
+                    'webhook_data' => $rawData,
+                    'confirmation_source' => $source,
+                    'processed_at' => now()->toIso8601String(),
+                ]),
+            ]);
+
+            $booking = $this->updateBookingPaymentState($payment);
+
+            if ($booking->payment_status === 'paid') {
+                // Calculer et enregistrer la commission (released_at = null jusqu'au check-in)
+                $this->createCommission($payment);
+                $this->sendBookingCodeNotification($booking);
+                // Envoyer les emails de confirmation hôte + client (avec le bon confirmation_code)
+                $this->sendBookingEmails($booking);
+            }
+
+            \Log::info("Paiement confirmé (source: {$source})", [
+                'payment_id' => $payment->id,
+                'reference' => $payment->payment_reference,
+                'transaction_id' => $transactionId,
+            ]);
+
+            return ['already_completed' => false, 'payment' => $payment->load('booking')];
         });
     }
 
