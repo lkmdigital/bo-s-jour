@@ -91,7 +91,7 @@ export default function MemberCreditsPage() {
         </div>
 
         {/* Solde */}
-        <div className="rounded-2xl bg-gray-900 text-white p-6 flex items-center justify-between gap-4">
+        <div className="rounded-2xl bg-gray-900 text-white p-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm text-gray-300 flex items-center gap-2"><Wallet className="w-4 h-4" /> Solde disponible</p>
             <p className="text-3xl font-bold mt-1">{formatPrice(balance)} F</p>

@@ -403,7 +403,7 @@ export default function AdminProgrammePage() {
 
       {/* Niveaux */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
             <Users className="w-4 h-4 text-primary" /> Niveaux
           </h2>
@@ -442,7 +442,7 @@ export default function AdminProgrammePage() {
 
       {/* Récompenses */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
             <Gift className="w-4 h-4 text-primary" /> Récompenses (paliers cagnotte)
           </h2>
@@ -481,7 +481,7 @@ export default function AdminProgrammePage() {
 
       {/* Campagnes */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
             <Megaphone className="w-4 h-4 text-primary" /> Campagnes
           </h2>
@@ -580,7 +580,7 @@ export default function AdminProgrammePage() {
 
       {/* Programme Corporate — Paliers de CA annuel */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
             <Briefcase className="w-4 h-4 text-primary" /> Programme Corporate — Paliers de CA annuel
           </h2>

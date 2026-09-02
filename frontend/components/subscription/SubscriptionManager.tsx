@@ -120,7 +120,7 @@ export default function SubscriptionManager({ accommodationId }: SubscriptionMan
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap justify-between items-center gap-2">
         <h2 className="text-2xl font-bold">Gestion des abonnements</h2>
         {accommodationId && (
           <button

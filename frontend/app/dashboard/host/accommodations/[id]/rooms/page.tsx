@@ -122,7 +122,7 @@ export default function AccommodationRoomsPage() {
           </Link>
         </div>
 
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
           <div>
             <h1 className="text-3xl font-bold">Gestion des chambres</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">

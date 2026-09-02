@@ -257,7 +257,7 @@ export default function UserDashboardPage() {
           {/* Suggestions pour vous */}
           {suggestions.length > 0 && (
             <section className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xl font-bold">Suggestions pour vous</h2>
                 <Link href="/accommodations" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
                   Voir plus de suggestions <ArrowRight className="w-4 h-4" />

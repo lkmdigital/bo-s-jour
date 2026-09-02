@@ -360,7 +360,7 @@ export default function BookingDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Carte d'hébergement */}
             <div className="card">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 <h2 className="text-2xl font-bold">{booking.accommodation.name}</h2>
                 <Link 
                   href={`/accommodations/${booking.accommodation.id}`}

@@ -85,7 +85,7 @@ export default function MemberNotificationsPage() {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       <div className="xl:col-span-2 space-y-6">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold">{t('title')}</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">{t('subtitle')}</p>

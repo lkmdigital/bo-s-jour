@@ -77,7 +77,7 @@ export default function MemberAside() {
 
       {/* Notifications */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <h3 className="font-bold flex items-center gap-2">
             <Bell className="w-5 h-5 text-primary" /> Notifications
             {unread > 0 && <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary text-white">{unread}</span>}

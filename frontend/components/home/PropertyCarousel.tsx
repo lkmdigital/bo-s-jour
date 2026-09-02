@@ -20,7 +20,7 @@ export default function PropertyCarousel({ title, items, className = '' }: Props
 
   return (
     <section className={`container mx-auto px-4 md:px-8 max-w-7xl py-12 ${className}`}>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{title}</h2>
         <div className="flex gap-2">
           <button onClick={() => scroll('left')} aria-label="Précédent"
