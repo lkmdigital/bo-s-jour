@@ -337,12 +337,6 @@ class PaymentController extends Controller
         // Montant en entier (XOF, pas de décimales) — attendu par l'API MaliaPay.
         $montant = (int) round($payment->amount);
 
-        // 🔴🔴🔴 TEMPORAIRE (2026-09-02) — test en argent réel avec un montant symbolique
-        // pour valider le tout premier paiement de production sans risquer le montant réel
-        // de la réservation. À RETIRER JUSTE APRÈS CE TEST — ne doit JAMAIS rester en place,
-        // sinon TOUS les clients seraient facturés 100 FCFA au lieu du vrai montant.
-        $montant = 100;
-
         // Formater le numéro de téléphone selon la documentation : "225XXXXXXXXX" (sans le +)
         $phoneNumber = $user ? ($user->phone ?? '') : '';
         $phoneNumber = str_replace(['+', ' ', '-'], '', $phoneNumber);
