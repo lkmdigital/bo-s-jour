@@ -11,7 +11,7 @@ import { useToast } from '@/components/common/ToastContext';
 import Header from '@/components/common/Header';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, getRoomCategoryLabel } from '@/lib/utils';
 import { 
   Calendar, 
   Users, 
@@ -28,7 +28,8 @@ import {
   FileText,
   CreditCard,
   AlertCircle,
-  KeyRound
+  KeyRound,
+  Coffee
 } from 'lucide-react';
 import ReviewForm from '@/components/review/ReviewForm';
 import PaymentReceipt from '@/components/payment/PaymentReceipt';
@@ -42,6 +43,9 @@ interface BookingDetail {
   check_out: string;
   guests: number;
   total_price: number;
+  deposit_amount?: number;
+  amount_paid?: number;
+  payment_type?: 'full' | 'guarantee';
   status: 'pending' | 'confirmed' | 'cancelled';
   payment_status?: 'pending' | 'paid' | 'failed' | 'refunded';
   confirmation_code?: string | null;
@@ -64,11 +68,14 @@ interface BookingDetail {
     rating: number;
     total_reviews: number;
     images: Array<{ url: string; is_primary: boolean }>;
+    breakfast_included?: boolean;
+    breakfast_included_persons?: number;
   };
   room?: {
     id: number;
     name: string;
     type: string;
+    room_category?: string;
     capacity: number;
     price_per_night: number;
   };
@@ -437,7 +444,34 @@ export default function BookingDetailPage() {
                       <p className="font-semibold">Chambre réservée</p>
                       <p className="text-gray-600 dark:text-gray-400">{booking.room.name}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-500">
-                        Type: {booking.room.type} • Capacité: {booking.room.capacity}
+                        Catégorie : <span className="font-medium text-primary">{getRoomCategoryLabel(booking.room.room_category || booking.room.type)}</span> • Capacité : {booking.room.capacity}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-start gap-3">
+                  <CreditCard className="w-5 h-5 text-primary mt-1" />
+                  <div>
+                    <p className="font-semibold">Type de paiement</p>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {booking.payment_type === 'guarantee'
+                        ? `Garantie (acompte de ${formatPrice(booking.deposit_amount || 0)} FCFA, solde à régler à l'hôtel)`
+                        : 'Paiement intégral'}
+                    </p>
+                  </div>
+                </div>
+
+                {booking.accommodation.breakfast_included && (
+                  <div className="flex items-start gap-3">
+                    <Coffee className="w-5 h-5 text-primary mt-1" />
+                    <div>
+                      <p className="font-semibold">Petit-déjeuner</p>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Inclus
+                        {booking.accommodation.breakfast_included_persons
+                          ? ` pour ${booking.accommodation.breakfast_included_persons} personne${booking.accommodation.breakfast_included_persons > 1 ? 's' : ''}`
+                          : ''}
                       </p>
                     </div>
                   </div>

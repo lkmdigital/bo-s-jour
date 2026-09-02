@@ -20,8 +20,9 @@ import {
   Eye,
   Filter,
   CreditCard,
+  Bed,
 } from 'lucide-react';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, getRoomCategoryLabel } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -38,7 +39,9 @@ interface BookingRequest {
   expires_at?: string;
   deposit_paid_at?: string;
   created_at: string;
+  payment_type?: 'full' | 'guarantee';
   accommodation: { id: number; name: string; city: string };
+  room?: { id: number; name: string; type?: string; room_category?: string } | null;
   user: { id: number; name: string; email: string; phone?: string };
   payment?: { id: number; status: string; amount: number; purpose?: string };
 }
@@ -279,6 +282,18 @@ export default function HostReservationsPage() {
                           {booking.guests} {booking.guests > 1 ? 'personnes' : 'personne'}
                         </p>
                       </div>
+                      {booking.room && (
+                        <div>
+                          <p className="text-gray-400 dark:text-gray-500 mb-1">Chambre</p>
+                          <p className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1">
+                            <Bed className="w-3.5 h-3.5" />
+                            {booking.room.name}
+                          </p>
+                          {(booking.room.room_category || booking.room.type) && (
+                            <p className="text-xs text-gray-400 mt-1">{getRoomCategoryLabel(booking.room.room_category || booking.room.type)}</p>
+                          )}
+                        </div>
+                      )}
                       <div>
                         <p className="text-gray-400 dark:text-gray-500 mb-1">Client</p>
                         <p className="font-medium text-gray-800 dark:text-gray-200">{booking.user.name}</p>

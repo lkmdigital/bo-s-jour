@@ -375,14 +375,19 @@ class AnalyticsController extends Controller
             ->whereNotNull('rating')
             ->avg('rating') ?? 0);
 
-        // Revenus par type de chambre (room_category)
+        // Revenus par type de chambre. ⚠️ rooms.room_category n'est rempli par AUCUN
+        // formulaire côté hôte (le champ réellement saisi à la création d'une chambre est
+        // rooms.type, ex. 'single'/'double'/'suite'...) — grouper uniquement par
+        // room_category regroupait donc tout sous "autre", stat inexploitable. Découvert le
+        // 2026-09-02 suite au retour d'un hôte ne voyant la catégorie nulle part sur son
+        // tableau de bord. COALESCE garde room_category comme priorité si un jour rempli.
         $revenueByRoomType = DB::table('bookings')
             ->join('rooms', 'bookings.room_id', '=', 'rooms.id')
             ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
             ->where('accommodations.host_id', $hostId)
             ->where('bookings.status', 'confirmed')
-            ->select('rooms.room_category', DB::raw('SUM(bookings.total_price) as revenue'))
-            ->groupBy('rooms.room_category')
+            ->select(DB::raw('COALESCE(rooms.room_category, rooms.type) as room_category'), DB::raw('SUM(bookings.total_price) as revenue'))
+            ->groupBy(DB::raw('COALESCE(rooms.room_category, rooms.type)'))
             ->orderByDesc('revenue')
             ->get()
             ->map(function ($row) {

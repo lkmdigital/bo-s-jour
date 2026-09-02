@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { formatPrice, toDateInputValue } from '@/lib/utils';
+import { formatPrice, toDateInputValue, getRoomCategoryLabel } from '@/lib/utils';
 import { Bed, Users, Expand, Image as ImageIcon, CheckCircle, XCircle, Calendar, Wifi, Coffee, Eye, Wind } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -92,13 +92,7 @@ export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, c
     }
   };
 
-  const getCategoryLabel = (category?: string) => {
-    const labels: Record<string, string> = {
-      single: 'Single', double: 'Double', twin: 'Twin', triple: 'Triple',
-      pmr: 'PMR', suite: 'Suite', other: 'Autre',
-    };
-    return category ? labels[category] || category : '';
-  };
+  const getCategoryLabel = getRoomCategoryLabel;
 
   const getViewLabel = (view?: string) => {
     const labels: Record<string, string> = {

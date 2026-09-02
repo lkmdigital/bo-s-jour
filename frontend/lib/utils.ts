@@ -7,6 +7,39 @@ export function cn(...inputs: Array<string | false | null | undefined>): string 
 }
 
 /**
+ * Libellés FR pour la catégorie de chambre — centralisés ici (avant dupliqués et
+ * incohérents entre RoomsList.tsx "Single/Twin" et dashboard/host/page.tsx "Simple/Jumelle").
+ *
+ * ⚠️ Couvre les valeurs de `room.type` (ROOM_TYPES dans le formulaire de création de
+ * chambre), PAS seulement `room.room_category` — ce dernier existe en base mais n'est
+ * rempli par AUCUN formulaire côté hôte, donc systématiquement vide en pratique. Toujours
+ * appeler avec `getRoomCategoryLabel(room.room_category || room.type)` pour afficher la
+ * vraie catégorie saisie par l'hôte. Découvert le 2026-09-02 (retour hôte + client : la
+ * catégorie de chambre n'apparaissait nulle part, confirmation comme tableau de bord).
+ */
+export const ROOM_CATEGORY_LABELS: Record<string, string> = {
+  single: 'Simple',
+  double: 'Double',
+  twin: 'Jumelle (2 lits)',
+  triple: 'Triple',
+  suite: 'Suite',
+  suite_junior: 'Suite Junior',
+  suite_familiale: 'Suite Familiale',
+  studio: 'Studio',
+  apartment: 'Appartement',
+  bungalow: 'Bungalow',
+  villa: 'Villa',
+  pmr: 'PMR (accessibilité)',
+  other: 'Autre',
+  autre: 'Autre',
+};
+
+export function getRoomCategoryLabel(category?: string | null): string {
+  if (!category) return '';
+  return ROOM_CATEGORY_LABELS[category] || category;
+}
+
+/**
  * Formate une Date en "YYYY-MM-DD" à partir de ses composants en heure LOCALE.
  *
  * ⚠️ À utiliser à la place de `date.toISOString().split('T')[0]` partout où la date

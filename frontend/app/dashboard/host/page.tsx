@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import KpiCard from '@/components/dashboard/host/KpiCard';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, getRoomCategoryLabel } from '@/lib/utils';
 import {
   CalendarCheck,
   CalendarRange,
@@ -58,16 +58,6 @@ interface HostAnalytics {
   accounting?: { commissions_due: number; commissions_reversed: number };
 }
 
-const ROOM_CATEGORY_LABELS: Record<string, string> = {
-  single: 'Simple',
-  double: 'Double',
-  twin: 'Jumelle',
-  triple: 'Triple',
-  pmr: 'PMR',
-  suite: 'Suite',
-  other: 'Autre',
-  autre: 'Autre',
-};
 
 const PIE_COLORS = ['#FF0000', '#343434', '#4B5F5A', '#F7E8C6', '#EE233C'];
 
@@ -190,7 +180,7 @@ export default function HostDashboardPage() {
   }
 
   const revenueByRoomType = (data.revenue_by_room_type || []).map((r) => ({
-    name: ROOM_CATEGORY_LABELS[r.room_category] || r.room_category,
+    name: getRoomCategoryLabel(r.room_category),
     value: r.revenue,
   }));
 

@@ -80,6 +80,43 @@
                       <span style="font-size:14px;font-weight:600;color:#111827;">{{ $room->name ?? $room->room_number ?? '—' }}</span>
                     </td>
                   </tr>
+                  @php
+                    // room_category n'est rempli par aucun formulaire côté hôte (voir
+                    // AnalyticsController::hostDashboard) — la vraie catégorie saisie est
+                    // room.type. On préfère room_category si un jour rempli, sinon repli sur type.
+                    $roomCategoryKey = $room->room_category ?: $room->type;
+                    $roomCategoryLabels = [
+                        'single' => 'Simple', 'double' => 'Double', 'twin' => 'Jumelle (2 lits)',
+                        'triple' => 'Triple', 'suite' => 'Suite', 'suite_junior' => 'Suite Junior',
+                        'suite_familiale' => 'Suite Familiale', 'studio' => 'Studio',
+                        'apartment' => 'Appartement', 'bungalow' => 'Bungalow', 'villa' => 'Villa',
+                        'pmr' => 'PMR (accessibilité)', 'other' => 'Autre',
+                    ];
+                  @endphp
+                  @if($roomCategoryKey)
+                  <tr>
+                    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">
+                      <span style="font-size:13px;color:#6b7280;">Catégorie</span>
+                    </td>
+                    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">
+                      <span style="font-size:14px;font-weight:600;color:#111827;">
+                        {{ $roomCategoryLabels[$roomCategoryKey] ?? ucfirst($roomCategoryKey) }}
+                      </span>
+                    </td>
+                  </tr>
+                  @endif
+                  @endif
+                  @if($accommodation->breakfast_included ?? false)
+                  <tr>
+                    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">
+                      <span style="font-size:13px;color:#6b7280;">Petit-déjeuner</span>
+                    </td>
+                    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;">
+                      <span style="font-size:14px;font-weight:600;color:#111827;">
+                        Inclus{{ $accommodation->breakfast_included_persons ? ' ('.$accommodation->breakfast_included_persons.' pers.)' : '' }}
+                      </span>
+                    </td>
+                  </tr>
                   @endif
                   <tr>
                     <td style="padding:8px 0;">
@@ -149,6 +186,17 @@
                   </td>
                   <td style="text-align:right;padding:0;">
                     <span style="font-size:22px;font-weight:800;color:#ffffff;">{{ number_format($booking->total_price, 0, ',', ' ') }} FCFA</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="padding-top:6px;">
+                    <span style="font-size:12px;color:rgba(255,255,255,0.75);">
+                      @if(($booking->payment_type ?? 'full') === 'guarantee')
+                        Garantie réglée : {{ number_format($booking->deposit_amount ?? 0, 0, ',', ' ') }} FCFA — solde de {{ number_format(($booking->total_price ?? 0) - ($booking->deposit_amount ?? 0), 0, ',', ' ') }} FCFA à régler directement à l'hôtel.
+                      @else
+                        Paiement intégral réglé en ligne.
+                      @endif
+                    </span>
                   </td>
                 </tr>
                 @if(isset($booking->payment_status) && $booking->payment_status !== 'paid')
