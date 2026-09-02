@@ -109,7 +109,16 @@ export default function Footer() {
               <li><a href="mailto:support@bosejour.ci" className="hover:text-white transition-colors">support@bosejour.ci</a></li>
             </ul>
             <div className="flex gap-3 mt-4">
-              {[Facebook, Instagram, Youtube, Twitter].map((Icon, i) => (
+              <a
+                href="https://www.facebook.com/profile.php?id=61586042046006"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-primary flex items-center justify-center transition-colors"
+                aria-label="bo séjour sur Facebook"
+              >
+                <Facebook className="w-4 h-4 text-white" />
+              </a>
+              {[Instagram, Youtube, Twitter].map((Icon, i) => (
                 <a key={i} href="#" className="w-9 h-9 rounded-full bg-white/10 hover:bg-primary flex items-center justify-center transition-colors" aria-label="Réseau social">
                   <Icon className="w-4 h-4 text-white" />
                 </a>
