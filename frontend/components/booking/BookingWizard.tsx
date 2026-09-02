@@ -257,8 +257,12 @@ export default function BookingWizard(props: Props) {
 
   return (
     <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-start">
-      {/* Colonne étapes */}
-      <div>
+      {/* Colonne étapes — min-w-0 impératif : sans ça, une grille CSS refuse de
+          rétrécir sous la largeur NON coupée du stepper ci-dessous (qui a pourtant
+          overflow-x-auto), et fait gonfler tout le viewport mobile au lieu de
+          scroller juste le stepper. Bug réel confirmé le 2026-09-02 : la page
+          entière s'élargissait à 683px sur un écran de 375px. */}
+      <div className="min-w-0">
         {/* Stepper */}
         <ol className="flex items-center gap-2 mb-8 overflow-x-auto pb-1">
           {STEPS.map((label, i) => {
