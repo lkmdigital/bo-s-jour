@@ -695,6 +695,8 @@ export default function BookingDetailPage() {
                 </div>
                 <p className="text-sm text-green-700 dark:text-green-400">
                   Votre reçu de paiement est disponible ci-dessous. Vous pouvez l&apos;imprimer ou le télécharger.
+                  Un exemplaire vient également d&apos;être envoyé par e-mail — pensez à vérifier votre boîte de réception
+                  (et vos spams si vous ne le voyez pas tout de suite).
                 </p>
               </div>
             )}
