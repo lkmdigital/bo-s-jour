@@ -118,6 +118,7 @@ const roomTypeOptions = [
   'Villa',
   'Bungalow',
   'Chalet',
+  'Autre',
 ];
 
 const paymentMethodOptions = [
@@ -207,6 +208,11 @@ export default function AccommodationCreationWizard({
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
   const [roomTypePricing, setRoomTypePricing] = useState<Record<string, { price?: string; rooms?: string }>>({});
+  // Retour client 2026-09-02 : le type de chambre proposé à l'inscription est
+  // une liste fermée sans échappatoire pour un hébergement atypique. "Autre"
+  // ouvre un champ libre dont le contenu remplace le mot "Autre" à l'envoi
+  // (même schéma que type_other_label pour le type d'établissement).
+  const [otherRoomTypeLabel, setOtherRoomTypeLabel] = useState('');
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [detectingLocation, setDetectingLocation] = useState(false);
@@ -298,6 +304,17 @@ export default function AccommodationCreationWizard({
       return;
     }
 
+    // "Autre" remplacé par la précision libre du partenaire avant l'envoi —
+    // le backend ne doit jamais recevoir le mot générique "Autre" seul.
+    const resolveRoomTypeLabel = (type: string) =>
+      type === 'Autre' ? (otherRoomTypeLabel.trim() || 'Autre') : type;
+
+    if (selectedRoomTypes.includes('Autre') && !otherRoomTypeLabel.trim()) {
+      setError('Veuillez préciser le type de chambre "Autre".');
+      setCurrentStep(getStepNumberByKey('establishment'));
+      return;
+    }
+
     const formattedRoomPricing: RoomTypePricingEntry[] = [];
     let invalidRoomPricingType: string | null = null;
 
@@ -308,13 +325,13 @@ export default function AccommodationCreationWizard({
 
       const entry = roomTypePricing[type];
       if (!entry || entry.price === undefined || entry.price === '') {
-        invalidRoomPricingType = type;
+        invalidRoomPricingType = resolveRoomTypeLabel(type);
         return;
       }
 
       const priceValue = Number(entry.price);
       if (Number.isNaN(priceValue) || priceValue < 0) {
-        invalidRoomPricingType = type;
+        invalidRoomPricingType = resolveRoomTypeLabel(type);
         return;
       }
 
@@ -327,7 +344,7 @@ export default function AccommodationCreationWizard({
       }
 
       const payload: RoomTypePricingEntry = {
-        type,
+        type: resolveRoomTypeLabel(type),
         price_per_night: priceValue,
       };
 
@@ -376,7 +393,7 @@ export default function AccommodationCreationWizard({
         latitude: normalizedLatitude,
         longitude: normalizedLongitude,
         amenities: selectedAmenities,
-        room_types: selectedRoomTypes,
+        room_types: selectedRoomTypes.map(resolveRoomTypeLabel),
         room_type_pricing: formattedRoomPricing,
       };
       if (mode === 'admin') {
@@ -1317,6 +1334,15 @@ export default function AccommodationCreationWizard({
                     </label>
                   ))}
                 </div>
+                {selectedRoomTypes.includes('Autre') && (
+                  <input
+                    type="text"
+                    value={otherRoomTypeLabel}
+                    onChange={(e) => setOtherRoomTypeLabel(e.target.value)}
+                    placeholder="Précisez le type de chambre"
+                    className="w-full mt-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
+                  />
+                )}
               </div>
 
               <div>
@@ -1642,7 +1668,7 @@ export default function AccommodationCreationWizard({
                 <h3 className="text-lg font-semibold mb-3">Garantie de réservation</h3>
                 <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/30">
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Les modalités de garantie sont gérées par l'équipe Mon Beau Pays selon le type d'hébergement et
+                    Les modalités de garantie sont gérées par l'équipe BoSéjour selon le type d'hébergement et
                     s'affichent automatiquement aux voyageurs. Aucun paramétrage n'est requis dans ce formulaire.
                     Contactez le support si vous avez besoin d'une configuration spécifique.
                   </p>
@@ -1679,7 +1705,7 @@ export default function AccommodationCreationWizard({
                 <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/30 space-y-2">
                   <p className="text-sm text-gray-600 dark:text-gray-300">
                     Les moyens de paiement ci-dessous sont proposés automatiquement aux voyageurs.
-                    L'équipe Mon Beau Pays se charge de leur activation.
+                    L'équipe BoSéjour se charge de leur activation.
                   </p>
                   <ul className="list-disc pl-5 text-sm text-gray-600 dark:text-gray-300">
                     {paymentMethodOptions.map(method => (
@@ -1778,7 +1804,7 @@ export default function AccommodationCreationWizard({
                 <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/30 space-y-2">
                   <h3 className="text-lg font-semibold">Conditions particulières</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Les conditions particulières (caution, règles spécifiques, etc.) sont intégrées par l'équipe Mon Beau Pays
+                    Les conditions particulières (caution, règles spécifiques, etc.) sont intégrées par l'équipe BoSéjour
                     et communiquées automatiquement aux voyageurs. Si vous devez ajouter une précision, merci de la transmettre au support.
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">

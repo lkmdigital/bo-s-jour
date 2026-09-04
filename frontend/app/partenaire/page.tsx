@@ -51,7 +51,7 @@ export default function PartnerLandingPage() {
       <section className="bg-gray-950 text-white">
         <div className="container mx-auto px-4 py-16 sm:py-24 text-center max-w-3xl">
           <p className="font-slogan text-3xl sm:text-4xl text-primary mb-3">Votre établissement mérite plus de visibilité</p>
-          <h1 className="text-3xl sm:text-5xl font-bold mb-5">Rejoignez bo séjour, la plateforme qui protège hôtes et voyageurs</h1>
+          <h1 className="text-3xl sm:text-5xl font-bold mb-5">Rejoignez BoSéjour, la plateforme qui protège hôtes et voyageurs</h1>
           <p className="text-gray-300 text-lg mb-8">
             Publiez votre établissement, recevez des réservations confirmées automatiquement, et soyez payé en toute
             sécurité — en quelques étapes, à votre rythme.
