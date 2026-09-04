@@ -880,7 +880,12 @@ class PaymentController extends Controller
             $commissionRate = self::getCommissionRateClamped();
 
             // Recalculer la commission basée sur le montant total de la réservation
-            $bookingAmount = $booking->total_price;
+            // Base du calcul : le tarif plein de l'hôte (base_price), jamais réduit par
+        // une promo/bon de fidélité voyageur — BoSéjour finance cette différence
+        // (retour client 2026-09-02, Partie 2 ; confirmé avec l'utilisateur).
+        // Repli sur total_price pour les réservations créées avant ce champ, afin
+        // de ne pas recalculer rétroactivement des commissions déjà en attente.
+        $bookingAmount = $booking->base_price ?? $booking->total_price;
             $commissionAmount = ($bookingAmount * $commissionRate) / 100;
             $hostAmount = $bookingAmount - $commissionAmount;
 
@@ -907,7 +912,12 @@ class PaymentController extends Controller
         // Aucune commission n'existe pour cette réservation, créer une nouvelle
         $commissionRate = self::getCommissionRateClamped();
 
-        $bookingAmount = $booking->total_price;
+        // Base du calcul : le tarif plein de l'hôte (base_price), jamais réduit par
+        // une promo/bon de fidélité voyageur — BoSéjour finance cette différence
+        // (retour client 2026-09-02, Partie 2 ; confirmé avec l'utilisateur).
+        // Repli sur total_price pour les réservations créées avant ce champ, afin
+        // de ne pas recalculer rétroactivement des commissions déjà en attente.
+        $bookingAmount = $booking->base_price ?? $booking->total_price;
         $commissionAmount = ($bookingAmount * $commissionRate) / 100;
         $hostAmount = $bookingAmount - $commissionAmount;
 

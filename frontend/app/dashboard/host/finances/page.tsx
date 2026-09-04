@@ -249,9 +249,9 @@ export default function HostFinancesPage() {
                     <tr className="border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400">
                       <th className="text-left py-2 px-3">Date</th>
                       <th className="text-left py-2 px-3">Hébergement</th>
-                      <th className="text-right py-2 px-3">Montant</th>
-                      <th className="text-right py-2 px-3">Commission</th>
-                      <th className="text-right py-2 px-3">Votre revenu</th>
+                      <th className="text-right py-2 px-3">Montant brut</th>
+                      <th className="text-right py-2 px-3">Commission BoSéjour</th>
+                      <th className="text-right py-2 px-3">Net à reverser</th>
                       <th className="text-center py-2 px-3">Statut</th>
                     </tr>
                   </thead>
@@ -261,7 +261,7 @@ export default function HostFinancesPage() {
                         <td className="py-2 px-3">{format(new Date(r.created_at), 'dd MMM yyyy', { locale: fr })}</td>
                         <td className="py-2 px-3">{r.booking.accommodation.name}</td>
                         <td className="py-2 px-3 text-right">{formatPrice(r.booking_amount)} FCFA</td>
-                        <td className="py-2 px-3 text-right text-red-600">-{formatPrice(r.commission_amount)} FCFA</td>
+                        <td className="py-2 px-3 text-right text-red-600">-{formatPrice(r.commission_amount)} FCFA ({r.commission_rate}%)</td>
                         <td className="py-2 px-3 text-right font-semibold text-bosejour-red">{formatPrice(r.host_amount)} FCFA</td>
                         <td className="py-2 px-3 text-center">
                           <span

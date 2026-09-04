@@ -439,7 +439,7 @@ class BookingController extends Controller
         try {
         $booking = DB::transaction(function () use (
             $request, $room, $accommodation, $user, $bookedForThirdParty,
-            $totalPrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion, $loyaltyVoucher
+            $totalPrice, $basePrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion, $loyaltyVoucher
         ) {
             if ($room) {
                 Room::lockForUpdate()->findOrFail($room->id);
@@ -470,6 +470,11 @@ class BookingController extends Controller
                 'check_out' => $request->check_out,
                 'guests' => $request->guests,
                 'total_price' => $totalPrice,
+                // Tarif plein de l'hôte, AVANT promo/bon de fidélité — conservé pour que
+                // la commission BoSéjour et le montant reversé à l'hôte restent basés sur
+                // son tarif d'origine (retour client 2026-09-02, Partie 2) et ne soient
+                // jamais réduits par une remise voyageur financée par la plateforme.
+                'base_price' => $basePrice,
                 'deposit_amount' => $depositAmount,
                 'amount_paid' => 0,
                 'status' => 'pending',
