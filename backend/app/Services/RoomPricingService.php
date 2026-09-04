@@ -37,10 +37,22 @@ class RoomPricingService
     ): float {
         $config = self::getConfig($accommodation);
 
-        // Priorité 1: Long séjour (si activé)
-        if ($config['long_stay_enabled'] && $nights >= $config['long_stay_nights']) {
-            $discount = $config['long_stay_discount'];
-            return round($basePrice * (1 - $discount / 100), 2);
+        // Priorité 1: Long séjour (si activé) — système à 3 paliers (retour client
+        // 2026-09-02, Partie 3) si configuré, sinon repli sur l'ancien palier unique
+        // pour les établissements qui n'ont pas encore rouvert leurs paramètres.
+        if ($config['long_stay_enabled']) {
+            if (!empty($config['long_stay_tiers'])) {
+                $tier = self::resolveLongStayTier($config['long_stay_tiers'], $nights);
+                if ($tier) {
+                    return round($basePrice * (1 - $tier['discount_percent'] / 100), 2);
+                }
+                // Nombre de nuits n'atteint aucun palier activé : pas de remise long
+                // séjour, mais les autres plans (non remboursable, modifiable) restent
+                // évaluables ci-dessous.
+            } elseif ($nights >= $config['long_stay_nights']) {
+                $discount = $config['long_stay_discount'];
+                return round($basePrice * (1 - $discount / 100), 2);
+            }
         }
 
         // Priorité 2: Non remboursable (si activé)
@@ -154,7 +166,34 @@ class RoomPricingService
             'long_stay_enabled' => (bool) ($a->pricing_long_stay_enabled ?? false),
             'long_stay_discount' => (float) ($a->pricing_long_stay_discount ?? $appConfig['long_stay_discount_percent'] ?? 15),
             'long_stay_nights' => (int) ($a->pricing_long_stay_nights ?? $appConfig['long_stay_nights_threshold'] ?? 7),
+            'long_stay_tiers' => is_array($a->pricing_long_stay_tiers ?? null) ? $a->pricing_long_stay_tiers : null,
         ];
+    }
+
+    /**
+     * Palier long séjour applicable (le plus avantageux si plusieurs qualifient —
+     * ne devrait pas arriver avec des tranches disjointes, mais reste robuste si
+     * l'hôte a saisi des tranches qui se chevauchent).
+     */
+    public static function resolveLongStayTier(array $tiers, int $nights): ?array
+    {
+        $matching = array_values(array_filter($tiers, function ($t) use ($nights) {
+            if (empty($t['enabled'])) {
+                return false;
+            }
+            $min = (int) ($t['min_nights'] ?? 0);
+            $max = isset($t['max_nights']) && $t['max_nights'] !== null && $t['max_nights'] !== ''
+                ? (int) $t['max_nights']
+                : null;
+            return $nights >= $min && ($max === null || $nights <= $max);
+        }));
+
+        if (empty($matching)) {
+            return null;
+        }
+
+        usort($matching, fn ($a, $b) => ($b['discount_percent'] ?? 0) <=> ($a['discount_percent'] ?? 0));
+        return $matching[0];
     }
 
     /**
@@ -197,7 +236,33 @@ class RoomPricingService
             ];
         }
 
-        if ($config['long_stay_enabled']) {
+        if ($config['long_stay_enabled'] && !empty($config['long_stay_tiers'])) {
+            $enabledTiers = array_values(array_filter(
+                $config['long_stay_tiers'],
+                fn ($t) => !empty($t['enabled'])
+            ));
+            usort($enabledTiers, fn ($a, $b) => ($a['min_nights'] ?? 0) <=> ($b['min_nights'] ?? 0));
+
+            if (!empty($enabledTiers)) {
+                $first = $enabledTiers[0];
+                $d = (float) ($first['discount_percent'] ?? 0);
+                $n = (int) ($first['min_nights'] ?? 0);
+                $result['long_stay'] = [
+                    'label' => 'Tarif long séjour (à partir de ' . $n . ' nuits)',
+                    'price_per_night' => round($basePrice * (1 - $d / 100), 2),
+                    'adjustment' => -$d,
+                    'adjustment_label' => "-{$d}%",
+                    'min_nights' => $n,
+                    // Détail des paliers activés, pour un affichage plus riche côté front.
+                    'tiers' => array_map(fn ($t) => [
+                        'min_nights' => (int) ($t['min_nights'] ?? 0),
+                        'max_nights' => isset($t['max_nights']) && $t['max_nights'] !== null && $t['max_nights'] !== ''
+                            ? (int) $t['max_nights'] : null,
+                        'discount_percent' => (float) ($t['discount_percent'] ?? 0),
+                    ], $enabledTiers),
+                ];
+            }
+        } elseif ($config['long_stay_enabled']) {
             $d = $config['long_stay_discount'];
             $n = $config['long_stay_nights'];
             $result['long_stay'] = [

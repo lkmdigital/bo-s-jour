@@ -14,6 +14,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { compressImages } from '@/lib/utils';
 import IcalSyncPanel from '@/components/accommodations/IcalSyncPanel';
+import LongStayDiscountTiers, { DEFAULT_LONG_STAY_TIERS, LongStayTier } from '@/components/accommodations/LongStayDiscountTiers';
 
 interface AccommodationFormData {
   name: string;
@@ -141,6 +142,7 @@ export default function EditAccommodationPage() {
     longStayDiscount: 15,
     longStayNights: 7,
   });
+  const [longStayTiers, setLongStayTiers] = useState<LongStayTier[]>(DEFAULT_LONG_STAY_TIERS);
   const [loyaltyProgramJoined, setLoyaltyProgramJoined] = useState(false);
   const confirmAction = useConfirm();
 
@@ -210,6 +212,11 @@ export default function EditAccommodationPage() {
         longStayDiscount: acc.pricing_long_stay_discount ?? 15,
         longStayNights: acc.pricing_long_stay_nights ?? 7,
       });
+      setLongStayTiers(
+        Array.isArray(acc.pricing_long_stay_tiers) && acc.pricing_long_stay_tiers.length > 0
+          ? acc.pricing_long_stay_tiers
+          : DEFAULT_LONG_STAY_TIERS
+      );
       setLoyaltyProgramJoined(!!acc.loyalty_program_joined_at);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement de l\'hébergement');
@@ -303,8 +310,7 @@ export default function EditAccommodationPage() {
         pricing_modifiable_enabled: pricingPlans.modifiableEnabled,
         pricing_modifiable_surcharge: pricingPlans.modifiableEnabled ? pricingPlans.modifiableSurcharge : null,
         pricing_long_stay_enabled: pricingPlans.longStayEnabled,
-        pricing_long_stay_discount: pricingPlans.longStayEnabled ? pricingPlans.longStayDiscount : null,
-        pricing_long_stay_nights: pricingPlans.longStayEnabled ? pricingPlans.longStayNights : null,
+        pricing_long_stay_tiers: pricingPlans.longStayEnabled ? longStayTiers : null,
         loyalty_program_joined: loyaltyProgramJoined,
       };
 
@@ -1104,46 +1110,13 @@ export default function EditAccommodationPage() {
                   </div>
                 )}
               </div>
-              {/* Plan Long séjour */}
-              <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={pricingPlans.longStayEnabled}
-                    onChange={(e) => setPricingPlans(prev => ({ ...prev, longStayEnabled: e.target.checked }))}
-                    className="rounded"
-                  />
-                  <span className="font-medium">Tarif long séjour</span>
-                </label>
-                {pricingPlans.longStayEnabled && (
-                  <div className="pl-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Réduction (%)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={pricingPlans.longStayDiscount}
-                        onChange={(e) => setPricingPlans(prev => ({ ...prev, longStayDiscount: Number(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Ex: 15 = base − 15 %</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">À partir de (nuits)</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="90"
-                        value={pricingPlans.longStayNights}
-                        onChange={(e) => setPricingPlans(prev => ({ ...prev, longStayNights: Number(e.target.value) || 7 }))}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Ex: 7 = à partir de 7 nuits</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Plan Long séjour — 3 paliers (retour client 2026-09-02, Partie 3) */}
+              <LongStayDiscountTiers
+                enabled={pricingPlans.longStayEnabled}
+                onEnabledChange={(v) => setPricingPlans(prev => ({ ...prev, longStayEnabled: v }))}
+                tiers={longStayTiers}
+                onTiersChange={setLongStayTiers}
+              />
             </div>
           </div>
 

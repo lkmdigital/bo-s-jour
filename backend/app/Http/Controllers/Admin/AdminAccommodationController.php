@@ -170,6 +170,12 @@ class AdminAccommodationController extends Controller
             'check_in_time' => 'nullable|date_format:H:i',
             'check_out_time' => 'nullable|date_format:H:i',
             'invoice_paid_before_hours' => 'nullable|integer|min:0',
+            'pricing_long_stay_enabled' => 'nullable|boolean',
+            'pricing_long_stay_tiers' => 'nullable|array',
+            'pricing_long_stay_tiers.*.min_nights' => 'required_with:pricing_long_stay_tiers|integer|min:1|max:365',
+            'pricing_long_stay_tiers.*.max_nights' => 'nullable|integer|min:1|max:365',
+            'pricing_long_stay_tiers.*.discount_percent' => 'required_with:pricing_long_stay_tiers|numeric|min:0|max:100',
+            'pricing_long_stay_tiers.*.enabled' => 'nullable|boolean',
         ]);
 
         // Sécurité: empêcher la création de doublons pour le même hôte (même nom + ville)
@@ -240,6 +246,10 @@ class AdminAccommodationController extends Controller
             'check_in_time' => $validated['check_in_time'] ?? null,
             'check_out_time' => $validated['check_out_time'] ?? null,
             'invoice_paid_before_hours' => $validated['invoice_paid_before_hours'] ?? 48,
+            'pricing_long_stay_enabled' => $request->boolean('pricing_long_stay_enabled', false),
+            'pricing_long_stay_tiers' => $request->boolean('pricing_long_stay_enabled', false)
+                ? ($validated['pricing_long_stay_tiers'] ?? null)
+                : null,
         ]);
 
         // Créer l'audit log

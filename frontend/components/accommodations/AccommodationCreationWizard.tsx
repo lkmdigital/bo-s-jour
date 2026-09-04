@@ -11,6 +11,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/stores/authStore';
 import { compressImages } from '@/lib/utils';
+import LongStayDiscountTiers, { DEFAULT_LONG_STAY_TIERS, LongStayTier } from '@/components/accommodations/LongStayDiscountTiers';
 
 interface AccommodationFormData {
   name: string;
@@ -213,6 +214,10 @@ export default function AccommodationCreationWizard({
   // ouvre un champ libre dont le contenu remplace le mot "Autre" à l'envoi
   // (même schéma que type_other_label pour le type d'établissement).
   const [otherRoomTypeLabel, setOtherRoomTypeLabel] = useState('');
+  // Remises long séjour à 3 paliers, proposées dès l'inscription (retour
+  // client 2026-09-02, Partie 3) — désactivées par défaut.
+  const [longStayEnabled, setLongStayEnabled] = useState(false);
+  const [longStayTiers, setLongStayTiers] = useState<LongStayTier[]>(DEFAULT_LONG_STAY_TIERS);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [detectingLocation, setDetectingLocation] = useState(false);
@@ -395,6 +400,8 @@ export default function AccommodationCreationWizard({
         amenities: selectedAmenities,
         room_types: selectedRoomTypes.map(resolveRoomTypeLabel),
         room_type_pricing: formattedRoomPricing,
+        pricing_long_stay_enabled: longStayEnabled,
+        pricing_long_stay_tiers: longStayEnabled ? longStayTiers : null,
       };
       if (mode === 'admin') {
         (formData as any).host_id = Number(selectedHostId);
@@ -1540,6 +1547,17 @@ export default function AccommodationCreationWizard({
                   })}
                 </div>
               )}
+            </div>
+
+            {/* Remises long séjour — proposées dès l'inscription (retour client
+                2026-09-02, Partie 3), désactivées par défaut. */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+              <LongStayDiscountTiers
+                enabled={longStayEnabled}
+                onEnabledChange={setLongStayEnabled}
+                tiers={longStayTiers}
+                onTiersChange={setLongStayTiers}
+              />
             </div>
           </div>
           )}

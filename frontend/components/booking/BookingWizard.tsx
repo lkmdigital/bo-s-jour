@@ -16,10 +16,17 @@ import { Input } from '@/components/ui';
 import DateSelector from '@/components/booking/DateSelector';
 
 interface PaymentOptionItem { label: string; amount: number; balance_at_hotel?: number; description?: string; }
+interface LongStayDiscountInfo {
+  subtotal: number;
+  discount_percent: number;
+  discount_amount: number;
+  label: string;
+}
 interface PriceQuote {
   nights: number; total: number;
   effective_price_per_night?: number;
   cancellation_policy_hours?: number;
+  long_stay_discount?: LongStayDiscountInfo | null;
   payment_options?: { full_only: boolean; reason: string | null; options: { full: PaymentOptionItem; guarantee?: PaymentOptionItem } };
 }
 
@@ -647,7 +654,16 @@ export default function BookingWizard(props: Props) {
             </div>
             {quote ? (
               <div className="space-y-1.5 text-sm border-t border-gray-100 dark:border-gray-700 pt-3">
-                <div className="flex justify-between"><span className="text-gray-500">{quote.nights} nuit{quote.nights > 1 ? 's' : ''}</span><span className="text-gray-900 dark:text-white">{formatPrice(quote.total)} FCFA</span></div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{quote.nights} nuit{quote.nights > 1 ? 's' : ''}</span>
+                  <span className="text-gray-900 dark:text-white">{formatPrice(quote.long_stay_discount?.subtotal ?? quote.total)} FCFA</span>
+                </div>
+                {quote.long_stay_discount && (
+                  <div className="flex justify-between text-green-600 dark:text-green-400">
+                    <span>{quote.long_stay_discount.label}</span>
+                    <span>-{formatPrice(quote.long_stay_discount.discount_amount)} FCFA</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold"><span>Total</span><span>{formatPrice(quote.total)} FCFA</span></div>
                 {onlineNow != null && (
                   <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 mt-2">

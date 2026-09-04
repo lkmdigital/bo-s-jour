@@ -264,13 +264,23 @@ class AccommodationController extends Controller
 
         // Déterminer le type de tarif appliqué (selon les plans activés par l'hôte)
         $rateType = 'base';
-        $longStayNights = (int) ($accommodation->pricing_long_stay_nights ?? config('room-pricing.long_stay_nights_threshold', 7));
+        $matchedLongStayTier = null;
         $hoursUntilCheckIn = now()->diffInHours(\Carbon\Carbon::parse($checkIn), false);
-        if ($accommodation->pricing_long_stay_enabled && $nights >= $longStayNights) {
-            $rateType = 'long_stay';
-        } elseif ($accommodation->pricing_non_refundable_enabled && $cancellationHours === 0) {
+        $longStayTiers = is_array($accommodation->pricing_long_stay_tiers ?? null) ? $accommodation->pricing_long_stay_tiers : null;
+        if ($accommodation->pricing_long_stay_enabled && $longStayTiers) {
+            $matchedLongStayTier = RoomPricingService::resolveLongStayTier($longStayTiers, $nights);
+            if ($matchedLongStayTier) {
+                $rateType = 'long_stay';
+            }
+        } elseif ($accommodation->pricing_long_stay_enabled) {
+            $longStayNights = (int) ($accommodation->pricing_long_stay_nights ?? config('room-pricing.long_stay_nights_threshold', 7));
+            if ($nights >= $longStayNights) {
+                $rateType = 'long_stay';
+            }
+        }
+        if ($rateType === 'base' && $accommodation->pricing_non_refundable_enabled && $cancellationHours === 0) {
             $rateType = 'non_refundable';
-        } elseif ($accommodation->pricing_modifiable_enabled && $cancellationHours > 0 && $hoursUntilCheckIn >= $cancellationHours) {
+        } elseif ($rateType === 'base' && $accommodation->pricing_modifiable_enabled && $cancellationHours > 0 && $hoursUntilCheckIn >= $cancellationHours) {
             $rateType = 'modifiable';
         }
 
@@ -280,12 +290,33 @@ class AccommodationController extends Controller
             $total, $checkIn, $checkOut, (int) $cancellationHours
         );
 
+        // Détail de la remise long séjour appliquée (retour client 2026-09-02,
+        // Partie 3.3 : "3 nuitées x 26 000 FCFA : 78 000 FCFA / Remise séjour
+        // longue durée (3-5 nuits 5%): -3 900 FCFA / TOTAL À PAYER : 74 100 FCFA").
+        $longStayDiscount = null;
+        if ($rateType === 'long_stay' && $matchedLongStayTier) {
+            $subtotal = round((float) $basePricePerNight * $nights, 2);
+            $discountPercent = (float) $matchedLongStayTier['discount_percent'];
+            $discountAmount = round($subtotal - $total, 2);
+            $min = (int) ($matchedLongStayTier['min_nights'] ?? 0);
+            $max = isset($matchedLongStayTier['max_nights']) && $matchedLongStayTier['max_nights'] !== null
+                ? (int) $matchedLongStayTier['max_nights'] : null;
+            $rangeLabel = $max ? "{$min}-{$max} nuits" : "{$min}+ nuits";
+            $longStayDiscount = [
+                'subtotal' => $subtotal,
+                'discount_percent' => $discountPercent,
+                'discount_amount' => $discountAmount,
+                'label' => "Remise séjour longue durée ({$rangeLabel} {$discountPercent}%)",
+            ];
+        }
+
         return response()->json([
             'base_price_per_night' => (float) $basePricePerNight,
             'effective_price_per_night' => $effectivePricePerNight,
             'nights' => $nights,
             'total' => $total,
             'rate_type' => $rateType,
+            'long_stay_discount' => $longStayDiscount,
             'cancellation_policy_hours' => $cancellationHours,
             'variants' => $variants,
             'payment_options' => $paymentOptions,
@@ -695,6 +726,14 @@ class AccommodationController extends Controller
             'check_in_time' => 'nullable|date_format:H:i',
             'check_out_time' => 'nullable|date_format:H:i',
             'invoice_paid_before_hours' => 'nullable|integer|min:0',
+            // Remises long séjour à 3 paliers, proposées dès l'inscription (retour
+            // client 2026-09-02, Partie 3) : désactivées par défaut, l'hôte choisit.
+            'pricing_long_stay_enabled' => 'nullable|boolean',
+            'pricing_long_stay_tiers' => 'nullable|array',
+            'pricing_long_stay_tiers.*.min_nights' => 'required_with:pricing_long_stay_tiers|integer|min:1|max:365',
+            'pricing_long_stay_tiers.*.max_nights' => 'nullable|integer|min:1|max:365',
+            'pricing_long_stay_tiers.*.discount_percent' => 'required_with:pricing_long_stay_tiers|numeric|min:0|max:100',
+            'pricing_long_stay_tiers.*.enabled' => 'nullable|boolean',
         ]);
 
         // Sécurité: empêcher la création de doublons pour le même hôte
@@ -774,6 +813,10 @@ class AccommodationController extends Controller
             'check_in_time' => $request->check_in_time,
             'check_out_time' => $request->check_out_time,
             'invoice_paid_before_hours' => $request->invoice_paid_before_hours ?? 48,
+            'pricing_long_stay_enabled' => $request->boolean('pricing_long_stay_enabled', false),
+            'pricing_long_stay_tiers' => $request->boolean('pricing_long_stay_enabled', false)
+                ? ($request->pricing_long_stay_tiers ?? null)
+                : null,
         ]);
 
         Log::info('Accommodation created successfully', [
@@ -851,6 +894,12 @@ class AccommodationController extends Controller
             'pricing_long_stay_enabled' => 'nullable|boolean',
             'pricing_long_stay_discount' => 'nullable|numeric|min:0|max:100',
             'pricing_long_stay_nights' => 'nullable|integer|min:1|max:90',
+            // Remises long séjour à 3 paliers (retour client 2026-09-02, Partie 3).
+            'pricing_long_stay_tiers' => 'nullable|array',
+            'pricing_long_stay_tiers.*.min_nights' => 'required_with:pricing_long_stay_tiers|integer|min:1|max:365',
+            'pricing_long_stay_tiers.*.max_nights' => 'nullable|integer|min:1|max:365',
+            'pricing_long_stay_tiers.*.discount_percent' => 'required_with:pricing_long_stay_tiers|numeric|min:0|max:100',
+            'pricing_long_stay_tiers.*.enabled' => 'nullable|boolean',
             'loyalty_program_joined' => 'nullable|boolean',
         ]);
 
@@ -878,6 +927,7 @@ class AccommodationController extends Controller
             'pricing_non_refundable_discount', 'pricing_modifiable_enabled',
             'pricing_modifiable_surcharge', 'pricing_long_stay_enabled',
             'pricing_long_stay_discount', 'pricing_long_stay_nights',
+            'pricing_long_stay_tiers',
         ]);
 
         // Cohérence type / sous-catégorie / libellé libre
@@ -921,6 +971,9 @@ class AccommodationController extends Controller
         }
         if ($request->has('pricing_long_stay_enabled')) {
             $updateData['pricing_long_stay_enabled'] = $request->boolean('pricing_long_stay_enabled');
+            if (!$updateData['pricing_long_stay_enabled']) {
+                $updateData['pricing_long_stay_tiers'] = null;
+            }
         }
 
         // Participation au programme de fidélité : décision de l'hôte, pas un

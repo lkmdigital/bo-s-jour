@@ -89,6 +89,7 @@ class Accommodation extends Model
         'pricing_long_stay_enabled',
         'pricing_long_stay_discount',
         'pricing_long_stay_nights',
+        'pricing_long_stay_tiers',
         // Synchronisation externe (brief Extranet Partenaire, Étape 18)
         'ical_import_url',
         'ical_last_synced_at',
@@ -128,6 +129,7 @@ class Accommodation extends Model
             'pricing_non_refundable_discount' => 'decimal:2',
             'pricing_modifiable_surcharge' => 'decimal:2',
             'pricing_long_stay_discount' => 'decimal:2',
+            'pricing_long_stay_tiers' => 'array',
             'ical_last_synced_at' => 'datetime',
             'channel_manager_interest_requested_at' => 'datetime',
         ];
