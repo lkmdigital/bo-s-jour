@@ -8,16 +8,34 @@ import Header from '@/components/common/Header';
 import { useSearchStore } from '@/stores/searchStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationPermission } from '@/hooks/useNotificationPermission';
-import { CheckCircle, Calendar, CalendarPlus, Sparkles, Home, List, FileText, KeyRound, UserPlus, Mail } from 'lucide-react';
+import { formatPrice, getRoomCategoryLabel } from '@/lib/utils';
+import {
+  CheckCircle, Calendar, CalendarPlus, Sparkles, Home, List, FileText, KeyRound, UserPlus, Mail,
+  Users, Bed, Wallet, LayoutDashboard, PlusCircle,
+} from 'lucide-react';
 
 interface SuccessBooking {
   confirmation_code?: string;
   booking_number?: string;
+  status?: string;
   check_in?: string;
   check_out?: string;
+  guests?: number;
+  total_price?: number;
+  amount_paid?: number;
+  deposit_amount?: number;
+  payment_type?: 'full' | 'guarantee';
   accommodation?: { name: string; city?: string };
+  room?: { name?: string; type?: string; room_category?: string };
   user?: { email?: string; name?: string; is_guest?: boolean };
 }
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: 'En attente',
+  confirmed: 'Confirmée',
+  cancelled: 'Annulée',
+  completed: 'Terminée',
+};
 
 // Lien "Ajouter à Google Agenda" (événement journée entière check-in → check-out)
 function googleCalendarUrl(b: SuccessBooking, bookingId?: string | null): string | null {
@@ -105,8 +123,63 @@ function BookingSuccessContent() {
                 <span className="font-semibold">
                   Réservation {booking?.booking_number || `#${bookingId}`}
                 </span>
+                {booking?.status && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                    {STATUS_LABEL[booking.status] || booking.status}
+                  </span>
+                )}
               </div>
-              
+
+              {booking && (
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left text-sm">
+                  <div>
+                    <p className="text-gray-400">Établissement</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{booking.accommodation?.name}</p>
+                  </div>
+                  {booking.room && (
+                    <div>
+                      <p className="text-gray-400">Chambre</p>
+                      <p className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                        <Bed className="w-3.5 h-3.5 text-primary" />
+                        {getRoomCategoryLabel(booking.room.room_category || booking.room.type) || booking.room.name}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-gray-400">Dates</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {booking.check_in && booking.check_out
+                        ? `${new Date(booking.check_in).toLocaleDateString('fr-FR')} → ${new Date(booking.check_out).toLocaleDateString('fr-FR')}`
+                        : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Voyageurs</p>
+                    <p className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5 text-primary" /> {booking.guests ?? '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Montant total</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{formatPrice(booking.total_price)} FCFA</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Montant payé</p>
+                    <p className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                      <Wallet className="w-3.5 h-3.5 text-primary" /> {formatPrice(booking.amount_paid)} FCFA
+                    </p>
+                  </div>
+                  {booking.payment_type === 'guarantee' && (
+                    <div className="sm:col-span-2">
+                      <p className="text-gray-400">Solde à régler à l&apos;arrivée</p>
+                      <p className="font-medium text-orange-600 dark:text-orange-400">
+                        {formatPrice((booking.total_price ?? 0) - (booking.amount_paid ?? 0))} FCFA
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
                 <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-2">
                   <Mail className="w-4 h-4 text-secondary flex-shrink-0" />
@@ -149,7 +222,7 @@ function BookingSuccessContent() {
           )}
 
           {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 justify-center">
             {bookingId && (
               <Link
                 href={`/bookings/${bookingId}?payment=success#receipt`}
@@ -164,9 +237,25 @@ function BookingSuccessContent() {
               className="btn-secondary inline-flex items-center justify-center gap-2"
             >
               <List className="w-5 h-5" />
-              Voir mes réservations
+              Voir ma réservation
             </Link>
-            
+
+            <Link
+              href={isAuthenticated ? '/dashboard/user' : '/auth/login?redirect=%2Fdashboard%2Fuser'}
+              className="btn-outline inline-flex items-center justify-center gap-2"
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              Accéder à mon compte
+            </Link>
+
+            <Link
+              href="/accommodations"
+              className="btn-outline inline-flex items-center justify-center gap-2"
+            >
+              <PlusCircle className="w-5 h-5" />
+              Faire une autre réservation
+            </Link>
+
             <Link
               href="/"
               className="btn-outline inline-flex items-center justify-center gap-2"

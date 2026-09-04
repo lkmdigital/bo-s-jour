@@ -594,14 +594,6 @@ export default function BookingWizard(props: Props) {
                 />
               </div>
 
-              {/* Bandeau sécurité */}
-              <div className="rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 flex gap-3">
-                <ShieldCheck className="w-6 h-6 text-green-600 flex-shrink-0" />
-                <p className="text-sm text-green-800 dark:text-green-300">
-                  <strong>Paiement sécurisé.</strong> Si l'établissement n'accepte pas votre demande, vous serez intégralement remboursé automatiquement sous 24h. Vous n'avez aucun risque financier.
-                </p>
-              </div>
-
               <label className="flex items-start gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={cgv} onChange={(e) => setCgv(e.target.checked)} className="accent-[#FF0000] mt-0.5" />
                 <span>

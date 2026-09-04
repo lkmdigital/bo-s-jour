@@ -72,6 +72,37 @@ class MaliaPayIntegrationTest extends TestCase
         $this->assertSame('FAKE_TX_SANDBOX_1', $payment->transaction_id);
     }
 
+    /**
+     * Retour client 2026-09-02 (Partie 1.3) : "le site redirige directement...
+     * sans confirmation visuelle sur la page" — le voyageur atterrissait sur
+     * la fiche réservation générique. success_url doit pointer vers l'écran
+     * de confirmation dédié (/bookings/success), pas la fiche brute.
+     */
+    public function test_success_url_points_to_the_dedicated_confirmation_screen(): void
+    {
+        $this->configureMaliaPay(sandbox: true);
+
+        Http::fake([
+            'business.malia.ci/api/v1/test' => Http::response([
+                'status' => 'success', 'link' => '', 'transaction_id' => 'FAKE_TX_SUCCESSURL',
+                'montant' => 50000, 'channel' => 'WAVECI', 'reference' => 'REF-SUCCESSURL',
+            ], 201),
+        ]);
+
+        $traveler = User::factory()->create();
+        $booking = Booking::factory()->for($traveler)->create(['total_price' => 50000, 'deposit_amount' => 50000]);
+        Sanctum::actingAs($traveler);
+
+        $this->postJson("/api/bookings/{$booking->id}/payment/initiate", ['payment_method' => 'wave-ci'])
+            ->assertOk();
+
+        Http::assertSent(function ($request) use ($booking) {
+            return isset($request['success_url'])
+                && str_contains($request['success_url'], "/bookings/success?id={$booking->id}")
+                && !str_contains($request['success_url'], "/bookings/{$booking->id}?payment=success");
+        });
+    }
+
     public function test_initiate_payment_uses_live_endpoint_when_sandbox_disabled(): void
     {
         $this->configureMaliaPay(sandbox: false);

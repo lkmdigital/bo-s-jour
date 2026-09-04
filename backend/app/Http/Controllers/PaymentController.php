@@ -363,7 +363,11 @@ class PaymentController extends Controller
             'customer_phone_number' => $phoneNumber ?: '22500000000', // Valeur par défaut si vide
             'customer_email' => $user ? $user->email : ($booking->user ? $booking->user->email : ''),
             'notification_url' => url('/api/payments/webhook'),
-            'success_url' => "{$frontend}/bookings/{$booking->id}?payment=success",
+            // Retour client 2026-09-02 (Partie 1.3) : le voyageur atterrissait
+            // directement sur la fiche réservation générique sans confirmation
+            // visuelle. /bookings/success est l'écran de confirmation dédié
+            // (existait déjà côté front mais n'était jamais utilisé par ce flux).
+            'success_url' => "{$frontend}/bookings/success?id={$booking->id}",
             'error_url' => "{$frontend}/bookings/{$booking->id}/payment?error=1",
         ];
 
