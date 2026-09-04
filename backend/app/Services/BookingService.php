@@ -34,7 +34,24 @@ class BookingService
     public function assertAvailable(int $roomId, Carbon $checkIn, Carbon $checkOut, ?int $excludeBookingId = null): void
     {
         $query = Booking::where('room_id', $roomId)
-            ->whereIn('status', BookingStatus::occupying())
+            ->where(function ($q) {
+                // Une réservation confirmée bloque toujours la chambre. Une
+                // réservation encore "pending" (paiement pas encore confirmé)
+                // la bloque AUSSI tant que sa fenêtre n'a pas expiré — retour
+                // client 2026-09-02 (Partie 4.5) : sans ce verrou temporaire,
+                // deux voyageurs pouvaient payer en même temps pour la même
+                // chambre pendant que l'un des deux était encore sur la
+                // passerelle de paiement (occupying() n'incluait que
+                // "confirmed"). Une fois expirée (ou déjà annulée par le
+                // nettoyage planifié), une réservation pending ne bloque plus.
+                $q->whereIn('status', BookingStatus::occupying())
+                    ->orWhere(function ($pending) {
+                        $pending->where('status', BookingStatus::Pending->value)
+                            ->where(function ($notExpired) {
+                                $notExpired->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                            });
+                    });
+            })
             ->where('check_in', '<', $checkOut)
             ->where('check_out', '>', $checkIn)
             ->lockForUpdate();

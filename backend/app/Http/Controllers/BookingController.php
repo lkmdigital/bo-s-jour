@@ -307,9 +307,19 @@ class BookingController extends Controller
                 return response()->json(['message' => 'Exceeds maximum guests'], 400);
             }
 
+            // Même règle que BookingService::assertAvailable (Partie 4.5) : une
+            // réservation pending non expirée bloque aussi, pas seulement confirmed.
             $conflictingBookings = Booking::where('accommodation_id', $request->accommodation_id)
                 ->whereNull('room_id')
-                ->whereIn('status', BookingStatus::occupying())
+                ->where(function ($q) {
+                    $q->whereIn('status', BookingStatus::occupying())
+                        ->orWhere(function ($pending) {
+                            $pending->where('status', BookingStatus::Pending->value)
+                                ->where(function ($notExpired) {
+                                    $notExpired->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                                });
+                        });
+                })
                 ->where('check_in', '<', $request->check_out)
                 ->where('check_out', '>', $request->check_in)
                 ->exists();
