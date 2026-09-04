@@ -6,7 +6,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, getRoomCategoryLabel } from '@/lib/utils';
 import { ArrowLeft, Building2, MapPin, Users, Mail, Phone, MessageCircle, CreditCard, History } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -50,9 +50,16 @@ interface BookingDetail {
   confirmation_code?: string;
   booking_number?: string | null;
   created_at: string;
+  updated_at?: string;
   user: { id: number; name: string; email: string; phone?: string };
-  accommodation: { id: number; name: string; city: string; address?: string; host?: { id: number; name: string; email: string; phone?: string; whatsapp?: string } };
-  room?: { id: number; name: string; type?: string } | null;
+  accommodation: {
+    id: number; name: string; city: string; address?: string;
+    establishment_code?: string | null;
+    breakfast_included?: boolean;
+    breakfast_included_persons?: number | null;
+    host?: { id: number; name: string; email: string; phone?: string; whatsapp?: string };
+  };
+  room?: { id: number; name: string; type?: string; room_category?: string } | null;
   payments: Payment[];
   history: HistoryEntry[];
 }
@@ -113,10 +120,18 @@ export default function AdminReservationDetailPage() {
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
               Créée le {format(new Date(booking.created_at), 'dd MMM yyyy à HH:mm', { locale: fr })}
+              {booking.updated_at && booking.updated_at !== booking.created_at && (
+                <> · Mise à jour le {format(new Date(booking.updated_at), 'dd MMM yyyy à HH:mm', { locale: fr })}</>
+              )}
               {booking.confirmation_code && <> · Code : {booking.confirmation_code}</>}
             </p>
           </div>
-          <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${statusConfig.color}`}>{statusConfig.label}</span>
+          <div className="flex flex-col items-end gap-2">
+            <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${statusConfig.color}`}>{statusConfig.label}</span>
+            <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+              Paiement : {booking.payment_status}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -145,6 +160,9 @@ export default function AdminReservationDetailPage() {
             {booking.room && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
                 Chambre : <span className="text-gray-800 dark:text-gray-200 font-medium">{booking.room.name}</span>
+                {(booking.room.room_category || booking.room.type) && (
+                  <> · {getRoomCategoryLabel(booking.room.room_category || booking.room.type)}</>
+                )}
               </p>
             )}
             {booking.special_requests && (
@@ -172,11 +190,20 @@ export default function AdminReservationDetailPage() {
               <Building2 className="w-4 h-4" />
               {booking.accommodation.name}
             </Link>
+            {booking.accommodation.establishment_code && (
+              <p className="text-xs font-mono text-gray-400 mt-0.5">{booking.accommodation.establishment_code}</p>
+            )}
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5" />
               {booking.accommodation.address ? `${booking.accommodation.address}, ` : ''}
               {booking.accommodation.city}
             </p>
+            {booking.accommodation.breakfast_included && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Petit-déjeuner inclus
+                {booking.accommodation.breakfast_included_persons ? ` (${booking.accommodation.breakfast_included_persons} pers.)` : ''}
+              </p>
+            )}
             {booking.accommodation.host && (
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 text-sm space-y-1">
                 <p className="text-gray-400">Gérant</p>
@@ -268,11 +295,16 @@ export default function AdminReservationDetailPage() {
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 space-y-2">
                 <p className="text-xs text-gray-400 uppercase tracking-wide">Transactions</p>
                 {booking.payments.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-300">
-                      {p.purpose ?? 'Paiement'} {p.payment_method && `(${p.payment_method})`}
-                    </span>
-                    <span className="font-medium text-gray-900 dark:text-white">{formatPrice(p.amount)} FCFA</span>
+                  <div key={p.id} className="text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">
+                        {p.purpose ?? 'Paiement'} {p.payment_method && `(${p.payment_method})`}
+                      </span>
+                      <span className="font-medium text-gray-900 dark:text-white">{formatPrice(p.amount)} FCFA</span>
+                    </div>
+                    {p.transaction_id && (
+                      <p className="text-xs text-gray-400 font-mono mt-0.5">Réf. : {p.transaction_id}</p>
+                    )}
                   </div>
                 ))}
               </div>

@@ -91,6 +91,7 @@ interface UserDetail {
     check_out: string;
     status: string;
     total_price: number;
+    booking_number?: string | null;
   }>;
 }
 
@@ -740,7 +741,7 @@ export default function UserDetailPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            Réservation #{booking.id}
+                            Réservation {booking.booking_number || `#${booking.id}`}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
                             {new Date(booking.check_in).toLocaleDateString('fr-FR')} - {new Date(booking.check_out).toLocaleDateString('fr-FR')}

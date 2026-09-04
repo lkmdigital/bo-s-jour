@@ -213,13 +213,17 @@ class Booking extends Model
     /**
      * Génère le numéro de réservation — référence stable et séquentielle
      * (facturation, support, export compta), distincte du confirmation_code
-     * (clé aléatoire de vérification à l'arrivée). Format RES-{année}-{séquence
-     * 5 chiffres}, remise à 1 chaque nouvelle année.
+     * (clé aléatoire de vérification à l'arrivée). Format BS-{année}-{séquence
+     * 6 chiffres}, remise à 1 chaque nouvelle année — retour client 2026-09-02
+     * ("Format recommandé : BS-AAAA-XXXXXX, par exemple BS-2026-0001").
+     * Ancien format RES-{année}-{5 chiffres} conservé tel quel sur les
+     * réservations déjà numérotées (numéro non modifiable une fois attribué) ;
+     * seules les nouvelles réservations reçoivent le nouveau format.
      */
     public static function generateBookingNumber(?\Carbon\Carbon $at = null): string
     {
         $year = ($at ?? now())->format('Y');
-        $prefix = "RES-{$year}-";
+        $prefix = "BS-{$year}-";
 
         do {
             $maxSeq = (int) \Illuminate\Support\Facades\DB::table('bookings')
@@ -227,7 +231,7 @@ class Booking extends Model
                 ->selectRaw("MAX(CAST(SUBSTRING(booking_number, ?) AS UNSIGNED)) as max_seq", [strlen($prefix) + 1])
                 ->value('max_seq');
 
-            $sequence = str_pad((string) ($maxSeq + 1), 5, '0', STR_PAD_LEFT);
+            $sequence = str_pad((string) ($maxSeq + 1), 6, '0', STR_PAD_LEFT);
             $number = $prefix . $sequence;
         } while (self::where('booking_number', $number)->exists());
 

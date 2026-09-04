@@ -71,9 +71,9 @@ class AdminBookingController extends Controller
     {
         $booking = Booking::with([
             'user',
-            'accommodation:id,name,city,address,host_id',
+            'accommodation:id,name,city,address,host_id,establishment_code,breakfast_included,breakfast_included_persons',
             'accommodation.host:id,name,email,phone,whatsapp',
-            'room:id,name,type',
+            'room:id,name,type,room_category',
             'payments',
             'history' => function ($q) {
                 $q->latest();

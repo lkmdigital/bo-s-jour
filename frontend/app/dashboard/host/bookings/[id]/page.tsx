@@ -69,6 +69,7 @@ interface BookingDetail {
     images: Array<{ url: string; is_primary: boolean }>;
     breakfast_included?: boolean;
     breakfast_included_persons?: number;
+    establishment_code?: string | null;
   };
   room?: {
     id: number;
@@ -335,15 +336,16 @@ export default function HostBookingDetailPage() {
 
             {/* Carte d'hébergement */}
             <div className="card">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
                 <h2 className="text-2xl font-bold">{booking.accommodation.name}</h2>
-                <Link 
+                <Link
                   href={`/accommodations/${booking.accommodation.id}`}
                   className="text-primary hover:underline text-sm"
                 >
                   Voir l'hébergement
                 </Link>
               </div>
+              <p className="text-xs font-mono text-gray-400 mb-4 min-h-[1em]">{booking.accommodation.establishment_code}</p>
 
               <div className="relative h-64 rounded-lg overflow-hidden mb-4">
                 <Image
