@@ -293,6 +293,46 @@ class AccommodationController extends Controller
     }
 
     /**
+     * Villes réellement en avant sur l'accueil (retour client 2026-09-02) :
+     * la page d'accueil affichait 4 villes codées en dur (Grand-Bassam, Assinie,
+     * Man, Yamoussoukro) avec des prix et photos Unsplash inventés, sans lien
+     * avec les établissements réels en base — trompeur pour un visiteur qui
+     * clique dessus et ne trouve rien de correspondant. Cette route calcule les
+     * villes les plus représentées parmi les établissements publiés ET ayant
+     * au moins une chambre active (donc réellement réservables), avec le prix
+     * le plus bas et une vraie photo pour chacune.
+     */
+    public function topCities(Request $request)
+    {
+        $limit = min((int) $request->get('limit', 6), 12);
+
+        $rows = Accommodation::published()
+            ->whereHas('rooms', fn ($q) => $q->where('is_active', true))
+            ->select('id', 'city', 'name', 'price_per_night', 'rating')
+            ->with(['images' => fn ($q) => $q->where('is_primary', true)->limit(1)])
+            ->get()
+            ->filter(fn ($a) => !empty(trim((string) $a->city)))
+            ->groupBy(fn ($a) => mb_strtolower(trim($a->city)));
+
+        $cities = $rows->map(function ($group) {
+            // Représentant de la ville : le mieux noté, sinon le moins cher.
+            $representative = $group->sortByDesc(fn ($a) => $a->rating ?? 0)->first();
+            return [
+                'city' => trim($group->first()->city),
+                'accommodations_count' => $group->count(),
+                'from_price' => (float) $group->min('price_per_night'),
+                'image' => $representative->images->first()->url ?? null,
+            ];
+        })
+            ->filter(fn ($c) => !empty($c['image'])) // pas de photo = pas présentable en carte destination
+            ->sortByDesc('accommodations_count')
+            ->take($limit)
+            ->values();
+
+        return response()->json(['cities' => $cities]);
+    }
+
+    /**
      * Suggestions d'autocomplétion pour la barre de recherche
      * Retourne villes et noms d'hébergements correspondant à la requête
      */

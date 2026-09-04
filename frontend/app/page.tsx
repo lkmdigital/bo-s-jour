@@ -108,7 +108,7 @@ export default function Home() {
       <HeroSection onSearch={handleSearch} />
 
       <TrustSection />
-      <TrendingDestinations photos={editorialPhotos} />
+      <TrendingDestinations />
 
       <div className="bg-gray-50 dark:bg-gray-900/40">
         <PropertyCarousel title="Offres du week-end" items={weekend} />

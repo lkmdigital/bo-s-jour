@@ -63,6 +63,7 @@ use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::get('/accommodations', [AccommodationController::class, 'index']);
+Route::get('/accommodations/top-cities', [AccommodationController::class, 'topCities']);
 Route::get('/accommodations/suggestions', [AccommodationController::class, 'suggestions']);
 Route::get('/accommodations/{id}', [AccommodationController::class, 'show'])->where('id', '[0-9]+');
 Route::get('/accommodations/{id}/price-preview', [AccommodationController::class, 'pricePreview'])->where('id', '[0-9]+');
@@ -198,6 +199,8 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             // conformité), aucune permission staff ne couvre ce module (voir HostProfileController).
             Route::get('/host/profile', [HostProfileController::class, 'show']);
             Route::post('/host/profile', [HostProfileController::class, 'update']); // POST pour FormData
+            Route::post('/host/profile/email/request-change', [HostProfileController::class, 'requestEmailChange']);
+            Route::post('/host/profile/email/confirm-change', [HostProfileController::class, 'confirmEmailChange']);
 
             // Établissements — permission 'property'
             Route::middleware('hoststaff:property')->group(function () {

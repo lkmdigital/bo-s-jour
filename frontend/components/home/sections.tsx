@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -8,8 +8,9 @@ import {
   DollarSign, ShieldCheck, FileText, Sparkles, Sun, Leaf, Snowflake,
   Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Play, Quote, Star,
 } from 'lucide-react';
+import api from '@/lib/api';
 import DestinationCard, { DestinationCardData } from './DestinationCard';
-import { cn } from '@/lib/utils';
+import { cn, resolveImageUrl } from '@/lib/utils';
 
 /** Image Unsplash (le domaine est autorisé + images non optimisées) */
 const img = (id: string, w = 800) =>
@@ -107,15 +108,54 @@ const SEASON_TABS = [
   { label: 'Escapade hivernale', icon: Snowflake },
 ];
 
-const DESTINATIONS: DestinationCardData[] = [
-  { name: 'Grand-Bassam', image: img('1520250497591-112f2f40a3f4'), fromPrice: 128000, tagline: 'Escapades romantiques, art et cafés.' },
-  { name: 'Assinie', image: img('1573843981267-be1999ff37cd'), fromPrice: 145000, tagline: 'Plages, lagune et sérénité.' },
-  { name: 'Man', image: img('1441974231531-c6227db76b6e'), fromPrice: 98000, tagline: 'Montagnes, cascades et nature.' },
-  { name: 'Yamoussoukro', image: img('1566073771259-6a8506099945'), fromPrice: 110000, tagline: 'Patrimoine et grands espaces.' },
-];
+interface TopCityApi {
+  city: string;
+  accommodations_count: number;
+  from_price: number;
+  image: string | null;
+}
 
-export function TrendingDestinations({ photos = [] }: { photos?: string[] }) {
+/**
+ * Retour client 2026-09-02 : la page d'accueil affichait 4 villes codées en
+ * dur (Grand-Bassam, Assinie, Man, Yamoussoukro) avec prix et photos
+ * inventés, sans lien avec les établissements réels — trompeur pour un
+ * visiteur qui clique dessus. Remplacé par /accommodations/top-cities
+ * (villes des établissements publiés et réellement réservables en base,
+ * triées par nombre d'établissements, avec le vrai prix le plus bas et une
+ * vraie photo). Chaque carte mène vers la recherche filtrée sur cette ville.
+ */
+function useTopCities() {
+  const [cities, setCities] = useState<DestinationCardData[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/accommodations/top-cities?limit=4')
+      .then((r) => {
+        if (cancelled) return;
+        const data: TopCityApi[] = r.data?.cities ?? [];
+        setCities(data.map((c) => ({
+          name: c.city,
+          image: resolveImageUrl(c.image) || '',
+          fromPrice: c.from_price,
+          tagline: `${c.accommodations_count} hébergement${c.accommodations_count > 1 ? 's' : ''} disponible${c.accommodations_count > 1 ? 's' : ''}`,
+          href: `/accommodations?city=${encodeURIComponent(c.city)}`,
+        })));
+      })
+      .catch(() => { if (!cancelled) setCities([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return cities;
+}
+
+export function TrendingDestinations() {
   const [active, setActive] = useState(0);
+  const destinations = useTopCities();
+
+  // Rien de réel à montrer (base vide, ou toutes sans photo) : on masque la
+  // section plutôt que d'afficher des données inventées ou une grille vide.
+  if (destinations !== null && destinations.length === 0) return null;
+
   return (
     <section className="container mx-auto px-4 md:px-8 max-w-7xl py-12">
       <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Destinations tendances</h2>
@@ -134,9 +174,17 @@ export function TrendingDestinations({ photos = [] }: { photos?: string[] }) {
           );
         })}
       </div>
-      <Reveal className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {DESTINATIONS.map((d, i) => <DestinationCard key={d.name} data={{ ...d, image: photos[i] || d.image }} />)}
-      </Reveal>
+      {destinations === null ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-[440px] rounded-2xl skeleton" />
+          ))}
+        </div>
+      ) : (
+        <Reveal className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {destinations.map((d) => <DestinationCard key={d.name} data={d} />)}
+        </Reveal>
+      )}
     </section>
   );
 }
