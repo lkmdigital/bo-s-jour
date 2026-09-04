@@ -2,12 +2,99 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\OtpMail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class HostProfileController extends Controller
 {
+    /**
+     * Étape 1 du changement d'e-mail (retour client 2026-09-02 : le champ
+     * était verrouillé en dur, aucun moyen de le modifier). Envoie un code
+     * OTP à la NOUVELLE adresse — l'e-mail n'est PAS changé ici, seulement
+     * mémorisé dans pending_email en attendant la confirmation ci-dessous.
+     */
+    public function requestEmailChange(Request $request)
+    {
+        if (!$request->user()->isHost() || $request->user()->isStaff()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+        ]);
+
+        $newEmail = $validated['email'];
+        if (strcasecmp($newEmail, $user->email) === 0) {
+            return response()->json(['message' => 'Cette adresse est déjà celle de votre compte.'], 422);
+        }
+
+        $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $user->update([
+            'pending_email'         => $newEmail,
+            'email_otp_code'        => $otp,
+            'email_otp_expires_at'  => now()->addMinutes(15),
+        ]);
+
+        try {
+            Mail::to($newEmail)->send(new OtpMail($user->name, $otp));
+        } catch (\Throwable $e) {
+            Log::error('Email change OTP send failed: ' . $e->getMessage(), ['user_id' => $user->id]);
+            $user->update(['pending_email' => null, 'email_otp_code' => null, 'email_otp_expires_at' => null]);
+            return response()->json(['message' => "Impossible d'envoyer le code à cette adresse. Vérifiez qu'elle est correcte."], 503);
+        }
+
+        return response()->json(['message' => 'Code de vérification envoyé à la nouvelle adresse.']);
+    }
+
+    /**
+     * Étape 2 : le code reçu sur la nouvelle adresse confirme qu'elle est
+     * bien accessible par le responsable — l'e-mail n'est appliqué qu'ici.
+     */
+    public function confirmEmailChange(Request $request)
+    {
+        if (!$request->user()->isHost() || $request->user()->isStaff()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $user = $request->user();
+
+        $request->validate([
+            'code' => 'required|string|size:6',
+        ]);
+
+        if (!$user->pending_email || !$user->email_otp_code || !$user->email_otp_expires_at) {
+            return response()->json(['message' => "Aucun changement d'e-mail en attente. Recommencez la demande."], 422);
+        }
+
+        if ($user->email_otp_expires_at->isPast()) {
+            return response()->json(['message' => 'Ce code a expiré. Recommencez la demande.'], 422);
+        }
+
+        if (trim($request->code) !== $user->email_otp_code) {
+            return response()->json(['message' => 'Code incorrect.'], 422);
+        }
+
+        $newEmail = $user->pending_email;
+        $user->update([
+            'email'                => $newEmail,
+            'pending_email'        => null,
+            'email_otp_code'       => null,
+            'email_otp_expires_at' => null,
+            'email_verified_at'    => now(),
+        ]);
+
+        Log::info('Adresse e-mail hôte modifiée', ['user_id' => $user->id]);
+
+        return response()->json(['message' => 'Adresse e-mail mise à jour avec succès.', 'email' => $newEmail]);
+    }
+
     public function show(Request $request)
     {
         if (!$request->user()->isHost()) {

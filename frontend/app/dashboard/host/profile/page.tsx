@@ -58,6 +58,14 @@ export default function HostProfilePage() {
   const [completion, setCompletion] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  // Changement d'e-mail (retour client 2026-09-02 : le champ était verrouillé
+  // sans aucun moyen de le modifier). Flux en 2 étapes avec confirmation par
+  // code envoyé à la NOUVELLE adresse, pour garantir qu'elle est accessible.
+  const [emailChangeStep, setEmailChangeStep] = useState<'idle' | 'enter-email' | 'enter-code'>('idle');
+  const [newEmailInput, setNewEmailInput] = useState('');
+  const [emailOtpCode, setEmailOtpCode] = useState('');
+  const [emailChangeLoading, setEmailChangeLoading] = useState(false);
+  const [emailChangeError, setEmailChangeError] = useState<string | null>(null);
   const [complianceData, setComplianceData] = useState<{
     status: 'conforme' | 'non_conforme' | null;
     requirements: HostProfile['compliance_requirements'];
@@ -144,6 +152,51 @@ export default function HostProfilePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const requestEmailChange = async () => {
+    setEmailChangeError(null);
+    if (!newEmailInput.trim()) {
+      setEmailChangeError('Saisissez la nouvelle adresse e-mail.');
+      return;
+    }
+    setEmailChangeLoading(true);
+    try {
+      await api.post('/host/profile/email/request-change', { email: newEmailInput.trim() });
+      setEmailChangeStep('enter-code');
+    } catch (err: any) {
+      setEmailChangeError(err.response?.data?.message || "Impossible d'envoyer le code. Vérifiez l'adresse saisie.");
+    } finally {
+      setEmailChangeLoading(false);
+    }
+  };
+
+  const confirmEmailChange = async () => {
+    setEmailChangeError(null);
+    if (emailOtpCode.trim().length !== 6) {
+      setEmailChangeError('Saisissez le code à 6 chiffres reçu par e-mail.');
+      return;
+    }
+    setEmailChangeLoading(true);
+    try {
+      const res = await api.post('/host/profile/email/confirm-change', { code: emailOtpCode.trim() });
+      setProfile((p) => (p ? { ...p, email: res.data.email } : p));
+      setEmailChangeStep('idle');
+      setNewEmailInput('');
+      setEmailOtpCode('');
+      setSuccess('Adresse e-mail mise à jour avec succès.');
+    } catch (err: any) {
+      setEmailChangeError(err.response?.data?.message || 'Code incorrect ou expiré.');
+    } finally {
+      setEmailChangeLoading(false);
+    }
+  };
+
+  const cancelEmailChange = () => {
+    setEmailChangeStep('idle');
+    setNewEmailInput('');
+    setEmailOtpCode('');
+    setEmailChangeError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -523,14 +576,77 @@ export default function HostProfilePage() {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:cursor-not-allowed"
                     />
                   </div>
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block text-sm font-medium mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={profile.email}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
-                    />
+                    {emailChangeStep === 'idle' ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="email"
+                          value={profile.email}
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
+                        />
+                        {isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => setEmailChangeStep('enter-email')}
+                            className="whitespace-nowrap text-sm font-medium text-primary hover:underline flex-shrink-0"
+                          >
+                            Modifier
+                          </button>
+                        )}
+                      </div>
+                    ) : emailChangeStep === 'enter-email' ? (
+                      <div className="space-y-2">
+                        <input
+                          type="email"
+                          value={newEmailInput}
+                          onChange={(e) => setNewEmailInput(e.target.value)}
+                          placeholder="nouvelle.adresse@exemple.com"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                        />
+                        <p className="text-xs text-gray-500">Un code de vérification sera envoyé à cette adresse pour confirmer qu'elle vous appartient.</p>
+                        {emailChangeError && <p className="text-sm text-red-600 dark:text-red-400">{emailChangeError}</p>}
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={requestEmailChange}
+                            disabled={emailChangeLoading}
+                            className="btn-primary text-sm py-2 px-4 disabled:opacity-50"
+                          >
+                            {emailChangeLoading ? 'Envoi…' : 'Envoyer le code'}
+                          </button>
+                          <button type="button" onClick={cancelEmailChange} className="text-sm text-gray-500 hover:underline">Annuler</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Code envoyé à <strong>{newEmailInput}</strong>. Saisissez-le ci-dessous pour confirmer.
+                        </p>
+                        <input
+                          value={emailOtpCode}
+                          onChange={(e) => setEmailOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          inputMode="numeric"
+                          maxLength={6}
+                          placeholder="Code à 6 chiffres"
+                          className="w-40 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 tracking-widest"
+                        />
+                        {emailChangeError && <p className="text-sm text-red-600 dark:text-red-400">{emailChangeError}</p>}
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={confirmEmailChange}
+                            disabled={emailChangeLoading || emailOtpCode.length !== 6}
+                            className="btn-primary text-sm py-2 px-4 disabled:opacity-50"
+                          >
+                            {emailChangeLoading ? 'Vérification…' : 'Confirmer'}
+                          </button>
+                          <button type="button" onClick={requestEmailChange} disabled={emailChangeLoading} className="text-xs text-gray-400 hover:underline">Renvoyer le code</button>
+                          <button type="button" onClick={cancelEmailChange} className="text-sm text-gray-500 hover:underline">Annuler</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Téléphone *</label>

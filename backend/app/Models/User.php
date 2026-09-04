@@ -111,6 +111,8 @@ class User extends Authenticatable
         // Champs OTP email
         'email_otp_code',
         'email_otp_expires_at',
+        // Changement d'e-mail en attente de confirmation (Extranet partenaire)
+        'pending_email',
         // Programme de fidélité
         'loyalty_points_lifetime',
         'loyalty_points_balance',
