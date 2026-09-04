@@ -9,7 +9,7 @@ import ErrorDisplay from '@/components/common/ErrorDisplay';
 import { useConfirm } from '@/components/common/ConfirmContext';
 import { useToast } from '@/components/common/ToastContext';
 import { formatPrice, getRoomCategoryLabel } from '@/lib/utils';
-import { ArrowLeft, Building2, MapPin, Users, Mail, Phone, MessageCircle, CreditCard, History, XCircle, CheckCircle, Settings2 } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Users, Mail, Phone, MessageCircle, CreditCard, History, XCircle, CheckCircle, Settings2, Send, AlertTriangle } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -69,7 +69,30 @@ interface BookingDetail {
   history: HistoryEntry[];
   promotion?: { id: number; promo_code?: string | null; description?: string | null; discount_percent?: number | null; discount_amount?: number | null; discount_type?: string } | null;
   loyalty_voucher?: { id: number; code: string; discount_percent: number } | null;
+  notification_logs?: NotificationLogEntry[];
 }
+
+interface NotificationLogEntry {
+  id: number;
+  event: string;
+  channel: string;
+  recipient_type: string;
+  recipient?: string | null;
+  success: boolean;
+  error?: string | null;
+  created_at: string;
+}
+
+const NOTIFICATION_EVENT_LABEL: Record<string, string> = {
+  booking_confirmed: 'Confirmation',
+  booking_cancelled: 'Annulation',
+};
+const NOTIFICATION_CHANNEL_LABEL: Record<string, string> = {
+  email: 'E-mail',
+  sms: 'SMS',
+  whatsapp: 'WhatsApp',
+  push: 'Notification push',
+};
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   pending: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' },
@@ -305,6 +328,36 @@ export default function AdminReservationDetailPage() {
                     <p className="text-xs text-gray-400 mt-0.5">
                       {h.user?.name ?? 'Système'} · {format(new Date(h.created_at), 'dd MMM yyyy à HH:mm', { locale: fr })}
                     </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* "Événements de notification" (retour client 2026-09-02, Partie 4.3) */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Send className="w-4 h-4" />
+              Notifications envoyées
+            </h2>
+            {!booking.notification_logs || booking.notification_logs.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">Aucune notification enregistrée pour cette réservation</p>
+            ) : (
+              <ul className="space-y-2">
+                {booking.notification_logs.map((n) => (
+                  <li key={n.id} className="flex items-center justify-between text-sm border-b border-gray-50 dark:border-gray-700/50 pb-2 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-2">
+                      {n.success ? (
+                        <CheckCircle className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                      ) : (
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                      )}
+                      <span className="text-gray-800 dark:text-gray-200">
+                        {NOTIFICATION_CHANNEL_LABEL[n.channel] ?? n.channel} · {NOTIFICATION_EVENT_LABEL[n.event] ?? n.event}
+                        <span className="text-gray-400"> — {n.recipient_type === 'host' ? 'hôte' : 'voyageur'}</span>
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-400">{format(new Date(n.created_at), 'dd MMM HH:mm', { locale: fr })}</span>
                   </li>
                 ))}
               </ul>

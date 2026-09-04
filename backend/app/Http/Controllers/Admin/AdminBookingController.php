@@ -105,6 +105,7 @@ class AdminBookingController extends Controller
             // sur le modèle (Booking::promotion / ::loyaltyVoucher).
             'promotion:id,promo_code,description,discount_percent,discount_amount,discount_type',
             'loyaltyVoucher:id,code,discount_percent',
+            'notificationLogs',
         ])->findOrFail($id);
 
         $booking->append(['display_status_label', 'display_payment_status_label']);

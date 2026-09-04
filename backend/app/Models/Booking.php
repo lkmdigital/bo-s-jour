@@ -118,6 +118,11 @@ class Booking extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function notificationLogs(): HasMany
+    {
+        return $this->hasMany(NotificationLog::class)->latest();
+    }
+
     public function isPaid()
     {
         return in_array($this->payment_status, ['paid', 'guarantee_paid'], true);

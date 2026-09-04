@@ -158,14 +158,19 @@ class BookingService
         $booking->load(['user', 'accommodation', 'room']);
 
         // Email de confirmation au client — synchrone, garanti
+        // Chaque tentative est aussi tracée dans notification_logs (retour
+        // client 2026-09-02, Partie 4.3 : "événements de notification"),
+        // consultable depuis le détail admin de la réservation.
         if ($booking->user?->email) {
             try {
                 Mail::to($booking->user->email)->send(new BookingConfirmation($booking));
+                \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'email', 'traveler', $booking->user->email, true);
             } catch (\Throwable $e) {
                 Log::error('Booking confirmation email (client) failed', [
                     'booking_id' => $booking->id,
                     'error'      => $e->getMessage(),
                 ]);
+                \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'email', 'traveler', $booking->user->email, false, $e->getMessage());
             }
         }
 
@@ -174,11 +179,13 @@ class BookingService
         if ($hostEmail) {
             try {
                 Mail::to($hostEmail)->send(new HostNewBooking($booking));
+                \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'email', 'host', $hostEmail, true);
             } catch (\Throwable $e) {
                 Log::error('Booking confirmation email (host) failed', [
                     'booking_id' => $booking->id,
                     'error'      => $e->getMessage(),
                 ]);
+                \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'email', 'host', $hostEmail, false, $e->getMessage());
             }
         }
 
@@ -187,21 +194,25 @@ class BookingService
             $sms = app(\App\Services\SmsService::class);
             $sms->sendBookingConfirmationToClient($booking);
             $sms->sendBookingNotificationToHost($booking);
+            \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'sms', 'traveler', $booking->user?->phone, true);
         } catch (\Throwable $e) {
             Log::error('Booking confirmation SMS failed', [
                 'booking_id' => $booking->id,
                 'error'      => $e->getMessage(),
             ]);
+            \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'sms', 'traveler', $booking->user?->phone, false, $e->getMessage());
         }
 
         // Double confirmation : WhatsApp (best-effort, en plus de l'e-mail)
         try {
             app(\App\Services\WhatsAppService::class)->sendBookingConfirmation($booking);
+            \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'whatsapp', 'traveler', $booking->user?->phone, true);
         } catch (\Throwable $e) {
             Log::error('Booking confirmation WhatsApp failed', [
                 'booking_id' => $booking->id,
                 'error'      => $e->getMessage(),
             ]);
+            \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'whatsapp', 'traveler', $booking->user?->phone, false, $e->getMessage());
         }
 
         // Notification in-app (database) via queue
