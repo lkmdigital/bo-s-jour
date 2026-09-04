@@ -20,6 +20,7 @@ class Booking extends Model
         'check_in',
         'check_out',
         'guests',
+        'estimated_arrival_time',
         'total_price',
         'base_price',
         'deposit_amount',

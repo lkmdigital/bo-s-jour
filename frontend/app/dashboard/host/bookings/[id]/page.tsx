@@ -38,6 +38,7 @@ import { fr } from 'date-fns/locale';
 interface BookingDetail {
   id: number;
   check_in: string;
+  estimated_arrival_time?: string | null;
   check_out: string;
   guests: number;
   total_price: number;
@@ -413,6 +414,16 @@ export default function HostBookingDetailPage() {
                     </p>
                   </div>
                 </div>
+
+                {booking.estimated_arrival_time && (
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-5 h-5 text-primary mt-1" />
+                    <div>
+                      <p className="font-semibold">Heure d&apos;arrivée prévisionnelle</p>
+                      <p className="text-gray-600 dark:text-gray-400">{booking.estimated_arrival_time.slice(0, 5)}</p>
+                    </div>
+                  </div>
+                )}
 
                 {booking.room && (
                   <div className="flex items-start gap-3">

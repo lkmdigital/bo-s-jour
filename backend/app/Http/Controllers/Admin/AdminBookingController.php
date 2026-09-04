@@ -37,11 +37,20 @@ class AdminBookingController extends Controller
         }
 
         if ($request->filled('search')) {
+            // Retour client 2026-09-02 (Partie 4.3) : "recherche par numéro de
+            // réservation, établissement, voyageur..." — seuls nom/email/
+            // téléphone du client étaient cherchables jusqu'ici.
             $search = $request->search;
-            $query->whereHas('user', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('booking_number', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($q2) use ($search) {
+                        $q2->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('accommodation', function ($q2) use ($search) {
+                        $q2->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -91,6 +100,11 @@ class AdminBookingController extends Controller
             },
             'history.user:id,name',
             'clientCredits',
+            // "Origine de la remise" (retour client 2026-09-02, Partie 4.3) —
+            // absent jusqu'ici du détail admin alors que le lien existe déjà
+            // sur le modèle (Booking::promotion / ::loyaltyVoucher).
+            'promotion:id,promo_code,description,discount_percent,discount_amount,discount_type',
+            'loyaltyVoucher:id,code,discount_percent',
         ])->findOrFail($id);
 
         $booking->append(['display_status_label', 'display_payment_status_label']);

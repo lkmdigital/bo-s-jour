@@ -125,6 +125,9 @@ export default function BookingWizard(props: Props) {
   const [phone, setPhone] = useState('');
   const [residenceCountry, setResidenceCountry] = useState('Côte d\'Ivoire');
   const [residenceCity, setResidenceCity] = useState('');
+  // Heure d'arrivée prévisionnelle (retour client 2026-09-02, Partie 4.3) —
+  // facultative, n'existait dans aucun formulaire du tunnel jusqu'ici.
+  const [estimatedArrivalTime, setEstimatedArrivalTime] = useState('');
   // Entreprise (corporate)
   const [companyName, setCompanyName] = useState('');
   const [companyVat, setCompanyVat] = useState('');
@@ -264,6 +267,7 @@ export default function BookingWizard(props: Props) {
         traveler_type: travelerType,
         residence_country: residenceCountry || null,
         residence_city: residenceCity || null,
+        estimated_arrival_time: estimatedArrivalTime || undefined,
         promo_code: discountMode === 'promo' ? (promoCode.trim() || undefined) : undefined,
         loyalty_voucher_code: discountMode === 'loyalty' ? (loyaltyVoucherCode || undefined) : undefined,
         special_requests: specialRequests.trim() || undefined,
@@ -447,6 +451,13 @@ export default function BookingWizard(props: Props) {
                 <Input label="E-mail" type="email" leftIcon={<Mail className="w-4 h-4" />} value={email} onChange={(e) => setEmail(e.target.value)} required />
                 <Input label="Pays de résidence" value={residenceCountry} onChange={(e) => setResidenceCountry(e.target.value)} required />
                 <Input label="Ville de résidence" value={residenceCity} onChange={(e) => setResidenceCity(e.target.value)} />
+                <Input
+                  label="Heure d'arrivée prévisionnelle"
+                  type="time"
+                  value={estimatedArrivalTime}
+                  onChange={(e) => setEstimatedArrivalTime(e.target.value)}
+                  hint="Facultatif — aide l'établissement à préparer votre arrivée"
+                />
               </div>
 
               {travelerType === 'corporate' && (
@@ -511,6 +522,7 @@ export default function BookingWizard(props: Props) {
                   ['Établissement', props.accommodationName + (props.roomName ? ` · ${props.roomName}` : '')],
                   ...(props.roomCategory ? [['Type de chambre', getRoomCategoryLabel(props.roomCategory)]] : []),
                   ['Dates', `${checkIn} → ${checkOut} (${quote?.nights ?? ''} nuit${(quote?.nights ?? 0) > 1 ? 's' : ''})`],
+                  ...(estimatedArrivalTime ? [['Heure d\'arrivée prévisionnelle', estimatedArrivalTime]] : []),
                   ['Voyageurs', `${guests}`],
                   ['Voyageur', travelerType === 'corporate' ? `Corporate — ${companyName}` : `Particulier — ${firstName} ${lastName}`],
                   ['Contact', `${email} · ${phone}`],

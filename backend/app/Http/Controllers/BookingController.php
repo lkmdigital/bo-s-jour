@@ -145,6 +145,7 @@ class BookingController extends Controller
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
             'guests' => 'required|integer|min:1',
+            'estimated_arrival_time' => 'nullable|date_format:H:i',
             'promo_code' => 'nullable|string|max:100',
             'special_requests' => 'nullable|string|max:1000',
             'booked_for_third_party' => 'nullable|boolean',
@@ -479,6 +480,7 @@ class BookingController extends Controller
                 'check_in' => $request->check_in,
                 'check_out' => $request->check_out,
                 'guests' => $request->guests,
+                'estimated_arrival_time' => $request->estimated_arrival_time,
                 'total_price' => $totalPrice,
                 // Tarif plein de l'hôte, AVANT promo/bon de fidélité — conservé pour que
                 // la commission BoSéjour et le montant reversé à l'hôte restent basés sur

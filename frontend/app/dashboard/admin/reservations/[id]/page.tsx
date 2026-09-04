@@ -6,8 +6,10 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
+import { useConfirm } from '@/components/common/ConfirmContext';
+import { useToast } from '@/components/common/ToastContext';
 import { formatPrice, getRoomCategoryLabel } from '@/lib/utils';
-import { ArrowLeft, Building2, MapPin, Users, Mail, Phone, MessageCircle, CreditCard, History } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Users, Mail, Phone, MessageCircle, CreditCard, History, XCircle, CheckCircle, Settings2 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -37,6 +39,7 @@ interface BookingDetail {
   check_in: string;
   check_out: string;
   guests: number;
+  estimated_arrival_time?: string | null;
   total_price: number;
   deposit_amount: number;
   amount_paid: number;
@@ -64,6 +67,8 @@ interface BookingDetail {
   room?: { id: number; name: string; type?: string; room_category?: string } | null;
   payments: Payment[];
   history: HistoryEntry[];
+  promotion?: { id: number; promo_code?: string | null; description?: string | null; discount_percent?: number | null; discount_amount?: number | null; discount_type?: string } | null;
+  loyalty_voucher?: { id: number; code: string; discount_percent: number } | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -79,14 +84,65 @@ export default function AdminReservationDetailPage() {
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [showCancelForm, setShowCancelForm] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const confirmDialog = useConfirm();
+  const { showSuccess, showError } = useToast();
 
-  useEffect(() => {
+  const fetchBooking = () => {
+    setLoading(true);
     api
       .get(`/admin/bookings/${id}`)
       .then((res) => setBooking(res.data?.data ?? null))
       .catch((err) => setError(err.response?.data?.message || 'Erreur lors du chargement de la réservation'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchBooking();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // "Droits de modification ou d'annulation" (retour client 2026-09-02,
+  // Partie 4.3) — l'API le permettait déjà pour un admin (PUT /bookings/{id}),
+  // mais aucun bouton ne l'exposait sur cette page.
+  const handleCancel = async () => {
+    setActionBusy(true);
+    try {
+      await api.put(`/bookings/${id}`, { status: 'cancelled', reason: cancelReason.trim() || undefined });
+      showSuccess('Réservation annulée.');
+      setShowCancelForm(false);
+      setCancelReason('');
+      fetchBooking();
+    } catch (err: any) {
+      showError(err.response?.data?.message || "Impossible d'annuler cette réservation.");
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    const ok = await confirmDialog({
+      title: 'Confirmer cette réservation ?',
+      message: booking && !booking.amount_paid
+        ? "Cette réservation n'a reçu aucun paiement. La confirmer manuellement passe outre ce contrôle."
+        : 'Le voyageur et l\'hôte seront notifiés.',
+      confirmLabel: 'Confirmer la réservation',
+      variant: 'default',
+    });
+    if (!ok) return;
+    setActionBusy(true);
+    try {
+      await api.put(`/bookings/${id}`, { status: 'confirmed' });
+      showSuccess('Réservation confirmée.');
+      fetchBooking();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Impossible de confirmer cette réservation.');
+    } finally {
+      setActionBusy(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -158,6 +214,12 @@ export default function AdminReservationDetailPage() {
                 <p className="text-gray-400 mb-1">Voyageurs</p>
                 <p className="font-medium text-gray-900 dark:text-white">{booking.guests}</p>
               </div>
+              {booking.estimated_arrival_time && (
+                <div>
+                  <p className="text-gray-400 mb-1">Arrivée prévue à</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{booking.estimated_arrival_time.slice(0, 5)}</p>
+                </div>
+              )}
             </div>
             {booking.room && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
@@ -251,6 +313,65 @@ export default function AdminReservationDetailPage() {
         </div>
 
         <div className="space-y-6">
+          {(booking.status === 'pending' || booking.status === 'confirmed') && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <Settings2 className="w-4 h-4" />
+                Actions
+              </h2>
+              <div className="flex flex-col gap-2">
+                {booking.status === 'pending' && (
+                  <button
+                    type="button"
+                    onClick={handleConfirm}
+                    disabled={actionBusy}
+                    className="btn-outline text-sm inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Confirmer manuellement
+                  </button>
+                )}
+                {!showCancelForm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelForm(true)}
+                    disabled={actionBusy}
+                    className="text-sm inline-flex items-center justify-center gap-2 py-2.5 px-6 rounded-full border-2 border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+                  >
+                    <XCircle className="w-4 h-4" /> Annuler la réservation
+                  </button>
+                ) : (
+                  <div className="space-y-2 pt-1">
+                    <textarea
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      placeholder="Motif de l'annulation (facultatif)"
+                      rows={2}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 outline-none focus:border-bosejour-red resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCancel}
+                        disabled={actionBusy}
+                        className="flex-1 text-sm py-2 rounded-full bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50"
+                      >
+                        {actionBusy ? 'Annulation…' : "Confirmer l'annulation"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowCancelForm(false); setCancelReason(''); }}
+                        disabled={actionBusy}
+                        className="text-sm py-2 px-4 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        Retour
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -291,6 +412,18 @@ export default function AdminReservationDetailPage() {
                   {formatPrice(remaining)} FCFA
                 </dd>
               </div>
+              {(booking.promotion || booking.loyalty_voucher) && (
+                <div className="flex justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                  <dt className="text-gray-400">Origine de la remise</dt>
+                  <dd className="text-gray-800 dark:text-gray-200 text-right">
+                    {booking.promotion ? (
+                      <>Promotion{booking.promotion.promo_code ? ` (${booking.promotion.promo_code})` : ''}{booking.promotion.discount_percent ? ` — -${booking.promotion.discount_percent}%` : ''}</>
+                    ) : (
+                      <>Bon de fidélité {booking.loyalty_voucher!.code} — -{booking.loyalty_voucher!.discount_percent}%</>
+                    )}
+                  </dd>
+                </div>
+              )}
             </dl>
 
             {booking.payments.length > 0 && (
