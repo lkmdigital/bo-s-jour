@@ -42,6 +42,8 @@ interface BookingDetail {
   amount_paid: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   payment_status: string;
+  display_status_label?: string;
+  display_payment_status_label?: string;
   special_requests?: string;
   booked_for_third_party?: boolean;
   traveler_name?: string;
@@ -127,9 +129,9 @@ export default function AdminReservationDetailPage() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${statusConfig.color}`}>{statusConfig.label}</span>
+            <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${statusConfig.color}`}>{booking.display_status_label ?? statusConfig.label}</span>
             <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-              Paiement : {booking.payment_status}
+              Paiement : {booking.display_payment_status_label ?? booking.payment_status}
             </span>
           </div>
         </div>

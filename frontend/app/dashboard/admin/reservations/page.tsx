@@ -19,6 +19,8 @@ interface AdminBooking {
   total_price: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   payment_status: string;
+  display_status_label?: string;
+  display_payment_status_label?: string;
   created_at: string;
   user: { id: number; name: string; email: string; phone?: string };
   accommodation: { id: number; name: string; city: string; host?: { id: number; name: string } };
@@ -48,6 +50,7 @@ export default function AdminReservationsPage() {
   const [pagination, setPagination] = useState({ total: 0, per_page: 20, current_page: 1, last_page: 1 });
 
   const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -68,6 +71,7 @@ export default function AdminReservationsPage() {
           page,
           per_page: 20,
           status: statusFilter !== 'all' ? statusFilter : undefined,
+          payment_status: paymentStatusFilter !== 'all' ? paymentStatusFilter : undefined,
           city: cityFilter !== 'all' ? cityFilter : undefined,
           search: search || undefined,
         },
@@ -79,11 +83,11 @@ export default function AdminReservationsPage() {
       })
       .catch((err) => setError(err.response?.data?.message || 'Erreur lors du chargement des réservations'))
       .finally(() => setLoading(false));
-  }, [page, statusFilter, cityFilter, search]);
+  }, [page, statusFilter, paymentStatusFilter, cityFilter, search]);
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, cityFilter, search]);
+  }, [statusFilter, paymentStatusFilter, cityFilter, search]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,6 +125,22 @@ export default function AdminReservationsPage() {
             <option value="confirmed">Confirmée</option>
             <option value="completed">Terminée</option>
             <option value="cancelled">Annulée</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-gray-400" />
+          <select
+            value={paymentStatusFilter}
+            onChange={(e) => setPaymentStatusFilter(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
+          >
+            <option value="all">Tous les paiements</option>
+            <option value="pending">Non payé</option>
+            <option value="guarantee_paid">Payé partiellement</option>
+            <option value="paid">Payé intégralement</option>
+            <option value="failed">Échoué</option>
+            <option value="refunded">Remboursé</option>
           </select>
         </div>
 
@@ -186,11 +206,11 @@ export default function AdminReservationsPage() {
                   </td>
                   <td className="py-3 px-4 text-right font-semibold text-bosejour-red">{formatPrice(b.total_price)} FCFA</td>
                   <td className="py-3 px-4 text-center text-xs text-gray-500 dark:text-gray-400">
-                    {PAYMENT_LABELS[b.payment_status] ?? b.payment_status}
+                    {b.display_payment_status_label ?? PAYMENT_LABELS[b.payment_status] ?? b.payment_status}
                   </td>
                   <td className="py-3 px-4 text-center">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CONFIG[b.status]?.color ?? ''}`}>
-                      {STATUS_CONFIG[b.status]?.label ?? b.status}
+                      {b.display_status_label ?? STATUS_CONFIG[b.status]?.label ?? b.status}
                     </span>
                   </td>
                 </tr>

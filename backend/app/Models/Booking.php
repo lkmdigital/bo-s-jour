@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BookingStatus;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -243,6 +244,71 @@ class Booking extends Model
     public function isCheckedIn(): bool
     {
         return $this->checked_in_at !== null;
+    }
+
+    /**
+     * Statut de réservation à afficher — retour client 2026-09-02 (Partie 4.4) :
+     * "Statuts de réservation proposés à valider : En attente de paiement,
+     * Paiement en cours, Confirmée, Modifiée, Annulée, Expirée, No-show,
+     * Séjour terminé." Purement un libellé d'affichage calculé à partir des
+     * champs déjà en place (status/expires_at/no_show_at + un paiement en
+     * cours) — le statut réellement stocké (colonne `status`, 4 valeurs) et
+     * toute la logique métier qui en dépend (annulation, remboursement,
+     * libération de commission…) ne changent pas. Migrer le stockage vers ce
+     * vocabulaire à 8 valeurs casserait cette logique dans toute
+     * l'application pour un gain d'affichage seul ; non fait ici sciemment.
+     * "Modifiée" n'est pas détecté automatiquement (aucun signal fiable
+     * distinct aujourd'hui) — reste "Confirmée"/"En attente…" après une
+     * modification de dates/chambre ; l'historique (BookingHistory) montre
+     * déjà le détail des changements.
+     */
+    protected function displayStatusLabel(): Attribute
+    {
+        return Attribute::get(function () {
+            if ($this->status === BookingStatus::Cancelled) {
+                return 'Annulée';
+            }
+            if ($this->no_show_at !== null) {
+                return 'No-show';
+            }
+            if ($this->status === BookingStatus::Completed) {
+                return 'Séjour terminé';
+            }
+            if ($this->status === BookingStatus::Pending) {
+                if ($this->isExpired()) {
+                    return 'Expirée';
+                }
+                // payments.status n'a pas de valeur "processing" (enum: pending,
+                // completed, failed, cancelled, refunded) — "pending" est le seul
+                // état intermédiaire réel.
+                $hasPaymentInProgress = $this->relationLoaded('payments')
+                    ? $this->payments->contains(fn ($p) => $p->status === 'pending')
+                    : $this->payments()->where('status', 'pending')->exists();
+                return $hasPaymentInProgress ? 'Paiement en cours' : 'En attente de paiement';
+            }
+            return 'Confirmée';
+        });
+    }
+
+    /**
+     * Statut de paiement à afficher — mêmes réserves que ci-dessus, calculé à
+     * partir de `payment_status` (colonne réellement stockée, inchangée) et
+     * du montant remboursé le cas échéant.
+     */
+    protected function displayPaymentStatusLabel(): Attribute
+    {
+        return Attribute::get(function () {
+            return match ($this->payment_status) {
+                'paid' => 'Payé intégralement',
+                'guarantee_paid' => 'Payé partiellement',
+                'failed' => 'Échoué',
+                'refunded' => (float) $this->refund_amount > 0 && (float) $this->refund_amount < (float) $this->amount_paid
+                    ? 'Remboursé partiellement'
+                    : 'Remboursé intégralement',
+                'cancelled' => 'Non payé',
+                default => 'Non payé',
+            };
+        });
     }
 }
 
