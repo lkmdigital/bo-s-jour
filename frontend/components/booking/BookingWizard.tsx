@@ -11,7 +11,7 @@ import {
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppSettingsStore } from '@/stores/appSettingsStore';
-import { formatPrice, resolveImageUrl, cn, toDateInputValue } from '@/lib/utils';
+import { formatPrice, resolveImageUrl, cn, toDateInputValue, getRoomCategoryLabel } from '@/lib/utils';
 import { Input } from '@/components/ui';
 import DateSelector from '@/components/booking/DateSelector';
 
@@ -31,6 +31,7 @@ interface Props {
   pricePerNight: number;
   roomId?: number;
   roomName?: string;
+  roomCategory?: string;
   initialCheckIn?: string;
   initialCheckOut?: string;
   initialGuests?: number;
@@ -55,16 +56,57 @@ function policyLabel(h?: number | null) {
   return `Flexible (annulation gratuite jusqu'à ${v}h avant)`;
 }
 
+// Clé de sauvegarde des dates dans sessionStorage (retour client 2026-09-02 :
+// "les dates s'effacent dès qu'il navigue entre les étapes ou fait un retour").
+// Cause racine : rien ne persistait les dates ailleurs que l'état React du
+// composant, donc tout remount de la page (navigation vers les CGU, retour
+// navigateur, rafraîchissement) les perdait. Une clé par établissement/chambre
+// pour ne pas mélanger deux réservations en cours dans le même onglet.
+function draftDatesKey(accommodationId: number, roomId?: number) {
+  return `bosejour_booking_dates_${accommodationId}_${roomId ?? 'any'}`;
+}
+
+function readDraftDates(accommodationId: number, roomId?: number): { checkIn?: string; checkOut?: string; guests?: number } {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = sessionStorage.getItem(draftDatesKey(accommodationId, roomId));
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function BookingWizard(props: Props) {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const { whatsappVerificationEnabled } = useAppSettingsStore();
 
   const [step, setStep] = useState(0);
-  const [checkIn, setCheckIn] = useState(props.initialCheckIn || '');
-  const [checkOut, setCheckOut] = useState(props.initialCheckOut || '');
-  const [guests, setGuests] = useState(props.initialGuests || 1);
-  const [editingDates, setEditingDates] = useState(!props.initialCheckIn || !props.initialCheckOut);
+  const [checkIn, setCheckIn] = useState(() => props.initialCheckIn || readDraftDates(props.accommodationId, props.roomId).checkIn || '');
+  const [checkOut, setCheckOut] = useState(() => props.initialCheckOut || readDraftDates(props.accommodationId, props.roomId).checkOut || '');
+  const [guests, setGuests] = useState(() => props.initialGuests || readDraftDates(props.accommodationId, props.roomId).guests || 1);
+  const [editingDates, setEditingDates] = useState(() => {
+    const draft = readDraftDates(props.accommodationId, props.roomId);
+    const hasCheckIn = !!(props.initialCheckIn || draft.checkIn);
+    const hasCheckOut = !!(props.initialCheckOut || draft.checkOut);
+    return !hasCheckIn || !hasCheckOut;
+  });
+
+  // Sauvegarde progressive : dès que le voyageur choisit ses dates, elles
+  // survivent à un aller-retour vers une autre page (CGU en nouvel onglet,
+  // bouton retour du navigateur, rafraîchissement accidentel).
+  useEffect(() => {
+    if (typeof window === 'undefined' || !checkIn || !checkOut) return;
+    try {
+      sessionStorage.setItem(
+        draftDatesKey(props.accommodationId, props.roomId),
+        JSON.stringify({ checkIn, checkOut, guests })
+      );
+    } catch {
+      // sessionStorage indisponible (navigation privée stricte…) : dégrade
+      // silencieusement, le voyageur devra resélectionner ses dates.
+    }
+  }, [checkIn, checkOut, guests, props.accommodationId, props.roomId]);
 
   const [account, setAccount] = useState<'guest' | 'account' | null>(isAuthenticated ? 'account' : null);
   const [travelerType, setTravelerType] = useState<'individual' | 'corporate'>('individual');
@@ -460,6 +502,7 @@ export default function BookingWizard(props: Props) {
               <div className="rounded-2xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
                 {[
                   ['Établissement', props.accommodationName + (props.roomName ? ` · ${props.roomName}` : '')],
+                  ...(props.roomCategory ? [['Type de chambre', getRoomCategoryLabel(props.roomCategory)]] : []),
                   ['Dates', `${checkIn} → ${checkOut} (${quote?.nights ?? ''} nuit${(quote?.nights ?? 0) > 1 ? 's' : ''})`],
                   ['Voyageurs', `${guests}`],
                   ['Voyageur', travelerType === 'corporate' ? `Corporate — ${companyName}` : `Particulier — ${firstName} ${lastName}`],
@@ -554,7 +597,19 @@ export default function BookingWizard(props: Props) {
 
               <label className="flex items-start gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={cgv} onChange={(e) => setCgv(e.target.checked)} className="accent-[#FF0000] mt-0.5" />
-                <span>J'ai lu et j'accepte les <Link href="/cgv" className="text-primary hover:underline">conditions générales de vente</Link>. Conformément à la politique de l'établissement, la première nuitée est garantie par le paiement en ligne.</span>
+                <span>
+                  J'ai lu et j'accepte les{' '}
+                  <Link
+                    href="/cgv"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-primary hover:underline"
+                  >
+                    conditions générales de vente
+                  </Link>
+                  {' '}(ouvre dans un nouvel onglet — votre saisie est conservée ici). Conformément à la politique de l'établissement, la première nuitée est garantie par le paiement en ligne.
+                </span>
               </label>
             </div>
           )}

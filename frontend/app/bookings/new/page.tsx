@@ -32,6 +32,8 @@ interface Room {
   accommodation_id: number;
   name: string;
   price_per_night: number;
+  room_category?: string;
+  type?: string;
 }
 
 function NewBookingContent() {
@@ -139,6 +141,7 @@ function NewBookingContent() {
             loyaltyProgramJoined={!!accommodation.loyalty_program_joined_at}
             roomId={room?.id}
             roomName={room?.name}
+            roomCategory={room?.room_category || room?.type}
             initialCheckIn={initialCheckIn}
             initialCheckOut={initialCheckOut}
             initialGuests={initialGuests}
