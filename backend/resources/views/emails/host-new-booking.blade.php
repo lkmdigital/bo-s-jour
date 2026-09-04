@@ -166,10 +166,12 @@
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#000000;border-radius:10px;padding:18px 24px;">
                 <tr>
                   <td style="padding:0;">
-                    <span style="font-size:14px;color:rgba(255,255,255,0.85);">Montant de la réservation</span>
+                    <span style="font-size:14px;color:rgba(255,255,255,0.85);">Montant brut (votre tarif)</span>
                   </td>
                   <td style="text-align:right;padding:0;">
-                    <span style="font-size:22px;font-weight:800;color:#ffffff;">{{ number_format($booking->total_price, 0, ',', ' ') }} FCFA</span>
+                    {{-- Toujours le tarif plein de l'hôte, jamais réduit par une promo/bon
+                         de fidélité voyageur (retour client 2026-09-02, Partie 2 et 4.6). --}}
+                    <span style="font-size:22px;font-weight:800;color:#ffffff;">{{ number_format($booking->base_price ?? $booking->total_price, 0, ',', ' ') }} FCFA</span>
                   </td>
                 </tr>
               </table>

@@ -27,6 +27,11 @@ class BookingConfirmation extends Mailable
     public function build()
     {
         $reference = $this->booking->booking_number ?? $this->booking->confirmation_code ?? '#' . $this->booking->id;
+        // Lien de consultation direct (retour client 2026-09-02, Partie 4.6 :
+        // "un lien de consultation") — absent jusqu'ici, seul un lien générique
+        // vers bosejour.ci figurait dans l'e-mail.
+        $frontend = rtrim(config('services.frontend_url', 'https://bosejour.ci'), '/');
+        $bookingUrl = "{$frontend}/bookings/{$this->booking->id}";
 
         return $this->subject('Votre réservation Bosejour est confirmée — ' . $reference)
                     ->view('emails.booking-confirmation')
@@ -35,6 +40,7 @@ class BookingConfirmation extends Mailable
                         'accommodation' => $this->booking->accommodation,
                         'room'          => $this->booking->room,
                         'user'          => $this->booking->user,
+                        'bookingUrl'    => $bookingUrl,
                     ]);
     }
 }

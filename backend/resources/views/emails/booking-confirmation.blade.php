@@ -210,6 +210,17 @@
             </td>
           </tr>
 
+          {{-- Lien de consultation --}}
+          @if(isset($bookingUrl))
+          <tr>
+            <td style="padding:0 40px 24px;text-align:center;">
+              <a href="{{ $bookingUrl }}" style="display:inline-block;background:#FF0000;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 28px;border-radius:999px;">
+                Voir ma réservation
+              </a>
+            </td>
+          </tr>
+          @endif
+
           {{-- Message --}}
           <tr>
             <td style="padding:0 40px 32px;">
