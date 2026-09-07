@@ -39,6 +39,7 @@ interface BookingDetail {
   id: number;
   check_in: string;
   estimated_arrival_time?: string | null;
+  assigned_room_number?: string | null;
   check_out: string;
   guests: number;
   total_price: number;
@@ -104,8 +105,27 @@ export default function HostBookingDetailPage() {
   const [checkInCode, setCheckInCode] = useState('');
   const [checkInLoading, setCheckInLoading] = useState(false);
   const [checkInMessage, setCheckInMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  // Numéro de chambre attribué (retour client 2026-09-02, Partie 4.2/4.10) —
+  // saisie libre, l'hôte l'attribue quand il le souhaite (souvent à l'arrivée).
+  const [roomNumberInput, setRoomNumberInput] = useState('');
+  const [roomNumberSaving, setRoomNumberSaving] = useState(false);
+  const [editingRoomNumber, setEditingRoomNumber] = useState(false);
   const confirmAction = useConfirm();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
+
+  const saveRoomNumber = async () => {
+    setRoomNumberSaving(true);
+    try {
+      const res = await api.put(`/bookings/${params.id}`, { assigned_room_number: roomNumberInput.trim() || null });
+      setBooking(res.data);
+      setEditingRoomNumber(false);
+      showSuccess('Numéro de chambre enregistré.');
+    } catch (err: any) {
+      showError(err.response?.data?.message || "Impossible d'enregistrer le numéro de chambre.");
+    } finally {
+      setRoomNumberSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || user?.role !== 'host')) {
@@ -123,10 +143,11 @@ export default function HostBookingDetailPage() {
       setError(null);
       const response = await api.get(`/bookings/${params.id}`);
       const bookingData = response.data;
-      
+
       // Vérifier que l'hôte peut bien voir cette réservation
       // Le backend devrait déjà gérer cela, mais on vérifie quand même
       setBooking(bookingData);
+      setRoomNumberInput(bookingData.assigned_room_number || '');
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 
                           err.message || 
@@ -428,12 +449,55 @@ export default function HostBookingDetailPage() {
                 {booking.room && (
                   <div className="flex items-start gap-3">
                     <Bed className="w-5 h-5 text-primary mt-1" />
-                    <div>
+                    <div className="flex-1">
                       <p className="font-semibold">Chambre réservée</p>
                       <p className="text-gray-600 dark:text-gray-400">{booking.room.name}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-500">
                         Catégorie : <span className="font-medium text-primary">{getRoomCategoryLabel(booking.room.room_category || booking.room.type)}</span> • Capacité : {booking.room.capacity}
                       </p>
+
+                      {/* Numéro de chambre attribué — facultatif, saisi par l'hôte */}
+                      <div className="mt-2">
+                        {!editingRoomNumber ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500 dark:text-gray-500">
+                              N° de chambre : <span className="font-medium text-gray-800 dark:text-gray-200">{booking.assigned_room_number || 'non attribué'}</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => { setRoomNumberInput(booking.assigned_room_number || ''); setEditingRoomNumber(true); }}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              {booking.assigned_room_number ? 'Modifier' : 'Attribuer'}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <input
+                              value={roomNumberInput}
+                              onChange={(e) => setRoomNumberInput(e.target.value)}
+                              placeholder="Ex : 204"
+                              className="w-28 px-2 py-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 outline-none focus:border-primary"
+                            />
+                            <button
+                              type="button"
+                              onClick={saveRoomNumber}
+                              disabled={roomNumberSaving}
+                              className="text-xs font-medium text-white bg-primary rounded-full px-3 py-1 disabled:opacity-50"
+                            >
+                              {roomNumberSaving ? '…' : 'Enregistrer'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingRoomNumber(false)}
+                              disabled={roomNumberSaving}
+                              className="text-xs text-gray-400 hover:underline"
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}

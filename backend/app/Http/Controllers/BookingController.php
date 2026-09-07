@@ -690,10 +690,28 @@ class BookingController extends Controller
             'room_id'  => 'sometimes|nullable|exists:rooms,id',
             'guests'   => 'sometimes|integer|min:1',
             'reason'   => 'sometimes|string|max:500',
+            // Numéro de chambre attribué (retour client 2026-09-02, Partie 4.2/
+            // 4.10 : "le numéro de chambre, LORSQU'IL EST ATTRIBUÉ" — la
+            // formulation elle-même l'indique conditionnel/facultatif). Ce
+            // système gère les chambres par TYPE en pool (rooms.quantity), pas
+            // par unité individuellement suivie ; l'attribution d'un numéro
+            // physique reste une information opérationnelle que l'hôte saisit
+            // librement (souvent à l'arrivée), pas un identifiant d'inventaire.
+            'assigned_room_number' => 'sometimes|nullable|string|max:50',
         ], [
             'check_in.after_or_equal' => "La date d'arrivée doit être aujourd'hui ou dans le futur.",
             'check_out.after' => "La date de départ doit être postérieure à la date d'arrivée.",
         ]);
+
+        // ── Numéro de chambre attribué — mise à jour indépendante, réservée à
+        // l'hôte/l'admin (pas le voyageur, même propriétaire de la réservation).
+        if ($request->has('assigned_room_number') && !$request->hasAny(['status', 'check_in', 'check_out', 'room_id', 'guests'])) {
+            if ($booking->user_id === $request->user()->id && !$request->user()->isAdmin() && !$request->user()->isHost()) {
+                return response()->json(['message' => 'Forbidden'], 403);
+            }
+            $booking->update(['assigned_room_number' => $request->input('assigned_room_number') ?: null]);
+            return response()->json($booking->fresh());
+        }
 
         // ── Annulation ────────────────────────────────────────────────────────
         if ($request->status === 'cancelled') {

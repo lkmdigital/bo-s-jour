@@ -33,9 +33,15 @@ class BookingService
      */
     public function assertAvailable(int $roomId, Carbon $checkIn, Carbon $checkOut, ?int $excludeBookingId = null): void
     {
+        // Verrouille la ligne room dans la même transaction que l'appelant
+        // (redondant si déjà verrouillée par lui, sans effet de bord — mêmes
+        // garanties MySQL) pour lire quantity de façon cohérente.
+        $room = Room::lockForUpdate()->find($roomId);
+        $quantity = max(1, (int) ($room->quantity ?? 1));
+
         $query = Booking::where('room_id', $roomId)
             ->where(function ($q) {
-                // Une réservation confirmée bloque toujours la chambre. Une
+                // Une réservation confirmée bloque toujours une unité. Une
                 // réservation encore "pending" (paiement pas encore confirmé)
                 // la bloque AUSSI tant que sa fenêtre n'a pas expiré — retour
                 // client 2026-09-02 (Partie 4.5) : sans ce verrou temporaire,
@@ -60,7 +66,12 @@ class BookingService
             $query->where('id', '!=', $excludeBookingId);
         }
 
-        if ($query->exists()) {
+        // Retour client 2026-09-04 : ce contrôle traitait tout chevauchement
+        // comme un conflit dur, sans jamais regarder rooms.quantity — une
+        // chambre avec 5 unités ne pouvait jamais avoir plus d'une réservation
+        // active à la fois (perte de ventes réelle). Compare désormais le
+        // nombre de réservations qui se chevauchent au nombre d'unités.
+        if ($query->count() >= $quantity) {
             throw new RoomNotAvailableException(
                 'Cette chambre n\'est plus disponible pour les dates sélectionnées.'
             );

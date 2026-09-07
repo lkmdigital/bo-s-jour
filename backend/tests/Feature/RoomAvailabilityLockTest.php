@@ -122,4 +122,38 @@ class RoomAvailabilityLockTest extends TestCase
 
         $this->postJson('/api/bookings', $payload)->assertCreated();
     }
+
+    /**
+     * Retour client 2026-09-04 (suite de la Partie 4.5) : le contrôle de
+     * disponibilité traitait tout chevauchement comme un conflit dur, sans
+     * jamais regarder rooms.quantity — une chambre à plusieurs unités ne
+     * pouvait jamais avoir plus d'une réservation active en même temps.
+     */
+    public function test_a_room_with_multiple_units_accepts_bookings_up_to_its_quantity(): void
+    {
+        $room = $this->makeRoom(quantity: 2);
+
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated();
+
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated();
+
+        $this->assertSame(2, Booking::where('room_id', $room->id)->count());
+    }
+
+    public function test_a_room_with_multiple_units_rejects_a_booking_beyond_its_quantity(): void
+    {
+        $room = $this->makeRoom(quantity: 2);
+
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated();
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated();
+
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertStatus(409);
+
+        $this->assertSame(2, Booking::where('room_id', $room->id)->count());
+    }
 }

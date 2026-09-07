@@ -42,6 +42,7 @@ interface BookingDetail {
   check_in: string;
   check_out: string;
   guests: number;
+  assigned_room_number?: string | null;
   total_price: number;
   deposit_amount?: number;
   amount_paid?: number;
@@ -446,6 +447,11 @@ export default function BookingDetailPage() {
                       <p className="text-sm text-gray-500 dark:text-gray-500">
                         Catégorie : <span className="font-medium text-primary">{getRoomCategoryLabel(booking.room.room_category || booking.room.type)}</span> • Capacité : {booking.room.capacity}
                       </p>
+                      {booking.assigned_room_number && (
+                        <p className="text-sm text-gray-500 dark:text-gray-500 mt-0.5">
+                          N° de chambre : <span className="font-medium text-gray-800 dark:text-gray-200">{booking.assigned_room_number}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
