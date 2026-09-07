@@ -50,6 +50,9 @@ interface Props {
   breakfastIncluded?: boolean;
   breakfastIncludedPersons?: number;
   breakfastPrice?: number | null;
+  // Retour client 2026-09-02 (Partie 4.3) : réservation multi-chambres —
+  // nombre total d'unités de ce type de chambre chez l'établissement.
+  roomTotalUnits?: number;
 }
 
 interface LoyaltyVoucherOption {
@@ -143,6 +146,12 @@ export default function BookingWizard(props: Props) {
   useEffect(() => {
     if (!canOfferExtraBreakfast) setExtraBreakfast(false);
   }, [canOfferExtraBreakfast]);
+
+  // Réservation multi-chambres (retour client 2026-09-02, Partie 4.3) —
+  // proposé seulement si l'établissement a plus d'une unité de ce type de
+  // chambre (sinon rien à choisir, room_id désigne déjà l'unique chambre).
+  const canBookMultipleRooms = (props.roomTotalUnits || 1) > 1;
+  const [roomsQuantity, setRoomsQuantity] = useState(1);
   // Entreprise (corporate)
   const [companyName, setCompanyName] = useState('');
   const [companyVat, setCompanyVat] = useState('');
@@ -227,10 +236,11 @@ export default function BookingWizard(props: Props) {
   // Devis tarifaire (récap 1ère nuitée)
   useEffect(() => {
     if (!hasDates) { setQuote(null); return; }
-    api.get(`/accommodations/${props.accommodationId}/price-preview?check_in=${checkIn}&check_out=${checkOut}`)
+    const roomsParam = canBookMultipleRooms ? `&rooms_quantity=${roomsQuantity}` : '';
+    api.get(`/accommodations/${props.accommodationId}/price-preview?check_in=${checkIn}&check_out=${checkOut}${roomsParam}`)
       .then((r) => setQuote(r.data))
       .catch(() => setQuote(null));
-  }, [checkIn, checkOut, props.accommodationId, hasDates]);
+  }, [checkIn, checkOut, props.accommodationId, hasDates, canBookMultipleRooms, roomsQuantity]);
 
   const guarantee = quote?.payment_options?.options?.guarantee;
   const full = quote?.payment_options?.options?.full;
@@ -283,6 +293,7 @@ export default function BookingWizard(props: Props) {
         residence_country: residenceCountry || null,
         residence_city: residenceCity || null,
         estimated_arrival_time: estimatedArrivalTime || undefined,
+        rooms_quantity: canBookMultipleRooms ? roomsQuantity : undefined,
         extra_breakfast_quantity: extraBreakfast && canOfferExtraBreakfast ? extraBreakfastQty : undefined,
         promo_code: discountMode === 'promo' ? (promoCode.trim() || undefined) : undefined,
         loyalty_voucher_code: discountMode === 'loyalty' ? (loyaltyVoucherCode || undefined) : undefined,
@@ -371,6 +382,33 @@ export default function BookingWizard(props: Props) {
                   <div className="flex items-center gap-2 text-sm"><Calendar className="w-4 h-4 text-primary" /> {checkIn} → {checkOut}</div>
                   <div className="flex items-center gap-2 text-sm"><Users className="w-4 h-4 text-primary" /> {guests} voyageur{guests > 1 ? 's' : ''}</div>
                   <button onClick={() => setEditingDates(true)} className="text-sm text-primary font-medium hover:underline">Modifier</button>
+                </div>
+              )}
+              {canBookMultipleRooms && (
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">Nombre de chambres</p>
+                    <p className="text-xs text-gray-500">Plusieurs chambres de ce type en une seule réservation.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRoomsQuantity((q) => Math.max(1, q - 1))}
+                      disabled={roomsQuantity <= 1}
+                      className="w-8 h-8 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-40 hover:border-primary"
+                    >
+                      −
+                    </button>
+                    <span className="w-6 text-center font-semibold text-gray-900 dark:text-white">{roomsQuantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => setRoomsQuantity((q) => Math.min(props.roomTotalUnits || 1, q + 1))}
+                      disabled={roomsQuantity >= (props.roomTotalUnits || 1)}
+                      className="w-8 h-8 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-40 hover:border-primary"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               )}
               {canOfferExtraBreakfast && (
@@ -576,6 +614,7 @@ export default function BookingWizard(props: Props) {
                   ['Dates', `${checkIn} → ${checkOut} (${quote?.nights ?? ''} nuit${(quote?.nights ?? 0) > 1 ? 's' : ''})`],
                   ...(estimatedArrivalTime ? [['Heure d\'arrivée prévisionnelle', estimatedArrivalTime]] : []),
                   ['Voyageurs', `${guests}`],
+                  ...(canBookMultipleRooms ? [['Nombre de chambres', `${roomsQuantity}`]] : []),
                   ...(extraBreakfast && canOfferExtraBreakfast
                     ? [['Petit-déjeuner supplémentaire', `${extraBreakfastQty} × ${formatPrice(props.breakfastPrice || 0)} FCFA = ${formatPrice(extraBreakfastQty * (props.breakfastPrice || 0))} FCFA`]]
                     : []),
@@ -714,7 +753,10 @@ export default function BookingWizard(props: Props) {
             {quote ? (
               <div className="space-y-1.5 text-sm border-t border-gray-100 dark:border-gray-700 pt-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">{quote.nights} nuit{quote.nights > 1 ? 's' : ''}</span>
+                  <span className="text-gray-500">
+                    {quote.nights} nuit{quote.nights > 1 ? 's' : ''}
+                    {canBookMultipleRooms ? ` × ${roomsQuantity} chambre${roomsQuantity > 1 ? 's' : ''}` : ''}
+                  </span>
                   <span className="text-gray-900 dark:text-white">{formatPrice(quote.long_stay_discount?.subtotal ?? quote.total)} FCFA</span>
                 </div>
                 {quote.long_stay_discount && (

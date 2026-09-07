@@ -40,6 +40,8 @@ interface BookingDetail {
   check_out: string;
   guests: number;
   estimated_arrival_time?: string | null;
+  rooms_quantity?: number;
+  was_modified?: boolean;
   extra_breakfast_quantity?: number;
   extra_breakfast_total?: number;
   total_price: number;
@@ -210,7 +212,14 @@ export default function AdminReservationDetailPage() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${statusConfig.color}`}>{booking.display_status_label ?? statusConfig.label}</span>
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${statusConfig.color}`}>{booking.display_status_label ?? statusConfig.label}</span>
+              {booking.was_modified && (
+                <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                  Modifiée
+                </span>
+              )}
+            </div>
             <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
               Paiement : {booking.display_payment_status_label ?? booking.payment_status}
             </span>
@@ -251,6 +260,9 @@ export default function AdminReservationDetailPage() {
                 Chambre : <span className="text-gray-800 dark:text-gray-200 font-medium">{booking.room.name}</span>
                 {(booking.room.room_category || booking.room.type) && (
                   <> · {getRoomCategoryLabel(booking.room.room_category || booking.room.type)}</>
+                )}
+                {(booking.rooms_quantity || 1) > 1 && (
+                  <> · Nombre de chambres : <span className="text-gray-800 dark:text-gray-200 font-medium">{booking.rooms_quantity}</span></>
                 )}
               </p>
             )}

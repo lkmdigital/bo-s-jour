@@ -39,6 +39,9 @@ interface Room {
   price_per_night: number;
   room_category?: string;
   type?: string;
+  // Retour client 2026-09-02 (Partie 4.3) : réservation multi-chambres —
+  // nombre total d'unités de ce type de chambre chez l'établissement.
+  quantity?: number;
 }
 
 function NewBookingContent() {
@@ -153,6 +156,7 @@ function NewBookingContent() {
             breakfastIncluded={accommodation.breakfast_included}
             breakfastIncludedPersons={accommodation.breakfast_included_persons}
             breakfastPrice={accommodation.breakfast_price}
+            roomTotalUnits={room?.quantity}
           />
         </div>
       </main>

@@ -42,6 +42,8 @@ interface BookingDetail {
   assigned_room_number?: string | null;
   check_out: string;
   guests: number;
+  rooms_quantity?: number;
+  was_modified?: boolean;
   extra_breakfast_quantity?: number;
   extra_breakfast_total?: number;
   total_price: number;
@@ -304,6 +306,11 @@ export default function HostBookingDetailPage() {
               <span className={`px-4 py-2 rounded-full text-sm font-medium ${status.color}`}>
                 {status.label}
               </span>
+              {booking.was_modified && (
+                <span className="px-3 py-2 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                  Modifiée
+                </span>
+              )}
             </div>
           </div>
           <p className="text-gray-600 dark:text-gray-400 mt-2">{status.description}</p>
@@ -456,6 +463,7 @@ export default function HostBookingDetailPage() {
                       <p className="text-gray-600 dark:text-gray-400">{booking.room.name}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-500">
                         Catégorie : <span className="font-medium text-primary">{getRoomCategoryLabel(booking.room.room_category || booking.room.type)}</span> • Capacité : {booking.room.capacity}
+                        {(booking.rooms_quantity || 1) > 1 ? ` par chambre • ${booking.rooms_quantity} chambres` : ''}
                       </p>
 
                       {/* Numéro de chambre attribué — facultatif, saisi par l'hôte */}

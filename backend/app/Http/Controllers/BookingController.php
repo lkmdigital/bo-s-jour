@@ -148,6 +148,10 @@ class BookingController extends Controller
             'check_out' => 'required|date|after:check_in',
             'guests' => 'required|integer|min:1',
             'estimated_arrival_time' => 'nullable|date_format:H:i',
+            // Retour client 2026-09-02 (Partie 4.3) : réservation multi-chambres
+            // (plusieurs unités du même type de chambre) — ignoré pour une
+            // réservation "legacy" sans room_id (pas de notion d'unités).
+            'rooms_quantity' => 'nullable|integer|min:1|max:20',
             // Retour client 2026-09-02 (Partie 4.11) : "Autre petit déjeuner" —
             // petits-déjeuners supplémentaires au-delà de ceux déjà inclus
             // gratuitement (accommodations.breakfast_included_persons), facturés
@@ -294,13 +298,25 @@ class BookingController extends Controller
 
         $room          = null;
         $pricePerNight = $accommodation->price_per_night;
+        // Retour client 2026-09-02 (Partie 4.3) : réservation multi-chambres —
+        // plusieurs unités du MÊME type de chambre en une seule réservation
+        // (pas un panier multi-types). S'appuie sur rooms.quantity, déjà
+        // utilisé par le contrôle de disponibilité quantity-aware (Partie 4.5).
+        $roomsQuantity = max(1, (int) ($request->input('rooms_quantity') ?? 1));
 
         if ($request->room_id) {
             $room = Room::where('accommodation_id', $request->accommodation_id)
                 ->where('is_active', true)
                 ->findOrFail($request->room_id);
 
-            if ($request->guests > $room->capacity) {
+            $roomTotalUnits = max(1, (int) ($room->quantity ?? 1));
+            if ($roomsQuantity > $roomTotalUnits) {
+                return response()->json([
+                    'message' => "Ce type de chambre ne compte que {$roomTotalUnits} unité(s) au total.",
+                ], 422);
+            }
+
+            if ($request->guests > $room->capacity * $roomsQuantity) {
                 return response()->json(['message' => 'Exceeds room capacity'], 400);
             }
 
@@ -313,7 +329,10 @@ class BookingController extends Controller
             );
 
         } else {
-            // Legacy : réservation sans chambre spécifique
+            // Legacy : réservation sans chambre spécifique — pas de notion
+            // d'unités (pas de rooms.quantity à comparer), on ignore toute
+            // valeur rooms_quantity soumise.
+            $roomsQuantity = 1;
             if ($request->guests > $accommodation->max_guests) {
                 return response()->json(['message' => 'Exceeds maximum guests'], 400);
             }
@@ -353,8 +372,8 @@ class BookingController extends Controller
             $request->check_in
         );
 
-        $basePrice = $effectivePricePerNight * $nights;
-        
+        $basePrice = $effectivePricePerNight * $nights * $roomsQuantity;
+
         // Vérifier s'il y a une promotion active pour cette période (brief Étape 33 :
         // pourcentage, montant fixe, nuit offerte, séjour minimum, code promo).
         $promotion = null;
@@ -489,7 +508,7 @@ class BookingController extends Controller
         $booking = DB::transaction(function () use (
             $request, $room, $accommodation, $user, $bookedForThirdParty,
             $totalPrice, $basePrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion, $loyaltyVoucher,
-            $extraBreakfastQuantity, $extraBreakfastUnitPrice, $extraBreakfastTotal
+            $extraBreakfastQuantity, $extraBreakfastUnitPrice, $extraBreakfastTotal, $roomsQuantity
         ) {
             if ($room) {
                 Room::lockForUpdate()->findOrFail($room->id);
@@ -497,7 +516,9 @@ class BookingController extends Controller
                 $this->bookingService->assertAvailable(
                     $room->id,
                     Carbon::parse($request->check_in),
-                    Carbon::parse($request->check_out)
+                    Carbon::parse($request->check_out),
+                    null,
+                    $roomsQuantity
                 );
             }
 
@@ -514,6 +535,7 @@ class BookingController extends Controller
                 'user_id' => $user->id,
                 'accommodation_id' => $request->accommodation_id,
                 'room_id' => $request->room_id,
+                'rooms_quantity' => $roomsQuantity,
                 'promotion_id' => $promotion?->id,
                 'loyalty_voucher_id' => $loyaltyVoucher?->id,
                 'check_in' => $request->check_in,
@@ -843,8 +865,16 @@ class BookingController extends Controller
         }
 
         if ($request->has('guests')) {
-            $booking->update(['guests' => $request->guests]);
+            $oldGuests = $booking->guests;
+            $booking->update(['guests' => $request->guests, 'was_modified' => true]);
             $modificationSummaryParts[] = 'Nombre de voyageurs : ' . $request->guests . '.';
+            // Tracée dans l'historique (retour client 2026-09-02, Partie 4.3 :
+            // "historique des modifications" attendu côté admin) — manquait ici
+            // jusqu'ici, contrairement à modifyDates() qui l'a déjà.
+            $this->bookingService->logHistory(
+                $booking, $booking->status, $booking->status, 'modified', $request->user()->id, null,
+                ['old_guests' => $oldGuests, 'new_guests' => (int) $request->guests]
+            );
         }
 
         // Notification in-app Extranet hôte (retour client 2026-09-02, Partie 4.3) —

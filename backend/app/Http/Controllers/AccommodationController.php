@@ -226,6 +226,10 @@ class AccommodationController extends Controller
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
             'room_id' => 'nullable|exists:rooms,id',
+            // Retour client 2026-09-02 (Partie 4.3) : réservation multi-chambres
+            // — le devis affiché au voyageur doit refléter le nombre d'unités
+            // choisi, pas seulement le tarif d'une chambre.
+            'rooms_quantity' => 'nullable|integer|min:1|max:20',
         ], [
             'check_in.after_or_equal' => "La date d'arrivée doit être aujourd'hui ou dans le futur.",
             'check_out.after' => "La date de départ doit être postérieure à la date d'arrivée.",
@@ -234,6 +238,7 @@ class AccommodationController extends Controller
         $checkIn = $request->check_in;
         $checkOut = $request->check_out;
         $roomId = $request->room_id;
+        $roomsQuantity = max(1, (int) ($request->input('rooms_quantity') ?? 1));
 
         $nights = \Carbon\Carbon::parse($checkIn)->diffInDays(\Carbon\Carbon::parse($checkOut));
         $cancellationHours = $accommodation->cancellation_policy_hours ?? 48;
@@ -284,7 +289,7 @@ class AccommodationController extends Controller
             $rateType = 'modifiable';
         }
 
-        $total = round($effectivePricePerNight * $nights, 2);
+        $total = round($effectivePricePerNight * $nights * $roomsQuantity, 2);
         $variants = RoomPricingService::getPriceVariants((float) $basePricePerNight, $accommodation);
         $paymentOptions = \App\Services\PaymentOptionsService::previewPaymentOptions(
             $total, $checkIn, $checkOut, (int) $cancellationHours
@@ -295,7 +300,7 @@ class AccommodationController extends Controller
         // longue durée (3-5 nuits 5%): -3 900 FCFA / TOTAL À PAYER : 74 100 FCFA").
         $longStayDiscount = null;
         if ($rateType === 'long_stay' && $matchedLongStayTier) {
-            $subtotal = round((float) $basePricePerNight * $nights, 2);
+            $subtotal = round((float) $basePricePerNight * $nights * $roomsQuantity, 2);
             $discountPercent = (float) $matchedLongStayTier['discount_percent'];
             $discountAmount = round($subtotal - $total, 2);
             $min = (int) ($matchedLongStayTier['min_nights'] ?? 0);
@@ -773,7 +778,7 @@ class AccommodationController extends Controller
             'type' => $request->type,
             'subtype' => $request->type === 'other' ? null : $request->subtype,
             'type_other_label' => $request->type === 'other' ? $request->type_other_label : null,
-            'establishment_code' => Accommodation::generateEstablishmentCode(),
+            'establishment_code' => Accommodation::generateEstablishmentCode($request->city),
             'description' => $request->description,
             'description_en' => $request->description_en,
             'address' => $request->address,

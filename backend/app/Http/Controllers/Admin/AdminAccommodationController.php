@@ -208,7 +208,7 @@ class AdminAccommodationController extends Controller
             'type' => $validated['type'],
             'subtype' => $validated['type'] === 'other' ? null : ($validated['subtype'] ?? null),
             'type_other_label' => $validated['type'] === 'other' ? ($validated['type_other_label'] ?? null) : null,
-            'establishment_code' => Accommodation::generateEstablishmentCode(),
+            'establishment_code' => Accommodation::generateEstablishmentCode($validated['city']),
             'description' => $validated['description'],
             'description_en' => $validated['description_en'] ?? null,
             'address' => $validated['address'],

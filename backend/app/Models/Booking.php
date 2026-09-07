@@ -16,6 +16,7 @@ class Booking extends Model
         'user_id',
         'accommodation_id',
         'room_id',
+        'rooms_quantity',
         'assigned_room_number',
         'promotion_id',
         'check_in',
@@ -31,6 +32,7 @@ class Booking extends Model
         'payment_type',
         'amount_paid',
         'status',
+        'was_modified',
         'payment_status',
         'confirmation_code',
         'booking_number',
@@ -74,6 +76,7 @@ class Booking extends Model
             'check_out'               => 'date',
             'total_price'             => 'decimal:2',
             'base_price'              => 'decimal:2',
+            'rooms_quantity'          => 'integer',
             'extra_breakfast_quantity' => 'integer',
             'extra_breakfast_unit_price' => 'decimal:2',
             'extra_breakfast_total'   => 'decimal:2',
@@ -87,6 +90,7 @@ class Booking extends Model
             'status'                  => BookingStatus::class,
             'booked_for_third_party'  => 'boolean',
             'deferred_payment'        => 'boolean',
+            'was_modified'            => 'boolean',
         ];
     }
 

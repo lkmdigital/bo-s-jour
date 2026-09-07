@@ -207,24 +207,51 @@ class Accommodation extends Model
     }
 
     /**
-     * Génère l'identifiant unique d'établissement, format imposé :
-     * Code pays - Séquence à 5 chiffres - Année d'inscription (ex: +225-00001-26).
+     * Génère l'identifiant unique d'établissement.
+     *
+     * Retour client 2026-09-02 (Partie 4.2) : "format recommandé à valider :
+     * BS-VILLE-XXX, par exemple BS-KGO-00O1." Confirmé avec l'utilisateur :
+     * adopter ce format pour les NOUVEAUX établissements. Comme pour
+     * generateBookingNumber() (même retour client, même logique), les codes
+     * déjà attribués (ancien format Code pays-Séquence-Année, ex.
+     * +225-00001-26) restent inchangés — un identifiant d'établissement doit
+     * être stable, le renuméroter casserait toute référence externe déjà
+     * distribuée (exports, API partenaires, communication avec l'hôte).
+     *
+     * Séquence par ville plutôt que globale : le doc donne un exemple à 4
+     * chiffres par ville (BS-KGO-0001), pas un compteur unique toutes villes
+     * confondues.
      */
-    public static function generateEstablishmentCode(): string
+    public static function generateEstablishmentCode(string $city): string
     {
-        $year = now()->format('y');
+        $cityCode = self::cityCodeFor($city);
+        $prefix = "BS-{$cityCode}-";
 
         do {
             $maxSeq = (int) \Illuminate\Support\Facades\DB::table('accommodations')
-                ->whereNotNull('establishment_code')
-                ->selectRaw("MAX(CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(establishment_code, '-', 2), '-', -1) AS UNSIGNED)) as max_seq")
+                ->where('establishment_code', 'like', $prefix . '%')
+                ->selectRaw('MAX(CAST(SUBSTRING(establishment_code, ?) AS UNSIGNED)) as max_seq', [strlen($prefix) + 1])
                 ->value('max_seq');
 
-            $sequence = str_pad((string) ($maxSeq + 1), 5, '0', STR_PAD_LEFT);
-            $code = self::COUNTRY_CODE . '-' . $sequence . '-' . $year;
+            $sequence = str_pad((string) ($maxSeq + 1), 4, '0', STR_PAD_LEFT);
+            $code = $prefix . $sequence;
         } while (self::where('establishment_code', $code)->exists());
 
         return $code;
+    }
+
+    /**
+     * Code ville à 3 lettres pour generateEstablishmentCode() — dérivé du nom
+     * de ville (pas de table de correspondance officielle type IATA) :
+     * translittéré, majuscules, 3 premières lettres. "XXX" si la ville est
+     * vide ou ne contient aucune lettre.
+     */
+    private static function cityCodeFor(string $city): string
+    {
+        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $city) ?: '';
+        $letters = strtoupper(preg_replace('/[^a-zA-Z]/', '', $ascii));
+
+        return $letters !== '' ? str_pad(substr($letters, 0, 3), 3, 'X') : 'XXX';
     }
 
     public function scopePriceRange($query, $min, $max)

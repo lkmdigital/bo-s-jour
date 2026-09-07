@@ -31,7 +31,7 @@ class BookingService
      *   |-- existing --|
      *                    |-- req --|  pas de conflit
      */
-    public function assertAvailable(int $roomId, Carbon $checkIn, Carbon $checkOut, ?int $excludeBookingId = null): void
+    public function assertAvailable(int $roomId, Carbon $checkIn, Carbon $checkOut, ?int $excludeBookingId = null, int $requestedQuantity = 1): void
     {
         // Verrouille la ligne room dans la même transaction que l'appelant
         // (redondant si déjà verrouillée par lui, sans effet de bord — mêmes
@@ -70,8 +70,12 @@ class BookingService
         // comme un conflit dur, sans jamais regarder rooms.quantity — une
         // chambre avec 5 unités ne pouvait jamais avoir plus d'une réservation
         // active à la fois (perte de ventes réelle). Compare désormais le
-        // nombre de réservations qui se chevauchent au nombre d'unités.
-        if ($query->count() >= $quantity) {
+        // nombre d'UNITÉS déjà occupées (somme de rooms_quantity — retour
+        // client 2026-09-02, Partie 4.3 : réservation multi-chambres, une
+        // réservation peut consommer plus d'une unité) au nombre d'unités
+        // disponibles.
+        $occupiedUnits = (int) $query->sum('rooms_quantity');
+        if ($occupiedUnits + $requestedQuantity > $quantity) {
             throw new RoomNotAvailableException(
                 'Cette chambre n\'est plus disponible pour les dates sélectionnées.'
             );
@@ -364,8 +368,10 @@ class BookingService
                 // Libérer les anciennes dates
                 $this->releaseDates($roomId, $oldCheckIn, $oldCheckOut);
 
-                // Vérifier les nouvelles (en excluant cette réservation)
-                $this->assertAvailable($roomId, $newCheckIn, $newCheckOut, $booking->id);
+                // Vérifier les nouvelles (en excluant cette réservation) — même
+                // nombre d'unités que la réservation actuelle (rooms_quantity
+                // n'est pas modifiable via une simple modification de dates).
+                $this->assertAvailable($roomId, $newCheckIn, $newCheckOut, $booking->id, max(1, (int) $booking->rooms_quantity));
 
                 // Bloquer les nouvelles dates
                 $this->blockDates($roomId, $newCheckIn, $newCheckOut);
@@ -374,6 +380,9 @@ class BookingService
             $booking->update([
                 'check_in'  => $newCheckIn->toDateString(),
                 'check_out' => $newCheckOut->toDateString(),
+                // Retour client 2026-09-02 (Partie 4.4) : indicateur "Modifiée"
+                // affiché à côté du statut principal, jamais réinitialisé.
+                'was_modified' => true,
             ]);
 
             $this->logHistory($booking, $booking->status, $booking->status, 'modified', $actorId, null, [
