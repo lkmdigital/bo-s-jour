@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Booking;
+use App\Models\Message;
 use App\Models\NotificationLog;
 use App\Notifications\BookingCancelledNotification;
 use Illuminate\Bus\Queueable;
@@ -34,6 +35,16 @@ class SendBookingCancellation implements ShouldQueue
         } catch (\Throwable $e) {
             NotificationLog::record($this->booking->id, 'booking_cancelled', 'email', 'traveler', $this->booking->user?->email, false, $e->getMessage());
             throw $e; // laisser le job retry normalement
+        }
+
+        // Notification in-app Extranet hôte — indépendante du bloc ci-dessus
+        // (best-effort, ne doit jamais empêcher le retry de la notification voyageur).
+        try {
+            $this->booking->loadMissing('accommodation');
+            Message::notifyHostBookingCancelled($this->booking, $this->reason);
+            NotificationLog::record($this->booking->id, 'booking_cancelled', 'in_app', 'host', null, true);
+        } catch (\Throwable $e) {
+            NotificationLog::record($this->booking->id, 'booking_cancelled', 'in_app', 'host', null, false, $e->getMessage());
         }
     }
 }

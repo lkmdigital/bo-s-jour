@@ -200,6 +200,20 @@ class BookingService
             }
         }
 
+        // Notification in-app Extranet hôte (retour client 2026-09-02, Partie 4.3 :
+        // l'hôte doit voir la nouvelle réservation DANS l'Extranet, pas seulement
+        // par email/SMS externes). Best-effort : ne doit jamais bloquer la confirmation.
+        try {
+            \App\Models\Message::notifyHostNewBooking($booking);
+            \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'in_app', 'host', null, true);
+        } catch (\Throwable $e) {
+            Log::error('Booking confirmation in-app notification (host) failed', [
+                'booking_id' => $booking->id,
+                'error'      => $e->getMessage(),
+            ]);
+            \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'in_app', 'host', null, false, $e->getMessage());
+        }
+
         // Confirmation par SMS (best-effort, en plus des emails)
         try {
             $sms = app(\App\Services\SmsService::class);

@@ -6,6 +6,8 @@ use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\Accommodation;
 use App\Models\LoyaltyVoucher;
+use App\Models\Message;
+use App\Models\NotificationLog;
 use App\Models\Promotion;
 use App\Models\Room;
 use App\Models\User;
@@ -778,6 +780,8 @@ class BookingController extends Controller
         }
 
         // ── Modification des dates/chambre/guests ──────────────────────────────
+        $modificationSummaryParts = [];
+
         if ($request->hasAny(['check_in', 'check_out'])) {
             if (!$booking->canModifyFree()) {
                 return response()->json([
@@ -794,10 +798,29 @@ class BookingController extends Controller
                 $newCheckOut,
                 $request->user()->id
             );
+
+            $modificationSummaryParts[] = 'Nouvelles dates : du ' . $newCheckIn->format('d/m/Y') . ' au ' . $newCheckOut->format('d/m/Y') . '.';
         }
 
         if ($request->has('guests')) {
             $booking->update(['guests' => $request->guests]);
+            $modificationSummaryParts[] = 'Nombre de voyageurs : ' . $request->guests . '.';
+        }
+
+        // Notification in-app Extranet hôte (retour client 2026-09-02, Partie 4.3) —
+        // best-effort, ne doit jamais faire échouer la modification elle-même.
+        if ($modificationSummaryParts) {
+            try {
+                $booking->loadMissing('accommodation');
+                Message::notifyHostBookingModified($booking, implode(' ', $modificationSummaryParts));
+                NotificationLog::record($booking->id, 'booking_modified', 'in_app', 'host', null, true);
+            } catch (\Throwable $e) {
+                Log::error('Booking modification in-app notification (host) failed', [
+                    'booking_id' => $booking->id,
+                    'error'      => $e->getMessage(),
+                ]);
+                NotificationLog::record($booking->id, 'booking_modified', 'in_app', 'host', null, false, $e->getMessage());
+            }
         }
 
         return response()->json($booking->fresh());

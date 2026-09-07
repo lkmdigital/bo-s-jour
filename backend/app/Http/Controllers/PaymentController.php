@@ -970,11 +970,13 @@ class PaymentController extends Controller
         if ($booking->user?->email) {
             try {
                 Mail::to($booking->user->email)->send(new BookingConfirmation($booking));
+                \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'email', 'traveler', $booking->user->email, true);
             } catch (\Throwable $e) {
                 Log::error('Booking confirmation email (client) failed after payment', [
                     'booking_id' => $booking->id,
                     'error'      => $e->getMessage(),
                 ]);
+                \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'email', 'traveler', $booking->user->email, false, $e->getMessage());
             }
         }
 
@@ -982,12 +984,29 @@ class PaymentController extends Controller
         if ($hostEmail) {
             try {
                 Mail::to($hostEmail)->send(new HostNewBooking($booking));
+                \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'email', 'host', $hostEmail, true);
             } catch (\Throwable $e) {
                 Log::error('Booking confirmation email (host) failed after payment', [
                     'booking_id' => $booking->id,
                     'error'      => $e->getMessage(),
                 ]);
+                \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'email', 'host', $hostEmail, false, $e->getMessage());
             }
+        }
+
+        // Notification in-app Extranet hôte — ce chemin (webhook Malia Pay réel via
+        // confirmPaymentSuccess()) est distinct de BookingService::confirm() (confirmation
+        // manuelle admin) : les deux doivent notifier l'hôte dans l'Extranet (retour
+        // client 2026-09-02, Partie 4.3). Best-effort, ne bloque jamais le paiement.
+        try {
+            Message::notifyHostNewBooking($booking);
+            \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'in_app', 'host', null, true);
+        } catch (\Throwable $e) {
+            Log::error('Booking confirmation in-app notification (host) failed after payment', [
+                'booking_id' => $booking->id,
+                'error'      => $e->getMessage(),
+            ]);
+            \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'in_app', 'host', null, false, $e->getMessage());
         }
 
         // Confirmation par SMS (best-effort, en plus des emails)
@@ -995,11 +1014,13 @@ class PaymentController extends Controller
             $sms = app(\App\Services\SmsService::class);
             $sms->sendBookingConfirmationToClient($booking);
             $sms->sendBookingNotificationToHost($booking);
+            \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'sms', 'traveler', $booking->user?->phone, true);
         } catch (\Throwable $e) {
             Log::error('Booking confirmation SMS failed after payment', [
                 'booking_id' => $booking->id,
                 'error'      => $e->getMessage(),
             ]);
+            \App\Models\NotificationLog::record($booking->id, 'booking_confirmed', 'sms', 'traveler', $booking->user?->phone, false, $e->getMessage());
         }
     }
 
