@@ -25,6 +25,11 @@ interface Accommodation {
     price_per_night: number;
     rooms_available?: number | null;
   }>;
+  // Retour client 2026-09-02 (Partie 4.11) : "Autre petit déjeuner" — relié
+  // au système de petit-déjeuner existant de l'établissement.
+  breakfast_included?: boolean;
+  breakfast_included_persons?: number;
+  breakfast_price?: number | null;
 }
 
 interface Room {
@@ -145,6 +150,9 @@ function NewBookingContent() {
             initialCheckIn={initialCheckIn}
             initialCheckOut={initialCheckOut}
             initialGuests={initialGuests}
+            breakfastIncluded={accommodation.breakfast_included}
+            breakfastIncludedPersons={accommodation.breakfast_included_persons}
+            breakfastPrice={accommodation.breakfast_price}
           />
         </div>
       </main>

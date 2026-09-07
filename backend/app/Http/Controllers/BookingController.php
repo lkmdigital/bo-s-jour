@@ -148,6 +148,14 @@ class BookingController extends Controller
             'check_out' => 'required|date|after:check_in',
             'guests' => 'required|integer|min:1',
             'estimated_arrival_time' => 'nullable|date_format:H:i',
+            // Retour client 2026-09-02 (Partie 4.11) : "Autre petit déjeuner" —
+            // petits-déjeuners supplémentaires au-delà de ceux déjà inclus
+            // gratuitement (accommodations.breakfast_included_persons), facturés
+            // au tarif accommodation.breakfast_price. Nombre plutôt que le champ
+            // "de saisie libre" décrit littéralement dans le document : cette
+            // valeur alimente un calcul de prix réel, un texte libre y ferait
+            // n'importe quoi entrer.
+            'extra_breakfast_quantity' => 'nullable|integer|min:0|max:20',
             'promo_code' => 'nullable|string|max:100',
             'special_requests' => 'nullable|string|max:1000',
             'booked_for_third_party' => 'nullable|boolean',
@@ -432,6 +440,34 @@ class BookingController extends Controller
             $totalPrice = $basePrice - $discountAmount;
         }
 
+        // Petits-déjeuners supplémentaires (retour client 2026-09-02, Partie 4.11) :
+        // au-delà de ceux déjà inclus gratuitement (breakfast_included_persons),
+        // au tarif intégral de l'hôte — ajoutés APRÈS le calcul de la remise
+        // promo/bon de fidélité (qui ne porte que sur le prix de la chambre) et
+        // AVANT le stockage de base_price/total_price, pour que la commission
+        // BoSéjour et le net hôtelier (calculés sur base_price) couvrent aussi
+        // cette prestation réelle de l'hôte, jamais rabotée par une remise
+        // financée par la plateforme.
+        $extraBreakfastQuantity = (int) ($request->input('extra_breakfast_quantity') ?? 0);
+        $extraBreakfastUnitPrice = null;
+        $extraBreakfastTotal = 0.0;
+        if ($extraBreakfastQuantity > 0) {
+            if ((int) $request->guests < 2) {
+                return response()->json([
+                    'message' => "Le petit-déjeuner supplémentaire n'est disponible qu'à partir de 2 voyageurs.",
+                ], 422);
+            }
+            if (!$accommodation->breakfast_price || (float) $accommodation->breakfast_price <= 0) {
+                return response()->json([
+                    'message' => "Cet établissement ne propose pas de petit-déjeuner supplémentaire.",
+                ], 422);
+            }
+            $extraBreakfastUnitPrice = (float) $accommodation->breakfast_price;
+            $extraBreakfastTotal = $extraBreakfastQuantity * $extraBreakfastUnitPrice;
+            $basePrice += $extraBreakfastTotal;
+            $totalPrice += $extraBreakfastTotal;
+        }
+
         // Politique d'annulation : 0 = non remboursable, >0 = modifiable (avoir en cas d'annulation)
         $isNonRefundable = ($cancellationHours === 0);
         $depositAmount = 0;
@@ -452,7 +488,8 @@ class BookingController extends Controller
         try {
         $booking = DB::transaction(function () use (
             $request, $room, $accommodation, $user, $bookedForThirdParty,
-            $totalPrice, $basePrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion, $loyaltyVoucher
+            $totalPrice, $basePrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion, $loyaltyVoucher,
+            $extraBreakfastQuantity, $extraBreakfastUnitPrice, $extraBreakfastTotal
         ) {
             if ($room) {
                 Room::lockForUpdate()->findOrFail($room->id);
@@ -483,6 +520,9 @@ class BookingController extends Controller
                 'check_out' => $request->check_out,
                 'guests' => $request->guests,
                 'estimated_arrival_time' => $request->estimated_arrival_time,
+                'extra_breakfast_quantity' => $extraBreakfastQuantity,
+                'extra_breakfast_unit_price' => $extraBreakfastUnitPrice,
+                'extra_breakfast_total' => $extraBreakfastTotal,
                 'total_price' => $totalPrice,
                 // Tarif plein de l'hôte, AVANT promo/bon de fidélité — conservé pour que
                 // la commission BoSéjour et le montant reversé à l'hôte restent basés sur

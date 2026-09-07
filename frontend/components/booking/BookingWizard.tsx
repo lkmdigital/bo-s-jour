@@ -44,6 +44,12 @@ interface Props {
   initialGuests?: number;
   cancellationPolicyHours?: number | null;
   loyaltyProgramJoined?: boolean;
+  // Retour client 2026-09-02 (Partie 4.11) : "Autre petit déjeuner" — relié
+  // au système de petit-déjeuner existant de l'établissement (jusqu'ici
+  // purement informatif) plutôt que traité comme une simple case isolée.
+  breakfastIncluded?: boolean;
+  breakfastIncludedPersons?: number;
+  breakfastPrice?: number | null;
 }
 
 interface LoyaltyVoucherOption {
@@ -128,6 +134,15 @@ export default function BookingWizard(props: Props) {
   // Heure d'arrivée prévisionnelle (retour client 2026-09-02, Partie 4.3) —
   // facultative, n'existait dans aucun formulaire du tunnel jusqu'ici.
   const [estimatedArrivalTime, setEstimatedArrivalTime] = useState('');
+  // Petits-déjeuners supplémentaires (retour client 2026-09-02, Partie 4.11) —
+  // proposé seulement dès 2 voyageurs et si l'établissement a un tarif de
+  // petit-déjeuner configuré (sinon rien à facturer, la case n'a pas de sens).
+  const [extraBreakfast, setExtraBreakfast] = useState(false);
+  const [extraBreakfastQty, setExtraBreakfastQty] = useState(1);
+  const canOfferExtraBreakfast = guests >= 2 && !!props.breakfastPrice;
+  useEffect(() => {
+    if (!canOfferExtraBreakfast) setExtraBreakfast(false);
+  }, [canOfferExtraBreakfast]);
   // Entreprise (corporate)
   const [companyName, setCompanyName] = useState('');
   const [companyVat, setCompanyVat] = useState('');
@@ -268,6 +283,7 @@ export default function BookingWizard(props: Props) {
         residence_country: residenceCountry || null,
         residence_city: residenceCity || null,
         estimated_arrival_time: estimatedArrivalTime || undefined,
+        extra_breakfast_quantity: extraBreakfast && canOfferExtraBreakfast ? extraBreakfastQty : undefined,
         promo_code: discountMode === 'promo' ? (promoCode.trim() || undefined) : undefined,
         loyalty_voucher_code: discountMode === 'loyalty' ? (loyaltyVoucherCode || undefined) : undefined,
         special_requests: specialRequests.trim() || undefined,
@@ -355,6 +371,42 @@ export default function BookingWizard(props: Props) {
                   <div className="flex items-center gap-2 text-sm"><Calendar className="w-4 h-4 text-primary" /> {checkIn} → {checkOut}</div>
                   <div className="flex items-center gap-2 text-sm"><Users className="w-4 h-4 text-primary" /> {guests} voyageur{guests > 1 ? 's' : ''}</div>
                   <button onClick={() => setEditingDates(true)} className="text-sm text-primary font-medium hover:underline">Modifier</button>
+                </div>
+              )}
+              {canOfferExtraBreakfast && (
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-2.5">
+                  <label className="flex items-start gap-2.5 text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={extraBreakfast}
+                      onChange={(e) => setExtraBreakfast(e.target.checked)}
+                      className="mt-0.5 accent-[#FF0000]"
+                    />
+                    <span>
+                      Autre petit-déjeuner
+                      <span className="block font-normal text-gray-500 text-xs mt-0.5">
+                        {props.breakfastIncluded
+                          ? `Le petit-déjeuner est inclus pour ${props.breakfastIncludedPersons || 1} personne${(props.breakfastIncludedPersons || 1) > 1 ? 's' : ''}. Ajoutez-en pour le reste de votre groupe (${formatPrice(props.breakfastPrice!)} FCFA / petit-déjeuner).`
+                          : `Ajoutez des petits-déjeuners pour votre groupe (${formatPrice(props.breakfastPrice!)} FCFA / petit-déjeuner).`}
+                      </span>
+                    </span>
+                  </label>
+                  {extraBreakfast && (
+                    <div className="flex items-center gap-3 pl-6">
+                      <label className="text-sm text-gray-600 dark:text-gray-300">Nombre de petits-déjeuners souhaité</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={extraBreakfastQty}
+                        onChange={(e) => setExtraBreakfastQty(Math.min(20, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+                        className="w-20 px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm outline-none focus:border-primary"
+                      />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        = {formatPrice(extraBreakfastQty * (props.breakfastPrice || 0))} FCFA
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-sm text-gray-700 dark:text-gray-300">
@@ -524,6 +576,9 @@ export default function BookingWizard(props: Props) {
                   ['Dates', `${checkIn} → ${checkOut} (${quote?.nights ?? ''} nuit${(quote?.nights ?? 0) > 1 ? 's' : ''})`],
                   ...(estimatedArrivalTime ? [['Heure d\'arrivée prévisionnelle', estimatedArrivalTime]] : []),
                   ['Voyageurs', `${guests}`],
+                  ...(extraBreakfast && canOfferExtraBreakfast
+                    ? [['Petit-déjeuner supplémentaire', `${extraBreakfastQty} × ${formatPrice(props.breakfastPrice || 0)} FCFA = ${formatPrice(extraBreakfastQty * (props.breakfastPrice || 0))} FCFA`]]
+                    : []),
                   ['Voyageur', travelerType === 'corporate' ? `Corporate — ${companyName}` : `Particulier — ${firstName} ${lastName}`],
                   ['Contact', `${email} · ${phone}`],
                   ...(bookedForThirdParty
@@ -668,7 +723,16 @@ export default function BookingWizard(props: Props) {
                     <span>-{formatPrice(quote.long_stay_discount.discount_amount)} FCFA</span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold"><span>Total</span><span>{formatPrice(quote.total)} FCFA</span></div>
+                {extraBreakfast && canOfferExtraBreakfast && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Petit-déjeuner supplémentaire ×{extraBreakfastQty}</span>
+                    <span className="text-gray-900 dark:text-white">{formatPrice(extraBreakfastQty * (props.breakfastPrice || 0))} FCFA</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold">
+                  <span>Total</span>
+                  <span>{formatPrice(quote.total + (extraBreakfast && canOfferExtraBreakfast ? extraBreakfastQty * (props.breakfastPrice || 0) : 0))} FCFA</span>
+                </div>
                 {onlineNow != null && (
                   <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 mt-2">
                     <p className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1"><Lock className="w-3 h-3 text-primary" /> En ligne : {formatPrice(onlineNow)} FCFA</p>

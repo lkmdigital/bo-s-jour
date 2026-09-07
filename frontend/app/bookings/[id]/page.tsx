@@ -43,6 +43,8 @@ interface BookingDetail {
   check_out: string;
   guests: number;
   assigned_room_number?: string | null;
+  extra_breakfast_quantity?: number;
+  extra_breakfast_total?: number;
   total_price: number;
   deposit_amount?: number;
   amount_paid?: number;
@@ -468,17 +470,25 @@ export default function BookingDetailPage() {
                   </div>
                 </div>
 
-                {booking.accommodation.breakfast_included && (
+                {(booking.accommodation.breakfast_included || !!booking.extra_breakfast_quantity) && (
                   <div className="flex items-start gap-3">
                     <Coffee className="w-5 h-5 text-primary mt-1" />
                     <div>
                       <p className="font-semibold">Petit-déjeuner</p>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        Inclus
-                        {booking.accommodation.breakfast_included_persons
-                          ? ` pour ${booking.accommodation.breakfast_included_persons} personne${booking.accommodation.breakfast_included_persons > 1 ? 's' : ''}`
-                          : ''}
-                      </p>
+                      {booking.accommodation.breakfast_included && (
+                        <p className="text-gray-600 dark:text-gray-400">
+                          Inclus
+                          {booking.accommodation.breakfast_included_persons
+                            ? ` pour ${booking.accommodation.breakfast_included_persons} personne${booking.accommodation.breakfast_included_persons > 1 ? 's' : ''}`
+                            : ''}
+                        </p>
+                      )}
+                      {!!booking.extra_breakfast_quantity && (
+                        <p className="text-gray-600 dark:text-gray-400">
+                          + {booking.extra_breakfast_quantity} petit-déjeuner{booking.extra_breakfast_quantity > 1 ? 's' : ''} supplémentaire{booking.extra_breakfast_quantity > 1 ? 's' : ''}
+                          {booking.extra_breakfast_total ? ` (${formatPrice(booking.extra_breakfast_total)} FCFA)` : ''}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}

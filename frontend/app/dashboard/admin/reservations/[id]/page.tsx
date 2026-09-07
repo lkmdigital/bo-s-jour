@@ -40,6 +40,8 @@ interface BookingDetail {
   check_out: string;
   guests: number;
   estimated_arrival_time?: string | null;
+  extra_breakfast_quantity?: number;
+  extra_breakfast_total?: number;
   total_price: number;
   deposit_amount: number;
   amount_paid: number;
@@ -289,6 +291,12 @@ export default function AdminReservationDetailPage() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Petit-déjeuner inclus
                 {booking.accommodation.breakfast_included_persons ? ` (${booking.accommodation.breakfast_included_persons} pers.)` : ''}
+              </p>
+            )}
+            {!!booking.extra_breakfast_quantity && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                + {booking.extra_breakfast_quantity} petit-déjeuner{booking.extra_breakfast_quantity > 1 ? 's' : ''} supplémentaire{booking.extra_breakfast_quantity > 1 ? 's' : ''}
+                {booking.extra_breakfast_total ? ` (${formatPrice(booking.extra_breakfast_total)} FCFA)` : ''}
               </p>
             )}
             {booking.accommodation.host && (
