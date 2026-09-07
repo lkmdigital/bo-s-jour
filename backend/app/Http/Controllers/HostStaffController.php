@@ -122,12 +122,12 @@ class HostStaffController extends Controller
             try {
                 Mail::raw(
                     "Bonjour {$data['name']},\n\n"
-                    . "{$ownerLabel} vous invite à rejoindre son espace bo séjour en tant que "
+                    . "{$ownerLabel} vous invite à rejoindre son espace BoSéjour en tant que "
                     . (HostStaff::ROLE_LABELS[$data['role']] ?? $data['role']) . ".\n\n"
                     . "Activez votre accès en définissant votre mot de passe : {$activationUrl}\n\n"
-                    . "Ce lien est personnel, ne le partagez pas.\n\nÀ bientôt,\nL'équipe bo séjour",
+                    . "Ce lien est personnel, ne le partagez pas.\n\nÀ bientôt,\nL'équipe BoSéjour",
                     function ($message) use ($data) {
-                        $message->to($data['email'])->subject('Invitation à rejoindre un espace bo séjour');
+                        $message->to($data['email'])->subject('Invitation à rejoindre un espace BoSéjour');
                     }
                 );
             } catch (\Throwable $e) {

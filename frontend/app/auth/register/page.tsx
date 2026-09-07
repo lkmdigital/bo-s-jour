@@ -244,7 +244,7 @@ function RegisterContent() {
     <div className="card space-y-4">
       <h2 className="text-lg font-bold">Résidence</h2>
       <p className="text-xs text-gray-500 -mt-2 flex items-center gap-1.5">
-        <Info className="w-3.5 h-3.5" /> Aide bo séjour à mieux vous connaître (statistiques touristiques).
+        <Info className="w-3.5 h-3.5" /> Aide BoSéjour à mieux vous connaître (statistiques touristiques).
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Field label="Pays de résidence">

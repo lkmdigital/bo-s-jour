@@ -916,7 +916,7 @@ export default function AdminPaiementsPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setReceipt(null)}>
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
               <div className="print-receipt">
-                <h3 className="text-xl font-bold mb-1">bo séjour</h3>
+                <h3 className="text-xl font-bold mb-1">BoSéjour</h3>
                 <p className="text-sm text-gray-500 mb-4">
                   {receipt.type === 'payment' ? 'Reçu de paiement' : 'Reçu de reversement'}
                 </p>

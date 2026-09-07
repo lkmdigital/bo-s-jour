@@ -35,7 +35,7 @@ function LoginContent() {
     defaultValues: { email: getRememberedEmail(), remember: true },
   });
 
-  const STAFF_MSG = "Ce portail est réservé aux voyageurs et aux partenaires. Le personnel bo séjour se connecte via le portail administrateur dédié.";
+  const STAFF_MSG = "Ce portail est réservé aux voyageurs et aux partenaires. Le personnel BoSéjour se connecte via le portail administrateur dédié.";
 
   // Affiche le message si un compte staff a tenté de se connecter par ce portail
   useEffect(() => {

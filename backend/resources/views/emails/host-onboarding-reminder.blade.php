@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finalisez votre établissement sur bo séjour</title>
+  <title>Finalisez votre établissement sur BoSéjour</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f8;padding:40px 0;">
@@ -24,7 +24,7 @@
 
               @if ($stage >= 3)
                 <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">
-                  Dernier rappel : votre établissement est à quelques clics d'être en ligne sur bo séjour et
+                  Dernier rappel : votre établissement est à quelques clics d'être en ligne sur BoSéjour et
                   de commencer à recevoir des réservations. Notre équipe reste disponible si vous avez besoin d'aide.
                 </p>
               @elseif ($stage == 2)
@@ -34,7 +34,7 @@
                 </p>
               @else
                 <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">
-                  Vous avez commencé la création de votre établissement sur bo séjour, mais la configuration
+                  Vous avez commencé la création de votre établissement sur BoSéjour, mais la configuration
                   n'est pas encore terminée.
                 </p>
               @endif
@@ -70,7 +70,7 @@
           </tr>
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;text-align:center;border-top:1px solid #eef2f7;">
-              <p style="margin:0;font-size:12px;color:#9ca3af;">bo séjour · bosejour.ci</p>
+              <p style="margin:0;font-size:12px;color:#9ca3af;">BoSéjour · bosejour.ci</p>
             </td>
           </tr>
         </table>

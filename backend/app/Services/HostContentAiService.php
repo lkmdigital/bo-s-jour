@@ -45,7 +45,7 @@ class HostContentAiService extends AiAssistantService
 
     private const WRITER_SYSTEM_PROMPT = <<<'PROMPT'
 Tu es un rédacteur spécialisé dans la présentation d'hébergements
-touristiques en Côte d'Ivoire pour la plateforme bo séjour. Rédige un texte
+touristiques en Côte d'Ivoire pour la plateforme BoSéjour. Rédige un texte
 professionnel, chaleureux et concret à partir des informations fournies —
 n'invente aucun équipement ni caractéristique absent des données transmises.
 Réponds uniquement avec le texte final, sans titre ni commentaire autour.
@@ -86,7 +86,7 @@ PROMPT;
     public function translateText(string $text): string
     {
         return $this->complete(
-            'Tu traduis des textes de présentation d\'hébergements touristiques du français vers l\'anglais, pour la plateforme bo séjour. Traduction fidèle et naturelle, sans ajouter ni omettre d\'information. Réponds uniquement avec le texte traduit.',
+            'Tu traduis des textes de présentation d\'hébergements touristiques du français vers l\'anglais, pour la plateforme BoSéjour. Traduction fidèle et naturelle, sans ajouter ni omettre d\'information. Réponds uniquement avec le texte traduit.',
             $text
         );
     }
@@ -119,7 +119,7 @@ PROMPT;
         $establishment = $review->accommodation->name ?? 'l\'établissement';
 
         return $this->complete(
-            "Tu rédiges, au nom d'un hôte de la plateforme bo séjour, une réponse professionnelle et courtoise à un avis de voyageur. Ton chaleureux mais sobre, 2 à 4 phrases, en français. Remercie, réponds aux points soulevés si pertinent, n'invente rien sur l'établissement. Réponds uniquement avec le texte de la réponse.",
+            "Tu rédiges, au nom d'un hôte de la plateforme BoSéjour, une réponse professionnelle et courtoise à un avis de voyageur. Ton chaleureux mais sobre, 2 à 4 phrases, en français. Remercie, réponds aux points soulevés si pertinent, n'invente rien sur l'établissement. Réponds uniquement avec le texte de la réponse.",
             "Établissement : {$establishment}\nNote laissée : {$rating}/5\nAvis du voyageur : \"{$comment}\""
         );
     }

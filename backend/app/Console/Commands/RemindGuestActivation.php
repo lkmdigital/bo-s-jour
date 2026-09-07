@@ -51,8 +51,8 @@ class RemindGuestActivation extends Command
                             $phone = $user->whatsapp ?: $user->phone;
                             if ($phone) {
                                 $waMessage = $targetStage === 1
-                                    ? "bo séjour — Votre séjour est confirmé ! Activez gratuitement votre espace bo séjour en 1 minute pour retrouver toutes vos réservations et recevoir des offres personnalisées :\n{$activateUrl}"
-                                    : "bo séjour — Créez votre compte aujourd'hui et bénéficiez de -5% sur votre prochain séjour (offre valable 30 jours) :\n{$activateUrl}";
+                                    ? "BoSéjour — Votre séjour est confirmé ! Activez gratuitement votre espace BoSéjour en 1 minute pour retrouver toutes vos réservations et recevoir des offres personnalisées :\n{$activateUrl}"
+                                    : "BoSéjour — Créez votre compte aujourd'hui et bénéficiez de -5% sur votre prochain séjour (offre valable 30 jours) :\n{$activateUrl}";
                                 app(WhatsAppService::class)->sendText($phone, $waMessage);
                             }
                         }

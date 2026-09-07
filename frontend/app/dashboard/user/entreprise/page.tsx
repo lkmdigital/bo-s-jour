@@ -303,7 +303,7 @@ export default function MemberCompanyPage() {
                 <button type="button" onClick={() => setShowInvite(false)} className="text-sm text-gray-500 hover:underline">Annuler</button>
               </div>
               <p className="text-xs text-gray-400">
-                S&apos;il a déjà un compte bo séjour, il est rattaché immédiatement. Sinon, il reçoit un e-mail
+                S&apos;il a déjà un compte BoSéjour, il est rattaché immédiatement. Sinon, il reçoit un e-mail
                 d&apos;invitation et sera rattaché automatiquement dès son inscription avec cette adresse.
               </p>
             </form>

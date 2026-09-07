@@ -50,10 +50,10 @@ class LoyaltyEventNotification extends Notification implements ShouldQueue
         $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'https://monbeaupays.loyerpay.ci')), '/');
 
         return (new MailMessage)
-            ->subject('bo séjour — Programme Membre')
+            ->subject('BoSéjour — Programme Membre')
             ->greeting('Bonjour ' . ($notifiable->name ?? '') . ',')
             ->line($this->message)
             ->action('Voir mon programme fidélité', $frontendUrl . '/dashboard/user/programme')
-            ->salutation("L'équipe bo séjour");
+            ->salutation("L'équipe BoSéjour");
     }
 }

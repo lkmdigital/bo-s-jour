@@ -64,7 +64,7 @@ function ActivateContent() {
             <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
               <ShieldCheck className="w-6 h-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Créez votre espace bo séjour</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Créez votre espace BoSéjour</h1>
             <p className="text-sm text-gray-500 mt-1 mb-6">
               Choisissez un mot de passe pour activer votre compte. Toutes vos réservations y seront rattachées automatiquement.
             </p>

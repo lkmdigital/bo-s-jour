@@ -50,7 +50,7 @@ export default function AdminTeamSettingsPage() {
     <SettingsPageShell
       icon={Users}
       title="Utilisateurs"
-      description="Équipe interne bo séjour : comptes disposant d'un accès d'administration et leurs rôles."
+      description="Équipe interne BoSéjour : comptes disposant d'un accès d'administration et leurs rôles."
     >
       {loading ? (
         <LoadingSpinner />

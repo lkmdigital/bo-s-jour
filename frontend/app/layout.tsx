@@ -31,13 +31,13 @@ const dancingScript = Dancing_Script({
 });
 
 export const metadata: Metadata = {
-  title: 'bo séjour - Votre séjour commence ici...',
-  description: 'bo séjour : trouvez et réservez votre hébergement idéal en Côte d\'Ivoire. Votre séjour commence ici.',
+  title: 'BoSéjour - Votre séjour commence ici...',
+  description: 'BoSéjour : trouvez et réservez votre hébergement idéal en Côte d\'Ivoire. Votre séjour commence ici.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'bo séjour',
+    title: 'BoSéjour',
   },
   icons: {
     icon: [
@@ -76,7 +76,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#FF0000" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="bo séjour" />
+        <meta name="apple-mobile-web-app-title" content="BoSéjour" />
       </head>
       <body className={`${dmSans.variable} ${baloo.variable} ${dancingScript.variable}`}>
         <Providers>

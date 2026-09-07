@@ -102,7 +102,7 @@ class SendPostStayReviewLinks extends Command
             // No-op silencieux si l'intégration WhatsApp n'est pas configurée par l'admin.
             if ($phone) {
                 $waMessage = sprintf(
-                    "bo séjour — Comment s'est passé votre séjour chez %s ? Donnez votre avis en 2 minutes :\n%s",
+                    "BoSéjour — Comment s'est passé votre séjour chez %s ? Donnez votre avis en 2 minutes :\n%s",
                     $booking->accommodation->name ?? 'votre établissement',
                     $reviewUrl
                 );

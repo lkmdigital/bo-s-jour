@@ -273,7 +273,7 @@ class LoyaltyService
         // configurée par l'admin, ou si le voyageur n'a pas opté in).
         if ($user->notif_whatsapp && ($user->whatsapp || $user->phone)) {
             try {
-                app(WhatsAppService::class)->sendText($user->whatsapp ?: $user->phone, "bo séjour — {$message}");
+                app(WhatsAppService::class)->sendText($user->whatsapp ?: $user->phone, "BoSéjour — {$message}");
             } catch (\Throwable $e) {
                 \Log::warning('Échec notification WhatsApp fidélité', [
                     'user_id' => $user->id,

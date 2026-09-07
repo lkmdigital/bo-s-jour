@@ -106,7 +106,7 @@ export default function IcalSyncPanel({ accommodationId, onSkip }: { accommodati
         <p className="font-medium text-gray-900 dark:text-white mb-1">Import iCal</p>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
           Collez le lien iCal exporté par Booking.com, Airbnb ou votre logiciel de gestion (PMS) : vos dates déjà
-          réservées ailleurs seront automatiquement bloquées sur bo séjour.
+          réservées ailleurs seront automatiquement bloquées sur BoSéjour.
         </p>
 
         <form onSubmit={sync} className="flex flex-col sm:flex-row gap-2">

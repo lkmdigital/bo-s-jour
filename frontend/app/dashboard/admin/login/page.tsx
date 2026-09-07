@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
       const currentUser = useAuthStore.getState().user;
       if (!isAdminOrController(currentUser)) {
         await useAuthStore.getState().logout();
-        setError("Accès réservé au personnel bo séjour. Utilisez le portail voyageurs/partenaires.");
+        setError("Accès réservé au personnel BoSéjour. Utilisez le portail voyageurs/partenaires.");
         setLoading(false);
         return;
       }
@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
             <ShieldCheck className="w-6 h-6 text-primary" />
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Espace administrateur</h1>
           </div>
-          <p className="text-sm text-gray-500 mb-6">Portail réservé au personnel bo séjour.</p>
+          <p className="text-sm text-gray-500 mb-6">Portail réservé au personnel BoSéjour.</p>
 
           {error && (
             <div className="mb-4 rounded-xl bg-red-50 border border-red-200 text-[#EE233C] text-sm px-4 py-3">
@@ -109,7 +109,7 @@ export default function AdminLoginPage() {
 
         <div className="text-center mt-6">
           <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Retour au site bo séjour
+            <ArrowLeft className="w-4 h-4" /> Retour au site BoSéjour
           </Link>
         </div>
       </div>

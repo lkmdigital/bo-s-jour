@@ -68,7 +68,7 @@ export default function AdminRegionalSettingsPage() {
                 type="text"
                 value={appName}
                 onChange={(e) => setAppName(e.target.value)}
-                placeholder="bo séjour"
+                placeholder="BoSéjour"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm"
               />
             </div>

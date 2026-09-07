@@ -161,7 +161,7 @@ export default function HostDashboardPage() {
               <Compass className="w-4 h-4 text-secondary" /> Mode expert
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-              Vous connaissez déjà bo séjour ? Accédez directement à tous les menus de l&apos;Extranet.
+              Vous connaissez déjà BoSéjour ? Accédez directement à tous les menus de l&apos;Extranet.
             </p>
             <button
               type="button"

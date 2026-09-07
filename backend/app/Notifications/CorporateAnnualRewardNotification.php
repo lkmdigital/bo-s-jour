@@ -47,9 +47,9 @@ class CorporateAnnualRewardNotification extends Notification implements ShouldQu
         $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'https://monbeaupays.loyerpay.ci')), '/');
 
         $mail = (new MailMessage)
-            ->subject("bo séjour — Bilan Corporate {$this->reward->year}")
+            ->subject("BoSéjour — Bilan Corporate {$this->reward->year}")
             ->greeting('Bonjour ' . ($notifiable->name ?? '') . ',')
-            ->line("Le bilan de votre programme Corporate bo séjour pour l'année {$this->reward->year} est disponible.")
+            ->line("Le bilan de votre programme Corporate BoSéjour pour l'année {$this->reward->year} est disponible.")
             ->line('Chiffre d\'affaires réalisé : ' . number_format((float) $this->reward->revenue_total, 0, ',', ' ') . ' FCFA.');
 
         $mail = $this->reward->reward_label
@@ -58,6 +58,6 @@ class CorporateAnnualRewardNotification extends Notification implements ShouldQu
 
         return $mail
             ->action('Voir mon espace entreprise', $frontendUrl . '/dashboard/user/entreprise')
-            ->salutation("L'équipe bo séjour");
+            ->salutation("L'équipe BoSéjour");
     }
 }

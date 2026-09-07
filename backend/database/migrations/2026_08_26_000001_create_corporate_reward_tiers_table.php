@@ -28,7 +28,7 @@ return new class extends Migration
 
             DB::table('corporate_reward_tiers')->insert([
                 ['revenue_threshold' => 10000000, 'reward_label' => 'Bon Corporate de 50 000 FCFA', 'sort_order' => 1, 'active' => true, 'created_at' => now(), 'updated_at' => now()],
-                ['revenue_threshold' => 25000000, 'reward_label' => 'Crédit bo séjour de 100 000 FCFA', 'sort_order' => 2, 'active' => true, 'created_at' => now(), 'updated_at' => now()],
+                ['revenue_threshold' => 25000000, 'reward_label' => 'Crédit BoSéjour de 100 000 FCFA', 'sort_order' => 2, 'active' => true, 'created_at' => now(), 'updated_at' => now()],
                 ['revenue_threshold' => 50000000, 'reward_label' => 'Nuitées offertes / crédit hôtelier', 'sort_order' => 3, 'active' => true, 'created_at' => now(), 'updated_at' => now()],
                 ['revenue_threshold' => 75000000, 'reward_label' => 'Tarif Corporate négocié', 'sort_order' => 4, 'active' => true, 'created_at' => now(), 'updated_at' => now()],
             ]);

@@ -191,7 +191,7 @@
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb;text-align:center;">
               <p style="margin:0;font-size:12px;color:#9ca3af;">
-                © {{ date('Y') }} bo séjour · <a href="https://bosejour.ci" style="color:#FF0000;text-decoration:none;">bosejour.ci</a>
+                © {{ date('Y') }} BoSéjour · <a href="https://bosejour.ci" style="color:#FF0000;text-decoration:none;">bosejour.ci</a>
                 · Plateforme de réservation d'hébergements en Côte d'Ivoire
               </p>
             </td>

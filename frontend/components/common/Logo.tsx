@@ -31,7 +31,7 @@ export default function Logo({
   const logoContent = useImage ? (
     <Image
       src={variant === 'white' ? '/images/brand/logo-white.png' : '/images/brand/logo-black.png'}
-      alt="bo séjour — Votre séjour commence ici..."
+      alt="BoSéjour — Votre séjour commence ici..."
       width={s.w}
       height={s.hpx}
       className={`${s.h} w-auto object-contain ${className}`}
@@ -49,7 +49,7 @@ export default function Logo({
 
   if (href) {
     return (
-      <Link href={href} className="flex items-center" aria-label="bo séjour — accueil">
+      <Link href={href} className="flex items-center" aria-label="BoSéjour — accueil">
         {logoContent}
       </Link>
     );

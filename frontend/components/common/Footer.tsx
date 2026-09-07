@@ -114,7 +114,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-white/10 hover:bg-primary flex items-center justify-center transition-colors"
-                aria-label="bo séjour sur Facebook"
+                aria-label="BoSéjour sur Facebook"
               >
                 <Facebook className="w-4 h-4 text-white" />
               </a>
@@ -138,7 +138,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-white/10 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-500">© {currentYear} bo séjour. Tous droits réservés.</p>
+          <p className="text-sm text-gray-500">© {currentYear} BoSéjour. Tous droits réservés.</p>
           <div className="flex flex-wrap items-center gap-2">
             {PAYMENT_LOGOS.map((logo) => (
               <span key={logo.src} className="h-8 px-2 rounded-md bg-white flex items-center justify-center">

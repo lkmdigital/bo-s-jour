@@ -105,7 +105,7 @@ class CorporateLoyaltyService
                 $message = $reward->reward_label
                     ? "Votre bilan Corporate {$reward->year} est prêt : {$reward->reward_label}."
                     : "Votre bilan Corporate {$reward->year} est prêt.";
-                app(WhatsAppService::class)->sendText($owner->whatsapp ?: $owner->phone, "bo séjour — {$message}");
+                app(WhatsAppService::class)->sendText($owner->whatsapp ?: $owner->phone, "BoSéjour — {$message}");
             } catch (\Throwable $e) {
                 \Log::warning('Échec notification WhatsApp bilan Corporate', [
                     'owner_id' => $owner->id,

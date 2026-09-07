@@ -24,9 +24,9 @@ class GuestActivationReminder extends Mailable
     public function build()
     {
         $subjects = [
-            1 => 'Activez votre espace bo séjour',
-            2 => 'Il ne reste qu’une étape pour votre espace bo séjour',
-            3 => 'Dernier rappel : créez votre espace bo séjour',
+            1 => 'Activez votre espace BoSéjour',
+            2 => 'Il ne reste qu’une étape pour votre espace BoSéjour',
+            3 => 'Dernier rappel : créez votre espace BoSéjour',
         ];
 
         return $this->subject($subjects[$this->stage] ?? $subjects[1])

@@ -169,7 +169,7 @@ function RegisterPartnerContent() {
               checked={form.accept_terms}
               onChange={(e) => set('accept_terms', e.target.checked)}
             />
-            J&apos;accepte les <Link href="/cgv" className="text-primary hover:underline">conditions générales</Link> et la politique de commission de bo séjour.
+            J&apos;accepte les <Link href="/cgv" className="text-primary hover:underline">conditions générales</Link> et la politique de commission de BoSéjour.
           </label>
 
           {error && (

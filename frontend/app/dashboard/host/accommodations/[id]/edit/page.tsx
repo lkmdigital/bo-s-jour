@@ -1042,7 +1042,7 @@ export default function EditAccommodationPage() {
                 className="rounded mt-1"
               />
               <span>
-                <span className="font-medium block">Rejoindre le programme fidélité bo séjour</span>
+                <span className="font-medium block">Rejoindre le programme fidélité BoSéjour</span>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   Les voyageurs pourront utiliser leurs bons de réduction sur cet établissement. La commission reste
                   calculée sur le montant réellement encaissé, réduction incluse.

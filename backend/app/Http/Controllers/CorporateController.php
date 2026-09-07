@@ -106,15 +106,15 @@ class CorporateController extends Controller
         try {
             Mail::raw(
                 "Bonjour,\n\n"
-                . ($owner->company_name ?: $owner->name) . " vous a ajouté(e) comme collaborateur sur bo séjour, "
+                . ($owner->company_name ?: $owner->name) . " vous a ajouté(e) comme collaborateur sur BoSéjour, "
                 . "pour réserver des hébergements au nom de l'entreprise.\n\n"
                 . ($existingUser
-                    ? "Connectez-vous à votre espace bo séjour habituel : vos futures réservations en tant que voyageur d'entreprise seront rattachées à ce compte."
-                    : "Créez votre compte bo séjour avec cette adresse e-mail (" . $data['email'] . ") pour être automatiquement rattaché(e) à l'entreprise : "
+                    ? "Connectez-vous à votre espace BoSéjour habituel : vos futures réservations en tant que voyageur d'entreprise seront rattachées à ce compte."
+                    : "Créez votre compte BoSéjour avec cette adresse e-mail (" . $data['email'] . ") pour être automatiquement rattaché(e) à l'entreprise : "
                         . rtrim(config('services.frontend_url'), '/') . '/auth/register')
-                . "\n\nÀ bientôt,\nL'équipe bo séjour",
+                . "\n\nÀ bientôt,\nL'équipe BoSéjour",
                 function ($message) use ($data) {
-                    $message->to($data['email'])->subject('Invitation à rejoindre une entreprise sur bo séjour');
+                    $message->to($data['email'])->subject('Invitation à rejoindre une entreprise sur BoSéjour');
                 }
             );
         } catch (\Throwable $e) {

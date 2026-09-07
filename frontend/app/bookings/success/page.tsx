@@ -42,9 +42,9 @@ function googleCalendarUrl(b: SuccessBooking, bookingId?: string | null): string
   if (!b.check_in || !b.check_out) return null;
   // Format Google Agenda journée entière : YYYYMMDD (on garde la partie date de l'ISO).
   const d = (s: string) => s.slice(0, 10).replace(/-/g, '');
-  const text = encodeURIComponent(`Séjour — ${b.accommodation?.name ?? 'bo séjour'}`);
+  const text = encodeURIComponent(`Séjour — ${b.accommodation?.name ?? 'BoSéjour'}`);
   const details = encodeURIComponent(
-    `Réservation bo séjour${bookingId ? ` #${bookingId}` : ''}${b.confirmation_code ? ` · Code : ${b.confirmation_code}` : ''}`
+    `Réservation BoSéjour${bookingId ? ` #${bookingId}` : ''}${b.confirmation_code ? ` · Code : ${b.confirmation_code}` : ''}`
   );
   const location = encodeURIComponent(b.accommodation?.city ?? '');
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${d(b.check_in)}/${d(b.check_out)}&details=${details}&location=${location}`;
@@ -206,7 +206,7 @@ function BookingSuccessContent() {
             <div className="max-w-2xl mx-auto mb-8 rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1">
                 <p className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-primary" /> Activez votre espace bo séjour
+                  <UserPlus className="w-5 h-5 text-primary" /> Activez votre espace BoSéjour
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   Créez un mot de passe pour retrouver cette réservation et toutes les suivantes, gérer vos avoirs et recevoir des offres.

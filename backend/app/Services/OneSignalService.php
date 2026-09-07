@@ -87,7 +87,7 @@ class OneSignalService
 
     public function sendOtpEmail(string $email, string $code, string $userName): bool
     {
-        $subject = 'Votre code de vérification bo séjour';
+        $subject = 'Votre code de vérification BoSéjour';
 
         $body = <<<HTML
 <!DOCTYPE html>
@@ -116,7 +116,7 @@ class OneSignalService
             <td style="padding:40px 40px 32px;">
               <p style="margin:0 0 8px;font-size:15px;color:#374151;">Bonjour <strong>{$userName}</strong>,</p>
               <p style="margin:0 0 28px;font-size:15px;color:#374151;line-height:1.6;">
-                Voici votre code de vérification pour finaliser votre connexion à bo séjour.
+                Voici votre code de vérification pour finaliser votre connexion à BoSéjour.
               </p>
 
               <!-- OTP Code Box -->
@@ -143,7 +143,7 @@ class OneSignalService
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb;text-align:center;">
               <p style="margin:0;font-size:12px;color:#9ca3af;">
-                © 2026 bo séjour · <a href="https://bosejour.ci" style="color:#FF0000;text-decoration:none;">bosejour.ci</a>
+                © 2026 BoSéjour · <a href="https://bosejour.ci" style="color:#FF0000;text-decoration:none;">bosejour.ci</a>
               </p>
             </td>
           </tr>
@@ -160,7 +160,7 @@ HTML;
 
     public function sendPasswordResetEmail(string $email, string $userName, string $resetUrl): bool
     {
-        $subject = 'Réinitialisation de votre mot de passe bo séjour';
+        $subject = 'Réinitialisation de votre mot de passe BoSéjour';
 
         $body = <<<HTML
 <!DOCTYPE html>
@@ -189,7 +189,7 @@ HTML;
             <td style="padding:40px 40px 32px;">
               <p style="margin:0 0 8px;font-size:15px;color:#374151;">Bonjour <strong>{$userName}</strong>,</p>
               <p style="margin:0 0 28px;font-size:15px;color:#374151;line-height:1.6;">
-                Nous avons reçu une demande de réinitialisation du mot de passe associé à votre compte bo séjour.
+                Nous avons reçu une demande de réinitialisation du mot de passe associé à votre compte BoSéjour.
                 Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe.
               </p>
 
@@ -223,7 +223,7 @@ HTML;
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;border-top:1px solid #e5e7eb;text-align:center;">
               <p style="margin:0;font-size:12px;color:#9ca3af;">
-                © 2026 bo séjour · <a href="https://bosejour.ci" style="color:#FF0000;text-decoration:none;">bosejour.ci</a>
+                © 2026 BoSéjour · <a href="https://bosejour.ci" style="color:#FF0000;text-decoration:none;">bosejour.ci</a>
               </p>
             </td>
           </tr>

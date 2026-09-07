@@ -58,7 +58,7 @@ class BookingWhatsappOtpController extends Controller
         Cache::put($this->codeKey($phone), $code, now()->addMinutes(10));
         Cache::forget($this->verifiedKey($phone));
 
-        $sent = $wa->sendText($phone, "bo séjour — Votre code de vérification : {$code}\nCe code expire dans 10 minutes.");
+        $sent = $wa->sendText($phone, "BoSéjour — Votre code de vérification : {$code}\nCe code expire dans 10 minutes.");
 
         if (!$sent) {
             return response()->json(['message' => "Échec de l'envoi du code par WhatsApp. Réessayez."], 503);

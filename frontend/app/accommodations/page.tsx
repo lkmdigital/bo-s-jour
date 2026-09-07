@@ -420,7 +420,7 @@ function AccommodationsPageContent() {
                     Nos offres promotionnelles sont réservées aux voyageurs inscrits
                   </h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                    Créez votre compte bo séjour (gratuit, une minute) ou connectez-vous pour découvrir nos établissements en promotion.
+                    Créez votre compte BoSéjour (gratuit, une minute) ou connectez-vous pour découvrir nos établissements en promotion.
                   </p>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                     <Link href="/auth/register?redirect=%2Faccommodations%3Ffeatured%3D1" className="btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2">

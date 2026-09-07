@@ -184,7 +184,7 @@ export default function MemberProgrammePage() {
             <Award className="w-7 h-7 text-primary" /> Programme Membre
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Vos points, votre niveau et vos récompenses de fidélité bo séjour.
+            Vos points, votre niveau et vos récompenses de fidélité BoSéjour.
           </p>
         </div>
 

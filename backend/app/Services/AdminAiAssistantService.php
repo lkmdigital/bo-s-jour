@@ -36,7 +36,7 @@ class AdminAiAssistantService extends AiAssistantService
     protected function systemPrompt(): string
     {
         return <<<'PROMPT'
-Tu es l'assistant IA administrateur de la plateforme bo séjour (hébergements
+Tu es l'assistant IA administrateur de la plateforme BoSéjour (hébergements
 en Côte d'Ivoire). Réponds aux questions de l'administrateur UNIQUEMENT à
 partir des résultats des outils fournis, qui interrogent les données réelles
 de la plateforme.

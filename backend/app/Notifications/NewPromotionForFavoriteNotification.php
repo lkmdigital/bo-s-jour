@@ -58,7 +58,7 @@ class NewPromotionForFavoriteNotification extends Notification implements Should
         $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'https://bosejour.ci')), '/');
 
         $mail = (new MailMessage)
-            ->subject("bo séjour — Nouvelle promotion chez {$name}")
+            ->subject("BoSéjour — Nouvelle promotion chez {$name}")
             ->greeting('Bonjour ' . ($notifiable->name ?? '') . ',')
             ->line("Un établissement que vous suivez, {$name}, propose une nouvelle promotion : {$this->discountLabel()}.");
 
@@ -68,6 +68,6 @@ class NewPromotionForFavoriteNotification extends Notification implements Should
 
         return $mail
             ->action('Voir l\'établissement', $frontendUrl . '/accommodations/' . $this->promotion->accommodation_id)
-            ->salutation("L'équipe bo séjour");
+            ->salutation("L'équipe BoSéjour");
     }
 }

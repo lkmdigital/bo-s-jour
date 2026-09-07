@@ -28,7 +28,7 @@ class HostOnboardingReminder extends Mailable
         $subjects = [
             1 => 'Il ne manque plus grand-chose à votre établissement',
             2 => 'Votre établissement est presque prêt à recevoir des réservations',
-            3 => 'Dernier rappel : finalisez votre établissement sur bo séjour',
+            3 => 'Dernier rappel : finalisez votre établissement sur BoSéjour',
         ];
 
         return $this->subject($subjects[$this->stage] ?? $subjects[1])

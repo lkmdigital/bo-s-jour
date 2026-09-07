@@ -31,7 +31,7 @@ export default function DesignSystemPage() {
   return (
     <div className="max-w-5xl mx-auto px-6 py-12 space-y-12">
       <header className="space-y-2">
-        <h1 className="text-3xl font-bold text-black">Design System — bo séjour</h1>
+        <h1 className="text-3xl font-bold text-black">Design System — BoSéjour</h1>
         <p className="font-slogan text-2xl text-primary">Votre séjour commence ici…</p>
       </header>
 
@@ -142,7 +142,7 @@ export default function DesignSystemPage() {
           </Card>
           <Card>
             <VerifiedBadge />
-            <p className="mt-3 text-sm text-gray-600">Établissement vérifié par l'équipe bo séjour.</p>
+            <p className="mt-3 text-sm text-gray-600">Établissement vérifié par l'équipe BoSéjour.</p>
           </Card>
           <Card padding="lg" className="bg-black text-white">
             <h3 className="font-bold">Carte sombre</h3>

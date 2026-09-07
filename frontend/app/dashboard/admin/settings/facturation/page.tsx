@@ -139,7 +139,7 @@ export default function AdminBillingSettingsPage() {
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Raison sociale</label>
                 <input type="text" value={billingCompanyName} onChange={(e) => setBillingCompanyName(e.target.value)}
-                  placeholder="bo séjour SARL"
+                  placeholder="BoSéjour SARL"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm" />
               </div>
               <div>

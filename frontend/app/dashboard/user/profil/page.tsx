@@ -327,7 +327,7 @@ export default function MemberProfilePage() {
         </Card>
 
         {/* Localisation */}
-        <Card icon={MapPin} title="Résidence & localisation" subtitle="Aide bo séjour à mieux vous connaître (statistiques touristiques)">
+        <Card icon={MapPin} title="Résidence & localisation" subtitle="Aide BoSéjour à mieux vous connaître (statistiques touristiques)">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Pays de résidence"><input className={inputCls} value={p.residence_country || ''} onChange={(e) => set('residence_country', e.target.value)} placeholder="Côte d'Ivoire" /></Field>
             <Field label="Ville de résidence"><input className={inputCls} value={p.residence_city || ''} onChange={(e) => set('residence_city', e.target.value)} placeholder="Abidjan" /></Field>

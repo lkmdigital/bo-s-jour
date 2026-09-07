@@ -74,13 +74,13 @@ export default function AdminTourismPage() {
           <Map className="w-6 h-6 text-primary" /> Base touristique
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Cartographie des établissements et statistiques de la plateforme bo séjour.
+          Cartographie des établissements et statistiques de la plateforme BoSéjour.
         </p>
       </div>
 
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-xs text-blue-800 dark:text-blue-400 flex items-start gap-2">
         <Globe2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
-        Ces statistiques portent uniquement sur les établissements et réservations de la plateforme bo séjour — ce
+        Ces statistiques portent uniquement sur les établissements et réservations de la plateforme BoSéjour — ce
         ne sont pas des statistiques officielles du tourisme ivoirien, aucune source gouvernementale n&apos;étant
         connectée ici.
       </div>

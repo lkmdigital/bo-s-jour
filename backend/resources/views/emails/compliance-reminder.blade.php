@@ -75,7 +75,7 @@
           </tr>
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;text-align:center;border-top:1px solid #eef2f7;">
-              <p style="margin:0;font-size:12px;color:#9ca3af;">bo séjour · bosejour.ci</p>
+              <p style="margin:0;font-size:12px;color:#9ca3af;">BoSéjour · bosejour.ci</p>
             </td>
           </tr>
         </table>

@@ -25,7 +25,7 @@ export default function AdminTranslationsSettingsPage() {
     >
       <section className="card space-y-6">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          bo séjour est disponible en français et en anglais. La traduction couvre aujourd&apos;hui
+          BoSéjour est disponible en français et en anglais. La traduction couvre aujourd&apos;hui
           la structure de l&apos;espace membre voyageur ; le contenu détaillé (formulaires,
           descriptions saisies par les hôtes) reste en français pour le moment.
         </p>

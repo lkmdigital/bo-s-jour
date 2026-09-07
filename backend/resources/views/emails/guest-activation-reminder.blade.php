@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Activez votre espace bo séjour</title>
+  <title>Activez votre espace BoSéjour</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f8;padding:40px 0;">
@@ -31,11 +31,11 @@
               @elseif ($stage == 2)
                 <p style="margin:0 0 28px;font-size:15px;color:#374151;line-height:1.6;">
                   Il ne vous reste qu’une étape : définir votre mot de passe pour activer votre espace
-                  <strong>bo séjour</strong>. Vos réservations y sont déjà rattachées.
+                  <strong>BoSéjour</strong>. Vos réservations y sont déjà rattachées.
                 </p>
               @else
                 <p style="margin:0 0 28px;font-size:15px;color:#374151;line-height:1.6;">
-                  Merci pour votre réservation&nbsp;! Créez votre espace <strong>bo séjour</strong> en quelques
+                  Merci pour votre réservation&nbsp;! Créez votre espace <strong>BoSéjour</strong> en quelques
                   secondes pour suivre votre séjour, gérer vos réservations et recevoir votre code d’arrivée.
                 </p>
               @endif
@@ -65,7 +65,7 @@
           </tr>
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;text-align:center;border-top:1px solid #eef2f7;">
-              <p style="margin:0;font-size:12px;color:#9ca3af;">bo séjour · bosejour.ci</p>
+              <p style="margin:0;font-size:12px;color:#9ca3af;">BoSéjour · bosejour.ci</p>
             </td>
           </tr>
         </table>

@@ -17,11 +17,11 @@ const BENEFITS = [
   { icon: CreditCard, title: 'Paiement en ligne flexible', desc: 'Acompte (dès 1 nuitée) ou paiement intégral — Visa, Mastercard, Djamo, Mobile Money.' },
   { icon: ShieldCheck, title: 'Annulations maîtrisées', desc: "Politique Flexible, Modérée ou Stricte, affichée clairement au voyageur." },
   { icon: Tag, title: 'Promotions & offres', desc: 'Créez vos campagnes pour attirer davantage de clients.' },
-  { icon: HeartHandshake, title: 'Accompagnement bo séjour', desc: 'Notre équipe vous accompagne à chaque étape.' },
+  { icon: HeartHandshake, title: 'Accompagnement BoSéjour', desc: 'Notre équipe vous accompagne à chaque étape.' },
 ];
 
 const FLOW = [
-  { icon: UsersIcon, label: 'Voyageur réserve sur bo séjour' },
+  { icon: UsersIcon, label: 'Voyageur réserve sur BoSéjour' },
   { icon: CreditCard, label: 'Paiement en ligne sécurisé' },
   { icon: Settings2, label: "L'Extranet confirme automatiquement" },
   { icon: MessageCircle, label: 'Confirmation E-mail + WhatsApp' },
@@ -72,7 +72,7 @@ export default function PartnerLandingPage() {
 
       {/* Pourquoi rejoindre */}
       <section className="container mx-auto px-4 py-16">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Pourquoi rejoindre bo séjour ?</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Pourquoi rejoindre BoSéjour ?</h2>
         <p className="text-gray-500 dark:text-gray-400 text-center mb-10 max-w-xl mx-auto">
           Tout ce dont votre établissement a besoin pour grandir, réuni dans un seul espace.
         </p>

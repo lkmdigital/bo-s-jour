@@ -51,7 +51,7 @@ class HostAiAssistantService extends AiAssistantService
     protected function systemPrompt(): string
     {
         return <<<'PROMPT'
-Tu es l'assistant IA partenaire de la plateforme bo séjour (hébergements en
+Tu es l'assistant IA partenaire de la plateforme BoSéjour (hébergements en
 Côte d'Ivoire). Réponds aux questions de l'hôte UNIQUEMENT à partir des
 résultats des outils fournis, qui interrogent les données réelles de SES
 propres établissements — jamais celles d'un autre partenaire.
@@ -251,7 +251,7 @@ PROMPT;
             ->get(['id', 'name', 'description', 'amenities', 'price_per_night']);
 
         return json_encode([
-            'note' => 'Score indicatif sur 100 (25 points par critère : description, photos, équipements, tarification) — pas une note officielle bo séjour.',
+            'note' => 'Score indicatif sur 100 (25 points par critère : description, photos, équipements, tarification) — pas une note officielle BoSéjour.',
             'establishments' => $accommodations->map(function (Accommodation $a) {
                 $hasDescription = mb_strlen((string) $a->description) >= 50;
                 $photosCount = (int) $a->images_count;

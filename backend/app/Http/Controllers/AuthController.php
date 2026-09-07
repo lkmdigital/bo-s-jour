@@ -84,7 +84,7 @@ class AuthController extends Controller
         app(LoyaltyService::class)->notify(
             $user,
             'loyalty_welcome',
-            'Bienvenue dans le Programme Membre bo séjour ! Vous démarrez au niveau Bronze.',
+            'Bienvenue dans le Programme Membre BoSéjour ! Vous démarrez au niveau Bronze.',
             ['tier' => $user->loyalty_tier]
         );
     }

@@ -20,7 +20,7 @@ class WhatsAppService
      * {code}, {arrivee}, {depart}.
      */
     public const DEFAULT_CONFIRMATION_TEMPLATE =
-        "bo séjour — Réservation confirmée ✅\n"
+        "BoSéjour — Réservation confirmée ✅\n"
         . "Établissement : {etablissement}\n"
         . "N° de réservation : {numero}\n"
         . "Code de confirmation (à présenter à l'arrivée) : {code}\n"
