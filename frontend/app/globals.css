@@ -96,15 +96,22 @@ html.density-compact .space-y-8 > * + * {
   }
 
   /* Impression d'un reçu/facture isolé (peu importe où il est dans le DOM) :
-     n'affiche que l'élément .print-receipt et son contenu à l'impression. */
+     n'affiche que l'élément .print-receipt et son contenu à l'impression.
+     IMPORTANT : borné à `body:has(.print-receipt)` — sans ce garde, la règle
+     `body * { visibility: hidden }` s'appliquait à TOUTES les pages et rendait
+     une feuille blanche à l'impression partout où il n'y a pas de
+     .print-receipt (détail de réservation, reçu voyageur…). Retour client
+     2026-09-08 : "page blanche lors de l'impression". Les autres pages
+     retombent sur la règle @media print générique (masque .no-print). */
   @media print {
-    body * {
+    body:has(.print-receipt) * {
       visibility: hidden;
     }
-    .print-receipt, .print-receipt * {
+    body:has(.print-receipt) .print-receipt,
+    body:has(.print-receipt) .print-receipt * {
       visibility: visible;
     }
-    .print-receipt {
+    body:has(.print-receipt) .print-receipt {
       position: fixed;
       inset: 0;
       padding: 2rem;
