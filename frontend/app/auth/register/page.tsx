@@ -302,7 +302,7 @@ function RegisterContent() {
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             {isCorporate
               ? "Renseignez votre entreprise et les coordonnées du voyageur. La facturation sera établie au nom de l'entreprise."
-              : 'Quelques informations suffisent. Vous compléterez le reste plus tard depuis votre espace.'}
+              : 'Quelques informations suffisent... Vous pouvez finaliser plus tard depuis votre espace voyageur.'}
           </p>
         </div>
 
