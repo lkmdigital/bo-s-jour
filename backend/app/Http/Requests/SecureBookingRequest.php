@@ -32,7 +32,7 @@ class SecureBookingRequest extends FormRequest
         // Si l'utilisateur n'est pas authentifié, ajouter les règles pour les informations utilisateur
         if (!$this->user()) {
             $rules = array_merge($rules, [
-                'name' => 'required|string|max:255|regex:/^[a-zA-Z\s\-\']+$/u',
+                'name' => 'required|string|max:255|regex:/^[\p{L}\p{M}\s\-.\'’]+$/u',
                 'email' => 'required|string|email|max:255',
                 'phone' => 'required|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/',
                 // Nationalité et pièce d'identité ne sont plus obligatoires pour la réservation

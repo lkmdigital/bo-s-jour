@@ -195,7 +195,11 @@ class BookingController extends Controller
             }
 
             $validationRules = array_merge($validationRules, [
-                'name' => 'required|string|max:255|regex:/^[a-zA-Z\s\-\']+$/u', // Seulement lettres, espaces, tirets et apostrophes
+                // Lettres (accents compris — \p{L}/\p{M} avec le flag /u), espaces,
+                // tirets, apostrophes (droite ET typographique) et points. Retour
+                // client 2026-09-08 : un nom accentué (Koné, N'Guessan, François…)
+                // était rejeté par l'ancienne classe [a-zA-Z] limitée à l'ASCII.
+                'name' => 'required|string|max:255|regex:/^[\p{L}\p{M}\s\-.\'’]+$/u',
                 'email' => 'required|string|email|max:255',
                 'phone' => 'required|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/', // Format téléphone valide
                 // Nationalité et pièce d'identité ne sont plus obligatoires pour la réservation
@@ -218,6 +222,7 @@ class BookingController extends Controller
         $request->validate($validationRules, [
             'check_in.after_or_equal' => "La date d'arrivée doit être aujourd'hui ou dans le futur.",
             'check_out.after' => "La date de départ doit être postérieure à la date d'arrivée.",
+            'name.regex' => 'Le nom ne peut contenir que des lettres, espaces, tirets et apostrophes.',
         ]);
 
         if (!$isAuthenticated) {
