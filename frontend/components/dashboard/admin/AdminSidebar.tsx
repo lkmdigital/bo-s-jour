@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Building2,
   Users,
+  Handshake,
   CalendarCheck,
   Wallet,
   CreditCard,
@@ -44,6 +45,7 @@ interface NavGroup {
 
 interface Counts {
   accommodations?: number;
+  hosts?: number;
   reservations?: number;
   reviews?: number;
   compliance?: number;
@@ -61,6 +63,12 @@ const NAV_GROUPS: NavGroup[] = [
     title: 'Gestion',
     items: [
       { href: '/dashboard/admin/accommodations', label: 'Établissements', icon: Building2, badgeKey: 'accommodations' },
+      // Hôtes : la validation d'un compte partenaire (profile_verified) se fait
+      // ici. La page /dashboard/admin/hosts existait déjà mais n'était plus
+      // reliée au menu depuis la refonte du tableau de bord admin — un hôte
+      // inscrit restait donc bloqué (impossible d'ajouter un hébergement tant
+      // que l'admin ne l'a pas vérifié). Badge = comptes en attente de validation.
+      { href: '/dashboard/admin/hosts', label: 'Hôtes', icon: Handshake, badgeKey: 'hosts' },
       { href: '/dashboard/admin/users', label: 'Utilisateurs', icon: Users },
       { href: '/dashboard/admin/reservations', label: 'Réservations', icon: CalendarCheck, badgeKey: 'reservations' },
     ],
@@ -120,6 +128,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         if (!data) return;
         setCounts({
           accommodations: data.accommodations?.total,
+          hosts: data.hosts?.pending,
           reservations: data.bookings?.pending,
           compliance: data.accommodations?.pending,
         });
