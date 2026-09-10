@@ -26,15 +26,19 @@ interface BookingMessageThreadProps {
 export default function BookingMessageThread({ bookingId, currentUserId, accommodationName, isHost }: BookingMessageThreadProps) {
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const fetchMessages = async () => {
     try {
       const res = await api.get(`/bookings/${bookingId}/messages`);
       setMessages(Array.isArray(res.data) ? res.data : []);
+      setLoadError(false);
     } catch {
       setMessages([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -49,10 +53,17 @@ export default function BookingMessageThread({ bookingId, currentUserId, accommo
     const text = body.trim();
     if (!text || sending) return;
     setSending(true);
+    setSendError(null);
     try {
       const res = await api.post(`/bookings/${bookingId}/messages`, { body: text });
       setMessages((prev) => [...prev, res.data]);
       setBody('');
+      if (loadError) fetchMessages();
+    } catch (err: unknown) {
+      // Ne jamais laisser l'erreur remonter (page blanche / overlay) : on
+      // affiche un message et on conserve la saisie du voyageur.
+      const e2 = err as { response?: { data?: { message?: string } } };
+      setSendError(e2.response?.data?.message || "Impossible d'envoyer le message. Réessayez dans un instant.");
     } finally {
       setSending(false);
     }
@@ -74,9 +85,14 @@ export default function BookingMessageThread({ bookingId, currentUserId, accommo
         <p className="text-gray-500 py-4">Chargement des messages...</p>
       ) : (
         <>
+          {loadError && (
+            <p className="text-sm text-amber-600 dark:text-amber-400 mb-3">
+              Les messages n&apos;ont pas pu être chargés. Vous pouvez tout de même envoyer un message ci-dessous.
+            </p>
+          )}
           <div className="space-y-3 max-h-64 overflow-y-auto mb-4 pr-2">
             {messages.length === 0 ? (
-              <p className="text-gray-500 py-2">Aucun message. Envoyez le premier.</p>
+              <p className="text-gray-500 py-2">{loadError ? '' : 'Aucun message. Envoyez le premier.'}</p>
             ) : (
               messages.map((msg) => (
                 <div
@@ -91,7 +107,7 @@ export default function BookingMessageThread({ bookingId, currentUserId, accommo
                 >
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-1">
                     {msg.is_from_platform ? (
-                      <span>Plateforme Bosejour</span>
+                      <span>Plateforme BoSéjour</span>
                     ) : (
                       <span>{msg.sender?.name ?? (isFromMe(msg) ? 'Vous' : 'Autre')}</span>
                     )}
@@ -102,6 +118,9 @@ export default function BookingMessageThread({ bookingId, currentUserId, accommo
               ))
             )}
           </div>
+          {sendError && (
+            <p className="text-sm text-[#EE233C] mb-2">{sendError}</p>
+          )}
           <form onSubmit={handleSend} className="flex gap-2">
             <textarea
               value={body}
@@ -113,7 +132,7 @@ export default function BookingMessageThread({ bookingId, currentUserId, accommo
             />
             <button type="submit" disabled={sending || !body.trim()} className="btn-primary self-end flex items-center gap-2 disabled:opacity-50">
               <Send className="w-4 h-4" />
-              Envoyer
+              {sending ? 'Envoi…' : 'Envoyer'}
             </button>
           </form>
         </>
