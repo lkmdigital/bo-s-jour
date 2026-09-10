@@ -16,6 +16,7 @@ interface FavoriteAccommodation {
   name: string;
   city: string;
   price_per_night: number | string;
+  effective_price_per_night?: number | string; // prix réellement facturé (retour client 2026-09-08)
   rating: number | string | null;
   total_reviews: number | null;
   image: string | null;
@@ -76,7 +77,7 @@ export default function FavoritesPage() {
     image: a.image || '',
     rating: a.rating != null && Number(a.rating) > 0 ? Number(a.rating) : undefined,
     reviews: a.total_reviews ?? undefined,
-    price: Number(a.price_per_night),
+    price: Number(a.effective_price_per_night ?? a.price_per_night),
   }));
 
   return (

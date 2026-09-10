@@ -41,6 +41,7 @@ interface Room {
   description?: string;
   capacity: number;
   price_per_night: number;
+  effective_price_per_night?: number; // prix réellement facturé (retour client 2026-09-08)
   bedrooms: number;
   bathrooms: number;
   surface_area?: number;
@@ -82,6 +83,7 @@ interface Accommodation {
   latitude: number;
   longitude: number;
   price_per_night: number;
+  effective_price_per_night?: number; // prix réellement facturé (retour client 2026-09-08)
   room_type_pricing?: RoomTypePricing[];
   pricing_auto_enabled?: boolean;
   max_guests: number;
@@ -791,7 +793,7 @@ export default function AccommodationDetailPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-gray-600 dark:text-gray-400">À partir de {formatPrice(accommodation.price_per_night)} FCFA / nuit</p>
+                <p className="text-gray-600 dark:text-gray-400">À partir de {formatPrice(accommodation.effective_price_per_night ?? accommodation.price_per_night)} FCFA / nuit</p>
               )}
             </div>
 
@@ -916,7 +918,7 @@ export default function AccommodationDetailPage() {
                     items={[{
                       id: accommodation.id,
                       title: accommodation.name,
-                      price: accommodation.price_per_night,
+                      price: accommodation.effective_price_per_night ?? accommodation.price_per_night,
                       lat: finalLat,
                       lng: finalLng,
                     } satisfies MapItem]}
@@ -1026,7 +1028,7 @@ export default function AccommodationDetailPage() {
                       image: primary,
                       rating: numericRating && numericRating > 0 ? numericRating : undefined,
                       reviews: similarAcc.total_reviews != null ? Number(similarAcc.total_reviews) : undefined,
-                      price: similarAcc.price_per_night,
+                      price: similarAcc.effective_price_per_night ?? similarAcc.price_per_night,
                     };
                     return <PropertyCard key={similarAcc.id} data={cardData} />;
                   })}
@@ -1044,8 +1046,8 @@ export default function AccommodationDetailPage() {
             <div className="lg:col-span-1">
               <BookingSidebar
                 accommodationId={accommodation.id}
-                priceRangeMin={allRooms.length > 0 ? Math.min(...allRooms.map((r) => r.price_per_night)) : accommodation.price_per_night}
-                priceRangeMax={allRooms.length > 0 ? Math.max(...allRooms.map((r) => r.price_per_night)) : accommodation.price_per_night}
+                priceRangeMin={allRooms.length > 0 ? Math.min(...allRooms.map((r) => r.effective_price_per_night ?? r.price_per_night)) : (accommodation.effective_price_per_night ?? accommodation.price_per_night)}
+                priceRangeMax={allRooms.length > 0 ? Math.max(...allRooms.map((r) => r.effective_price_per_night ?? r.price_per_night)) : (accommodation.effective_price_per_night ?? accommodation.price_per_night)}
                 selectedDates={selectedDates}
                 onDatesSelected={handleDatesSelected}
                 priceQuote={priceQuote}

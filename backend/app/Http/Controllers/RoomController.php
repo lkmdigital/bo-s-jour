@@ -163,7 +163,13 @@ class RoomController extends Controller
             $room->available_quantity = $room->quantity;
             $room->is_available = true;
         }
-        
+
+        // Prix à afficher = prix réellement facturé (retour client 2026-09-08).
+        $room->setAttribute(
+            'effective_price_per_night',
+            \App\Services\RoomPricingService::getDisplayPricePerNight((float) $room->price_per_night, $room->accommodation)
+        );
+
         return response()->json($room);
     }
     

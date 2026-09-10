@@ -20,6 +20,7 @@ interface AccommodationDetail {
   city: string;
   type?: string;
   price_per_night: number;
+  effective_price_per_night?: number; // prix réellement facturé (retour client 2026-09-08)
   rating?: number | string | null;
   total_reviews?: number | null;
   amenities?: string[];
@@ -40,6 +41,7 @@ interface Accommodation {
   city: string;
   type?: string;
   price_per_night: number;
+  effective_price_per_night?: number; // prix réellement facturé (retour client 2026-09-08)
   rating?: number | string | null;
   total_reviews?: number | null;
   latitude?: string | number | null;
@@ -130,7 +132,7 @@ export default function MemberSearchPage() {
           if (d) {
             next[missing[i]] = {
               id: d.id, name: d.name, city: d.city, type: d.type,
-              price_per_night: d.price_per_night, rating: d.rating, total_reviews: d.total_reviews,
+              price_per_night: d.price_per_night, effective_price_per_night: d.effective_price_per_night, rating: d.rating, total_reviews: d.total_reviews,
               amenities: d.amenities || [], cancellation_policy_hours: d.cancellation_policy_hours,
               image: d.images?.find((im: any) => im.is_primary)?.url || d.images?.[0]?.url,
             };
@@ -214,14 +216,14 @@ export default function MemberSearchPage() {
       image: resolveImageUrl(a.images?.find((i) => i.is_primary)?.url || a.images?.[0]?.url) || '',
       rating: a.rating != null && Number(a.rating) > 0 ? Number(a.rating) : undefined,
       reviews: a.total_reviews ?? undefined,
-      price: a.price_per_night,
+      price: a.effective_price_per_night ?? a.price_per_night,
     })),
     [accommodations]
   );
 
   const mapItems: MapItem[] = useMemo(
     () => accommodations
-      .map((a) => ({ id: a.id, title: a.name, price: a.price_per_night, lat: Number(a.latitude), lng: Number(a.longitude) }))
+      .map((a) => ({ id: a.id, title: a.name, price: a.effective_price_per_night ?? a.price_per_night, lat: Number(a.latitude), lng: Number(a.longitude) }))
       .filter((m) => Number.isFinite(m.lat) && Number.isFinite(m.lng) && (m.lat !== 0 || m.lng !== 0)),
     [accommodations]
   );
@@ -461,7 +463,7 @@ export default function MemberSearchPage() {
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     <tr>
                       <td className="p-2 text-gray-500">Prix / nuit</td>
-                      {compareIds.map((id) => <td key={id} className="p-2 font-semibold">{compareDetails[id] ? `${formatPrice(compareDetails[id].price_per_night)} F` : '—'}</td>)}
+                      {compareIds.map((id) => <td key={id} className="p-2 font-semibold">{compareDetails[id] ? `${formatPrice(compareDetails[id].effective_price_per_night ?? compareDetails[id].price_per_night)} F` : '—'}</td>)}
                     </tr>
                     <tr>
                       <td className="p-2 text-gray-500">Note</td>

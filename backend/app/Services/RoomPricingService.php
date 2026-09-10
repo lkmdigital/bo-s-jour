@@ -80,6 +80,36 @@ class RoomPricingService
     }
 
     /**
+     * Prix par nuit à AFFICHER (fiche, cartes de recherche, liste des chambres),
+     * sans dates de séjour connues.
+     *
+     * Retour client 2026-09-08 : un tarif affiché "à partir de 30 000" puis
+     * facturé 33 000 au paiement (majoration "Tarif modifiable" +10 %) — le
+     * prix affiché doit être celui réellement facturé.
+     *
+     * On applique donc les plans qui NE dépendent PAS de la durée du séjour :
+     *   - Non remboursable (cancellation_policy_hours = 0) : base − X%
+     *   - Modifiable (cancellation_policy_hours > 0) : base + Y%
+     * On n'applique PAS la remise long séjour (elle dépend du nombre de nuits ;
+     * un prix d'appel doit refléter le cas standard, pas le plus avantageux).
+     */
+    public static function getDisplayPricePerNight(float $basePrice, ?Accommodation $accommodation): float
+    {
+        $config = self::getConfig($accommodation);
+        $cancellationHours = (int) ($accommodation->cancellation_policy_hours ?? 48);
+
+        if ($config['non_refundable_enabled'] && $cancellationHours === 0) {
+            return round($basePrice * (1 - $config['non_refundable_discount'] / 100), 2);
+        }
+
+        if ($config['modifiable_enabled'] && $cancellationHours > 0) {
+            return round($basePrice * (1 + $config['modifiable_surcharge'] / 100), 2);
+        }
+
+        return round($basePrice, 2);
+    }
+
+    /**
      * Prix de base par nuit pour chaque date d'un séjour (tarification par période).
      * Priorité pour chaque nuit :
      *   1. price_override du jour (room_availabilities)

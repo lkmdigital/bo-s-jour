@@ -25,6 +25,8 @@ class FavoriteController extends Controller
                     'name'            => $a->name,
                     'city'            => $a->city,
                     'price_per_night' => $a->price_per_night,
+                    // Prix réellement facturé (retour client 2026-09-08).
+                    'effective_price_per_night' => \App\Services\RoomPricingService::getDisplayPricePerNight((float) $a->price_per_night, $a),
                     'rating'          => $a->rating,
                     'total_reviews'   => $a->total_reviews,
                     'image'           => $primary?->url,

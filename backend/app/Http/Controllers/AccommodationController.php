@@ -163,6 +163,11 @@ class AccommodationController extends Controller
         // sensibles de l'hôte (documents, coordonnées bancaires, identifiants fiscaux).
         foreach ($accommodations->getCollection() as $accommodation) {
             $accommodation->host?->makeHidden(SensitiveUserFields::DOCUMENTS_AND_FINANCIAL);
+            // Prix à afficher = prix réellement facturé (retour client 2026-09-08).
+            $accommodation->setAttribute(
+                'effective_price_per_night',
+                RoomPricingService::getDisplayPricePerNight((float) $accommodation->price_per_night, $accommodation)
+            );
         }
 
         return response()->json($accommodations);
@@ -210,6 +215,20 @@ class AccommodationController extends Controller
         // ses documents, quel que soit qui consulte la fiche (public, hôte ou admin) : cette
         // page n'a jamais eu vocation à exposer les données d'un voyageur tiers.
         $this->hideReviewerSensitiveFields($accommodation);
+
+        // Prix à afficher = prix réellement facturé, plans non-remboursable /
+        // modifiable inclus (retour client 2026-09-08 : "30 000" affiché puis
+        // "33 000" au paiement). Injecté sur l'établissement ET chaque chambre.
+        $accommodation->setAttribute(
+            'effective_price_per_night',
+            RoomPricingService::getDisplayPricePerNight((float) $accommodation->price_per_night, $accommodation)
+        );
+        $accommodation->relationLoaded('rooms') && $accommodation->rooms->each(function ($room) use ($accommodation) {
+            $room->setAttribute(
+                'effective_price_per_night',
+                RoomPricingService::getDisplayPricePerNight((float) $room->price_per_night, $accommodation)
+            );
+        });
 
         return response()->json($accommodation);
     }
@@ -344,7 +363,9 @@ class AccommodationController extends Controller
 
         $rows = Accommodation::published()
             ->whereHas('rooms', fn ($q) => $q->where('is_active', true))
-            ->select('id', 'city', 'name', 'price_per_night', 'rating')
+            ->select('id', 'city', 'name', 'price_per_night', 'rating', 'cancellation_policy_hours',
+                'pricing_non_refundable_enabled', 'pricing_non_refundable_discount',
+                'pricing_modifiable_enabled', 'pricing_modifiable_surcharge')
             ->with(['images' => fn ($q) => $q->where('is_primary', true)->limit(1)])
             ->get()
             ->filter(fn ($a) => !empty(trim((string) $a->city)))
@@ -356,7 +377,10 @@ class AccommodationController extends Controller
             return [
                 'city' => trim($group->first()->city),
                 'accommodations_count' => $group->count(),
-                'from_price' => (float) $group->min('price_per_night'),
+                // Prix d'appel = prix réellement facturé (retour client 2026-09-08).
+                'from_price' => (float) $group
+                    ->map(fn ($a) => RoomPricingService::getDisplayPricePerNight((float) $a->price_per_night, $a))
+                    ->min(),
                 'image' => $representative->images->first()->url ?? null,
             ];
         })
@@ -442,6 +466,11 @@ class AccommodationController extends Controller
             ->orderBy('created_at', 'desc') // Puis par date de création
             ->limit(6) // Limiter à 6 suggestions
             ->get();
+
+        $similar->each(fn ($a) => $a->setAttribute(
+            'effective_price_per_night',
+            RoomPricingService::getDisplayPricePerNight((float) $a->price_per_night, $a)
+        ));
 
         return response()->json($similar);
     }

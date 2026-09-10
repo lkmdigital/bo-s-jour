@@ -33,6 +33,7 @@ const LOVED_FALLBACK: PropertyCardData[] = [
 
 interface ApiAccommodation {
   id: number; name: string; city: string; price_per_night: number;
+  effective_price_per_night?: number; // prix réellement facturé (retour client 2026-09-08)
   rating: number; total_reviews: number; images?: Array<{ url: string; is_primary: boolean }>;
 }
 
@@ -60,7 +61,7 @@ export default function Home() {
               image: resolveImageUrl(a.images?.find((i) => i.is_primary)?.url || a.images?.[0]?.url) || img('1566073771259-6a8506099945'),
               rating: a.rating,
               reviews: a.total_reviews,
-              price: a.price_per_night,
+              price: a.effective_price_per_night ?? a.price_per_night,
             }));
             setLoved(mapped);
             // Offres du week-end : mêmes établissements avec un prix « avant » indicatif

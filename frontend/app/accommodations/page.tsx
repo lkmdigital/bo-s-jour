@@ -23,6 +23,9 @@ interface Accommodation {
   description: string;
   city: string;
   price_per_night: number;
+  // Prix réellement facturé (plans non-remboursable / modifiable inclus) —
+  // à afficher au voyageur (retour client 2026-09-08). Repli sur price_per_night.
+  effective_price_per_night?: number;
   rating: number;
   total_reviews: number;
   latitude?: string | number | null;
@@ -195,14 +198,14 @@ function AccommodationsPageContent() {
       image: a.images?.find((i) => i.is_primary)?.url || a.images?.[0]?.url || fallbackImg,
       rating: a.rating,
       reviews: a.total_reviews,
-      price: a.price_per_night,
+      price: a.effective_price_per_night ?? a.price_per_night,
     })),
     [accommodations]
   );
 
   const mapItems: MapItem[] = useMemo(
     () => accommodations
-      .map((a) => ({ id: a.id, title: a.name, price: a.price_per_night, lat: Number(a.latitude), lng: Number(a.longitude) }))
+      .map((a) => ({ id: a.id, title: a.name, price: a.effective_price_per_night ?? a.price_per_night, lat: Number(a.latitude), lng: Number(a.longitude) }))
       .filter((m) => Number.isFinite(m.lat) && Number.isFinite(m.lng) && (m.lat !== 0 || m.lng !== 0)),
     [accommodations]
   );

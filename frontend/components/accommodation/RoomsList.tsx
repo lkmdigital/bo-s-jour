@@ -24,6 +24,7 @@ interface Room {
   description?: string;
   capacity: number;
   price_per_night: number;
+  effective_price_per_night?: number; // prix réellement facturé (retour client 2026-09-08)
   bedrooms: number;
   bathrooms: number;
   surface_area?: number;
@@ -158,7 +159,8 @@ export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, c
           const primaryImage = room.images?.find((img) => img.is_primary);
           const imageUrl = primaryImage?.full_url || room.primary_image_url || room.images?.[0]?.full_url;
           const isAvailable = checkInStr && checkOutStr ? room.is_available !== false : true;
-          const total = nights > 0 ? room.price_per_night * nights : null;
+          const displayPrice = room.effective_price_per_night ?? room.price_per_night;
+          const total = nights > 0 ? displayPrice * nights : null;
           const amenityList = (room.basic_amenities || room.amenities || []).slice(0, 3);
 
           return (
@@ -240,7 +242,7 @@ export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, c
               {/* Prix + CTA */}
               <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 sm:w-44 flex-shrink-0 sm:border-l sm:border-gray-200 dark:sm:border-gray-700 sm:pl-4">
                 <div className="text-right">
-                  <p className="text-lg font-bold text-gray-900 dark:text-white">{formatPrice(room.price_per_night)} fcfa</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">{formatPrice(displayPrice)} fcfa</p>
                   <p className="text-xs text-gray-500">par nuit</p>
                   {total != null && (
                     <p className="text-xs text-gray-500 mt-1">
