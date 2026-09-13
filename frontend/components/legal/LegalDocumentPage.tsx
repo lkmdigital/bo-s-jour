@@ -52,10 +52,24 @@ export default function LegalDocumentPage({ slug }: { slug: string }) {
               {doc.content.split(/\n\n+/).map((block, i) => {
                 const trimmed = block.trim();
                 if (!trimmed) return null;
-                const isHeading = /^Article\s+\d+\s*—/.test(trimmed);
-                return isHeading ? (
-                  <h2 key={i} className="text-lg font-bold mt-8 mb-3 text-primary">{trimmed}</h2>
-                ) : (
+                // Document contractuel V2 (2026-09) : structure à deux niveaux —
+                // "TITRE N — ..." (section) au-dessus de plusieurs "Article N — ...".
+                const isTitre = /^TITRE\s+[IVXLCDM]+\s*—/.test(trimmed);
+                const isArticle = /^Article\s+\d+\s*—/.test(trimmed);
+                if (isTitre) {
+                  return (
+                    <h2
+                      key={i}
+                      className="text-sm font-bold tracking-wide uppercase text-gray-500 dark:text-gray-400 mt-10 mb-2 pb-2 border-b border-gray-200 dark:border-gray-700"
+                    >
+                      {trimmed}
+                    </h2>
+                  );
+                }
+                if (isArticle) {
+                  return <h3 key={i} className="text-lg font-bold mt-6 mb-3 text-primary">{trimmed}</h3>;
+                }
+                return (
                   <p key={i} className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4 whitespace-pre-line">{trimmed}</p>
                 );
               })}
