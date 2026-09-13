@@ -503,7 +503,7 @@ export default function Header() {
                 </div>
                 {/* Support */}
                 <a
-                  href="https://wa.me/2250705654775?text=Bonjour%2C%20j%27ai%20besoin%20d%27assistance."
+                  href="https://wa.me/2250706402929?text=Bonjour%2C%20j%27ai%20besoin%20d%27assistance."
                   target="_blank" rel="noopener noreferrer"
                   className="group relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
                   aria-label="Assistance technique"

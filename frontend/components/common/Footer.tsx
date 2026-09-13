@@ -30,7 +30,7 @@ const COLUMNS = [
     title: 'Assistance',
     links: [
       { label: "Centre d'aide", href: '/help' },
-      { label: 'Assistance par chat en direct', href: 'https://wa.me/2250705654775' },
+      { label: 'Assistance par chat en direct', href: 'https://wa.me/2250706402929' },
       { label: 'FAQ', href: '/faq' },
       { label: 'Contactez-nous', href: '/contact' },
     ],
@@ -124,7 +124,7 @@ export default function Footer() {
                 </a>
               ))}
               <a
-                href="https://wa.me/2250705654775"
+                href="https://wa.me/2250706402929"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center transition-transform hover:scale-110"

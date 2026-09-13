@@ -57,7 +57,7 @@ export default function MemberHelpPage() {
 
         {/* Canaux de contact */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <a href="https://wa.me/2250705654775?text=Bonjour%2C%20j%27ai%20besoin%20d%27assistance." target="_blank" rel="noopener noreferrer"
+          <a href="https://wa.me/2250706402929?text=Bonjour%2C%20j%27ai%20besoin%20d%27assistance." target="_blank" rel="noopener noreferrer"
             className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col items-center text-center gap-2 hover:border-primary transition-colors">
             <span className="w-11 h-11 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center"><MessageCircle className="w-5 h-5" /></span>
             <p className="font-semibold text-sm">WhatsApp</p>
