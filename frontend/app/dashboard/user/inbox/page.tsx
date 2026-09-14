@@ -99,13 +99,13 @@ export default function UserInboxPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-2">
                         <span className="font-semibold text-gray-900 dark:text-white">
-                          {msg.is_from_platform ? 'Plateforme Bosejour' : msg.sender?.name ?? 'Hôte'}
+                          {msg.is_from_platform ? 'Plateforme BoSéjour' : msg.sender?.name ?? 'Hôte'}
                         </span>
                         {!msg.read_at && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary">Nouveau</span>
                         )}
                         <span className="text-sm text-gray-500 dark:text-gray-400">
-                          {new Date(msg.created_at).toLocaleDateString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
+                          {new Date(msg.created_at).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
                         </span>
                         {msg.booking_id && (
                           <Link

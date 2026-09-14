@@ -100,7 +100,7 @@ export default function PWAInstallPrompt() {
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white">
-                Installer Bosejour
+                Installer BoSéjour
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Accédez rapidement à l'application

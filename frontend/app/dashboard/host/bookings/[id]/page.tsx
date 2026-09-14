@@ -355,7 +355,7 @@ export default function HostBookingDetailPage() {
                   )}
                   {booking.loyalty?.is_best_customer && (
                     <div className="mt-4 p-3 rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-xs text-green-800 dark:text-green-200">
-                      Ce client a déjà réalisé <strong>{booking.loyalty.total_confirmed_bookings}</strong> réservation(s) confirmée(s) sur Bosejour.
+                      Ce client a déjà réalisé <strong>{booking.loyalty.total_confirmed_bookings}</strong> réservation(s) confirmée(s) sur BoSéjour.
                       Il est recommandé d&apos;appliquer une réduction d&apos;environ{' '}
                       <strong>{booking.loyalty.recommended_discount_percent}%</strong> sur ce séjour
                       (à ajuster selon vos politiques internes).

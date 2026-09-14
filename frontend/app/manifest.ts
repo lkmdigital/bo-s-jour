@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Bosejour - Votre séjour commence ici...',
-    short_name: 'Bosejour',
+    name: 'BoSéjour - Votre séjour commence ici...',
+    short_name: 'BoSéjour',
     description: 'Trouvez et réservez votre hébergement idéal en Côte d\'Ivoire',
     start_url: '/',
     display: 'standalone',

@@ -69,7 +69,7 @@ export default function NotFound() {
           <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               💭 <em>Saviez-vous ?</em> En Côte d'Ivoire, il y a des milliers d'hébergements 
-              répertoriés sur Bosejour. Explorez-les tous !
+              répertoriés sur BoSéjour. Explorez-les tous !
             </p>
           </div>
         </div>

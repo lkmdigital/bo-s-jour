@@ -698,7 +698,7 @@ export default function BookingDetailPage() {
 
                 {booking.loyalty?.is_best_customer && (
                   <div className="mt-4 p-3 rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 text-xs text-yellow-800 dark:text-yellow-200">
-                    🎉 Félicitations ! Vous faites partie des meilleurs clients de Bosejour
+                    🎉 Félicitations ! Vous faites partie des meilleurs clients de BoSéjour
                     avec <strong>{booking.loyalty.total_confirmed_bookings}</strong> séjours confirmés.
                     Lors de vos échanges avec l&apos;hôte, n&apos;hésitez pas à mentionner votre statut
                     pour bénéficier d&apos;une réduction d&apos;environ{' '}
