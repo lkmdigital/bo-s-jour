@@ -9,7 +9,7 @@ import api from '@/lib/api';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import SuccessDisplay from '@/components/common/SuccessDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { ArrowLeft, MapPin, Trash2, Star, Tag, Bed, Clock, MessageCircle, ShieldCheck, Rocket, CheckCircle2, Circle, Loader2, Award } from 'lucide-react';
+import { ArrowLeft, MapPin, Trash2, Star, Tag, Bed, Clock, MessageCircle, ShieldCheck, Rocket, CheckCircle2, Circle, Loader2, Award, Coffee } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { compressImages } from '@/lib/utils';
@@ -144,6 +144,18 @@ export default function EditAccommodationPage() {
   });
   const [longStayTiers, setLongStayTiers] = useState<LongStayTier[]>(DEFAULT_LONG_STAY_TIERS);
   const [loyaltyProgramJoined, setLoyaltyProgramJoined] = useState(false);
+  // Petit-déjeuner (retour client 2026-09-14 : introuvable côté hôte — cette
+  // page d'édition n'avait aucun champ dédié, seulement une coche
+  // "Petit-déjeuner" dans la liste générique des équipements, sans lien avec
+  // breakfast_included/breakfast_price réellement utilisés par le tunnel de
+  // réservation). Les deux moitiés (inclus gratuit / supplémentaire payant)
+  // étaient déjà dans le formulaire de CRÉATION, mais réparties sur deux
+  // étapes distinctes et jamais éditables après coup.
+  const [breakfast, setBreakfast] = useState({
+    included: false,
+    includedPersons: 1,
+    price: '' as number | '',
+  });
   const confirmAction = useConfirm();
 
   const { register, handleSubmit, formState: { errors }, setValue, reset, watch } = useForm<AccommodationFormData>();
@@ -218,6 +230,11 @@ export default function EditAccommodationPage() {
           : DEFAULT_LONG_STAY_TIERS
       );
       setLoyaltyProgramJoined(!!acc.loyalty_program_joined_at);
+      setBreakfast({
+        included: acc.breakfast_included ?? false,
+        includedPersons: acc.breakfast_included_persons || 1,
+        price: acc.breakfast_price ?? '',
+      });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement de l\'hébergement');
     } finally {
@@ -312,6 +329,9 @@ export default function EditAccommodationPage() {
         pricing_long_stay_enabled: pricingPlans.longStayEnabled,
         pricing_long_stay_tiers: pricingPlans.longStayEnabled ? longStayTiers : null,
         loyalty_program_joined: loyaltyProgramJoined,
+        breakfast_included: breakfast.included,
+        breakfast_included_persons: breakfast.included ? breakfast.includedPersons : 0,
+        breakfast_price: breakfast.price === '' ? null : breakfast.price,
       };
 
       await api.put(`/accommodations/${params.id}`, formData);
@@ -1117,6 +1137,59 @@ export default function EditAccommodationPage() {
                 tiers={longStayTiers}
                 onTiersChange={setLongStayTiers}
               />
+            </div>
+          </div>
+
+          {/* Petit-déjeuner : gratuit (inclus) et/ou payant (supplémentaire).
+              Retour client 2026-09-14 — seul endroit où ces deux réglages
+              sont modifiables après la création de l'établissement. */}
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2"><Coffee className="w-5 h-5 text-primary" /> Petit-déjeuner</h2>
+            <div className="space-y-6">
+              <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={breakfast.included}
+                    onChange={(e) => setBreakfast((prev) => ({ ...prev, included: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <span className="font-medium">Petit-déjeuner inclus gratuitement</span>
+                </label>
+                {breakfast.included && (
+                  <div className="pl-6">
+                    <label className="block text-sm font-medium mb-1">Pour combien de personnes ?</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={breakfast.includedPersons}
+                      onChange={(e) => setBreakfast((prev) => ({ ...prev, includedPersons: Math.max(1, Number(e.target.value) || 1) }))}
+                      className="w-full max-w-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Affiché aux voyageurs sur la fiche et le récapitulatif de réservation.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
+                <label className="block text-sm font-medium">Tarif du petit-déjeuner supplémentaire (FCFA / petit-déjeuner)</label>
+                <p className="text-xs text-gray-500">
+                  Permet aux voyageurs d&apos;ajouter des petits-déjeuners payants à leur réservation (option « Autre
+                  petit-déjeuner », proposée dès 2 voyageurs) — pour le reste du groupe si le petit-déjeuner inclus ne
+                  couvre pas tout le monde, ou même sans petit-déjeuner inclus. Laissez vide pour ne pas proposer
+                  cette option.
+                </p>
+                <input
+                  type="number"
+                  min={0}
+                  step={100}
+                  value={breakfast.price}
+                  onChange={(e) => setBreakfast((prev) => ({ ...prev, price: e.target.value === '' ? '' : Number(e.target.value) }))}
+                  placeholder="Ex : 5000"
+                  className="w-full max-w-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                />
+              </div>
             </div>
           </div>
 

@@ -1640,13 +1640,21 @@ export default function AccommodationCreationWizard({
                 </div>
               </div>
 
-              {/* Tarif petit déjeuner */}
+              {/* Tarif petit déjeuner — retour client 2026-09-14 : ce champ seul,
+                  sans contexte, ne dit pas à quoi il sert. Reformulé pour être
+                  compréhensible indépendamment de la case "Petit déjeuner inclus"
+                  (étape Tarifs et politique, plus loin dans ce formulaire). */}
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Tarif petit déjeuner (FCFA)
+                      Tarif du petit-déjeuner supplémentaire (FCFA / petit-déjeuner)
                     </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Permet aux voyageurs d&apos;ajouter des petits-déjeuners payants à leur réservation, en plus de
+                      ceux éventuellement inclus (réglage à l&apos;étape suivante « Tarifs et politique »). Laissez
+                      vide pour ne pas proposer cette option.
+                    </p>
                     <input
                       {...register('breakfast_price', { min: 0 })}
                       type="number"
@@ -1746,34 +1754,25 @@ export default function AccommodationCreationWizard({
                       {...register('breakfast_included')}
                       className="rounded"
                     />
-                    <span className="text-sm">Petit déjeuner inclus</span>
+                    <span className="text-sm">Petit déjeuner inclus gratuitement</span>
                   </label>
-                  
+
                   {watch('breakfast_included') && (
                     <div>
                       <label className="block text-sm font-medium mb-2">
                         Pour combien de personnes ?
                       </label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            {...register('breakfast_included_persons')}
-                            value="1"
-                            className="rounded"
-                          />
-                          <span className="text-sm">1 personne</span>
-                        </label>
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            {...register('breakfast_included_persons')}
-                            value="2"
-                            className="rounded"
-                          />
-                          <span className="text-sm">2 personnes</span>
-                        </label>
-                      </div>
+                      <input
+                        type="number"
+                        min={1}
+                        max={10}
+                        {...register('breakfast_included_persons', { valueAsNumber: true, min: 1, max: 10 })}
+                        className="w-full max-w-xs px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Au-delà de ce nombre, les voyageurs peuvent ajouter des petits-déjeuners payants s&apos;ils
+                        ont réglé un tarif à l&apos;étape précédente.
+                      </p>
                     </div>
                   )}
                 </div>
