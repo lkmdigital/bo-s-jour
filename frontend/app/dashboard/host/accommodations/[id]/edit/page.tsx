@@ -1176,9 +1176,8 @@ export default function EditAccommodationPage() {
                 <label className="block text-sm font-medium">Tarif du petit-déjeuner supplémentaire (FCFA / petit-déjeuner)</label>
                 <p className="text-xs text-gray-500">
                   Permet aux voyageurs d&apos;ajouter des petits-déjeuners payants à leur réservation (option « Autre
-                  petit-déjeuner », proposée dès 2 voyageurs) — pour le reste du groupe si le petit-déjeuner inclus ne
-                  couvre pas tout le monde, ou même sans petit-déjeuner inclus. Laissez vide pour ne pas proposer
-                  cette option.
+                  petit-déjeuner »), que le petit-déjeuner inclus ne couvre pas tout le monde ou qu&apos;il n&apos;y en
+                  ait aucun d&apos;inclus. Disponible dès 1 voyageur. Laissez vide pour ne pas proposer cette option.
                 </p>
                 <input
                   type="number"

@@ -24,6 +24,12 @@ use Tests\TestCase;
  * (jamais réduits par une promo/bon voyageur, comme pour le prix de la
  * chambre — confirmé par l'utilisateur : construire le vrai système,
  * pas seulement la case à cocher).
+ *
+ * Retour client 2026-09-14 : la condition "≥ 2 voyageurs" du document
+ * d'origine a depuis été retirée (voir
+ * test_extra_breakfast_is_available_to_a_single_guest) — un établissement
+ * sans petit-déjeuner inclus du tout doit pouvoir en vendre à un voyageur
+ * seul aussi.
  */
 class ExtraBreakfastTest extends TestCase
 {
@@ -92,17 +98,25 @@ class ExtraBreakfastTest extends TestCase
         $this->assertSame('40000.00', $booking->total_price);
     }
 
-    public function test_extra_breakfast_is_rejected_when_fewer_than_two_guests(): void
+    /**
+     * Retour client 2026-09-14 : la condition "≥ 2 voyageurs" (reprise
+     * littéralement du document d'origine) excluait à tort un voyageur seul
+     * réservant un établissement SANS petit-déjeuner inclus — rien ne
+     * justifie de le priver d'un petit-déjeuner payant dans ce cas. Retirée.
+     */
+    public function test_extra_breakfast_is_available_to_a_single_guest(): void
     {
-        $room = $this->makeRoom();
+        $room = $this->makeRoom(breakfastPrice: 2500);
         Sanctum::actingAs(User::factory()->create());
 
-        $this->postJson('/api/bookings', $this->bookingPayload($room, [
+        $response = $this->postJson('/api/bookings', $this->bookingPayload($room, [
             'guests' => 1,
             'extra_breakfast_quantity' => 2,
-        ]))->assertStatus(422);
+        ]))->assertCreated();
 
-        $this->assertSame(0, Booking::count());
+        $booking = Booking::findOrFail($response->json('id'));
+        $this->assertSame(2, $booking->extra_breakfast_quantity);
+        $this->assertSame('5000.00', $booking->extra_breakfast_total);
     }
 
     public function test_extra_breakfast_is_rejected_when_accommodation_has_no_breakfast_price(): void

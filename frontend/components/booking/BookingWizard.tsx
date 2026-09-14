@@ -137,12 +137,15 @@ export default function BookingWizard(props: Props) {
   // Heure d'arrivée prévisionnelle (retour client 2026-09-02, Partie 4.3) —
   // facultative, n'existait dans aucun formulaire du tunnel jusqu'ici.
   const [estimatedArrivalTime, setEstimatedArrivalTime] = useState('');
-  // Petits-déjeuners supplémentaires (retour client 2026-09-02, Partie 4.11) —
-  // proposé seulement dès 2 voyageurs et si l'établissement a un tarif de
-  // petit-déjeuner configuré (sinon rien à facturer, la case n'a pas de sens).
+  // Petits-déjeuners supplémentaires (retour client 2026-09-02, Partie 4.11).
+  // Le document d'origine limitait l'option à partir de 2 voyageurs (logique
+  // si le petit-déjeuner inclus couvre déjà 1 personne) — mais un
+  // établissement sans petit-déjeuner inclus du tout doit pouvoir en vendre
+  // à un voyageur seul aussi. Retour client 2026-09-14 : condition retirée,
+  // seule la présence d'un tarif configuré par l'hôte compte.
   const [extraBreakfast, setExtraBreakfast] = useState(false);
   const [extraBreakfastQty, setExtraBreakfastQty] = useState(1);
-  const canOfferExtraBreakfast = guests >= 2 && !!props.breakfastPrice;
+  const canOfferExtraBreakfast = !!props.breakfastPrice;
   useEffect(() => {
     if (!canOfferExtraBreakfast) setExtraBreakfast(false);
   }, [canOfferExtraBreakfast]);
@@ -424,8 +427,8 @@ export default function BookingWizard(props: Props) {
                       Autre petit-déjeuner
                       <span className="block font-normal text-gray-500 text-xs mt-0.5">
                         {props.breakfastIncluded
-                          ? `Le petit-déjeuner est inclus pour ${props.breakfastIncludedPersons || 1} personne${(props.breakfastIncludedPersons || 1) > 1 ? 's' : ''}. Ajoutez-en pour le reste de votre groupe (${formatPrice(props.breakfastPrice!)} FCFA / petit-déjeuner).`
-                          : `Ajoutez des petits-déjeuners pour votre groupe (${formatPrice(props.breakfastPrice!)} FCFA / petit-déjeuner).`}
+                          ? `Le petit-déjeuner est inclus pour ${props.breakfastIncludedPersons || 1} personne${(props.breakfastIncludedPersons || 1) > 1 ? 's' : ''}. Ajoutez-en d'autres si besoin (${formatPrice(props.breakfastPrice!)} FCFA / petit-déjeuner).`
+                          : `Ajoutez des petits-déjeuners à votre réservation (${formatPrice(props.breakfastPrice!)} FCFA / petit-déjeuner).`}
                       </span>
                     </span>
                   </label>

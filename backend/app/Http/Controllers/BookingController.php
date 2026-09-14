@@ -472,15 +472,16 @@ class BookingController extends Controller
         // BoSéjour et le net hôtelier (calculés sur base_price) couvrent aussi
         // cette prestation réelle de l'hôte, jamais rabotée par une remise
         // financée par la plateforme.
+        //
+        // Retour client 2026-09-14 : le document d'origine limitait l'option à
+        // partir de 2 voyageurs (logique si le petit-déjeuner inclus couvre
+        // déjà 1 personne), mais un établissement sans petit-déjeuner inclus
+        // du tout doit pouvoir en vendre à un voyageur seul aussi — condition
+        // retirée, seule la présence d'un tarif configuré par l'hôte compte.
         $extraBreakfastQuantity = (int) ($request->input('extra_breakfast_quantity') ?? 0);
         $extraBreakfastUnitPrice = null;
         $extraBreakfastTotal = 0.0;
         if ($extraBreakfastQuantity > 0) {
-            if ((int) $request->guests < 2) {
-                return response()->json([
-                    'message' => "Le petit-déjeuner supplémentaire n'est disponible qu'à partir de 2 voyageurs.",
-                ], 422);
-            }
             if (!$accommodation->breakfast_price || (float) $accommodation->breakfast_price <= 0) {
                 return response()->json([
                     'message' => "Cet établissement ne propose pas de petit-déjeuner supplémentaire.",
