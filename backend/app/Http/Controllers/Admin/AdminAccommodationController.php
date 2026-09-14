@@ -7,6 +7,7 @@ use App\Models\Accommodation;
 use App\Models\AccommodationAuditLog;
 use App\Models\AdminNote;
 use App\Models\Booking;
+use App\Models\Message;
 use App\Models\Payment;
 use App\Models\Room;
 use Illuminate\Http\Request;
@@ -320,6 +321,18 @@ class AdminAccommodationController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
+        // Notification in-app Extranet hôte — best-effort, ne doit jamais faire
+        // échouer l'approbation elle-même (même principe que les notifications
+        // de réservation).
+        try {
+            Message::notifyHostAccommodationApproved($accommodation);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Accommodation approval in-app notification (host) failed', [
+                'accommodation_id' => $accommodation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return response()->json([
             'message' => 'Établissement approuvé avec succès',
             'data' => $accommodation->load('auditLogs'),
@@ -368,6 +381,15 @@ class AdminAccommodationController extends Controller
             'notes' => $validated['notes'] ?? null,
             'ip_address' => $request->ip(),
         ]);
+
+        try {
+            Message::notifyHostAccommodationRejected($accommodation, $validated['reason']);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Accommodation rejection in-app notification (host) failed', [
+                'accommodation_id' => $accommodation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'message' => 'Établissement rejeté avec succès',

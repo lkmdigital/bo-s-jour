@@ -216,6 +216,9 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
                 Route::delete('/accommodations/{id}', [AccommodationController::class, 'destroy'])->where('id', '[0-9]+');
                 Route::get('/accommodations/{id}/readiness', [AccommodationController::class, 'readiness'])->where('id', '[0-9]+');
                 Route::post('/accommodations/{id}/submit-for-review', [AccommodationController::class, 'submitForReview'])->where('id', '[0-9]+');
+                // Retour client 2026-09-13/14 : confirmer "mes informations sont à
+                // jour" sans forcément rien modifier — repousse le rappel automatique.
+                Route::post('/accommodations/{id}/confirm-info', [AccommodationController::class, 'confirmInfo'])->where('id', '[0-9]+');
 
                 // Synchronisation externe (iCal) — brief Extranet Partenaire, Étape 18
                 Route::get('/accommodations/{id}/ical', [IcalSyncController::class, 'show'])->where('id', '[0-9]+');

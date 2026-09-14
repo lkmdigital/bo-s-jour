@@ -122,4 +122,63 @@ class Message extends Model
             'booking_id' => $booking->id,
         ]);
     }
+
+    /**
+     * Demande utilisateur 2026-09-13 : vérifier que l'admin approuve bien un
+     * établissement avant qu'il n'intègre la plateforme — révèle un manque
+     * réel en creusant : ni l'approbation ni le rejet d'un établissement ne
+     * prévenaient l'hôte (AdminAccommodationController::approve()/reject()
+     * ne faisaient qu'un audit log, jamais consulté par l'hôte). Même
+     * pattern que les notifications de réservation ci-dessus.
+     */
+    public static function notifyHostAccommodationApproved(Accommodation $accommodation): void
+    {
+        if (!$accommodation->host_id) {
+            return;
+        }
+        self::create([
+            'recipient_id' => $accommodation->host_id,
+            'sender_id' => null,
+            'is_from_platform' => true,
+            'subject' => 'Établissement approuvé',
+            'body' => "Bonne nouvelle : votre établissement « " . $accommodation->name . " » a été approuvé par l'équipe BoSéjour et est désormais visible et réservable sur la plateforme.",
+        ]);
+    }
+
+    public static function notifyHostAccommodationRejected(Accommodation $accommodation, string $reason = ''): void
+    {
+        if (!$accommodation->host_id) {
+            return;
+        }
+        self::create([
+            'recipient_id' => $accommodation->host_id,
+            'sender_id' => null,
+            'is_from_platform' => true,
+            'subject' => 'Établissement non approuvé',
+            'body' => "Votre établissement « " . $accommodation->name . " » n'a pas été approuvé pour le moment."
+                . ($reason ? "\n\nMotif : " . $reason : '')
+                . "\n\nVous pouvez corriger les informations concernées puis contacter le support pour une nouvelle vérification.",
+        ]);
+    }
+
+    /**
+     * Demande utilisateur 2026-09-13/14 : rappel de mise à jour des
+     * informations pour un établissement non à jour (voir
+     * Accommodation::needsInfoUpdate() et RemindAccommodationInfoUpdate).
+     */
+    public static function notifyHostAccommodationInfoOutdated(Accommodation $accommodation): void
+    {
+        if (!$accommodation->host_id) {
+            return;
+        }
+        self::create([
+            'recipient_id' => $accommodation->host_id,
+            'sender_id' => null,
+            'is_from_platform' => true,
+            'subject' => 'Merci de confirmer les informations de votre établissement',
+            'body' => "Les informations de « " . $accommodation->name . " » n'ont pas été confirmées depuis plusieurs mois. "
+                . "Merci de vérifier que les tarifs, disponibilités, photos et équipements sont toujours exacts, "
+                . "puis de les mettre à jour ou de confirmer qu'ils le sont toujours, depuis votre Extranet.",
+        ]);
+    }
 }

@@ -98,6 +98,9 @@ class Accommodation extends Model
         'ical_last_sync_events_count',
         'channel_manager_interest_requested_at',
         'loyalty_program_joined_at',
+        // Rappel de mise à jour des informations (retour client 2026-09-13/14).
+        'info_confirmed_at',
+        'info_update_reminder_sent_at',
     ];
 
     protected function casts(): array
@@ -105,6 +108,8 @@ class Accommodation extends Model
         return [
             'submitted_for_review_at' => 'datetime',
             'loyalty_program_joined_at' => 'datetime',
+            'info_confirmed_at' => 'datetime',
+            'info_update_reminder_sent_at' => 'datetime',
             'amenities' => 'array',
             'room_types' => 'array',
             'room_type_pricing' => 'array',
@@ -184,6 +189,29 @@ class Accommodation extends Model
     public function scopePublished($query)
     {
         return $query->where('status', 'published');
+    }
+
+    /**
+     * Nombre de mois au-delà duquel un établissement doit reconfirmer ses
+     * informations (retour client 2026-09-13/14). La réunion du 8 sept a
+     * évoqué 3 mois (étapes suivantes) puis 6 mois (décision actée) — retenu
+     * 6 mois, la formulation "décision" ; à ajuster si le client précise 3.
+     */
+    public const INFO_UPDATE_REMINDER_MONTHS = 6;
+
+    /**
+     * true si les informations de l'établissement n'ont pas été confirmées
+     * depuis plus de INFO_UPDATE_REMINDER_MONTHS — jamais confirmées
+     * (info_confirmed_at NULL) retombe sur la date de création.
+     */
+    public function needsInfoUpdate(): bool
+    {
+        $anchor = $this->info_confirmed_at ?? $this->created_at;
+        if (!$anchor) {
+            return false;
+        }
+
+        return $anchor->lt(now()->subMonths(self::INFO_UPDATE_REMINDER_MONTHS));
     }
 
     public function scopeFeatured($query)

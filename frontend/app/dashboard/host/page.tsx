@@ -23,6 +23,8 @@ import {
   Rocket,
   Compass,
   ArrowRight,
+  AlertTriangle,
+  Check,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -68,6 +70,24 @@ export default function HostDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [accommodationCount, setAccommodationCount] = useState<number | null>(null);
   const [expertMode, setExpertMode] = useState(false);
+  // Rappel de mise à jour des informations (retour client 2026-09-13/14) —
+  // alerte sur l'espace hôte à la connexion pour les établissements dont les
+  // infos n'ont pas été reconfirmées depuis Accommodation::INFO_UPDATE_REMINDER_MONTHS.
+  const [staleAccommodations, setStaleAccommodations] = useState<Array<{ id: number; name: string }>>([]);
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+
+  const fetchAccommodations = () => {
+    api
+      .get('/accommodations/my')
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+        setAccommodationCount(list.length);
+        setStaleAccommodations(
+          list.filter((a: { needs_info_update?: boolean }) => a.needs_info_update).map((a: { id: number; name: string }) => ({ id: a.id, name: a.name }))
+        );
+      })
+      .catch(() => setAccommodationCount(null));
+  };
 
   useEffect(() => {
     api
@@ -78,15 +98,24 @@ export default function HostDashboardPage() {
       })
       .finally(() => setLoading(false));
 
-    api
-      .get('/accommodations/my')
-      .then((res) => setAccommodationCount(Array.isArray(res.data) ? res.data.length : 0))
-      .catch(() => setAccommodationCount(null));
+    fetchAccommodations();
 
     if (typeof window !== 'undefined' && sessionStorage.getItem('host_expert_mode') === '1') {
       setExpertMode(true);
     }
   }, []);
+
+  const confirmAccommodationInfo = async (id: number) => {
+    setConfirmingId(id);
+    try {
+      await api.post(`/accommodations/${id}/confirm-info`);
+      setStaleAccommodations((prev) => prev.filter((a) => a.id !== id));
+    } catch {
+      // Best-effort : l'hôte peut réessayer, le bandeau reste affiché pour cet établissement.
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   // Recharts (ResponsiveContainer) mesure parfois une largeur de 0 au premier rendu
   // dans une grille/flex avant que la mise en page ne soit stabilisée. On force un
@@ -188,8 +217,50 @@ export default function HostDashboardPage() {
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bonjour {user?.name?.split(' ')[0] ?? ''} 👋</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Bienvenue dans votre espace partenaire Bosejour</p>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Bienvenue dans votre espace partenaire BoSéjour</p>
       </div>
+
+      {staleAccommodations.length > 0 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 p-5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-amber-900 dark:text-amber-300">
+                {staleAccommodations.length > 1
+                  ? `${staleAccommodations.length} établissements n'ont pas confirmé leurs informations depuis plusieurs mois`
+                  : "Cet établissement n'a pas confirmé ses informations depuis plusieurs mois"}
+              </p>
+              <p className="text-sm text-amber-800 dark:text-amber-400 mt-1">
+                Merci de vérifier que les tarifs, disponibilités, photos et équipements sont toujours exacts.
+              </p>
+              <div className="mt-3 space-y-2">
+                {staleAccommodations.map((a) => (
+                  <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 bg-white/60 dark:bg-black/20 rounded-lg px-3 py-2">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{a.name}</span>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/dashboard/host/accommodations/${a.id}/edit`}
+                        className="text-sm text-primary font-medium hover:underline"
+                      >
+                        Vérifier / modifier
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => confirmAccommodationInfo(a.id)}
+                        disabled={confirmingId === a.id}
+                        className="text-sm inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 disabled:opacity-50"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        {confirmingId === a.id ? 'Confirmation…' : 'Déjà à jour'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div>
         <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Vue d&apos;ensemble</h2>
@@ -217,7 +288,7 @@ export default function HostDashboardPage() {
             label="Note moyenne"
             value={data.average_rating ? `${data.average_rating.toFixed(1)}/5` : '—'}
           />
-          <KpiCard icon={Gauge} label="Score Bosejour" value={`${data.score_bosejour}%`} />
+          <KpiCard icon={Gauge} label="Score BoSéjour" value={`${data.score_bosejour}%`} />
           <KpiCard
             icon={HandCoins}
             label="Commissions reversées"

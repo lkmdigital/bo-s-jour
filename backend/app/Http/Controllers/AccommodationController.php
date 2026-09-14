@@ -1019,6 +1019,14 @@ class AccommodationController extends Controller
                 : null;
         }
 
+        // Retour client 2026-09-13/14 : une vraie modification de contenu vaut
+        // confirmation implicite que les informations sont à jour — pas un
+        // simple changement de `status` seul (unavailable/renovation), qui ne
+        // dit rien sur l'exactitude du reste de la fiche.
+        if (array_diff(array_keys($updateData), ['status']) !== []) {
+            $updateData['info_confirmed_at'] = now();
+        }
+
         $accommodation->update($updateData);
 
         if ($request->has('name')) {
@@ -1131,6 +1139,28 @@ class AccommodationController extends Controller
         ]);
     }
 
+    /**
+     * Retour client 2026-09-13/14 : l'hôte confirme explicitement que les
+     * informations de son établissement sont toujours exactes, sans avoir à
+     * modifier quoi que ce soit — repousse l'échéance du rappel automatique
+     * (RemindAccommodationInfoUpdate) de INFO_UPDATE_REMINDER_MONTHS.
+     */
+    public function confirmInfo(Request $request, $id)
+    {
+        $accommodation = Accommodation::findOrFail($id);
+
+        if ($accommodation->host_id !== $request->user()->hostScopeId() && !$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $accommodation->update(['info_confirmed_at' => now()]);
+
+        return response()->json([
+            'message' => 'Merci, vos informations sont bien marquées comme à jour.',
+            'info_confirmed_at' => $accommodation->info_confirmed_at,
+        ]);
+    }
+
     public function destroy(Request $request, $id)
     {
         $accommodation = Accommodation::findOrFail($id);
@@ -1196,6 +1226,11 @@ class AccommodationController extends Controller
         $query->orderBy($sortBy, $sortOrder);
 
         $accommodations = $query->get();
+
+        // Retour client 2026-09-13/14 : signale côté hôte les établissements
+        // dont les informations n'ont pas été reconfirmées depuis longtemps
+        // (bandeau de rappel dans l'Extranet).
+        $accommodations->each(fn (Accommodation $a) => $a->setAttribute('needs_info_update', $a->needsInfoUpdate()));
 
         return response()->json($accommodations);
     }
