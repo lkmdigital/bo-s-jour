@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Facebook, Twitter, Instagram, Youtube, Apple, Play } from 'lucide-react';
+import { Facebook, Apple, Play } from 'lucide-react';
 import Logo from './Logo';
 
 const COLUMNS = [
@@ -118,11 +118,6 @@ export default function Footer() {
               >
                 <Facebook className="w-4 h-4 text-white" />
               </a>
-              {[Instagram, Youtube, Twitter].map((Icon, i) => (
-                <a key={i} href="#" className="w-9 h-9 rounded-full bg-white/10 hover:bg-primary flex items-center justify-center transition-colors" aria-label="Réseau social">
-                  <Icon className="w-4 h-4 text-white" />
-                </a>
-              ))}
               <a
                 href="https://wa.me/2250706402929"
                 target="_blank"
