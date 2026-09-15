@@ -180,27 +180,27 @@ export default function AdminDashboardPage() {
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Principes des KPI</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={Users} label="Utilisateurs totaux" value={stats.users.total.toLocaleString('fr-FR')} />
-          <KpiCard icon={Building2} label="Hôtels inscrits" value={String(stats.accommodations.total)} />
-          <KpiCard icon={CheckCircle2} label="Hôtels vérifiés" value={String(stats.accommodations.published)} change={verifiedRatio} />
-          <KpiCard icon={Clock} label="En attente de validation" value={String(stats.accommodations.pending)} />
-          <KpiCard icon={AlertTriangle} label="Non conforme" value={String(nonCompliant)} />
-          <KpiCard icon={CalendarCheck} label="Réservations" value={stats.bookings.total.toLocaleString('fr-FR')} />
-          <KpiCard icon={Repeat} label="Taux de conversion" value={`${conversionRate}%`} />
-          <KpiCard icon={Percent} label="Taux d'occupation" value={`${stats.kpis.occupancy_rate}%`} />
+          <KpiCard icon={Users} label="Utilisateurs totaux" value={stats.users.total.toLocaleString('fr-FR')} href="/dashboard/admin/users" />
+          <KpiCard icon={Building2} label="Hôtels inscrits" value={String(stats.accommodations.total)} href="/dashboard/admin/accommodations" />
+          <KpiCard icon={CheckCircle2} label="Hôtels vérifiés" value={String(stats.accommodations.published)} change={verifiedRatio} href="/dashboard/admin/accommodations" />
+          <KpiCard icon={Clock} label="En attente de validation" value={String(stats.accommodations.pending)} href="/dashboard/admin/accommodations" />
+          <KpiCard icon={AlertTriangle} label="Non conforme" value={String(nonCompliant)} href="/dashboard/admin/conformite" />
+          <KpiCard icon={CalendarCheck} label="Réservations" value={stats.bookings.total.toLocaleString('fr-FR')} href="/dashboard/admin/reservations" />
+          <KpiCard icon={Repeat} label="Taux de conversion" value={`${conversionRate}%`} href="/dashboard/admin/analytics" />
+          <KpiCard icon={Percent} label="Taux d'occupation" value={`${stats.kpis.occupancy_rate}%`} href="/dashboard/admin/analytics" />
         </div>
       </div>
 
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Finance</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={DollarSign} label="Chiffre d'affaires" value={`${formatPrice(stats.revenue.all_time)} FCFA`} />
-          <KpiCard icon={HandCoins} label="Commissions perçues" value={`${formatPrice(stats.accounting.platform_commissions_paid)} FCFA`} />
-          <KpiCard icon={Hourglass} label="Commissions en attente" value={`${formatPrice(stats.accounting.platform_commissions_pending)} FCFA`} />
-          <KpiCard icon={ArrowLeftRight} label="Reversements aux hôtes" value={`${formatPrice(stats.accounting.commissions_reversed)} FCFA`} />
-          <KpiCard icon={Sun} label="Revenus du jour" value={`${formatPrice(stats.revenue.today)} FCFA`} />
-          <KpiCard icon={CalendarRange} label="Revenus du mois" value={`${formatPrice(stats.revenue.this_month)} FCFA`} />
-          <KpiCard icon={CalendarDays} label="Revenus annuels" value={`${formatPrice(stats.revenue.this_year)} FCFA`} />
+          <KpiCard icon={DollarSign} label="Chiffre d'affaires" value={`${formatPrice(stats.revenue.all_time)} FCFA`} href="/dashboard/admin/revenue" />
+          <KpiCard icon={HandCoins} label="Commissions perçues" value={`${formatPrice(stats.accounting.platform_commissions_paid)} FCFA`} href="/dashboard/admin/comptabilite" />
+          <KpiCard icon={Hourglass} label="Commissions en attente" value={`${formatPrice(stats.accounting.platform_commissions_pending)} FCFA`} href="/dashboard/admin/comptabilite" />
+          <KpiCard icon={ArrowLeftRight} label="Reversements aux hôtes" value={`${formatPrice(stats.accounting.commissions_reversed)} FCFA`} href="/dashboard/admin/comptabilite" />
+          <KpiCard icon={Sun} label="Revenus du jour" value={`${formatPrice(stats.revenue.today)} FCFA`} href="/dashboard/admin/revenue" />
+          <KpiCard icon={CalendarRange} label="Revenus du mois" value={`${formatPrice(stats.revenue.this_month)} FCFA`} href="/dashboard/admin/revenue" />
+          <KpiCard icon={CalendarDays} label="Revenus annuels" value={`${formatPrice(stats.revenue.this_year)} FCFA`} href="/dashboard/admin/revenue" />
         </div>
       </div>
 
