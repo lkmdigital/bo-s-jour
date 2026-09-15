@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import api from '@/lib/api';
 import Header from '@/components/common/Header';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
-import { ArrowLeft, MapPin, Upload, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { ArrowLeft, MapPin, Upload, ChevronRight, ChevronLeft, Check, Award } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/stores/authStore';
@@ -58,6 +58,10 @@ interface AccommodationFormData {
   check_out_time?: string;
   invoice_paid_before_hours?: number;
   room_type_pricing?: RoomTypePricingEntry[];
+  // Retour client 2026-09-15 : participation volontaire au programme
+  // fidélité BoSéjour, jusqu'ici proposable seulement après coup sur la
+  // fiche d'édition (cf. loyalty_program_joined_at côté Accommodation).
+  loyalty_program_joined?: boolean;
 }
 
 interface RoomTypePricingEntry {
@@ -1814,6 +1818,30 @@ export default function AccommodationCreationWizard({
                     Des rappels sont envoyés par la plateforme dès qu'un paiement est attendu.
                   </p>
                 </div>
+              </div>
+
+              {/* Programme de fidélité : participation volontaire, disponible
+                  dès la création (retour client 2026-09-15 — jusqu'ici
+                  proposable seulement après coup sur la fiche d'édition). */}
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Award className="w-5 h-5 text-primary" /> Programme de fidélité
+                </h3>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    {...register('loyalty_program_joined')}
+                    className="rounded mt-1"
+                  />
+                  <span>
+                    <span className="font-medium block text-sm">Rejoindre le programme fidélité BoSéjour</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Les voyageurs pourront utiliser leurs bons de réduction sur cet établissement. La commission
+                      reste calculée sur le montant réellement encaissé, réduction incluse. Modifiable à tout
+                      moment depuis la fiche de l'établissement.
+                    </span>
+                  </span>
+                </label>
               </div>
 
               {/* Conditions particulières */}

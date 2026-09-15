@@ -773,6 +773,10 @@ class AccommodationController extends Controller
             'pricing_long_stay_tiers.*.max_nights' => 'nullable|integer|min:1|max:365',
             'pricing_long_stay_tiers.*.discount_percent' => 'required_with:pricing_long_stay_tiers|numeric|min:0|max:100',
             'pricing_long_stay_tiers.*.enabled' => 'nullable|boolean',
+            // Retour client 2026-09-15 : la participation au programme fidélité
+            // n'était proposable qu'après coup, sur la fiche d'édition — rendue
+            // disponible dès la création (même sémantique que update()).
+            'loyalty_program_joined' => 'nullable|boolean',
         ]);
 
         // Sécurité: empêcher la création de doublons pour le même hôte
@@ -857,6 +861,7 @@ class AccommodationController extends Controller
             'pricing_long_stay_tiers' => $request->boolean('pricing_long_stay_enabled', false)
                 ? ($request->pricing_long_stay_tiers ?? null)
                 : null,
+            'loyalty_program_joined_at' => $request->boolean('loyalty_program_joined', false) ? now() : null,
         ]);
 
         Log::info('Accommodation created successfully', [
