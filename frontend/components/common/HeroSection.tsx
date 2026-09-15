@@ -216,7 +216,7 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
                   else if (kind === 'accommodation' && extra?.city) setCity(extra.city);
                   else setCity(value);
                 }}
-                placeholder="Où vas-tu ?"
+                placeholder="Où allez-vous ?"
                 showIcon={false}
                 inputClassName="!border-0 !p-0 text-gray-500 placeholder-gray-400 focus:ring-0 focus:outline-none text-sm w-full"
               />
