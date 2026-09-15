@@ -7,7 +7,7 @@ import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Link from 'next/link';
-import { Inbox, MessageSquare } from 'lucide-react';
+import { Inbox, MessageSquare, Send } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -33,6 +33,9 @@ export default function UserInboxPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [replyingId, setReplyingId] = useState<number | null>(null);
+  const [replyBody, setReplyBody] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -57,6 +60,41 @@ export default function UserInboxPage() {
     }
   };
 
+  // Retour client 2026-09-15 : le voyageur peut désormais démarrer un fil
+  // hors réservation (contact hôte, message à un membre du compte
+  // entreprise) — il doit donc pouvoir y répondre depuis sa boîte de
+  // réception, pas seulement depuis la page réservation. Même logique que
+  // HostInboxController::reply(), sauf que UserInboxController::reply()
+  // accepte que le voyageur soit expéditeur OU destinataire du message
+  // racine (voir son commentaire) : toutes les réponses restent des enfants
+  // directs de la racine (parent_id = replyingId), le backend détermine le
+  // bon destinataire en inversant les rôles.
+  const handleReply = async () => {
+    if (!replyingId || !replyBody.trim()) return;
+    try {
+      setSaving(true);
+      await api.post('/user/inbox', { parent_id: replyingId, body: replyBody.trim() });
+      setReplyBody('');
+      setReplyingId(null);
+      await fetchInbox();
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Erreur lors de l'envoi de la réponse.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const markAsRead = async (id: number) => {
+    try {
+      await api.patch(`/user/inbox/${id}/read`);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, read_at: m.read_at || new Date().toISOString() } : m))
+      );
+    } catch {
+      // ignore
+    }
+  };
+
   if (authLoading || (loading && messages.length === 0)) {
     return <LoadingSpinner message="Chargement de vos messages..." size="lg" />;
   }
@@ -71,7 +109,9 @@ export default function UserInboxPage() {
         <div className="max-w-4xl">
           <h1 className="text-3xl font-bold mb-2">Mes messages</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-8">
-            Messages de la plateforme et réponses des hôtes. Pour envoyer un message à un hôte, ouvrez la réservation concernée.
+            Messages de la plateforme, des hôtes et des membres de votre compte entreprise. Pour une réservation en
+            cours, ouvrez-la pour échanger avec l&apos;hôte ; sinon, contactez un établissement depuis sa fiche ou
+            répondez directement ici.
           </p>
 
           <ErrorDisplay error={error} onDismiss={() => setError(null)} type="error" />
@@ -142,6 +182,56 @@ export default function UserInboxPage() {
                         >
                           Répondre depuis la page réservation
                         </Link>
+                      )}
+
+                      {!msg.booking_id && !msg.is_from_platform && (
+                        <>
+                          {replyingId !== msg.id && (
+                            <button
+                              type="button"
+                              onClick={() => { setReplyingId(msg.id); markAsRead(msg.id); }}
+                              className="mt-3 inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                              Répondre
+                            </button>
+                          )}
+                          {replyingId === msg.id && (
+                            <div className="mt-4">
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Votre réponse</label>
+                              <textarea
+                                value={replyBody}
+                                onChange={(e) => setReplyBody(e.target.value)}
+                                rows={3}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                                placeholder="Écrivez votre message..."
+                              />
+                              <div className="flex gap-2 mt-2">
+                                <button
+                                  type="button"
+                                  onClick={handleReply}
+                                  disabled={saving || !replyBody.trim()}
+                                  className="btn-primary inline-flex items-center gap-2 text-sm disabled:opacity-50"
+                                >
+                                  <Send className="w-4 h-4" />
+                                  {saving ? 'Envoi...' : 'Envoyer'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setReplyingId(null); setReplyBody(''); }}
+                                  className="btn-secondary text-sm"
+                                >
+                                  Annuler
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {msg.is_from_platform && (
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
+                          Pour toute question à la plateforme, contactez le support.
+                        </p>
                       )}
                     </div>
                   </div>

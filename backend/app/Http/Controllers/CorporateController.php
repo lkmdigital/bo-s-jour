@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\CorporateAnnualReward;
 use App\Models\CorporateCollaborator;
 use App\Models\CorporateRewardTier;
+use App\Models\Message;
 use App\Models\User;
 use App\Services\CorporateLoyaltyService;
 use Illuminate\Http\Request;
@@ -34,16 +35,32 @@ class CorporateController extends Controller
 
         $isOwner = $user->traveler_type === 'corporate' && !$membership;
 
-        $collaborators = $isOwner
-            ? CorporateCollaborator::where('owner_id', $user->id)
+        // Retour client 2026-09-15 : "les membres [...] envoyer des messages à
+        // d'autres membres" — limité au compte entreprise (responsable +
+        // collaborateurs, entre eux). Un collaborateur ne voyait jusqu'ici que
+        // le nom de l'entreprise, jamais ses coéquipiers : il reçoit désormais
+        // aussi la liste des AUTRES collaborateurs actifs, pour pouvoir leur
+        // écrire (le responsable, lui, garde sa vue de gestion complète et non
+        // filtrée, y compris invités/suspendus).
+        $teamOwnerId = $isOwner ? $user->id : $membership?->owner_id;
+
+        $collaboratorsQuery = $teamOwnerId
+            ? CorporateCollaborator::where('owner_id', $teamOwnerId)
                 ->with('collaboratorUser:id,name,email,avatar')
                 ->orderByDesc('created_at')
-                ->get()
-            : collect();
+            : null;
+
+        if ($collaboratorsQuery && !$isOwner) {
+            $collaboratorsQuery->where('status', CorporateCollaborator::STATUS_ACTIVE)
+                ->where('collaborator_user_id', '!=', $user->id);
+        }
+
+        $collaborators = $collaboratorsQuery ? $collaboratorsQuery->get() : collect();
 
         return response()->json([
             'is_owner' => $isOwner,
             'is_collaborator' => (bool) $membership,
+            'owner_id' => $teamOwnerId,
             'company' => $isOwner ? [
                 'company_name' => $user->company_name,
                 'company_vat' => $user->company_vat,
@@ -161,6 +178,39 @@ class CorporateController extends Controller
         $collaborator->delete();
 
         return response()->json(['message' => 'Collaborateur retiré.']);
+    }
+
+    /**
+     * Retour client 2026-09-15 : "les membres [...] envoyer des messages à
+     * d'autres membres" — messagerie limitée aux membres d'un même compte
+     * entreprise (responsable ↔ collaborateur, ou collaborateur ↔
+     * collaborateur), vérifié via CorporateCollaborator::areTeammates()
+     * plutôt que d'accepter n'importe quel destinataire.
+     */
+    public function sendMessageToTeammate(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'recipient_id' => 'required|integer|exists:users,id',
+            'body' => 'required|string|max:2000',
+        ]);
+
+        if (!CorporateCollaborator::areTeammates($user->id, (int) $validated['recipient_id'])) {
+            return response()->json(['message' => "Vous ne pouvez écrire qu'aux membres de votre compte entreprise."], 403);
+        }
+
+        $message = Message::create([
+            'recipient_id' => $validated['recipient_id'],
+            'sender_id' => $user->id,
+            'is_from_platform' => false,
+            'subject' => 'Message de ' . $user->name . ' (compte entreprise)',
+            'body' => $validated['body'],
+        ]);
+
+        $message->load(['sender:id,name', 'recipient:id,name']);
+
+        return response()->json($message, 201);
     }
 
     /**

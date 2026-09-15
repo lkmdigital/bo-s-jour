@@ -51,6 +51,7 @@ use App\Http\Controllers\Host\HostAiController;
 use App\Http\Controllers\Host\HostAiContentController;
 use App\Http\Controllers\Host\HostLoyaltyController;
 use App\Http\Controllers\Admin\AdminWithdrawalController;
+use App\Http\Controllers\AccommodationMessageController;
 use App\Http\Controllers\BookingMessageController;
 use App\Http\Controllers\UserInboxController;
 use App\Http\Controllers\UserProfileController;
@@ -339,10 +340,18 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     Route::get('/bookings/{booking}/history', [BookingController::class, 'history']);
     Route::get('/bookings/{id}/messages', [BookingMessageController::class, 'index'])->where('id', '[0-9]+');
     Route::post('/bookings/{id}/messages', [BookingMessageController::class, 'store'])->where('id', '[0-9]+');
+    // Retour client 2026-09-15 : "écrire à un hôte" sans réservation
+    // préalable, depuis la fiche établissement (bouton "Contacter
+    // l'établissement").
+    Route::post('/accommodations/{id}/contact', [AccommodationMessageController::class, 'store'])
+        ->where('id', '[0-9]+')
+        ->middleware('throttle:20,1,accommodation-contact');
 
     // Boîte de réception voyageur
     Route::get('/user/inbox', [UserInboxController::class, 'index']);
     Route::get('/user/inbox/unread-count', [UserInboxController::class, 'unreadCount']);
+    Route::post('/user/inbox', [UserInboxController::class, 'reply']);
+    Route::patch('/user/inbox/{id}/read', [UserInboxController::class, 'markRead'])->where('id', '[0-9]+');
 
     // Avoirs client (espace client)
     Route::get('/credits', [ClientCreditController::class, 'index']);
@@ -357,6 +366,10 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::post('/collaborators', [CorporateController::class, 'inviteCollaborator'])->middleware('throttle:20,1,corporate-collaborator-invite');
         Route::put('/collaborators/{collaborator}', [CorporateController::class, 'updateCollaborator']);
         Route::delete('/collaborators/{collaborator}', [CorporateController::class, 'removeCollaborator']);
+        // Retour client 2026-09-15 : "les membres [...] envoyer des messages à
+        // d'autres membres" — limité aux membres du même compte entreprise.
+        Route::post('/message', [CorporateController::class, 'sendMessageToTeammate'])
+            ->middleware('throttle:30,1,corporate-message');
     });
 
     // Favoris (espace client)

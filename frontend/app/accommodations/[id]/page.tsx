@@ -1046,12 +1046,15 @@ export default function AccommodationDetailPage() {
             <div className="lg:col-span-1">
               <BookingSidebar
                 accommodationId={accommodation.id}
+                accommodationName={accommodation.name}
                 priceRangeMin={allRooms.length > 0 ? Math.min(...allRooms.map((r) => r.effective_price_per_night ?? r.price_per_night)) : (accommodation.effective_price_per_night ?? accommodation.price_per_night)}
                 priceRangeMax={allRooms.length > 0 ? Math.max(...allRooms.map((r) => r.effective_price_per_night ?? r.price_per_night)) : (accommodation.effective_price_per_night ?? accommodation.price_per_night)}
                 selectedDates={selectedDates}
                 onDatesSelected={handleDatesSelected}
                 priceQuote={priceQuote}
                 loadingQuote={loadingPricing}
+                showContactHost={!isHost && currentStatus === 'published'}
+                isAuthenticated={isAuthenticated}
               />
             </div>
           </div>

@@ -8,10 +8,11 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import ComposeMessageModal from '@/components/common/ComposeMessageModal';
 import { formatPrice } from '@/lib/utils';
 import {
   Building2, Users, UserPlus, Trash2, Pencil, Check, X, Loader2,
-  Briefcase, TrendingUp, Download, MapPin, Calendar, Award,
+  Briefcase, TrendingUp, Download, MapPin, Calendar, Award, MessageSquare,
 } from 'lucide-react';
 
 interface Collaborator {
@@ -27,6 +28,9 @@ interface Collaborator {
 interface Overview {
   is_owner: boolean;
   is_collaborator: boolean;
+  // Retour client 2026-09-15 : nécessaire pour cibler le responsable comme
+  // destinataire quand on est collaborateur (voir ComposeMessageModal).
+  owner_id: number | null;
   company: {
     company_name?: string; company_vat?: string; company_rccm?: string; company_tax_number?: string;
     company_unique_id?: string; company_sector?: string; company_address?: string; company_city?: string;
@@ -89,22 +93,29 @@ export default function MemberCompanyPage() {
   const [editingDepartment, setEditingDepartment] = useState<number | null>(null);
   const [departmentDraft, setDepartmentDraft] = useState('');
 
+  // Retour client 2026-09-15 : messagerie entre membres du compte entreprise.
+  const [messageTarget, setMessageTarget] = useState<{ id: number; name: string } | null>(null);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push('/auth/login?redirect=/dashboard/user/entreprise');
   }, [isAuthenticated, isLoading, router]);
 
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user && user.traveler_type !== 'corporate') {
-      router.push('/dashboard/user');
-    }
-  }, [isAuthenticated, isLoading, user, router]);
-
+  // Retour client 2026-09-15 : cette page servait aussi désormais à un
+  // collaborateur pour écrire au responsable et à ses coéquipiers — le
+  // garde-fou ne peut donc plus se limiter à traveler_type === 'corporate'
+  // (propre au compte du responsable). On laisse /me/corporate/overview
+  // trancher : redirection seulement si la réponse dit qu'on n'est ni l'un
+  // ni l'autre.
   const load = () => {
     Promise.all([
       api.get('/me/corporate/overview').then((r) => r.data).catch(() => null),
       api.get('/me/corporate/loyalty').then((r) => r.data).catch(() => null),
       api.get('/me/corporate/expenses', { params: { months: 6 } }).then((r) => r.data).catch(() => null),
     ]).then(([ov, loy, exp]) => {
+      if (!ov?.is_owner && !ov?.is_collaborator) {
+        router.push('/dashboard/user');
+        return;
+      }
       setOverview(ov);
       setLoyalty(loy);
       setExpenses(exp);
@@ -113,10 +124,10 @@ export default function MemberCompanyPage() {
   };
 
   useEffect(() => {
-    if (!isAuthenticated || isLoading || user?.traveler_type !== 'corporate') return;
+    if (!isAuthenticated || isLoading) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isLoading, user?.traveler_type]);
+  }, [isAuthenticated, isLoading]);
 
   const invite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,7 +172,12 @@ export default function MemberCompanyPage() {
     load();
   };
 
-  if (isLoading || (loading && isAuthenticated) || user?.traveler_type !== 'corporate') {
+  // Retour client 2026-09-15 : ce garde-fou bloquait encore tout
+  // collaborateur (traveler_type 'individual', propre à SON compte) même
+  // après la correction du chargement plus haut — il fallait aussi cesser
+  // de s'appuyer sur user.traveler_type ici, et attendre `overview` plutôt
+  // que de se fier uniquement au flag `loading`.
+  if (isLoading || (loading && isAuthenticated) || !overview) {
     return <LoadingSpinner message="Chargement de votre espace entreprise…" size="lg" />;
   }
   if (!isAuthenticated) return null;
@@ -186,9 +202,18 @@ export default function MemberCompanyPage() {
                 <p className="text-xs text-gray-500">{company?.company_sector || 'Informations société'}</p>
               </div>
             </div>
-            <Link href="/dashboard/user/profil" className="btn-outline text-sm inline-flex items-center gap-2">
-              <Pencil className="w-4 h-4" /> Modifier
-            </Link>
+            {overview?.is_owner ? (
+              <Link href="/dashboard/user/profil" className="btn-outline text-sm inline-flex items-center gap-2">
+                <Pencil className="w-4 h-4" /> Modifier
+              </Link>
+            ) : overview?.owner_id ? (
+              <button
+                onClick={() => setMessageTarget({ id: overview.owner_id as number, name: company?.owner_name || 'le responsable' })}
+                className="btn-outline text-sm inline-flex items-center gap-2"
+              >
+                <MessageSquare className="w-4 h-4" /> Contacter le responsable
+              </button>
+            ) : null}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
@@ -272,16 +297,20 @@ export default function MemberCompanyPage() {
             <div className="flex items-center gap-3">
               <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Users className="w-5 h-5" /></span>
               <div>
-                <h2 className="font-bold">Collaborateurs</h2>
-                <p className="text-xs text-gray-500">Autorisés à réserver au nom de l&apos;entreprise</p>
+                <h2 className="font-bold">{overview?.is_owner ? 'Collaborateurs' : 'Mon équipe'}</h2>
+                <p className="text-xs text-gray-500">
+                  {overview?.is_owner ? "Autorisés à réserver au nom de l'entreprise" : 'Les autres membres de votre compte entreprise'}
+                </p>
               </div>
             </div>
-            <button onClick={() => setShowInvite((v) => !v)} className="btn-outline text-sm inline-flex items-center gap-2">
-              <UserPlus className="w-4 h-4" /> Ajouter
-            </button>
+            {overview?.is_owner && (
+              <button onClick={() => setShowInvite((v) => !v)} className="btn-outline text-sm inline-flex items-center gap-2">
+                <UserPlus className="w-4 h-4" /> Ajouter
+              </button>
+            )}
           </div>
 
-          {showInvite && (
+          {overview?.is_owner && showInvite && (
             <form onSubmit={invite} className="mb-5 p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input required type="email" placeholder="E-mail du collaborateur" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
@@ -323,49 +352,67 @@ export default function MemberCompanyPage() {
                     <p className="text-xs text-gray-500">{c.email}</p>
                   </div>
 
-                  {editingDepartment === c.id ? (
-                    <div className="flex items-center gap-1.5">
-                      <input autoFocus value={departmentDraft} onChange={(e) => setDepartmentDraft(e.target.value)}
-                        placeholder="Sans département"
-                        className="w-32 px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs outline-none focus:border-primary" />
-                      <button onClick={() => saveDepartment(c.id)} className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"><Check className="w-4 h-4" /></button>
-                      <button onClick={() => setEditingDepartment(null)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
-                    </div>
-                  ) : (
-                    <button onClick={() => { setEditingDepartment(c.id); setDepartmentDraft(c.department || ''); }}
-                      className="text-xs text-gray-500 hover:text-primary whitespace-nowrap">
-                      {c.department || 'Sans département'}
-                    </button>
-                  )}
+                  {overview?.is_owner && (
+                    <>
+                      {editingDepartment === c.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <input autoFocus value={departmentDraft} onChange={(e) => setDepartmentDraft(e.target.value)}
+                            placeholder="Sans département"
+                            className="w-32 px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs outline-none focus:border-primary" />
+                          <button onClick={() => saveDepartment(c.id)} className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"><Check className="w-4 h-4" /></button>
+                          <button onClick={() => setEditingDepartment(null)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
+                        </div>
+                      ) : (
+                        <button onClick={() => { setEditingDepartment(c.id); setDepartmentDraft(c.department || ''); }}
+                          className="text-xs text-gray-500 hover:text-primary whitespace-nowrap">
+                          {c.department || 'Sans département'}
+                        </button>
+                      )}
 
-                  {editingLimit === c.id ? (
-                    <div className="flex items-center gap-1.5">
-                      <input autoFocus type="number" min={0} value={limitDraft} onChange={(e) => setLimitDraft(e.target.value)}
-                        placeholder="Sans limite"
-                        className="w-32 px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs outline-none focus:border-primary" />
-                      <button onClick={() => saveLimit(c.id)} className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"><Check className="w-4 h-4" /></button>
-                      <button onClick={() => setEditingLimit(null)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
-                    </div>
-                  ) : (
-                    <button onClick={() => { setEditingLimit(c.id); setLimitDraft(c.spending_limit ? String(c.spending_limit) : ''); }}
-                      className="text-xs text-gray-500 hover:text-primary whitespace-nowrap">
-                      {c.spending_limit ? `Limite : ${formatPrice(Number(c.spending_limit))} F/mois` : 'Sans limite définie'}
-                    </button>
+                      {editingLimit === c.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <input autoFocus type="number" min={0} value={limitDraft} onChange={(e) => setLimitDraft(e.target.value)}
+                            placeholder="Sans limite"
+                            className="w-32 px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs outline-none focus:border-primary" />
+                          <button onClick={() => saveLimit(c.id)} className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"><Check className="w-4 h-4" /></button>
+                          <button onClick={() => setEditingLimit(null)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
+                        </div>
+                      ) : (
+                        <button onClick={() => { setEditingLimit(c.id); setLimitDraft(c.spending_limit ? String(c.spending_limit) : ''); }}
+                          className="text-xs text-gray-500 hover:text-primary whitespace-nowrap">
+                          {c.spending_limit ? `Limite : ${formatPrice(Number(c.spending_limit))} F/mois` : 'Sans limite définie'}
+                        </button>
+                      )}
+                    </>
                   )}
 
                   <span className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${STATUS_LABEL[c.status]?.cls}`}>
                     {STATUS_LABEL[c.status]?.label}
                   </span>
 
-                  {c.status !== 'invited' && (
-                    <button onClick={() => toggleSuspend(c)} title={c.status === 'suspended' ? 'Réactiver' : 'Suspendre'}
-                      className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5">
-                      {c.status === 'suspended' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                  {c.status === 'active' && c.collaborator_user && (
+                    <button
+                      onClick={() => setMessageTarget({ id: c.collaborator_user!.id, name: c.collaborator_user?.name || c.name || c.email })}
+                      title="Écrire un message"
+                      className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5"
+                    >
+                      <MessageSquare className="w-4 h-4" />
                     </button>
                   )}
-                  <button onClick={() => removeCollaborator(c.id)} title="Retirer" className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+
+                  {overview?.is_owner && (
+                    <>
+                      {c.status !== 'invited' && (
+                        <button onClick={() => toggleSuspend(c)} title={c.status === 'suspended' ? 'Réactiver' : 'Suspendre'}
+                          className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5">
+                          {c.status === 'suspended' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                        </button>
+                      )}
+                      <button onClick={() => removeCollaborator(c.id)} title="Retirer" className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -474,6 +521,17 @@ export default function MemberCompanyPage() {
           )}
         </section>
       </div>
+
+      <ComposeMessageModal
+        open={!!messageTarget}
+        title="Écrire un message"
+        recipientLabel={messageTarget ? `À l'attention de ${messageTarget.name}` : ''}
+        onSend={async (body) => {
+          if (!messageTarget) return;
+          await api.post('/me/corporate/message', { recipient_id: messageTarget.id, body });
+        }}
+        onClose={() => setMessageTarget(null)}
+      />
 
       <MemberAside />
     </div>

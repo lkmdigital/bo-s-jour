@@ -2,9 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, Users, Lock, ShieldCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Calendar, Users, Lock, ShieldCheck, MessageSquare } from 'lucide-react';
 import { formatPrice, toDateInputValue } from '@/lib/utils';
 import DateSelector from '@/components/booking/DateSelector';
+import ComposeMessageModal from '@/components/common/ComposeMessageModal';
+import api from '@/lib/api';
 
 export interface PaymentOptionItem {
   label: string;
@@ -43,6 +46,13 @@ interface BookingSidebarProps {
   onDatesSelected: (checkIn: Date, checkOut: Date, guests: number) => void;
   priceQuote: PriceQuote | null;
   loadingQuote: boolean;
+  // Retour client 2026-09-15 : "ajoute la possibilité qu'un membre écrive à
+  // un hôte" — bouton "Contacter l'établissement", masqué pour l'hôte lui-même
+  // et pour les établissements pas encore publiés (côté backend, voir
+  // AccommodationMessageController).
+  accommodationName?: string;
+  showContactHost?: boolean;
+  isAuthenticated?: boolean;
 }
 
 function formatDate(d: Date | null): string {
@@ -58,8 +68,13 @@ export default function BookingSidebar({
   onDatesSelected,
   priceQuote,
   loadingQuote,
+  accommodationName,
+  showContactHost = false,
+  isAuthenticated = false,
 }: BookingSidebarProps) {
+  const router = useRouter();
   const [editingDates, setEditingDates] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const hasDates = !!(selectedDates.checkIn && selectedDates.checkOut);
   const paymentOptions = hasDates ? priceQuote?.payment_options : undefined;
   const guaranteeOpt = paymentOptions?.options?.guarantee;
@@ -190,6 +205,23 @@ export default function BookingSidebar({
           {!hasDates && (
             <p className="text-xs text-center text-gray-500 dark:text-gray-400">Sélectionnez vos dates pour réserver</p>
           )}
+
+          {showContactHost && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!isAuthenticated) {
+                  router.push(`/auth/login?redirect=/accommodations/${accommodationId}`);
+                  return;
+                }
+                setContactOpen(true);
+              }}
+              className="btn-outline w-full flex items-center justify-center gap-2 text-sm"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Contacter l&apos;établissement
+            </button>
+          )}
         </div>
       </div>
 
@@ -197,6 +229,17 @@ export default function BookingSidebar({
         <ShieldCheck className="w-3.5 h-3.5" />
         Paiement sécurisé — remboursement 24h si l&apos;établissement refuse
       </p>
+
+      <ComposeMessageModal
+        open={contactOpen}
+        title="Contacter l'établissement"
+        recipientLabel={accommodationName ? `À l'attention de ${accommodationName}` : "À l'attention de l'hôte"}
+        placeholder="Ex : avez-vous une chambre disponible pour 2 personnes du 12 au 15 octobre ?"
+        onSend={async (body) => {
+          await api.post(`/accommodations/${accommodationId}/contact`, { body });
+        }}
+        onClose={() => setContactOpen(false)}
+      />
     </div>
   );
 }

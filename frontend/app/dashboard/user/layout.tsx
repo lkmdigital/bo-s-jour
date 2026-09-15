@@ -64,6 +64,14 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   const { user, isAuthenticated, logout } = useAuthStore();
   const [query, setQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
+  // Retour client 2026-09-15 : "Compte entreprise" ne s'affichait que pour le
+  // responsable (traveler_type === 'corporate') — un collaborateur invité
+  // (souvent traveler_type 'individual', propre à SON compte) n'avait aucun
+  // moyen d'atteindre la page où il peut désormais écrire au responsable et
+  // à ses coéquipiers. /me/corporate/overview répond 200 avec des drapeaux à
+  // false pour n'importe quel voyageur non concerné, donc sans risque à
+  // appeler systématiquement ici.
+  const [isCorporateMember, setIsCorporateMember] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -71,6 +79,13 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
       .then((r) => setUnreadCount(r.data?.unread_count ?? 0))
       .catch(() => {});
   }, [isAuthenticated, pathname]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    api.get('/me/corporate/overview')
+      .then((r) => setIsCorporateMember(!!(r.data?.is_owner || r.data?.is_collaborator)))
+      .catch(() => {});
+  }, [isAuthenticated]);
 
   const isActive = (href: string) =>
     href === '/dashboard/user' ? pathname === href : pathname?.startsWith(href);
@@ -81,7 +96,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
     router.push(q ? `/accommodations?destination=${encodeURIComponent(q)}` : '/accommodations');
   };
 
-  const isCorporate = user?.traveler_type === 'corporate';
+  const isCorporate = user?.traveler_type === 'corporate' || isCorporateMember;
 
   const SidebarNav = () => (
     <nav className="flex flex-col gap-1 p-3">
