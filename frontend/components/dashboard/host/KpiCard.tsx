@@ -1,6 +1,7 @@
 'use client';
 
 import { LucideIcon } from 'lucide-react';
+import Link from 'next/link';
 
 interface KpiCardProps {
   icon: LucideIcon;
@@ -8,14 +9,18 @@ interface KpiCardProps {
   label: string;
   value: string;
   change?: number; // pourcentage, positif ou négatif
+  // Retour client 2026-09-15 : les cartes "Vue d'ensemble" doivent renvoyer
+  // vers le module concerné (ex. "Revenus ce mois" -> Finances). Optionnel :
+  // sans href, la carte reste un simple encart, comme avant.
+  href?: string;
 }
 
-export default function KpiCard({ icon: Icon, iconColorClass = 'text-bosejour-red', label, value, change }: KpiCardProps) {
+export default function KpiCard({ icon: Icon, iconColorClass = 'text-bosejour-red', label, value, change, href }: KpiCardProps) {
   const hasChange = typeof change === 'number' && !Number.isNaN(change);
   const isPositive = hasChange && (change as number) >= 0;
 
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm">
+  const content = (
+    <>
       <div className="flex items-center justify-between mb-4">
         <Icon className={`w-6 h-6 ${iconColorClass}`} />
         {hasChange && (
@@ -33,6 +38,20 @@ export default function KpiCard({ icon: Icon, iconColorClass = 'text-bosejour-re
       </div>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{label}</p>
       <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-    </div>
+    </>
   );
+
+  const className = `bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm${
+    href ? ' block transition-colors hover:border-primary/40 hover:shadow-md' : ''
+  }`;
+
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
 }

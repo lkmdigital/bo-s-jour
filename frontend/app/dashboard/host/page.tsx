@@ -251,36 +251,40 @@ export default function HostDashboardPage() {
       <div>
         <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Vue d&apos;ensemble</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={CalendarCheck} label="Réservations aujourd'hui" value={String(data.bookings_today)} />
-          <KpiCard icon={CalendarRange} label="Réservations ce mois" value={String(data.bookings_this_month)} />
-          <KpiCard icon={Percent} label="Taux d'occupation" value={`${data.occupancy_rate}%`} />
-          <KpiCard icon={BedDouble} label="Chambres disponibles" value={String(data.available_rooms_now)} />
+          <KpiCard icon={CalendarCheck} label="Réservations aujourd'hui" value={String(data.bookings_today)} href="/dashboard/host/reservations" />
+          <KpiCard icon={CalendarRange} label="Réservations ce mois" value={String(data.bookings_this_month)} href="/dashboard/host/reservations" />
+          <KpiCard icon={Percent} label="Taux d'occupation" value={`${data.occupancy_rate}%`} href="/dashboard/host/stats" />
+          <KpiCard icon={BedDouble} label="Chambres disponibles" value={String(data.available_rooms_now)} href="/dashboard/host/rooms" />
 
           <KpiCard
             icon={Coins}
             label="Tarif moyen (ADR)"
             value={`${formatPrice(data.kpis?.average_price_per_room || 0)} FCFA`}
+            href="/dashboard/host/stats"
           />
-          <KpiCard icon={Wallet} label="Revenus aujourd'hui" value={`${formatPrice(data.daily_revenue || 0)} FCFA`} />
+          <KpiCard icon={Wallet} label="Revenus aujourd'hui" value={`${formatPrice(data.daily_revenue || 0)} FCFA`} href="/dashboard/host/finances" />
           <KpiCard
             icon={TrendingUp}
             label="Revenus ce mois"
             value={`${formatPrice(data.monthly_revenue_current || 0)} FCFA`}
+            href="/dashboard/host/finances"
           />
-          <KpiCard icon={TrendingUp} label="Revenus annuels" value={`${formatPrice(data.annual_revenue)} FCFA`} />
+          <KpiCard icon={TrendingUp} label="Revenus annuels" value={`${formatPrice(data.annual_revenue)} FCFA`} href="/dashboard/host/finances" />
 
           <KpiCard
             icon={Star}
             label="Note moyenne"
             value={data.average_rating ? `${data.average_rating.toFixed(1)}/5` : '—'}
+            href="/dashboard/host/reviews"
           />
-          <KpiCard icon={Gauge} label="Score BoSéjour" value={`${data.score_bosejour}%`} />
+          <KpiCard icon={Gauge} label="Score BoSéjour" value={`${data.score_bosejour}%`} href="/dashboard/host/stats" />
           <KpiCard
             icon={HandCoins}
             label="Commissions reversées"
             value={`${formatPrice(data.accounting?.commissions_reversed || 0)} FCFA`}
+            href="/dashboard/host/finances"
           />
-          <KpiCard icon={Repeat} label="Taux de conversion" value={`${data.conversion_rate}%`} />
+          <KpiCard icon={Repeat} label="Taux de conversion" value={`${data.conversion_rate}%`} href="/dashboard/host/stats" />
         </div>
       </div>
 
