@@ -29,9 +29,11 @@ import {
   KeyRound,
   LogIn,
   CreditCard,
-  Coffee
+  Coffee,
+  Pencil
 } from 'lucide-react';
 import PaymentReceipt from '@/components/payment/PaymentReceipt';
+import ModifyBookingDatesModal from '@/components/booking/ModifyBookingDatesModal';
 import { differenceInDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -115,6 +117,7 @@ export default function HostBookingDetailPage() {
   const [roomNumberInput, setRoomNumberInput] = useState('');
   const [roomNumberSaving, setRoomNumberSaving] = useState(false);
   const [editingRoomNumber, setEditingRoomNumber] = useState(false);
+  const [showModifyDates, setShowModifyDates] = useState(false);
   const confirmAction = useConfirm();
   const { showError, showSuccess } = useToast();
 
@@ -424,8 +427,19 @@ export default function HostBookingDetailPage() {
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <Calendar className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <p className="font-semibold">Dates de séjour</p>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <p className="font-semibold">Dates de séjour</p>
+                      {(booking.status === 'pending' || booking.status === 'confirmed') && !isPast && (
+                        <button
+                          type="button"
+                          onClick={() => setShowModifyDates(true)}
+                          className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1"
+                        >
+                          <Pencil className="w-3.5 h-3.5" /> Modifier les dates
+                        </button>
+                      )}
+                    </div>
                     <p className="text-gray-600 dark:text-gray-400">
                       {format(new Date(booking.check_in), 'EEEE d MMMM yyyy', { locale: fr })} - {' '}
                       {format(new Date(booking.check_out), 'EEEE d MMMM yyyy', { locale: fr })}
@@ -812,6 +826,15 @@ export default function HostBookingDetailPage() {
             />
           </div>
         )}
+
+        <ModifyBookingDatesModal
+          open={showModifyDates}
+          bookingId={booking.id}
+          currentCheckIn={booking.check_in}
+          currentCheckOut={booking.check_out}
+          onClose={() => setShowModifyDates(false)}
+          onUpdated={fetchBooking}
+        />
       </main>
     </div>
   );

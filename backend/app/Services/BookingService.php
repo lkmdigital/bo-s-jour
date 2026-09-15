@@ -377,13 +377,41 @@ class BookingService
                 $this->blockDates($roomId, $newCheckIn, $newCheckOut);
             }
 
-            $booking->update([
+            $updateData = [
                 'check_in'  => $newCheckIn->toDateString(),
                 'check_out' => $newCheckOut->toDateString(),
                 // Retour client 2026-09-02 (Partie 4.4) : indicateur "Modifiée"
                 // affiché à côté du statut principal, jamais réinitialisé.
                 'was_modified' => true,
-            ]);
+            ];
+
+            // Retour client 2026-09-15 : changer les dates change le nombre de
+            // nuitées, donc le prix — jusqu'ici total_price/base_price restaient
+            // figés au montant de la réservation d'origine. On remet à l'échelle
+            // proportionnellement au nouveau nombre de nuits plutôt que de
+            // rejouer tout le moteur de tarification (promotions/bon de
+            // fidélité/paliers longue durée) : le tarif par nuit réellement
+            // facturé (remise déjà appliquée, éventuellement issue d'une
+            // promotion qui n'est plus valable aujourd'hui) est préservé tel
+            // quel, seul le nombre de nuits change. Le petit-déjeuner
+            // supplémentaire est un montant forfaitaire (quantité choisie par
+            // le voyageur), pas proportionnel aux nuits : laissé inchangé.
+            // acompte/montant déjà payé (deposit_amount/amount_paid) ne sont
+            // jamais retouchés ici — seul le nouveau solde dû s'ajuste
+            // (total_price - amount_paid), sans prélèvement ni remboursement
+            // automatique.
+            $oldNights = max(1, $oldCheckIn->diffInDays($oldCheckOut));
+            $newNights = max(1, $newCheckIn->diffInDays($newCheckOut));
+            if ($oldNights !== $newNights) {
+                $extraBreakfastTotal = (float) ($booking->extra_breakfast_total ?? 0);
+                $oldRoomsPortion = (float) $booking->base_price;
+                $oldDiscountedRoomsPortion = (float) $booking->total_price - $extraBreakfastTotal;
+
+                $updateData['base_price'] = round($oldRoomsPortion / $oldNights * $newNights, 2);
+                $updateData['total_price'] = round($oldDiscountedRoomsPortion / $oldNights * $newNights, 2) + $extraBreakfastTotal;
+            }
+
+            $booking->update($updateData);
 
             $this->logHistory($booking, $booking->status, $booking->status, 'modified', $actorId, null, [
                 'old_check_in'  => $oldCheckIn->toDateString(),
