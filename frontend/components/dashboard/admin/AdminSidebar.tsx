@@ -26,6 +26,7 @@ import {
   LogOut,
   Menu,
   X,
+  BarChart3,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
@@ -57,6 +58,11 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/dashboard/admin', label: 'Tableau de bord', icon: LayoutGrid },
       { href: '/dashboard/admin/strategique', label: 'Tableau stratégique', icon: TrendingUp },
+      // Retour client 2026-09-15 : reliée au header et à la barre mobile
+      // depuis sa création, mais absente du menu latéral — corrigé. (La
+      // page /dashboard/admin/revenue, elle, n'est qu'une redirection vers
+      // /dashboard/admin/comptabilite — pas d'entrée dédiée à ajouter ici.)
+      { href: '/dashboard/admin/analytics', label: 'Statistiques', icon: BarChart3 },
     ],
   },
   {

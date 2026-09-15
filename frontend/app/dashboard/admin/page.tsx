@@ -194,13 +194,13 @@ export default function AdminDashboardPage() {
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Finance</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={DollarSign} label="Chiffre d'affaires" value={`${formatPrice(stats.revenue.all_time)} FCFA`} href="/dashboard/admin/revenue" />
+          <KpiCard icon={DollarSign} label="Chiffre d'affaires" value={`${formatPrice(stats.revenue.all_time)} FCFA`} href="/dashboard/admin/comptabilite" />
           <KpiCard icon={HandCoins} label="Commissions perçues" value={`${formatPrice(stats.accounting.platform_commissions_paid)} FCFA`} href="/dashboard/admin/comptabilite" />
           <KpiCard icon={Hourglass} label="Commissions en attente" value={`${formatPrice(stats.accounting.platform_commissions_pending)} FCFA`} href="/dashboard/admin/comptabilite" />
           <KpiCard icon={ArrowLeftRight} label="Reversements aux hôtes" value={`${formatPrice(stats.accounting.commissions_reversed)} FCFA`} href="/dashboard/admin/comptabilite" />
-          <KpiCard icon={Sun} label="Revenus du jour" value={`${formatPrice(stats.revenue.today)} FCFA`} href="/dashboard/admin/revenue" />
-          <KpiCard icon={CalendarRange} label="Revenus du mois" value={`${formatPrice(stats.revenue.this_month)} FCFA`} href="/dashboard/admin/revenue" />
-          <KpiCard icon={CalendarDays} label="Revenus annuels" value={`${formatPrice(stats.revenue.this_year)} FCFA`} href="/dashboard/admin/revenue" />
+          <KpiCard icon={Sun} label="Revenus du jour" value={`${formatPrice(stats.revenue.today)} FCFA`} href="/dashboard/admin/comptabilite" />
+          <KpiCard icon={CalendarRange} label="Revenus du mois" value={`${formatPrice(stats.revenue.this_month)} FCFA`} href="/dashboard/admin/comptabilite" />
+          <KpiCard icon={CalendarDays} label="Revenus annuels" value={`${formatPrice(stats.revenue.this_year)} FCFA`} href="/dashboard/admin/comptabilite" />
         </div>
       </div>
 
