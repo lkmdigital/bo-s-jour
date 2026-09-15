@@ -746,6 +746,11 @@ class AccommodationController extends Controller
             'shuttle_service' => 'nullable|boolean',
             'laundry' => 'nullable|boolean',
             'breakfast_price' => 'nullable|numeric|min:0',
+            // Demande utilisateur 2026-09-15 : liste libre des plats/options de
+            // petit-déjeuner proposés, saisie par l'hôte (distinct de la
+            // quantité de petits-déjeuners, Partie 4.11 déjà livrée).
+            'breakfast_menu_items' => 'nullable|array|max:50',
+            'breakfast_menu_items.*' => 'string|max:255',
             'reception_24h' => 'nullable|boolean',
             'smoking_area' => 'nullable|boolean',
             'pets_allowed' => 'nullable|boolean',
@@ -833,6 +838,7 @@ class AccommodationController extends Controller
             'shuttle_service' => $request->boolean('shuttle_service', false),
             'laundry' => $request->boolean('laundry', false),
             'breakfast_price' => $request->breakfast_price,
+            'breakfast_menu_items' => $request->input('breakfast_menu_items', []),
             'reception_24h' => $request->boolean('reception_24h', false),
             'smoking_area' => $request->boolean('smoking_area', false),
             'pets_allowed' => $request->boolean('pets_allowed', false),
@@ -906,6 +912,11 @@ class AccommodationController extends Controller
             'shuttle_service' => 'nullable|boolean',
             'laundry' => 'nullable|boolean',
             'breakfast_price' => 'nullable|numeric|min:0',
+            // Demande utilisateur 2026-09-15 : liste libre des plats/options de
+            // petit-déjeuner proposés, saisie par l'hôte (distinct de la
+            // quantité de petits-déjeuners, Partie 4.11 déjà livrée).
+            'breakfast_menu_items' => 'nullable|array|max:50',
+            'breakfast_menu_items.*' => 'string|max:255',
             'reception_24h' => 'nullable|boolean',
             'smoking_area' => 'nullable|boolean',
             'pets_allowed' => 'nullable|boolean',
@@ -950,7 +961,7 @@ class AccommodationController extends Controller
             'opening_year', 'star_rating', 'standing', 'room_types', 'room_type_pricing',
             'conference_rooms_count', 'conference_capacity',
             'restaurant_capacity', 'bar_capacity',
-            'shuttle_service', 'laundry', 'breakfast_price',
+            'shuttle_service', 'laundry', 'breakfast_price', 'breakfast_menu_items',
             'reception_24h', 'smoking_area', 'pets_allowed',
             'other_amenities', 'deposit_required', 'deposit_amount',
             'cancellation_policy_hours', 'payment_methods',

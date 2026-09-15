@@ -50,6 +50,10 @@ interface Props {
   breakfastIncluded?: boolean;
   breakfastIncludedPersons?: number;
   breakfastPrice?: number | null;
+  // Plats/options de petit-déjeuner (demande utilisateur 2026-09-15) —
+  // distinct de la quantité ci-dessus : liste saisie par l'hôte, que le
+  // voyageur coche parmi celles proposées.
+  breakfastMenuItems?: string[];
   // Retour client 2026-09-02 (Partie 4.3) : réservation multi-chambres —
   // nombre total d'unités de ce type de chambre chez l'établissement.
   roomTotalUnits?: number;
@@ -149,6 +153,15 @@ export default function BookingWizard(props: Props) {
   useEffect(() => {
     if (!canOfferExtraBreakfast) setExtraBreakfast(false);
   }, [canOfferExtraBreakfast]);
+  // Plats/options de petit-déjeuner (demande utilisateur 2026-09-15) —
+  // affiché dès que l'établissement en a saisi, indépendamment de la
+  // quantité supplémentaire ci-dessus (même si le petit-déjeuner est inclus
+  // sans supplément possible, le voyageur peut préciser ce qu'il souhaite).
+  const breakfastMenuItems = props.breakfastMenuItems || [];
+  const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([]);
+  const toggleMenuItem = (item: string) => {
+    setSelectedMenuItems((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]));
+  };
 
   // Réservation multi-chambres (retour client 2026-09-02, Partie 4.3) —
   // proposé seulement si l'établissement a plus d'une unité de ce type de
@@ -298,6 +311,7 @@ export default function BookingWizard(props: Props) {
         estimated_arrival_time: estimatedArrivalTime || undefined,
         rooms_quantity: canBookMultipleRooms ? roomsQuantity : undefined,
         extra_breakfast_quantity: extraBreakfast && canOfferExtraBreakfast ? extraBreakfastQty : undefined,
+        breakfast_menu_selection: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
         promo_code: discountMode === 'promo' ? (promoCode.trim() || undefined) : undefined,
         loyalty_voucher_code: discountMode === 'loyalty' ? (loyaltyVoucherCode || undefined) : undefined,
         special_requests: specialRequests.trim() || undefined,
@@ -448,6 +462,25 @@ export default function BookingWizard(props: Props) {
                       </span>
                     </div>
                   )}
+                </div>
+              )}
+              {breakfastMenuItems.length > 0 && (
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-2.5">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Plats et options du petit-déjeuner</p>
+                  <p className="text-xs text-gray-500">Cochez ce que vous souhaitez, l'établissement en tiendra compte.</p>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {breakfastMenuItems.map((item) => (
+                      <label key={item} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedMenuItems.includes(item)}
+                          onChange={() => toggleMenuItem(item)}
+                          className="accent-[#FF0000]"
+                        />
+                        {item}
+                      </label>
+                    ))}
+                  </div>
                 </div>
               )}
               <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-sm text-gray-700 dark:text-gray-300">
@@ -620,6 +653,9 @@ export default function BookingWizard(props: Props) {
                   ...(canBookMultipleRooms ? [['Nombre de chambres', `${roomsQuantity}`]] : []),
                   ...(extraBreakfast && canOfferExtraBreakfast
                     ? [['Petit-déjeuner supplémentaire', `${extraBreakfastQty} × ${formatPrice(props.breakfastPrice || 0)} FCFA = ${formatPrice(extraBreakfastQty * (props.breakfastPrice || 0))} FCFA`]]
+                    : []),
+                  ...(selectedMenuItems.length > 0
+                    ? [['Plats du petit-déjeuner', selectedMenuItems.join(', ')]]
                     : []),
                   ['Voyageur', travelerType === 'corporate' ? `Corporate — ${companyName}` : `Particulier — ${firstName} ${lastName}`],
                   ['Contact', `${email} · ${phone}`],

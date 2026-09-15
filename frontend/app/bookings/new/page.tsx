@@ -30,6 +30,8 @@ interface Accommodation {
   breakfast_included?: boolean;
   breakfast_included_persons?: number;
   breakfast_price?: number | null;
+  // Plats/options de petit-déjeuner (demande utilisateur 2026-09-15).
+  breakfast_menu_items?: string[];
 }
 
 interface Room {
@@ -156,6 +158,7 @@ function NewBookingContent() {
             breakfastIncluded={accommodation.breakfast_included}
             breakfastIncludedPersons={accommodation.breakfast_included_persons}
             breakfastPrice={accommodation.breakfast_price}
+            breakfastMenuItems={accommodation.breakfast_menu_items}
             roomTotalUnits={room?.quantity}
           />
         </div>

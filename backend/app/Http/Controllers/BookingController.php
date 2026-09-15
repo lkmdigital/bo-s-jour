@@ -160,6 +160,13 @@ class BookingController extends Controller
             // valeur alimente un calcul de prix réel, un texte libre y ferait
             // n'importe quoi entrer.
             'extra_breakfast_quantity' => 'nullable|integer|min:0|max:20',
+            // Demande utilisateur 2026-09-15 : choix des plats/options de
+            // petit-déjeuner parmi la liste saisie par l'hôte
+            // (accommodations.breakfast_menu_items) — vérifié plus bas une
+            // fois l'établissement chargé (intersection avec sa liste
+            // actuelle, jamais d'erreur bloquante pour une valeur périmée).
+            'breakfast_menu_selection' => 'nullable|array|max:50',
+            'breakfast_menu_selection.*' => 'string|max:255',
             'promo_code' => 'nullable|string|max:100',
             'special_requests' => 'nullable|string|max:1000',
             'booked_for_third_party' => 'nullable|boolean',
@@ -493,6 +500,16 @@ class BookingController extends Controller
             $totalPrice += $extraBreakfastTotal;
         }
 
+        // Choix des plats/options de petit-déjeuner (retour client 2026-09-15) —
+        // intersection avec la liste ACTUELLE de l'établissement plutôt qu'une
+        // erreur bloquante : si l'hôte a modifié son menu entre l'affichage du
+        // formulaire et la soumission, on garde simplement ce qui est encore
+        // valide plutôt que de faire échouer toute la réservation.
+        $breakfastMenuSelection = array_values(array_intersect(
+            (array) $request->input('breakfast_menu_selection', []),
+            (array) ($accommodation->breakfast_menu_items ?? [])
+        ));
+
         // Politique d'annulation : 0 = non remboursable, >0 = modifiable (avoir en cas d'annulation)
         $isNonRefundable = ($cancellationHours === 0);
         $depositAmount = 0;
@@ -514,7 +531,8 @@ class BookingController extends Controller
         $booking = DB::transaction(function () use (
             $request, $room, $accommodation, $user, $bookedForThirdParty,
             $totalPrice, $basePrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion, $loyaltyVoucher,
-            $extraBreakfastQuantity, $extraBreakfastUnitPrice, $extraBreakfastTotal, $roomsQuantity
+            $extraBreakfastQuantity, $extraBreakfastUnitPrice, $extraBreakfastTotal, $roomsQuantity,
+            $breakfastMenuSelection
         ) {
             if ($room) {
                 Room::lockForUpdate()->findOrFail($room->id);
@@ -551,6 +569,7 @@ class BookingController extends Controller
                 'extra_breakfast_quantity' => $extraBreakfastQuantity,
                 'extra_breakfast_unit_price' => $extraBreakfastUnitPrice,
                 'extra_breakfast_total' => $extraBreakfastTotal,
+                'breakfast_menu_selection' => $breakfastMenuSelection ?: null,
                 'total_price' => $totalPrice,
                 // Tarif plein de l'hôte, AVANT promo/bon de fidélité — conservé pour que
                 // la commission BoSéjour et le montant reversé à l'hôte restent basés sur

@@ -46,6 +46,7 @@ interface BookingDetail {
   was_modified?: boolean;
   extra_breakfast_quantity?: number;
   extra_breakfast_total?: number;
+  breakfast_menu_selection?: string[];
   total_price: number;
   deposit_amount: number;
   amount_paid: number;
@@ -541,6 +542,11 @@ export default function HostBookingDetailPage() {
                         <p className="text-gray-600 dark:text-gray-400">
                           + {booking.extra_breakfast_quantity} petit-déjeuner{booking.extra_breakfast_quantity > 1 ? 's' : ''} supplémentaire{booking.extra_breakfast_quantity > 1 ? 's' : ''}
                           {booking.extra_breakfast_total ? ` (${formatPrice(booking.extra_breakfast_total)} FCFA)` : ''}
+                        </p>
+                      )}
+                      {!!booking.breakfast_menu_selection?.length && (
+                        <p className="text-gray-600 dark:text-gray-400">
+                          Plats choisis : {booking.breakfast_menu_selection.join(', ')}
                         </p>
                       )}
                     </div>

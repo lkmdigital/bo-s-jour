@@ -156,6 +156,20 @@ export default function EditAccommodationPage() {
     includedPersons: 1,
     price: '' as number | '',
   });
+  // Plats/options de petit-déjeuner (demande utilisateur 2026-09-15) —
+  // distinct de la quantité (ci-dessus) : liste libre saisie par l'hôte,
+  // que le voyageur coche au moment de la réservation.
+  const [breakfastMenuItems, setBreakfastMenuItems] = useState<string[]>([]);
+  const [newMenuItem, setNewMenuItem] = useState('');
+  const addMenuItem = () => {
+    const trimmed = newMenuItem.trim();
+    if (!trimmed || breakfastMenuItems.includes(trimmed)) return;
+    setBreakfastMenuItems((prev) => [...prev, trimmed]);
+    setNewMenuItem('');
+  };
+  const removeMenuItem = (item: string) => {
+    setBreakfastMenuItems((prev) => prev.filter((i) => i !== item));
+  };
   const confirmAction = useConfirm();
 
   const { register, handleSubmit, formState: { errors }, setValue, reset, watch } = useForm<AccommodationFormData>();
@@ -235,6 +249,7 @@ export default function EditAccommodationPage() {
         includedPersons: acc.breakfast_included_persons || 1,
         price: acc.breakfast_price ?? '',
       });
+      setBreakfastMenuItems(Array.isArray(acc.breakfast_menu_items) ? acc.breakfast_menu_items : []);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement de l\'hébergement');
     } finally {
@@ -332,6 +347,7 @@ export default function EditAccommodationPage() {
         breakfast_included: breakfast.included,
         breakfast_included_persons: breakfast.included ? breakfast.includedPersons : 0,
         breakfast_price: breakfast.price === '' ? null : breakfast.price,
+        breakfast_menu_items: breakfastMenuItems,
       };
 
       await api.put(`/accommodations/${params.id}`, formData);
@@ -1188,6 +1204,60 @@ export default function EditAccommodationPage() {
                   placeholder="Ex : 5000"
                   className="w-full max-w-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
                 />
+              </div>
+
+              {/* Plats/options proposés (demande utilisateur 2026-09-15) —
+                  distinct de la quantité ci-dessus : le voyageur coche ceux
+                  qu'il souhaite au moment de la réservation. */}
+              <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
+                <label className="block text-sm font-medium">Plats et options proposés au petit-déjeuner</label>
+                <p className="text-xs text-gray-500">
+                  Saisissez librement ce que vous proposez (ex : « Œufs », « Pain et confiture », « Jus de fruit »…).
+                  Le voyageur pourra cocher ce qu&apos;il souhaite en réservant. Laissez vide si vous ne voulez pas
+                  proposer ce détail.
+                </p>
+                <div className="flex gap-2 max-w-md">
+                  <input
+                    type="text"
+                    value={newMenuItem}
+                    onChange={(e) => setNewMenuItem(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addMenuItem();
+                      }
+                    }}
+                    placeholder="Ex : Œufs au plat"
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={addMenuItem}
+                    className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium hover:border-primary hover:text-primary"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+                {breakfastMenuItems.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {breakfastMenuItems.map((item) => (
+                      <span
+                        key={item}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
+                      >
+                        {item}
+                        <button
+                          type="button"
+                          onClick={() => removeMenuItem(item)}
+                          aria-label={`Retirer ${item}`}
+                          className="hover:text-red-700"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
