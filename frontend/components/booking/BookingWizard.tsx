@@ -514,8 +514,18 @@ export default function BookingWizard(props: Props) {
                 </div>
               )}
               <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-sm text-gray-700 dark:text-gray-300">
-                <p className="font-semibold text-gray-900 dark:text-white mb-1">Garantie de la première nuitée</p>
-                Conformément à la politique de l'établissement, le paiement de la première nuitée est requis pour garantir votre réservation.
+                {guarantee ? (
+                  <>
+                    <p className="font-semibold text-gray-900 dark:text-white mb-1">Garantie de la première nuitée</p>
+                    Conformément à la politique de l'établissement, le paiement de la première nuitée est requis pour garantir votre réservation.
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold text-gray-900 dark:text-white mb-1">Paiement intégral requis</p>
+                    Conformément à la politique de l'établissement, le paiement intégral en ligne est requis pour confirmer cette réservation
+                    {quote?.payment_options?.reason ? ` (${quote.payment_options.reason})` : ''}.
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -782,7 +792,10 @@ export default function BookingWizard(props: Props) {
                   >
                     conditions générales de vente
                   </Link>
-                  {' '}(ouvre dans un nouvel onglet — votre saisie est conservée ici). Conformément à la politique de l'établissement, la première nuitée est garantie par le paiement en ligne.
+                  {' '}(ouvre dans un nouvel onglet — votre saisie est conservée ici). Conformément à la politique de l'établissement,{' '}
+                  {guarantee
+                    ? 'la première nuitée est garantie par le paiement en ligne.'
+                    : `le paiement intégral est requis en ligne pour confirmer votre réservation${quote?.payment_options?.reason ? ` (${quote.payment_options.reason})` : ''}.`}
                 </span>
               </label>
             </div>
