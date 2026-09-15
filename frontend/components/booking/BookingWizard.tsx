@@ -86,14 +86,42 @@ function draftDatesKey(accommodationId: number, roomId?: number) {
   return `bosejour_booking_dates_${accommodationId}_${roomId ?? 'any'}`;
 }
 
+// Retour client 2026-09-15 : "pourtant j'ai modifier la date mais ça ne
+// s'applique pas" — un brouillon (ou une date reçue en prop, quelle que soit
+// sa source) dont l'arrivée est déjà dans le passé (onglet resté ouvert
+// plusieurs jours, lien/marque-page ancien) ne doit jamais être réappliqué
+// tel quel : l'étape "Votre séjour" l'affichait comme confirmée
+// (editingDates=false) alors que le serveur la rejetait aussitôt à l'aperçu
+// de prix, sans que "Modifier" ne semble avoir d'effet.
+function isPastDate(dateStr?: string): boolean {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d < today;
+}
+
 function readDraftDates(accommodationId: number, roomId?: number): { checkIn?: string; checkOut?: string; guests?: number } {
   if (typeof window === 'undefined') return {};
   try {
     const raw = sessionStorage.getItem(draftDatesKey(accommodationId, roomId));
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const draft = JSON.parse(raw);
+    if (isPastDate(draft?.checkIn)) {
+      sessionStorage.removeItem(draftDatesKey(accommodationId, roomId));
+      return {};
+    }
+    return draft;
   } catch {
     return {};
   }
+}
+
+/** Ignore une date d'arrivée initiale (prop, quelle que soit son origine —
+ * URL, session de recherche…) si elle est déjà passée. */
+function sanitizedInitialDates(checkIn?: string, checkOut?: string): { checkIn?: string; checkOut?: string } {
+  return isPastDate(checkIn) ? {} : { checkIn, checkOut };
 }
 
 export default function BookingWizard(props: Props) {
@@ -101,14 +129,16 @@ export default function BookingWizard(props: Props) {
   const { user, isAuthenticated } = useAuthStore();
   const { whatsappVerificationEnabled } = useAppSettingsStore();
 
+  const initialDates = sanitizedInitialDates(props.initialCheckIn, props.initialCheckOut);
+
   const [step, setStep] = useState(0);
-  const [checkIn, setCheckIn] = useState(() => props.initialCheckIn || readDraftDates(props.accommodationId, props.roomId).checkIn || '');
-  const [checkOut, setCheckOut] = useState(() => props.initialCheckOut || readDraftDates(props.accommodationId, props.roomId).checkOut || '');
+  const [checkIn, setCheckIn] = useState(() => initialDates.checkIn || readDraftDates(props.accommodationId, props.roomId).checkIn || '');
+  const [checkOut, setCheckOut] = useState(() => initialDates.checkOut || readDraftDates(props.accommodationId, props.roomId).checkOut || '');
   const [guests, setGuests] = useState(() => props.initialGuests || readDraftDates(props.accommodationId, props.roomId).guests || 1);
   const [editingDates, setEditingDates] = useState(() => {
     const draft = readDraftDates(props.accommodationId, props.roomId);
-    const hasCheckIn = !!(props.initialCheckIn || draft.checkIn);
-    const hasCheckOut = !!(props.initialCheckOut || draft.checkOut);
+    const hasCheckIn = !!(initialDates.checkIn || draft.checkIn);
+    const hasCheckOut = !!(initialDates.checkOut || draft.checkOut);
     return !hasCheckIn || !hasCheckOut;
   });
 
