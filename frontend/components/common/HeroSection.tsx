@@ -160,9 +160,9 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center text-white w-full px-4 pb-28">
           <motion.h1
             initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-            className="text-4xl md:text-6xl font-bold drop-shadow-lg xl:whitespace-nowrap"
+            className="text-4xl md:text-6xl font-bold italic drop-shadow-lg xl:whitespace-nowrap"
           >
-            Votre séjour commence ici
+            Votre séjour commence ici...
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
