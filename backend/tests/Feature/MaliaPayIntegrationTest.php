@@ -4,8 +4,11 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\PaymentController;
 use App\Mail\StuckPaymentsDigest;
+use App\Models\Accommodation;
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\Room;
+use App\Models\RoomAvailability;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -193,6 +196,72 @@ class MaliaPayIntegrationTest extends TestCase
         $this->assertSame('completed', $payment->status);
         $this->assertSame('FAKE_TX_2', $payment->transaction_id);
         $this->assertSame('webhook', $payment->payment_data['confirmation_source']);
+    }
+
+    /**
+     * Bug corrigé le 2026-09-15 : PaymentController comparait
+     * `$booking->status === 'pending'` (chaîne) à un attribut casté en enum
+     * BookingStatus — toujours false en PHP, donc ce bloc ne s'exécutait
+     * jamais depuis l'introduction de l'enum. Conséquence en production :
+     * une réservation payée normalement (webhook) restait "pending" pour
+     * toujours, sans code de confirmation/numéro de réservation généré, et
+     * sans que ses dates ne soient bloquées dans room_availabilities.
+     */
+    public function test_webhook_success_confirms_the_booking_generates_its_code_and_blocks_the_room_dates(): void
+    {
+        $this->configureMaliaPay();
+
+        $traveler = User::factory()->create();
+        $accommodation = Accommodation::factory()->create(['status' => 'published']);
+        $room = Room::create([
+            'accommodation_id' => $accommodation->id,
+            'name' => 'Chambre standard',
+            'type' => 'double',
+            'capacity' => 4,
+            'price_per_night' => 20000,
+            'is_active' => true,
+            'quantity' => 1,
+        ]);
+        $booking = Booking::factory()->for($traveler)->create([
+            'accommodation_id' => $accommodation->id,
+            'room_id' => $room->id,
+            'status' => 'pending',
+            'payment_status' => 'pending',
+            'check_in' => now()->addDays(10),
+            'check_out' => now()->addDays(12),
+            'total_price' => 40000,
+            'amount_paid' => 0,
+            'confirmation_code' => null,
+            'booking_number' => null,
+        ]);
+        $payment = Payment::create([
+            'booking_id' => $booking->id,
+            'user_id' => $traveler->id,
+            'amount' => 40000,
+            'status' => 'pending',
+            'purpose' => 'full',
+            'payment_method' => 'wave-ci',
+            'payment_reference' => 'REF-SUCCESS-CONFIRM-1',
+        ]);
+
+        $response = $this->postJson('/api/payments/webhook', [
+            'reference' => 'REF-SUCCESS-CONFIRM-1',
+            'status' => 'success',
+            'transaction_id' => 'FAKE_TX_CONFIRM_1',
+            'montant' => 40000,
+        ]);
+
+        $response->assertOk();
+        $booking->refresh();
+        $this->assertSame('confirmed', $booking->status->value);
+        $this->assertNotEmpty($booking->confirmation_code);
+        $this->assertNotEmpty($booking->booking_number);
+
+        $occupiedNights = RoomAvailability::where('room_id', $room->id)
+            ->whereBetween('date', [now()->addDays(10)->toDateString(), now()->addDays(11)->toDateString()])
+            ->where('status', 'occupied')
+            ->count();
+        $this->assertSame(2, $occupiedNights);
     }
 
     public function test_webhook_ignores_processing_status_without_marking_failed(): void

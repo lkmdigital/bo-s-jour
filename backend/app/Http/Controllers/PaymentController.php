@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Commission;
 use App\Models\Message;
 use App\Models\Setting;
+use App\Services\BookingService;
 use App\Services\PaymentOptionsService;
 use App\Mail\BookingConfirmation;
 use App\Mail\HostNewBooking;
@@ -19,6 +21,8 @@ use Illuminate\Support\Facades\Mail;
 
 class PaymentController extends Controller
 {
+    public function __construct(private BookingService $bookingService) {}
+
     /**
      * Générer une référence de commande unique
      */
@@ -811,44 +815,20 @@ class PaymentController extends Controller
 
         if (in_array($payment->purpose, ['deposit', 'guarantee']) && !$booking->deposit_paid_at) {
             $booking->deposit_paid_at = now();
-            if ($booking->status === 'pending') {
-                $booking->status = 'confirmed';
-                if (empty($booking->confirmation_code)) {
-                    $booking->confirmation_code = Booking::generateConfirmationCode();
-                }
-                if (empty($booking->booking_number)) {
-                    $booking->booking_number = Booking::generateBookingNumber();
-                }
-            }
+            $this->markConfirmedIfPending($booking);
         }
 
         if ($payment->purpose === 'full') {
             $booking->payment_status = 'paid';
             $booking->expires_at = null;
-            if ($booking->status === 'pending') {
-                $booking->status = 'confirmed';
-                if (empty($booking->confirmation_code)) {
-                    $booking->confirmation_code = Booking::generateConfirmationCode();
-                }
-                if (empty($booking->booking_number)) {
-                    $booking->booking_number = Booking::generateBookingNumber();
-                }
-            }
+            $this->markConfirmedIfPending($booking);
         } elseif ($payment->purpose === 'guarantee') {
             $booking->payment_status = 'guarantee_paid';
             $booking->expires_at = null;
         } elseif ($booking->amount_paid >= $booking->total_price) {
             $booking->payment_status = 'paid';
             $booking->expires_at = null;
-            if ($booking->status === 'pending') {
-                $booking->status = 'confirmed';
-                if (empty($booking->confirmation_code)) {
-                    $booking->confirmation_code = Booking::generateConfirmationCode();
-                }
-                if (empty($booking->booking_number)) {
-                    $booking->booking_number = Booking::generateBookingNumber();
-                }
-            }
+            $this->markConfirmedIfPending($booking);
         } else {
             $booking->payment_status = 'pending';
         }
@@ -856,6 +836,43 @@ class PaymentController extends Controller
         $booking->save();
 
         return $booking;
+    }
+
+    /**
+     * Fait passer la réservation en "confirmed" si elle est encore "pending" —
+     * génère le code de confirmation/numéro de réservation et bloque les dates
+     * dans room_availabilities (sinon la chambre reste vendable en double après
+     * un paiement réussi, jusqu'à une éventuelle confirmation manuelle admin).
+     *
+     * Bug corrigé le 2026-09-15 : comparait `$booking->status === 'pending'`
+     * (chaîne) à un attribut casté en enum BookingStatus — toujours false en
+     * PHP (=== compare aussi le type), donc ce bloc ne s'exécutait jamais
+     * depuis l'introduction de l'enum. Conséquence en production : aucune
+     * réservation payée normalement (webhook ou confirmation manuelle admin)
+     * ne passait "confirmed", ni ses dates bloquées, sans intervention admin
+     * manuelle via /dashboard/admin/reservations.
+     */
+    private function markConfirmedIfPending(Booking $booking): void
+    {
+        if ($booking->status !== BookingStatus::Pending) {
+            return;
+        }
+
+        $booking->status = BookingStatus::Confirmed;
+        if (empty($booking->confirmation_code)) {
+            $booking->confirmation_code = Booking::generateConfirmationCode();
+        }
+        if (empty($booking->booking_number)) {
+            $booking->booking_number = Booking::generateBookingNumber();
+        }
+
+        if ($booking->room_id) {
+            $this->bookingService->blockDates(
+                $booking->room_id,
+                \Carbon\Carbon::parse($booking->check_in),
+                \Carbon\Carbon::parse($booking->check_out)
+            );
+        }
     }
 
     /**
