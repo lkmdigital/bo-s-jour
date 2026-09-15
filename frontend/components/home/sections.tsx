@@ -231,40 +231,60 @@ export function SaveMore() {
 /* ------------------------------------------------------------------ */
 /* 4. Principaux sites à voir                                          */
 /* ------------------------------------------------------------------ */
-const SITES = [
-  { name: 'Grand-Bassam', flag: '🇨🇮', image: img('1441974231531-c6227db76b6e', 1000), big: true },
-  { name: 'Man', flag: '🇨🇮', image: img('1506905925346-21bda4d32df4', 1000), big: true },
-  { name: 'Assinie', flag: '🇨🇮', image: img('1507525428034-b723cf961d3e', 700) },
-  { name: 'Yamoussoukro', flag: '🇨🇮', image: img('1502602898657-3e91760cbb34', 700) },
-  { name: 'Sassandra', flag: '🇨🇮', image: img('1470071459604-3b5ec3a7fe05', 700) },
-];
+// Retour client 2026-09-15 : cette section montrait 5 lieux inventés (photos
+// Unsplash) — remplacée par du contenu réel publié par l'admin (Paramètres >
+// Découvertes). Masquée tant que rien n'est publié, même logique que
+// useTopCities() ci-dessus.
+interface DiscoverySiteApi { id: number; name: string; city: string | null; image_path: string }
+interface DiscoverySiteData { id: number; name: string; city: string | null; image: string }
 
-function SiteCard({ s, className = '' }: { s: typeof SITES[number]; className?: string }) {
+function useDiscoverySites() {
+  const [sites, setSites] = useState<DiscoverySiteData[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/discovery/sites')
+      .then((r) => {
+        if (cancelled) return;
+        const data: DiscoverySiteApi[] = r.data?.data ?? [];
+        setSites(data.map((s) => ({ id: s.id, name: s.name, city: s.city, image: resolveImageUrl(s.image_path) })));
+      })
+      .catch(() => { if (!cancelled) setSites([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return sites;
+}
+
+function SiteCard({ s, className = '' }: { s: DiscoverySiteData; className?: string }) {
   return (
     <Link href="/accommodations" className={`group relative block rounded-2xl overflow-hidden ${className}`}>
       <Image src={s.image} alt={s.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="50vw" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-      <span className="absolute top-4 left-4 text-white font-bold text-lg flex items-center gap-2">
-        {s.name} <span>{s.flag}</span>
-      </span>
+      <span className="absolute top-4 left-4 text-white font-bold text-lg">{s.name}</span>
     </Link>
   );
 }
 
-export function TopSites({ photos = [] }: { photos?: string[] }) {
-  const sites = SITES.map((s, i) => ({ ...s, image: photos[i] || s.image }));
+export function TopSites() {
+  const sites = useDiscoverySites();
+
+  if (sites !== null && sites.length === 0) return null;
+
   return (
     <section className="container mx-auto px-4 md:px-8 max-w-7xl py-12">
       <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Principaux sites à voir</h2>
-      <Reveal className="grid grid-cols-2 gap-5 mb-5">
-        <SiteCard s={sites[0]} className="h-56" />
-        <SiteCard s={sites[1]} className="h-56" />
-      </Reveal>
-      <Reveal className="grid grid-cols-1 sm:grid-cols-3 gap-5" delay={0.1}>
-        <SiteCard s={sites[2]} className="h-52" />
-        <SiteCard s={sites[3]} className="h-52" />
-        <SiteCard s={sites[4]} className="h-52" />
-      </Reveal>
+      {sites === null ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-56 rounded-2xl skeleton" />
+          ))}
+        </div>
+      ) : (
+        <Reveal className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+          {sites.map((s) => <SiteCard key={s.id} s={s} className="h-56" />)}
+        </Reveal>
+      )}
     </section>
   );
 }
@@ -285,23 +305,44 @@ const ACT_TABS: { label: string; icon: typeof Compass; category: ActivityCategor
   { label: 'Nourriture', icon: UtensilsCrossed, category: 'nourriture' },
   { label: 'Vie nocturne', icon: Moon, category: 'vie_nocturne' },
 ];
-const ACTIVITIES: { name: string; searchTerm: string; categories: ActivityCategory[]; image: string }[] = [
-  { name: 'Plage de Grand-Bassam', searchTerm: 'Grand-Bassam', categories: ['plage'], image: img('1507525428034-b723cf961d3e', 500) },
-  { name: 'San-Pédro, bord de mer', searchTerm: 'San-Pédro', categories: ['plage'], image: img('1520250497591-112f2f40a3f4', 500) },
-  { name: 'Basilique de Yamoussoukro', searchTerm: 'Yamoussoukro', categories: ['musee'], image: img('1566073771259-6a8506099945', 500) },
-  { name: 'Plateau, Abidjan', searchTerm: 'Plateau', categories: ['musee', 'voir'], image: img('1502602898657-3e91760cbb34', 500) },
-  { name: 'Parc du Banco', searchTerm: 'Abidjan', categories: ['voir'], image: img('1441974231531-c6227db76b6e', 500) },
-  { name: 'Lagune Ébrié', searchTerm: 'Abidjan', categories: ['voir'], image: img('1520250497591-112f2f40a3f4', 500) },
-  { name: 'Cascades de Man', searchTerm: 'Man', categories: ['voir'], image: img('1506905925346-21bda4d32df4', 500) },
-  { name: 'Marché de Treichville', searchTerm: 'Abidjan', categories: ['nourriture'], image: img('1502602898657-3e91760cbb34', 500) },
-  { name: 'Rue Princesse, Yopougon', searchTerm: 'Yopougon', categories: ['nourriture', 'vie_nocturne'], image: img('1441974231531-c6227db76b6e', 500) },
-  { name: 'Zone 4, Marcory', searchTerm: 'Marcory', categories: ['vie_nocturne'], image: img('1506905925346-21bda4d32df4', 500) },
-];
+// Retour client 2026-09-15 : cette section montrait 10 activités inventées —
+// remplacée par du contenu réel publié par l'admin (Paramètres > Découvertes).
+// Masquée tant que rien n'est publié.
+interface DiscoveryActivityApi { id: number; name: string; categories: ActivityCategory[] | null; search_term: string | null; image_path: string }
+interface DiscoveryActivityData { id: number; name: string; searchTerm: string; categories: ActivityCategory[]; image: string }
 
-export function Activities({ photos = [] }: { photos?: string[] }) {
+function useDiscoveryActivities() {
+  const [activities, setActivities] = useState<DiscoveryActivityData[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/discovery/activities')
+      .then((r) => {
+        if (cancelled) return;
+        const data: DiscoveryActivityApi[] = r.data?.data ?? [];
+        setActivities(data.map((a) => ({
+          id: a.id,
+          name: a.name,
+          searchTerm: a.search_term || a.name,
+          categories: a.categories || [],
+          image: resolveImageUrl(a.image_path),
+        })));
+      })
+      .catch(() => { if (!cancelled) setActivities([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return activities;
+}
+
+export function Activities() {
   const [active, setActive] = useState(0);
+  const activities = useDiscoveryActivities();
   const category = ACT_TABS[active].category;
-  const filtered = category === 'all' ? ACTIVITIES : ACTIVITIES.filter((a) => a.categories.includes(category));
+
+  if (activities !== null && activities.length === 0) return null;
+
+  const filtered = activities === null ? null : (category === 'all' ? activities : activities.filter((a) => a.categories.includes(category)));
 
   return (
     <section className="container mx-auto px-4 md:px-8 max-w-7xl py-12">
@@ -321,14 +362,20 @@ export function Activities({ photos = [] }: { photos?: string[] }) {
           );
         })}
       </div>
-      {filtered.length === 0 ? (
+      {filtered === null ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="aspect-square rounded-xl skeleton" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <p className="text-sm text-gray-500 py-8 text-center">Aucune activité dans cette catégorie pour le moment.</p>
       ) : (
         <Reveal className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {filtered.map((a, i) => (
-            <Link key={a.name} href={`/accommodations?search=${encodeURIComponent(a.searchTerm)}`} className="group">
+          {filtered.map((a) => (
+            <Link key={a.id} href={`/accommodations?search=${encodeURIComponent(a.searchTerm)}`} className="group">
               <div className="relative aspect-square rounded-xl overflow-hidden mb-2">
-                <Image src={photos[i] || a.image} alt={a.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="16vw" />
+                <Image src={a.image} alt={a.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="16vw" />
               </div>
               <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{a.name}</p>
             </Link>

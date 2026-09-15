@@ -27,6 +27,7 @@ import {
   Menu,
   X,
   BarChart3,
+  Compass,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
@@ -98,6 +99,10 @@ const NAV_GROUPS: NavGroup[] = [
     title: 'Croissance',
     items: [
       { href: '/dashboard/admin/promotions', label: 'Promotions', icon: Gift },
+      // Retour client 2026-09-15 : "Principaux sites à voir" / "Meilleures
+      // activités" de l'accueil étaient du contenu inventé — géré ici
+      // désormais, masqué côté public tant que rien n'est publié.
+      { href: '/dashboard/admin/decouvertes', label: 'Découvertes', icon: Compass },
       { href: '/dashboard/admin/programme', label: 'Membre du programme', icon: Award },
       { href: '/dashboard/admin/commercialisation', label: 'Commercialisation', icon: Megaphone },
     ],

@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\AdminCorporateController;
 use App\Http\Controllers\Admin\AdminLoyaltyController;
 use App\Http\Controllers\Admin\AdminLegalDocumentController;
 use App\Http\Controllers\Admin\AdminPaymentMethodController;
+use App\Http\Controllers\Admin\AdminDiscoveryController;
 use App\Http\Controllers\Admin\AdminPromotionController;
 use App\Http\Controllers\Admin\AdminStrategicController;
 use App\Http\Controllers\Admin\AdminTourismController;
@@ -57,12 +58,16 @@ use App\Http\Controllers\UserInboxController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\LoyaltyController;
 use App\Http\Controllers\TravelerAiController;
+use App\Http\Controllers\DiscoveryController;
 use App\Http\Controllers\MemberNotificationController;
 use App\Http\Controllers\Admin\AdminReviewController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
+// Découvertes (accueil) — retour client 2026-09-15, contenu géré par l'admin.
+Route::get('/discovery/sites', [DiscoveryController::class, 'sites']);
+Route::get('/discovery/activities', [DiscoveryController::class, 'activities']);
 Route::get('/accommodations', [AccommodationController::class, 'index']);
 Route::get('/accommodations/top-cities', [AccommodationController::class, 'topCities']);
 Route::get('/accommodations/suggestions', [AccommodationController::class, 'suggestions']);
@@ -433,6 +438,20 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         // Promotions (supervision admin des offres créées par les établissements)
         Route::get('/promotions', [AdminPromotionController::class, 'index'])->middleware('role:admin');
         Route::post('/promotions/{id}/toggle', [AdminPromotionController::class, 'toggle'])->middleware('role:admin')->where('id', '[0-9]+');
+
+        // Découvertes (retour client 2026-09-15) : contenu "Principaux sites à
+        // voir" / "Meilleures activités à Abidjan" de l'accueil, remplace les
+        // listes codées en dur — voir DiscoveryController côté public.
+        Route::prefix('discovery')->middleware('role:admin')->group(function () {
+            Route::get('/sites', [AdminDiscoveryController::class, 'sites']);
+            Route::post('/sites', [AdminDiscoveryController::class, 'storeSite']);
+            Route::post('/sites/{id}', [AdminDiscoveryController::class, 'updateSite'])->where('id', '[0-9]+'); // POST pour FormData (image)
+            Route::delete('/sites/{id}', [AdminDiscoveryController::class, 'destroySite'])->where('id', '[0-9]+');
+            Route::get('/activities', [AdminDiscoveryController::class, 'activities']);
+            Route::post('/activities', [AdminDiscoveryController::class, 'storeActivity']);
+            Route::post('/activities/{id}', [AdminDiscoveryController::class, 'updateActivity'])->where('id', '[0-9]+');
+            Route::delete('/activities/{id}', [AdminDiscoveryController::class, 'destroyActivity'])->where('id', '[0-9]+');
+        });
 
         // Tableau stratégique (vue exécutive)
         Route::prefix('strategic')->middleware('role:admin')->group(function () {

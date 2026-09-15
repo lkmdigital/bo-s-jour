@@ -116,11 +116,11 @@ export default function Home() {
       </div>
 
       <SaveMore />
-      <TopSites photos={editorialPhotos} />
-      <Activities photos={editorialPhotos} />
+      <TopSites />
+      <Activities />
       <VideoShowcase photos={editorialPhotos} />
 
-      <PropertyCarousel title="Les maisons que les clients adorent" items={loved} />
+      <PropertyCarousel title="Les hébergements que les clients préfèrent" items={loved} />
 
       <Testimonials />
       <Footer />
