@@ -59,6 +59,19 @@ interface UserDetail {
   id_document_path?: string;
   id_document_recto_path?: string;
   id_document_verso_path?: string;
+  // Conformité documentaire de l'hôte (retour client 2026-09-15 : l'admin
+  // doit pouvoir consulter l'état de chaque hôte et vérifier ses documents
+  // directement depuis sa fiche, cf. AdminComplianceController).
+  phone_fixed?: string;
+  whatsapp?: string;
+  rccm?: string;
+  tax_account_number?: string;
+  proof_of_address_path?: string;
+  business_license_path?: string;
+  rccm_document_path?: string;
+  tax_document_path?: string;
+  compliance_status?: 'conforme' | 'non_conforme';
+  compliance_requirements?: Record<string, { label: string; ok: boolean }>;
   roles?: Array<{
     id: number;
     name: string;
@@ -590,6 +603,87 @@ export default function UserDetailPage() {
                       )}
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Conformité documentaire (hôtes uniquement) — retour client
+                2026-09-15 : vue centralisée pour que l'admin puisse vérifier
+                en un coup d'œil l'état et les documents d'un hôte. */}
+            {userDetail.role === 'host' && userDetail.compliance_requirements && (
+              <div className="card">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Conformité documentaire
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center gap-1 ${
+                    userDetail.compliance_status === 'conforme'
+                      ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                      : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                  }`}>
+                    {userDetail.compliance_status === 'conforme' ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                    {userDetail.compliance_status === 'conforme' ? 'Conforme' : 'Non conforme'}
+                  </span>
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
+                  {Object.entries(userDetail.compliance_requirements).map(([key, req]) => (
+                    <div key={key} className="flex items-center gap-2 text-sm">
+                      {req.ok ? (
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                      )}
+                      <span className={req.ok ? 'text-gray-700 dark:text-gray-300' : 'text-red-600 dark:text-red-400 font-medium'}>
+                        {req.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">WhatsApp de l&apos;établissement</label>
+                    <p className="text-gray-900 dark:text-white font-medium">{userDetail.whatsapp || '—'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Téléphone fixe</label>
+                    <p className="text-gray-900 dark:text-white font-medium">{userDetail.phone_fixed || '—'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Numéro RCCM</label>
+                    <p className="text-gray-900 dark:text-white font-medium">{userDetail.rccm || '—'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Numéro contribuable</label>
+                    <p className="text-gray-900 dark:text-white font-medium">{userDetail.tax_account_number || '—'}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {[
+                    { label: 'Justificatif de domicile', path: userDetail.proof_of_address_path },
+                    { label: "Licence d'exploitation", path: userDetail.business_license_path },
+                    { label: 'Document RCCM', path: userDetail.rccm_document_path },
+                    { label: 'Document contribuable', path: userDetail.tax_document_path },
+                  ].map(({ label, path }) => (
+                    <div key={label} className="flex items-center justify-between gap-3 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
+                      {path ? (
+                        <a
+                          href={getStorageUrl(path)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+                        >
+                          <FileText className="w-4 h-4" /> Voir le document
+                        </a>
+                      ) : (
+                        <span className="text-sm text-red-600 dark:text-red-400 inline-flex items-center gap-1">
+                          <XCircle className="w-3.5 h-3.5" /> Manquant
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

@@ -232,6 +232,10 @@ class User extends Authenticatable
                 'label' => 'WhatsApp de l\'établissement',
                 'ok' => !empty($this->whatsapp),
             ],
+            'valid_email' => [
+                'label' => 'E-mail valide',
+                'ok' => !empty($this->email) && filter_var($this->email, FILTER_VALIDATE_EMAIL) !== false,
+            ],
             'rccm_number' => [
                 'label' => 'Numéro RCM',
                 'ok' => !empty($this->rccm),

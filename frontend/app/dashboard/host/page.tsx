@@ -24,7 +24,6 @@ import {
   Compass,
   ArrowRight,
   AlertTriangle,
-  Check,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -70,11 +69,15 @@ export default function HostDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [accommodationCount, setAccommodationCount] = useState<number | null>(null);
   const [expertMode, setExpertMode] = useState(false);
-  // Rappel de mise à jour des informations (retour client 2026-09-13/14) —
-  // alerte sur l'espace hôte à la connexion pour les établissements dont les
-  // infos n'ont pas été reconfirmées depuis Accommodation::INFO_UPDATE_REMINDER_MONTHS.
-  const [staleAccommodations, setStaleAccommodations] = useState<Array<{ id: number; name: string }>>([]);
-  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  // Rappel de dossier documentaire incomplet (retour client 2026-09-15) — ce
+  // bandeau pointait initialement (2026-09-13/14) vers la fiche établissement
+  // (tarifs/disponibilités/photos/équipements) ; reconverti en rappel de
+  // conformité documentaire (pièce du gérant, RCCM, licence d'exploitation,
+  // numéro contribuable…) sur demande explicite du client, qui attendait un
+  // renvoi vers la page Documents et pas vers l'édition de l'établissement.
+  // Le rappel "informations établissement non à jour" continue d'exister par
+  // e-mail (accommodations:remind-info-update) mais n'est plus affiché ici.
+  const [complianceMissing, setComplianceMissing] = useState<string[]>([]);
 
   const fetchAccommodations = () => {
     api
@@ -82,9 +85,6 @@ export default function HostDashboardPage() {
       .then((res) => {
         const list = Array.isArray(res.data) ? res.data : [];
         setAccommodationCount(list.length);
-        setStaleAccommodations(
-          list.filter((a: { needs_info_update?: boolean }) => a.needs_info_update).map((a: { id: number; name: string }) => ({ id: a.id, name: a.name }))
-        );
       })
       .catch(() => setAccommodationCount(null));
   };
@@ -100,22 +100,18 @@ export default function HostDashboardPage() {
 
     fetchAccommodations();
 
+    api
+      .get('/host/profile')
+      .then((res) => {
+        const requirements = (res.data?.compliance_requirements ?? {}) as Record<string, { label: string; ok: boolean }>;
+        setComplianceMissing(Object.values(requirements).filter((r) => !r.ok).map((r) => r.label));
+      })
+      .catch(() => {});
+
     if (typeof window !== 'undefined' && sessionStorage.getItem('host_expert_mode') === '1') {
       setExpertMode(true);
     }
   }, []);
-
-  const confirmAccommodationInfo = async (id: number) => {
-    setConfirmingId(id);
-    try {
-      await api.post(`/accommodations/${id}/confirm-info`);
-      setStaleAccommodations((prev) => prev.filter((a) => a.id !== id));
-    } catch {
-      // Best-effort : l'hôte peut réessayer, le bandeau reste affiché pour cet établissement.
-    } finally {
-      setConfirmingId(null);
-    }
-  };
 
   // Recharts (ResponsiveContainer) mesure parfois une largeur de 0 au premier rendu
   // dans une grille/flex avant que la mise en page ne soit stabilisée. On force un
@@ -220,43 +216,33 @@ export default function HostDashboardPage() {
         <p className="text-gray-500 dark:text-gray-400 mt-1">Bienvenue dans votre espace partenaire BoSéjour</p>
       </div>
 
-      {staleAccommodations.length > 0 && (
+      {complianceMissing.length > 0 && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 p-5">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-amber-900 dark:text-amber-300">
-                {staleAccommodations.length > 1
-                  ? `${staleAccommodations.length} établissements n'ont pas confirmé leurs informations depuis plusieurs mois`
-                  : "Cet établissement n'a pas confirmé ses informations depuis plusieurs mois"}
+                Votre dossier documentaire n&apos;est pas complet
               </p>
               <p className="text-sm text-amber-800 dark:text-amber-400 mt-1">
-                Merci de vérifier que les tarifs, disponibilités, photos et équipements sont toujours exacts.
+                Merci de fournir les documents manquants pour rester en conformité sur BoSéjour.
               </p>
-              <div className="mt-3 space-y-2">
-                {staleAccommodations.map((a) => (
-                  <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 bg-white/60 dark:bg-black/20 rounded-lg px-3 py-2">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{a.name}</span>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/dashboard/host/accommodations/${a.id}/edit`}
-                        className="text-sm text-primary font-medium hover:underline"
-                      >
-                        Vérifier / modifier
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => confirmAccommodationInfo(a.id)}
-                        disabled={confirmingId === a.id}
-                        className="text-sm inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 disabled:opacity-50"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        {confirmingId === a.id ? 'Confirmation…' : 'Déjà à jour'}
-                      </button>
-                    </div>
-                  </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {complianceMissing.map((label) => (
+                  <span
+                    key={label}
+                    className="px-2 py-1 rounded-lg bg-white/70 dark:bg-black/20 text-amber-900 dark:text-amber-300 text-xs"
+                  >
+                    {label}
+                  </span>
                 ))}
               </div>
+              <Link
+                href="/dashboard/host/documents"
+                className="mt-3 inline-flex items-center gap-1 text-sm text-primary font-medium hover:underline"
+              >
+                Vérifier / modifier <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
         </div>

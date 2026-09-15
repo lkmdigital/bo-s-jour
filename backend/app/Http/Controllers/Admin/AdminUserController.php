@@ -90,6 +90,15 @@ class AdminUserController extends Controller
 
         $this->authorize('view', $user);
 
+        // Retour client 2026-09-15 : l'admin doit pouvoir consulter l'état
+        // documentaire d'un hôte (pièce du gérant, RCCM, licence, contribuable,
+        // WhatsApp, e-mail) directement sur sa fiche, pas seulement via la
+        // liste agrégée de /dashboard/admin/conformite. N'a de sens que pour
+        // un compte hôte (le calcul est basé sur des champs propres aux hôtes).
+        if ($user->role === 'host') {
+            $user->append(['compliance_status', 'compliance_requirements']);
+        }
+
         return response()->json(['data' => $user]);
     }
 

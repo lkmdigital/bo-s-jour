@@ -154,7 +154,10 @@ class HostProfileController extends Controller
             'postal_code' => 'sometimes|nullable|string|max:20',
             'country' => 'sometimes|string|max:100',
             'phone_fixed' => 'sometimes|nullable|string|max:20',
-            'whatsapp' => 'sometimes|nullable|string|max:20',
+            // Retour client 2026-09-15 : chaque hôte doit rester joignable sur
+            // WhatsApp — requis à l'inscription (AuthController), mais jusqu'ici
+            // la mise à jour du profil acceptait de le vider silencieusement.
+            'whatsapp' => 'sometimes|required|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]{6,20}$/',
             'rccm' => 'sometimes|nullable|string|max:255',
             'tax_account_number' => 'sometimes|nullable|string|max:255',
             'bank_name' => 'sometimes|nullable|string|max:255',
