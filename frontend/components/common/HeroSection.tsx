@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, Building2, Home, BedDouble, TreePalm, X, Minus, Plus } from 'lucide-react';
+import { Search, Building2, Home, BedDouble, TreePalm } from 'lucide-react';
 import SearchInputWithAutocomplete from './SearchInputWithAutocomplete';
 import { useSearchStore } from '@/stores/searchStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { cn, toDateInputValue } from '@/lib/utils';
 
@@ -69,40 +69,13 @@ function DateField({ label, value, onChange, min, disabled }: {
   );
 }
 
-function GuestStepper({ label, sub, value, onChange, min = 0 }: { label: string; sub?: string; value: number; onChange: (v: number) => void; min?: number }) {
-  return (
-    <div className="flex items-center justify-between py-2">
-      <div>
-        <p className="font-medium text-gray-900">{label}</p>
-        {sub && <p className="text-xs text-gray-500">{sub}</p>}
-      </div>
-      <div className="flex items-center gap-3">
-        <button type="button" aria-label={`Retirer ${label}`} onClick={() => onChange(Math.max(min, value - 1))}
-          className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-primary hover:text-primary transition-colors disabled:opacity-40"
-          disabled={value <= min}>
-          <Minus className="w-4 h-4" />
-        </button>
-        <span className="min-w-[2ch] text-center font-semibold">{value}</span>
-        <button type="button" aria-label={`Ajouter ${label}`} onClick={() => onChange(value + 1)}
-          className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-primary hover:text-primary transition-colors">
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function HeroSection({ onSearch, initialValues }: HeroSectionProps) {
   const { session, setSearchSession } = useSearchStore();
   const [search, setSearch] = useState(initialValues?.search || session?.search || '');
   const [city, setCity] = useState(initialValues?.city || session?.city || '');
   const [checkIn, setCheckIn] = useState(initialValues?.checkIn || session?.checkIn || '');
   const [checkOut, setCheckOut] = useState(initialValues?.checkOut || session?.checkOut || '');
-  const [rooms, setRooms] = useState(initialValues?.rooms ?? session?.rooms ?? 1);
-  const [adults, setAdults] = useState(initialValues?.guests ?? session?.guests ?? 1);
-  const [children, setChildren] = useState(0);
   const [type, setType] = useState(initialValues?.type || session?.type || 'hotel');
-  const [guestsOpen, setGuestsOpen] = useState(false);
   const [slide, setSlide] = useState(0);
 
   useEffect(() => {
@@ -114,8 +87,6 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
     if (session && !initialValues?.checkIn) {
       setCheckIn(session.checkIn || '');
       setCheckOut(session.checkOut || '');
-      setRooms(session.rooms ?? 1);
-      setAdults(session.guests ?? 1);
       setSearch(session.search || '');
       setCity(session.city || '');
       if (session.type) setType(session.type);
@@ -132,15 +103,11 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
       city: city.trim() || undefined,
       checkIn: checkIn || undefined,
       checkOut: checkOut || undefined,
-      guests: adults + children > 0 ? adults + children : undefined,
-      rooms: rooms > 0 ? rooms : undefined,
       type,
     };
     setSearchSession(params);
     onSearch(params);
   };
-
-  const guestsSummary = `${rooms} les chambres, ${adults} adultes, ${children} enfants`;
 
   return (
     <section className="relative bg-white dark:bg-gray-950 pb-16 pt-16">
@@ -168,7 +135,7 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
             className="mt-4 text-lg md:text-2xl font-medium drop-shadow xl:whitespace-nowrap"
           >
-            Trouvez des séjours uniques dans des hôtels, des villas et bien plus encore.
+            Trouvez des séjours uniques dans des hôtels, des résidences et bien plus encore.
           </motion.p>
         </div>
       </div>
@@ -229,34 +196,6 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
             {/* Vérifier (départ) */}
             <DateField label="Vérifier" value={checkOut} min={minCheckOut} disabled={!checkIn}
               onChange={setCheckOut} />
-
-            {/* Chambres et invités */}
-            <div className="relative flex-[1.3] px-5 py-3 lg:border-r border-gray-200">
-              <p className="text-[15px] font-semibold text-gray-900 mb-0.5">Chambres et invités</p>
-              <button type="button" onClick={() => setGuestsOpen((o) => !o)} className="w-full text-left text-sm text-gray-500 truncate">
-                {guestsSummary}
-              </button>
-
-              <AnimatePresence>
-                {guestsOpen && (
-                  <>
-                    <div className="fixed inset-0 z-20" onClick={() => setGuestsOpen(false)} />
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
-                      className="absolute left-0 md:left-auto md:right-0 top-full mt-3 z-30 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-gray-900">Voyageurs</span>
-                        <button type="button" onClick={() => setGuestsOpen(false)} aria-label="Fermer"><X className="w-4 h-4 text-gray-400" /></button>
-                      </div>
-                      <GuestStepper label="Chambres" value={rooms} onChange={setRooms} min={1} />
-                      <GuestStepper label="Adultes" value={adults} onChange={setAdults} min={1} />
-                      <GuestStepper label="Enfants" sub="0 – 17 ans" value={children} onChange={setChildren} min={0} />
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
 
             {/* Bouton Rechercher */}
             <div className="p-2 flex">

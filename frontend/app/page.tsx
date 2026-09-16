@@ -120,7 +120,7 @@ export default function Home() {
       <Activities />
       <VideoShowcase photos={editorialPhotos} />
 
-      <PropertyCarousel title="Les hébergements que les clients préfèrent" items={loved} />
+      <PropertyCarousel title="Les établissements à la une" items={loved} />
 
       <Testimonials />
       <Footer />

@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import {
   DollarSign, ShieldCheck, FileText, Sparkles, Sun, Leaf, Snowflake,
   Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Play, Quote, Star,
+  Briefcase, Palmtree,
 } from 'lucide-react';
 import api from '@/lib/api';
 import DestinationCard, { DestinationCardData } from './DestinationCard';
@@ -41,7 +42,7 @@ export function Reveal({ children, className, delay = 0 }: { children: React.Rea
 const TRUST = [
   { icon: DollarSign, title: 'Pas de frais cachés', text: 'Tarification transparente sans frais cachés.' },
   { icon: ShieldCheck, title: 'Réservation instantanée', text: 'Confirmation par E-mail et WhatsApp juste après votre réservation.' },
-  { icon: FileText, title: 'Flexibilité', text: 'Options flexibles avec annulation gratuite sur de nombreuses annonces.' },
+  { icon: FileText, title: 'Flexibilité', text: "Annulation selon les politiques de l'hôtel." },
 ];
 
 export function TrustSection() {
@@ -235,8 +236,20 @@ export function SaveMore() {
 // Unsplash) — remplacée par du contenu réel publié par l'admin (Paramètres >
 // Découvertes). Masquée tant que rien n'est publié, même logique que
 // useTopCities() ci-dessus.
-interface DiscoverySiteApi { id: number; name: string; city: string | null; image_path: string }
-interface DiscoverySiteData { id: number; name: string; city: string | null; image: string }
+// Retour client 2026-09-16 (correction "Les destinations tendances") :
+// catégories de voyage pour filtrer les sites — distinctes des onglets
+// d'activités ci-dessous, un site peut appartenir à plusieurs.
+type SiteCategory = 'business' | 'balneaire' | 'tourisme_culture' | 'escapade_weekend';
+const SITE_TABS: { label: string; icon: typeof Compass; category: SiteCategory | 'all' }[] = [
+  { label: 'Explorer', icon: Compass, category: 'all' },
+  { label: 'Business', icon: Briefcase, category: 'business' },
+  { label: 'Balnéaires', icon: Waves, category: 'balneaire' },
+  { label: 'Tourisme et culture', icon: Landmark, category: 'tourisme_culture' },
+  { label: 'Escapade weekend', icon: Palmtree, category: 'escapade_weekend' },
+];
+
+interface DiscoverySiteApi { id: number; name: string; city: string | null; categories: SiteCategory[] | null; image_path: string }
+interface DiscoverySiteData { id: number; name: string; city: string | null; categories: SiteCategory[]; image: string }
 
 function useDiscoverySites() {
   const [sites, setSites] = useState<DiscoverySiteData[] | null>(null);
@@ -247,7 +260,7 @@ function useDiscoverySites() {
       .then((r) => {
         if (cancelled) return;
         const data: DiscoverySiteApi[] = r.data?.data ?? [];
-        setSites(data.map((s) => ({ id: s.id, name: s.name, city: s.city, image: resolveImageUrl(s.image_path) })));
+        setSites(data.map((s) => ({ id: s.id, name: s.name, city: s.city, categories: s.categories || [], image: resolveImageUrl(s.image_path) })));
       })
       .catch(() => { if (!cancelled) setSites([]); });
     return () => { cancelled = true; };
@@ -267,22 +280,43 @@ function SiteCard({ s, className = '' }: { s: DiscoverySiteData; className?: str
 }
 
 export function TopSites() {
+  const [active, setActive] = useState(0);
   const sites = useDiscoverySites();
+  const category = SITE_TABS[active].category;
 
   if (sites !== null && sites.length === 0) return null;
+
+  const filtered = sites === null ? null : (category === 'all' ? sites : sites.filter((s) => s.categories.includes(category)));
 
   return (
     <section className="container mx-auto px-4 md:px-8 max-w-7xl py-12">
       <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Principaux sites à voir</h2>
-      {sites === null ? (
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-8">
+        {SITE_TABS.map((t, i) => {
+          const Icon = t.icon;
+          const isActive = i === active;
+          return (
+            <button key={t.label} onClick={() => setActive(i)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors ${
+                isActive ? 'bg-black text-white border-black' : 'bg-white text-gray-700 border-gray-300 hover:border-black'
+              }`}>
+              <Icon className="w-4 h-4" />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+      {filtered === null ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-56 rounded-2xl skeleton" />
           ))}
         </div>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-gray-500 py-8 text-center">Aucun site dans cette catégorie pour le moment.</p>
       ) : (
         <Reveal className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-          {sites.map((s) => <SiteCard key={s.id} s={s} className="h-56" />)}
+          {filtered.map((s) => <SiteCard key={s.id} s={s} className="h-56" />)}
         </Reveal>
       )}
     </section>

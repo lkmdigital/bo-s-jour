@@ -250,8 +250,6 @@ export default function HostReservationsPage() {
             const paymentConfig = PAYMENT_CONFIG[booking.payment_status] ?? PAYMENT_CONFIG.pending;
             const nights = differenceInDays(new Date(booking.check_out), new Date(booking.check_in));
             const expired = isExpired(booking);
-            const remainingBalance = booking.total_price - (booking.amount_paid || 0);
-            const depositPaid = (booking.amount_paid || 0) >= (booking.deposit_amount || 0);
 
             return (
               <div
@@ -326,35 +324,11 @@ export default function HostReservationsPage() {
                     </div>
 
                     <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-2">
                         <DollarSign className="w-4 h-4 text-bosejour-red" />
-                        <h4 className="font-semibold text-sm text-gray-900 dark:text-white">État du paiement</h4>
+                        <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Prix de la chambre</h4>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-400 mb-1">Total</p>
-                          <p className="font-bold text-bosejour-red">{formatPrice(booking.total_price)} FCFA</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400 mb-1">Acompte</p>
-                          <p className="font-medium text-gray-800 dark:text-gray-200">{formatPrice(booking.deposit_amount || 0)} FCFA</p>
-                          {depositPaid && booking.deposit_paid_at && (
-                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                              Payé le {format(new Date(booking.deposit_paid_at), 'dd MMM yyyy', { locale: fr })}
-                            </p>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-gray-400 mb-1">Payé</p>
-                          <p className="font-medium text-gray-800 dark:text-gray-200">{formatPrice(booking.amount_paid || 0)} FCFA</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400 mb-1">Reste à payer</p>
-                          <p className={`font-medium ${remainingBalance > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
-                            {formatPrice(remainingBalance)} FCFA
-                          </p>
-                        </div>
-                      </div>
+                      <p className="font-bold text-bosejour-red">{formatPrice(booking.total_price)} FCFA</p>
                     </div>
                   </div>
 

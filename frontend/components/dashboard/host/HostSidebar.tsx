@@ -40,7 +40,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/host/promotions', label: 'Promotions', icon: Gift },
   { href: '/dashboard/host/finances', label: 'Finances', icon: Wallet },
   { href: '/dashboard/host/documents', label: 'Documents', icon: FileText },
-  { href: '/dashboard/host/staff', label: 'Personnel', icon: UserCog },
+  { href: '/dashboard/host/staff', label: 'Utilisateurs', icon: UserCog },
   { href: '/dashboard/host/stats', label: 'Statistiques', icon: BarChart3 },
   { href: '/dashboard/host/programme', label: 'Programme fidélité', icon: Award },
   // Module IA masqué le 2026-08-27 en attendant un échange avec le client (voir page.tsx correspondante)

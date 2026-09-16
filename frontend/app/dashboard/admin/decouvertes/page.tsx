@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Plus, Pencil, Trash2, X, Check, Loader2, ImagePlus } from 'lucide-react';
+import { Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Plus, Pencil, Trash2, X, Check, Loader2, ImagePlus, Briefcase, Palmtree } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/common/ToastContext';
 import { useConfirm } from '@/components/common/ConfirmContext';
@@ -26,10 +26,23 @@ const CATEGORY_OPTIONS: { value: ActivityCategory; label: string; icon: typeof C
   { value: 'vie_nocturne', label: 'Vie nocturne', icon: Moon },
 ];
 
+// Retour client 2026-09-16 (correction "Les destinations tendances") :
+// catégories de voyage pour "Principaux sites à voir" — distinctes des
+// onglets d'activités ci-dessus, un site peut appartenir à plusieurs.
+type SiteCategory = 'business' | 'balneaire' | 'tourisme_culture' | 'escapade_weekend';
+
+const SITE_CATEGORY_OPTIONS: { value: SiteCategory; label: string; icon: typeof Compass }[] = [
+  { value: 'business', label: 'Business', icon: Briefcase },
+  { value: 'balneaire', label: 'Balnéaires', icon: Waves },
+  { value: 'tourisme_culture', label: 'Tourisme et culture', icon: Landmark },
+  { value: 'escapade_weekend', label: 'Escapade weekend', icon: Palmtree },
+];
+
 interface DiscoverySite {
   id: number;
   name: string;
   city: string | null;
+  categories: SiteCategory[] | null;
   image_path: string;
   display_order: number;
   is_published: boolean;
@@ -78,6 +91,7 @@ function SitesTab() {
   const [showForm, setShowForm] = useState<null | 'new' | number>(null);
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
+  const [categories, setCategories] = useState<SiteCategory[]>([]);
   const [displayOrder, setDisplayOrder] = useState('0');
   const [isPublished, setIsPublished] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -94,6 +108,7 @@ function SitesTab() {
     setShowForm(null);
     setName('');
     setCity('');
+    setCategories([]);
     setDisplayOrder('0');
     setIsPublished(false);
     setImageFile(null);
@@ -103,9 +118,14 @@ function SitesTab() {
     setShowForm(s.id);
     setName(s.name);
     setCity(s.city || '');
+    setCategories(s.categories || []);
     setDisplayOrder(String(s.display_order));
     setIsPublished(s.is_published);
     setImageFile(null);
+  };
+
+  const toggleCategory = (c: SiteCategory) => {
+    setCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
   };
 
   const save = async () => {
@@ -116,6 +136,7 @@ function SitesTab() {
       const fd = new FormData();
       fd.append('name', name.trim());
       fd.append('city', city.trim());
+      categories.forEach((c) => fd.append('categories[]', c));
       fd.append('display_order', displayOrder || '0');
       fd.append('is_published', isPublished ? '1' : '0');
       if (imageFile) fd.append('image', imageFile);
@@ -171,6 +192,23 @@ function SitesTab() {
             <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville / région (optionnel)"
               className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
           </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1.5">Catégories (onglets de filtre)</p>
+            <div className="flex flex-wrap gap-2">
+              {SITE_CATEGORY_OPTIONS.map((c) => {
+                const Icon = c.icon;
+                const isActive = categories.includes(c.value);
+                return (
+                  <button key={c.value} type="button" onClick={() => toggleCategory(c.value)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      isActive ? 'bg-black text-white border-black' : 'bg-white text-gray-700 border-gray-300 hover:border-black'
+                    }`}>
+                    <Icon className="w-3.5 h-3.5" /> {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <label className="btn-outline text-sm inline-flex items-center gap-2 cursor-pointer">
               <ImagePlus className="w-4 h-4" /> {imageFile ? imageFile.name : 'Choisir une photo'}
@@ -204,7 +242,12 @@ function SitesTab() {
               <ImageThumb path={s.image_path} alt={s.name} />
               <div className="flex-1 min-w-[160px]">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{s.name}</p>
-                <p className="text-xs text-gray-500">{s.city || '—'} · ordre {s.display_order}</p>
+                <p className="text-xs text-gray-500">
+                  {s.city || '—'} · ordre {s.display_order}
+                  {(s.categories || []).length > 0 && (
+                    <> · {(s.categories || []).map((c) => SITE_CATEGORY_OPTIONS.find((o) => o.value === c)?.label).filter(Boolean).join(', ')}</>
+                  )}
+                </p>
               </div>
               <PublishBadge published={s.is_published} />
               <button onClick={() => openEdit(s)} className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5" title="Modifier">

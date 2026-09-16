@@ -47,7 +47,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   promotions: 'Promotions',
   finances: 'Finances',
   documents: 'Documents',
-  staff: 'Personnel',
+  staff: 'Utilisateurs',
   stats: 'Statistiques',
   ai: 'Assistant IA',
 };
@@ -155,7 +155,7 @@ export default function HostStaffPage() {
         <span className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-400 flex items-center justify-center mx-auto mb-4">
           <UserCog className="w-7 h-7" />
         </span>
-        <h1 className="text-xl font-bold mb-2">Personnel</h1>
+        <h1 className="text-xl font-bold mb-2">Utilisateurs</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm">
           Réservé au propriétaire du compte ou à un collaborateur avec le rôle Administrateur.
         </p>
@@ -168,7 +168,7 @@ export default function HostStaffPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Personnel</h1>
+        <h1 className="text-3xl font-bold">Utilisateurs</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
           Invitez des collaborateurs (réceptionniste, comptabilité, commercial, housekeeping, maintenance)
           pour gérer vos établissements à vos côtés.

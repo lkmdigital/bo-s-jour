@@ -41,6 +41,7 @@ interface DailyActivity {
   bookings: number;
   accommodations: number;
   revenue: number;
+  users_converted: number;
 }
 
 interface HostPerformance {
@@ -216,17 +217,25 @@ export default function AdminAnalyticsPage() {
                   name="Réservations"
                   dot={{ r: 4 }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="accommodations" 
-                  stroke="#f59e0b" 
+                <Line
+                  type="monotone"
+                  dataKey="accommodations"
+                  stroke="#f59e0b"
                   strokeWidth={2}
                   name="Établissements"
                   dot={{ r: 4 }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
+                <Line
+                  type="monotone"
+                  dataKey="users_converted"
+                  stroke="#ec4899"
+                  strokeWidth={2}
+                  name="Utilisateurs devenus clients"
+                  dot={{ r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
                   stroke="#8b5cf6" 
                   strokeWidth={2}
                   name="Revenus (FCFA)"

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  Check, User, Building2, ShieldCheck, Lock, Calendar, Users, ChevronRight, ChevronLeft, Mail, Phone, LogIn,
+  Check, User, Building2, ShieldCheck, Lock, Calendar, Users, ChevronRight, ChevronLeft, Mail, Phone,
   MessageCircle, Loader2,
 } from 'lucide-react';
 import api from '@/lib/api';
@@ -15,7 +15,7 @@ import { formatPrice, resolveImageUrl, cn, toDateInputValue, getRoomCategoryLabe
 import { Input } from '@/components/ui';
 import DateSelector from '@/components/booking/DateSelector';
 
-interface PaymentOptionItem { label: string; amount: number; balance_at_hotel?: number; description?: string; }
+interface PaymentOptionItem { label: string; amount: number; balance_at_hotel?: number; description?: string; discount_percent?: number; }
 interface LongStayDiscountInfo {
   subtotal: number;
   discount_percent: number;
@@ -67,7 +67,15 @@ interface LoyaltyVoucherOption {
   expires_at: string | null;
 }
 
-const STEPS = ['Récapitulatif', 'Compte', 'Voyageur', 'Coordonnées', 'Vérification'];
+// Retour client 2026-09-16 : l'étape "Compte" (choix "continuer sans
+// compte" vs "se connecter") est supprimée du tunnel — "sans compte" était
+// déjà l'option recommandée/par défaut, donc cet écran intermédiaire n'
+// apportait rien. La valeur interne `step` garde ses indices d'origine
+// (1 = Compte, jamais atteint) pour ne pas renuméroter tous les `step === N`
+// du fichier ; STEP_SEQUENCE définit les seules valeurs réellement visitées,
+// utilisées uniquement pour la position affichée dans le stepper ci-dessous.
+const STEPS = ['Récapitulatif', 'Voyageur', 'Coordonnées', 'Vérification'];
+const STEP_SEQUENCE = [0, 2, 3, 4];
 
 function policyLabel(h?: number | null) {
   const v = typeof h === 'number' ? h : 48;
@@ -158,7 +166,9 @@ export default function BookingWizard(props: Props) {
     }
   }, [checkIn, checkOut, guests, props.accommodationId, props.roomId]);
 
-  const [account, setAccount] = useState<'guest' | 'account' | null>(isAuthenticated ? 'account' : null);
+  // 'guest' par défaut (étape "Compte" supprimée du tunnel — voir STEP_SEQUENCE) :
+  // "Continuer sans compte" était déjà l'option recommandée/pré-sélectionnée.
+  const [account] = useState<'guest' | 'account'>(isAuthenticated ? 'account' : 'guest');
   const [travelerType, setTravelerType] = useState<'individual' | 'corporate'>('individual');
 
   // Coordonnées voyageur
@@ -303,7 +313,6 @@ export default function BookingWizard(props: Props) {
 
   const canNext = useMemo(() => {
     if (step === 0) return hasDates;
-    if (step === 1) return account !== null;
     if (step === 2) return true;
     if (step === 3) {
       let base = !!(firstName.trim() && lastName.trim() && email.trim() && phone.trim() && residenceCountry.trim());
@@ -324,12 +333,12 @@ export default function BookingWizard(props: Props) {
   ]);
 
   const goNext = () => {
-    // Si connecté, on saute l'étape "Compte"
-    if (step === 0 && isAuthenticated) { setStep(2); return; }
-    setStep((s) => Math.min(STEPS.length - 1, s + 1));
+    // L'étape "Compte" (index 1) est supprimée du tunnel — toujours sautée.
+    if (step === 0) { setStep(2); return; }
+    setStep((s) => Math.min(4, s + 1));
   };
   const goPrev = () => {
-    if (step === 2 && isAuthenticated) { setStep(0); return; }
+    if (step === 2) { setStep(0); return; }
     setStep((s) => Math.max(0, s - 1));
   };
 
@@ -401,8 +410,9 @@ export default function BookingWizard(props: Props) {
         {/* Stepper */}
         <ol className="flex items-center gap-2 mb-8 overflow-x-auto pb-1">
           {STEPS.map((label, i) => {
-            const done = i < step;
-            const active = i === step;
+            const displayIndex = STEP_SEQUENCE.indexOf(step);
+            const done = i < displayIndex;
+            const active = i === displayIndex;
             return (
               <li key={label} className="flex items-center gap-2 flex-shrink-0">
                 <span className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold',
@@ -535,26 +545,6 @@ export default function BookingWizard(props: Props) {
                   </>
                 )}
               </div>
-            </div>
-          )}
-
-          {/* Étape 1 — Compte */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Comment souhaitez-vous continuer ?</h2>
-              <button onClick={() => setAccount('guest')}
-                className={cn('w-full text-left rounded-2xl border-2 p-4 transition-colors', account === 'guest' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700 hover:border-primary/50')}>
-                <p className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><User className="w-5 h-5 text-primary" /> Continuer sans compte <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-primary text-white">Recommandé</span></p>
-                <p className="text-sm text-gray-500 mt-1 ml-7">Réservez rapidement. Vous pourrez créer votre espace après, vos infos seront préremplies.</p>
-              </button>
-              <div className="flex items-center gap-3">
-                <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1" /><span className="text-xs text-gray-400">ou</span><div className="h-px bg-gray-200 dark:bg-gray-700 flex-1" />
-              </div>
-              <Link href={`/auth/login?redirect=${typeof window !== 'undefined' ? encodeURIComponent(window.location.pathname + window.location.search) : ''}`}
-                className="w-full text-left rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-4 hover:border-primary/50 transition-colors flex items-center gap-2">
-                <LogIn className="w-5 h-5 text-gray-700 dark:text-gray-200" />
-                <span><span className="font-semibold text-gray-900 dark:text-white block">Se connecter</span><span className="text-sm text-gray-500">Retrouvez vos infos et vos réservations.</span></span>
-              </Link>
             </div>
           )}
 
@@ -867,7 +857,14 @@ export default function BookingWizard(props: Props) {
                 </div>
                 {onlineNow != null && (
                   <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 mt-2">
-                    <p className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1"><Lock className="w-3 h-3 text-primary" /> En ligne : {formatPrice(onlineNow)} FCFA</p>
+                    <p className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-primary" /> En ligne : {formatPrice(onlineNow)} FCFA
+                      {/* Retour client 2026-09-16 : "En ligne" (paiement intégral,
+                          remisé) affichait un montant différent du Total sans
+                          expliquer pourquoi — clarifie que c'est une remise pour
+                          paiement en ligne, pas un prix contradictoire. */}
+                      {!guarantee && full?.discount_percent ? ` (-${full.discount_percent}%)` : ''}
+                    </p>
                     {balance != null && <p className="text-[11px] text-gray-600 dark:text-gray-400">1ère nuitée garantie — solde {formatPrice(balance)} FCFA à l'arrivée.</p>}
                   </div>
                 )}

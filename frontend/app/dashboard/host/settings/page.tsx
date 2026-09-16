@@ -48,7 +48,7 @@ const CARDS: SettingsCard[] = [
   {
     href: '/dashboard/host/staff',
     icon: Users,
-    title: 'Personnel',
+    title: 'Utilisateurs',
     description: 'Collaborateurs invités et permissions par menu.',
   },
   {

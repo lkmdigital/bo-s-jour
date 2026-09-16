@@ -374,8 +374,6 @@ export default function BookingRequestsPage() {
               const PaymentConfig = getPaymentStatusBadge(booking.payment_status);
               const nights = differenceInDays(new Date(booking.check_out), new Date(booking.check_in));
               const expired = isExpired(booking);
-              const remainingBalance = booking.total_price - (booking.amount_paid || 0);
-              const depositPaid = (booking.amount_paid || 0) >= (booking.deposit_amount || 0);
 
               return (
                 <div
@@ -443,42 +441,15 @@ export default function BookingRequestsPage() {
                         </div>
                       </div>
 
-                      {/* Informations de paiement */}
+                      {/* Retour client 2026-09-16 : la vue liste ne montre plus que le
+                          prix de la chambre — le détail acompte/payé/reste à payer reste
+                          disponible sur la fiche détaillée de la réservation. */}
                       <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2 mb-2">
                           <DollarSign className="w-5 h-5 text-primary" />
-                          <h4 className="font-semibold">État du paiement</h4>
+                          <h4 className="font-semibold">Prix de la chambre</h4>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-gray-600 dark:text-gray-400 mb-1">Total</p>
-                            <p className="font-bold text-lg text-primary">{formatPrice(booking.total_price)} FCFA</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-600 dark:text-gray-400 mb-1">Acompte</p>
-                            <p className="font-medium">{formatPrice(booking.deposit_amount || 0)} FCFA</p>
-                            {depositPaid && booking.deposit_paid_at && (
-                              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                Payé le {format(new Date(booking.deposit_paid_at), 'dd MMM yyyy', { locale: fr })}
-                              </p>
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-gray-600 dark:text-gray-400 mb-1">Payé</p>
-                            <p className="font-medium">{formatPrice(booking.amount_paid || 0)} FCFA</p>
-                            {booking.payment?.purpose && (
-                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                                {booking.payment.purpose === 'deposit' ? 'Acompte' : 'Solde'}
-                              </p>
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-gray-600 dark:text-gray-400 mb-1">Reste à payer</p>
-                            <p className={`font-medium ${remainingBalance > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
-                              {formatPrice(remainingBalance)} FCFA
-                            </p>
-                          </div>
-                        </div>
+                        <p className="font-bold text-lg text-primary">{formatPrice(booking.total_price)} FCFA</p>
                       </div>
                     </div>
 
