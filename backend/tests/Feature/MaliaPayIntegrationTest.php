@@ -76,6 +76,33 @@ class MaliaPayIntegrationTest extends TestCase
     }
 
     /**
+     * Bug corrigé le 2026-09-16 (même classe de bug que celui du 2026-09-15
+     * dans updateBookingPaymentState()) : PaymentController::initiate()
+     * comparait `$booking->status === 'cancelled'` (chaîne) à un attribut
+     * casté en enum BookingStatus — toujours false en PHP, donc une
+     * réservation annulée pouvait quand même déclencher un paiement.
+     */
+    public function test_initiate_payment_refuses_a_cancelled_booking(): void
+    {
+        $this->configureMaliaPay(sandbox: true);
+
+        $traveler = User::factory()->create();
+        $booking = Booking::factory()->for($traveler)->cancelled()->create([
+            'total_price' => 50000,
+            'deposit_amount' => 50000,
+        ]);
+
+        Sanctum::actingAs($traveler);
+
+        $response = $this->postJson("/api/bookings/{$booking->id}/payment/initiate", [
+            'payment_method' => 'wave-ci',
+        ]);
+
+        $response->assertStatus(400);
+        $this->assertNull(Payment::where('booking_id', $booking->id)->first());
+    }
+
+    /**
      * Retour client 2026-09-02 (Partie 1.3) : "le site redirige directement...
      * sans confirmation visuelle sur la page" — le voyageur atterrissait sur
      * la fiche réservation générique. success_url doit pointer vers l'écran

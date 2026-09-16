@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\Accommodation;
 use App\Models\User;
@@ -625,11 +626,11 @@ class AnalyticsController extends Controller
             ->get();
 
         $upcomingBookings = $bookings->filter(function($booking) {
-            return $booking->check_in >= Carbon::now() && $booking->status === 'confirmed';
+            return $booking->check_in >= Carbon::now() && $booking->status === BookingStatus::Confirmed;
         })->values();
 
         $pastBookings = $bookings->filter(function($booking) {
-            return $booking->check_out < Carbon::now() && $booking->status === 'confirmed';
+            return $booking->check_out < Carbon::now() && $booking->status === BookingStatus::Confirmed;
         })->values();
 
         // Top rated accommodations (for recommendations)
