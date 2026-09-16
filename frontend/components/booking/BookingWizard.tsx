@@ -179,7 +179,15 @@ export default function BookingWizard(props: Props) {
   // seule la présence d'un tarif configuré par l'hôte compte.
   const [extraBreakfast, setExtraBreakfast] = useState(false);
   const [extraBreakfastQty, setExtraBreakfastQty] = useState(1);
-  const canOfferExtraBreakfast = !!props.breakfastPrice;
+  // Bug corrigé le 2026-09-16 : accommodations.breakfast_price est casté
+  // decimal:2 côté backend, donc sérialisé en JSON comme une CHAÎNE
+  // ("0.00"), pas un nombre — malgré le type TS `number | null` déclaré sur
+  // ce prop. `!!"0.00"` vaut `true` (chaîne non vide), donc l'option
+  // s'affichait pour tout établissement ayant explicitement 0 FCFA (= "ne
+  // propose pas de petit-déjeuner supplémentaire", même check que le backend
+  // à la soumission : `(float) $accommodation->breakfast_price <= 0`), avec
+  // l'erreur qui n'apparaissait qu'à la toute dernière étape du tunnel.
+  const canOfferExtraBreakfast = Number(props.breakfastPrice) > 0;
   useEffect(() => {
     if (!canOfferExtraBreakfast) setExtraBreakfast(false);
   }, [canOfferExtraBreakfast]);
