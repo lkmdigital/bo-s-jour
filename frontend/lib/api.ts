@@ -122,9 +122,26 @@ api.interceptors.response.use(
         const hadSession = wasAuthenticated();
         markAuthenticated(false);
 
+        // Bug corrigé le 2026-09-16 : /me est le "bootstrap" passif que
+        // authStore.checkAuth() interroge sur CHAQUE page pour savoir si un
+        // cookie de session valide existe encore — checkAuth() gère déjà
+        // lui-même un 401 sans rediriger (il repasse simplement en
+        // isAuthenticated:false, "Se connecter" s'affiche). Mais cet
+        // intercepteur s'exécute AVANT le .catch() de l'appelant : si
+        // `wasAuthenticated()` était resté vrai (session expirée/cookie
+        // effacé sans passer par logout()), CE 401 déclenchait quand même
+        // la redirection forcée — même sur une page librement consultable
+        // sans compte (ex. réservation "invité"), d'où un mur de connexion
+        // qui apparaissait "partout", y compris au retour depuis la page de
+        // paiement d'une réservation invité. /me ne doit jamais forcer cette
+        // redirection : seule une action explicite sur une route protégée
+        // doit le faire.
+        const requestUrl = String(error.config?.url || '');
+        const isAuthBootstrapCheck = /\/me(\?|$)/.test(requestUrl);
+
         // Rediriger uniquement si l'utilisateur avait une session
         // Cela signifie que sa session a expiré ou qu'il a été déconnecté
-        if (hadSession) {
+        if (hadSession && !isAuthBootstrapCheck) {
           const currentPath = window.location.pathname;
           if (!currentPath.startsWith('/auth/')) {
             window.location.href = `/auth/login?redirect=${encodeURIComponent(currentPath)}`;

@@ -119,12 +119,16 @@ export default function BookingDetailPage() {
   const { showError } = useToast();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/auth/login');
-      return;
-    }
+    if (isLoading) return;
 
-    // Vérifier si on vient d'un paiement réussi
+    // Bug corrigé le 2026-09-16 : cette page redirigeait systématiquement
+    // vers /auth/login pour tout visiteur non authentifié — y compris un
+    // voyageur en réservation "invité" (sans compte), qui n'a justement
+    // aucun identifiant pour se connecter. Le backend (BookingController::
+    // show()) autorise déjà explicitement l'accès sans authentification
+    // pour ce cas, tout comme la page de paiement (bookings/[id]/payment) —
+    // ce garde-fou n'avait donc plus lieu d'être : "Retour à la réservation"
+    // depuis la page de paiement d'un invité tombait sur ce mur de connexion.
     const paymentSuccess = searchParams?.get('payment') === 'success';
     if (paymentSuccess) {
       setShowReceipt(true);
@@ -134,16 +138,8 @@ export default function BookingDetailPage() {
       }, 500);
     }
 
-    // Rediriger les hôtes qui accèdent directement à /bookings/[id] depuis une source externe
-    // vers leur page de réservations si nécessaire
-    if (!isLoading && isAuthenticated && user?.role === 'host') {
-      // On laisse passer pour charger la réservation, mais on vérifiera après si c'est bien leur réservation
-    }
-
-    if (isAuthenticated) {
-      fetchBooking();
-    }
-  }, [params.id, isAuthenticated, isLoading, user, router, searchParams]);
+    fetchBooking();
+  }, [params.id, isLoading, user, router, searchParams]);
 
   const fetchBooking = async () => {
     try {
@@ -295,9 +291,22 @@ export default function BookingDetailPage() {
                        booking.accommodation.images?.[0]?.url || 
                        'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800';
 
-  // S'assurer que user est chargé avant de déterminer le rôle
+  // S'assurer que user est chargé avant de déterminer le rôle. Un visiteur
+  // non authentifié (réservation "invité", sans compte) est traité comme un
+  // voyageur ici : cette page est son seul accès à sa réservation (pas de
+  // tableau de bord sans compte), et le backend autorise déjà explicitement
+  // la consultation sans authentification pour ce cas (BookingController::
+  // show()) — sans ce repli, un invité voyait sa réservation mais aucun
+  // bouton "Payer"/"Annuler" (bug corrigé le 2026-09-16, avec la suppression
+  // du mur de connexion forcé sur cette même page).
   const isHost = !isLoading && user?.role === 'host';
-  const isUser = !isLoading && user?.role === 'user';
+  const isUser = !isLoading && (user?.role === 'user' || !user);
+  // Un invité peut payer/annuler ici (voir isUser ci-dessus), mais pas
+  // laisser un avis avec ce formulaire : celui-ci appelle l'endpoint
+  // authentifié POST /reviews — les invités disposent d'un circuit dédié par
+  // lien à token (POST /reviews/submit-by-token, envoyé après le séjour), pas
+  // de ce formulaire.
+  const isLoggedInTraveler = !isLoading && user?.role === 'user';
   const statusConfig = {
     awaiting_host_confirmation: {
       label: "À confirmer",
@@ -776,7 +785,7 @@ export default function BookingDetailPage() {
             )}
 
             {/* Formulaire d'évaluation */}
-            {!isLoading && isUser && isPast && booking.status === 'confirmed' && booking.payment_status === 'paid' && (
+            {!isLoading && isLoggedInTraveler && isPast && booking.status === 'confirmed' && booking.payment_status === 'paid' && (
               <div className="card">
                 <h3 className="text-xl font-bold mb-4">Laisser un avis</h3>
                 {hasReview ? (
