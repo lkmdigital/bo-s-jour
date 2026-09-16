@@ -225,7 +225,9 @@ export default function BookingsPage() {
             <div className="space-y-4">
               {bookings.map((booking) => {
               const isPast = new Date(booking.check_out) < new Date();
-              const needsPayment = booking.payment_status === 'pending' && !isPast;
+              // Retour client 2026-09-16 : pas de paiement possible tant que
+              // l'hôte n'a pas confirmé la disponibilité.
+              const needsPayment = booking.status === 'pending' && booking.payment_status === 'pending' && !isPast;
               
               return (
                 <div

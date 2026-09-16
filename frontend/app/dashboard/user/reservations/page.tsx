@@ -29,7 +29,8 @@ interface Booking {
 type Tab = 'upcoming' | 'past' | 'cancelled';
 
 const STATUS: Record<string, { label: string; cls: string }> = {
-  pending: { label: 'En attente', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' },
+  awaiting_host_confirmation: { label: "À confirmer par l'hôte", cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400' },
+  pending: { label: 'En attente de paiement', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' },
   confirmed: { label: 'Confirmée', cls: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' },
   cancelled: { label: 'Annulée', cls: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' },
   completed: { label: 'Terminée', cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
@@ -170,8 +171,13 @@ export default function MemberReservationsPage() {
           <div className="space-y-4">
             {list.map((b) => {
               const isFuture = new Date(b.check_out) >= new Date();
-              const needsPayment = b.payment_status === 'pending' && b.status !== 'cancelled' && isFuture;
-              const canCancel = (b.status === 'pending' || b.status === 'confirmed') && isFuture;
+              // Retour client 2026-09-16 : tant que l'hôte n'a pas confirmé la
+              // disponibilité (awaiting_host_confirmation), aucun paiement
+              // n'est possible — sans cette exclusion, le CTA "Payer" (qui
+              // renvoie à une page désormais bloquée côté backend) s'affichait
+              // à tort dès la soumission de la demande.
+              const needsPayment = b.payment_status === 'pending' && b.status === 'pending' && isFuture;
+              const canCancel = (b.status === 'awaiting_host_confirmation' || b.status === 'pending' || b.status === 'confirmed') && isFuture;
 
               return (
                 <div key={b.id} className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">

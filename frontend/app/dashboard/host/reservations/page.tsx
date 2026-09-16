@@ -34,7 +34,7 @@ interface BookingRequest {
   total_price: number;
   deposit_amount: number;
   amount_paid: number;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: 'awaiting_host_confirmation' | 'pending' | 'confirmed' | 'cancelled';
   payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
   expires_at?: string;
   deposit_paid_at?: string;
@@ -47,7 +47,8 @@ interface BookingRequest {
 }
 
 const STATUS_CONFIG = {
-  pending: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400', icon: Clock },
+  awaiting_host_confirmation: { label: 'À confirmer', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400', icon: AlertCircle },
+  pending: { label: 'En attente de paiement', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400', icon: Clock },
   confirmed: { label: 'Confirmée', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400', icon: CheckCircle },
   cancelled: { label: 'Annulée', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400', icon: XCircle },
 };
@@ -64,7 +65,7 @@ export default function HostReservationsPage() {
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'awaiting_host_confirmation' | 'pending' | 'confirmed' | 'cancelled'>('all');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending' | 'paid' | 'failed'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, per_page: 10, current_page: 1, last_page: 1 });
@@ -122,24 +123,36 @@ export default function HostReservationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, paymentFilter]);
 
-  const handleStatusChange = async (bookingId: number, newStatus: 'confirmed' | 'cancelled', reason?: string) => {
-    if (newStatus === 'confirmed') {
-      const ok = await confirmAction({ title: 'Confirmer la réservation', message: 'Confirmer cette réservation ?', confirmLabel: 'Confirmer', cancelLabel: 'Annuler' });
-      if (!ok) return;
-    }
-    if (newStatus === 'cancelled') {
-      const cancelReason = reason || prompt('Raison du refus (indisponibilité, etc.) :') || 'Indisponibilité';
-      if (!cancelReason) return;
-      const ok = await confirmAction({ title: 'Refuser la réservation', message: `Refuser cette réservation ?\nRaison : ${cancelReason}`, confirmLabel: 'Refuser', cancelLabel: 'Annuler', variant: 'danger' });
-      if (!ok) return;
-    }
+  // Retour client 2026-09-16 : "confirmation hôte avant paiement" — endpoints
+  // dédiés approve()/refuse() au lieu du PUT générique (voir requests/page.tsx
+  // pour le contexte complet de ce changement).
+  const handleApprove = async (bookingId: number) => {
+    const ok = await confirmAction({ title: 'Confirmer la disponibilité', message: 'Confirmer la disponibilité pour cette demande ? Le voyageur sera invité à payer.', confirmLabel: 'Confirmer', cancelLabel: 'Annuler' });
+    if (!ok) return;
 
     setUpdatingId(bookingId);
     try {
-      await api.put(`/bookings/${bookingId}`, { status: newStatus, cancellation_reason: newStatus === 'cancelled' ? reason : undefined });
+      await api.post(`/bookings/${bookingId}/approve`);
       await fetchBookings();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la mise à jour');
+      setError(err.response?.data?.message || 'Erreur lors de la confirmation');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleRefuse = async (bookingId: number, reason?: string) => {
+    const refuseReason = reason || prompt('Raison du refus (indisponibilité, etc.) :') || 'Indisponibilité';
+    if (!refuseReason) return;
+    const ok = await confirmAction({ title: 'Refuser la demande', message: `Refuser cette demande ?\nRaison : ${refuseReason}`, confirmLabel: 'Refuser', cancelLabel: 'Annuler', variant: 'danger' });
+    if (!ok) return;
+
+    setUpdatingId(bookingId);
+    try {
+      await api.post(`/bookings/${bookingId}/refuse`, { reason: refuseReason });
+      await fetchBookings();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erreur lors du refus');
     } finally {
       setUpdatingId(null);
     }
@@ -150,8 +163,8 @@ export default function HostReservationsPage() {
     return new Date(booking.expires_at) < new Date();
   };
 
-  const pendingCount = bookings.filter((b) => b.status === 'pending').length;
-  const unpaidCount = bookings.filter((b) => b.payment_status === 'pending' && b.status !== 'cancelled').length;
+  const pendingCount = bookings.filter((b) => b.status === 'awaiting_host_confirmation').length;
+  const unpaidCount = bookings.filter((b) => b.status === 'pending' && b.payment_status === 'pending').length;
 
   return (
     <div className="space-y-6">
@@ -186,7 +199,7 @@ export default function HostReservationsPage() {
           <span className="text-sm font-medium">Filtres :</span>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {(['all', 'pending', 'confirmed', 'cancelled'] as const).map((status) => (
+          {(['all', 'awaiting_host_confirmation', 'pending', 'confirmed', 'cancelled'] as const).map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
@@ -244,7 +257,7 @@ export default function HostReservationsPage() {
               <div
                 key={booking.id}
                 className={`bg-white dark:bg-gray-800 rounded-xl border p-5 ${
-                  expired && booking.status === 'pending' ? 'border-red-300 dark:border-red-700' : 'border-gray-100 dark:border-gray-700'
+                  expired && (booking.status === 'pending' || booking.status === 'awaiting_host_confirmation') ? 'border-red-300 dark:border-red-700' : 'border-gray-100 dark:border-gray-700'
                 }`}
               >
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -354,18 +367,18 @@ export default function HostReservationsPage() {
                       Voir les détails
                     </Link>
 
-                    {booking.status === 'pending' && !expired && (
+                    {booking.status === 'awaiting_host_confirmation' && !expired && (
                       <>
                         <button
-                          onClick={() => handleStatusChange(booking.id, 'confirmed')}
+                          onClick={() => handleApprove(booking.id)}
                           disabled={updatingId === booking.id}
                           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-bosejour-red text-white font-medium text-sm hover:opacity-90 disabled:opacity-50"
                         >
                           <CheckCircle className="w-4 h-4" />
-                          {updatingId === booking.id ? 'Traitement...' : 'Valider'}
+                          {updatingId === booking.id ? 'Traitement...' : 'Confirmer la disponibilité'}
                         </button>
                         <button
-                          onClick={() => handleStatusChange(booking.id, 'cancelled', 'Indisponibilité')}
+                          onClick={() => handleRefuse(booking.id, 'Indisponibilité')}
                           disabled={updatingId === booking.id}
                           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-medium text-sm hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
                         >
@@ -375,9 +388,18 @@ export default function HostReservationsPage() {
                       </>
                     )}
 
-                    {expired && booking.status === 'pending' && (
+                    {expired && booking.status === 'awaiting_host_confirmation' && (
                       <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p className="text-xs text-red-800 dark:text-red-400">Réservation expirée (paiement non effectué dans les 48h)</p>
+                        <p className="text-xs text-red-800 dark:text-red-400">Demande expirée (aucune réponse dans le délai imparti)</p>
+                      </div>
+                    )}
+
+                    {booking.status === 'pending' && (
+                      <div className={`p-3 rounded-lg border ${expired ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}>
+                        <p className={`text-xs font-medium ${expired ? 'text-red-800 dark:text-red-400' : 'text-yellow-800 dark:text-yellow-400'}`}>Disponibilité confirmée</p>
+                        <p className={`text-xs mt-1 ${expired ? 'text-red-700 dark:text-red-500' : 'text-yellow-700 dark:text-yellow-500'}`}>
+                          {expired ? "Expirée : paiement non effectué dans le délai imparti." : 'En attente du paiement du voyageur.'}
+                        </p>
                       </div>
                     )}
 

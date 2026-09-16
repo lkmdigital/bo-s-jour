@@ -47,7 +47,7 @@ interface BookingDetail {
   total_price: number;
   deposit_amount: number;
   amount_paid: number;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'awaiting_host_confirmation' | 'pending' | 'confirmed' | 'cancelled' | 'completed';
   payment_status: string;
   display_status_label?: string;
   display_payment_status_label?: string;
@@ -99,7 +99,8 @@ const NOTIFICATION_CHANNEL_LABEL: Record<string, string> = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  pending: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' },
+  awaiting_host_confirmation: { label: "À confirmer par l'hôte", color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400' },
+  pending: { label: 'En attente de paiement', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' },
   confirmed: { label: 'Confirmée', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' },
   cancelled: { label: 'Annulée', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' },
   completed: { label: 'Terminée', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' },

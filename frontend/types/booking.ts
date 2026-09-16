@@ -1,4 +1,4 @@
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
+export type BookingStatus = 'awaiting_host_confirmation' | 'pending' | 'confirmed' | 'cancelled' | 'completed';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'guarantee_paid' | 'cancelled';
 
 export interface Booking {
@@ -100,6 +100,11 @@ export interface BookingCreatePayload {
 
 // Labels et couleurs par statut
 export const BOOKING_STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; bg: string }> = {
+  awaiting_host_confirmation: {
+    label: "En attente de confirmation de l'hôte",
+    color: 'text-orange-800 dark:text-orange-400',
+    bg: 'bg-orange-100 dark:bg-orange-900/20',
+  },
   pending: {
     label: 'En attente',
     color: 'text-yellow-800 dark:text-yellow-400',

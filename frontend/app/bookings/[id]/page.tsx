@@ -54,11 +54,12 @@ interface BookingDetail {
   deposit_amount?: number;
   amount_paid?: number;
   payment_type?: 'full' | 'guarantee';
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: 'awaiting_host_confirmation' | 'pending' | 'confirmed' | 'cancelled';
   payment_status?: 'pending' | 'paid' | 'failed' | 'refunded';
   confirmation_code?: string | null;
   booking_number?: string | null;
   checked_in_at?: string | null;
+  expires_at?: string | null;
   special_requests?: string;
   created_at: string;
   accommodation: {
@@ -215,37 +216,44 @@ export default function BookingDetailPage() {
     }
   };
 
-  const handleStatusChange = async (newStatus: 'confirmed' | 'cancelled') => {
-    if (newStatus === 'confirmed') {
-      const ok = await confirmAction({
-        title: 'Confirmer la réservation',
-        message: 'Confirmer cette réservation ?',
-        confirmLabel: 'Confirmer',
-        cancelLabel: 'Annuler',
-      });
-      if (!ok) return;
-    }
-    if (newStatus === 'cancelled') {
-      const ok = await confirmAction({
-        title: 'Refuser la réservation',
-        message: 'Refuser cette réservation ?',
-        confirmLabel: 'Refuser',
-        cancelLabel: 'Annuler',
-        variant: 'danger',
-      });
-      if (!ok) return;
-    }
+  // Retour client 2026-09-16 : "confirmation hôte avant paiement" — endpoints
+  // dédiés approve()/refuse() au lieu du PUT générique {status:...}.
+  const handleApprove = async () => {
+    const ok = await confirmAction({
+      title: 'Confirmer la disponibilité',
+      message: 'Confirmer la disponibilité pour cette demande ? Le voyageur sera invité à payer.',
+      confirmLabel: 'Confirmer',
+      cancelLabel: 'Annuler',
+    });
+    if (!ok) return;
 
     setUpdating(true);
     try {
-      await api.put(`/bookings/${params.id}`, {
-        status: newStatus
-      });
-      await fetchBooking(); // Rafraîchir les données
+      await api.post(`/bookings/${params.id}/approve`);
+      await fetchBooking();
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 
-                          'Erreur lors de la mise à jour';
-      showError(errorMessage);
+      showError(err.response?.data?.message || 'Erreur lors de la confirmation');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleRefuse = async () => {
+    const ok = await confirmAction({
+      title: 'Refuser la demande',
+      message: 'Refuser cette demande ?',
+      confirmLabel: 'Refuser',
+      cancelLabel: 'Annuler',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
+    setUpdating(true);
+    try {
+      await api.post(`/bookings/${params.id}/refuse`, { reason: 'Indisponibilité' });
+      await fetchBooking();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Erreur lors du refus');
     } finally {
       setUpdating(false);
     }
@@ -291,11 +299,17 @@ export default function BookingDetailPage() {
   const isHost = !isLoading && user?.role === 'host';
   const isUser = !isLoading && user?.role === 'user';
   const statusConfig = {
+    awaiting_host_confirmation: {
+      label: "À confirmer",
+      color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
+      icon: AlertCircle,
+      description: isHost ? 'Demande en attente de votre confirmation de disponibilité' : "Votre demande est en attente de confirmation par l'hôte",
+    },
     pending: {
-      label: 'En attente',
+      label: 'En attente de paiement',
       color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
       icon: Clock,
-      description: isHost ? 'Réservation en attente de confirmation' : 'Votre réservation est en attente de confirmation',
+      description: isHost ? 'Disponibilité confirmée, en attente du paiement du voyageur' : 'Disponibilité confirmée — finalisez votre paiement pour confirmer votre réservation',
     },
     confirmed: {
       label: 'Confirmée',
@@ -313,7 +327,7 @@ export default function BookingDetailPage() {
 
   const status = statusConfig[booking.status as keyof typeof statusConfig];
   const StatusIcon = status?.icon || Clock;
-  const canCancel = booking.status === 'pending' || booking.status === 'confirmed';
+  const canCancel = booking.status === 'awaiting_host_confirmation' || booking.status === 'pending' || booking.status === 'confirmed';
   const isPast = new Date(booking.check_out) < new Date();
 
   return (
@@ -584,25 +598,32 @@ export default function BookingDetailPage() {
             {/* Actions */}
             {!isLoading && isHost ? (
               // Actions pour l'hôte uniquement
-              booking.status === 'pending' && !isPast ? (
+              booking.status === 'awaiting_host_confirmation' && !isPast ? (
                 <div className="card">
                   <h3 className="text-xl font-bold mb-4">Actions</h3>
                   <div className="space-y-2">
                     <button
-                      onClick={() => handleStatusChange('confirmed')}
+                      onClick={handleApprove}
                       disabled={updating}
                       className="w-full btn-primary disabled:opacity-50"
                     >
-                      {updating ? 'Traitement...' : 'Confirmer la réservation'}
+                      {updating ? 'Traitement...' : 'Confirmer la disponibilité'}
                     </button>
                     <button
-                      onClick={() => handleStatusChange('cancelled')}
+                      onClick={handleRefuse}
                       disabled={updating}
                       className="w-full btn-outline text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
                     >
-                      {updating ? 'Traitement...' : 'Refuser la réservation'}
+                      {updating ? 'Traitement...' : 'Refuser la demande'}
                     </button>
                   </div>
+                </div>
+              ) : booking.status === 'pending' && !isPast ? (
+                <div className="card">
+                  <h3 className="text-xl font-bold mb-4">Actions</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                    Disponibilité confirmée — en attente du paiement du voyageur.
+                  </p>
                 </div>
               ) : booking.status === 'confirmed' && !isPast ? (
                 <div className="card">
@@ -615,8 +636,33 @@ export default function BookingDetailPage() {
             ) : !isLoading && isUser ? (
               // Actions pour le client uniquement
               <>
+                {/* Retour client 2026-09-16 : "confirmation hôte avant
+                    paiement" — tant que l'hôte n'a pas confirmé la
+                    disponibilité, aucune action de paiement n'est proposée
+                    (le payment_status reste "pending" à ce stade, comme une
+                    fois l'hôte a confirmé — ce bloc dédié évite d'afficher un
+                    bouton "Payer maintenant" prématuré). */}
+                {booking.status === 'awaiting_host_confirmation' && (
+                  <div className="card">
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-orange-500" />
+                      Statut de votre demande
+                    </h3>
+                    <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+                      <p className="text-sm text-orange-800 dark:text-orange-400">
+                        Votre demande est en attente de confirmation par l'hôte. Vous serez invité à payer dès qu'elle sera acceptée.
+                      </p>
+                      {booking.expires_at && (
+                        <p className="text-xs text-orange-700 dark:text-orange-500 mt-2">
+                          Réponse attendue avant le {format(new Date(booking.expires_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Statut de paiement */}
-                {booking.payment_status && (
+                {booking.status !== 'awaiting_host_confirmation' && booking.payment_status && (
                   <div className="card">
                     <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                       Statut de paiement

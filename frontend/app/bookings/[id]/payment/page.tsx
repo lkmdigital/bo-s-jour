@@ -140,6 +140,16 @@ export default function BookingPaymentPage() {
         router.push(`/bookings/${params.id}`);
         return;
       }
+      // Retour client 2026-09-16 : "confirmation hôte avant paiement" — tant
+      // que l'hôte n'a pas confirmé la disponibilité, cette page ne doit pas
+      // être accessible (le backend refuserait de toute façon l'initiation du
+      // paiement). Redirige vers la fiche réservation, qui affiche l'état
+      // d'attente et sera aussi la cible du lien de la notification "payez
+      // maintenant" une fois l'hôte aura confirmé.
+      if (bookingData.status === 'awaiting_host_confirmation') {
+        router.push(`/bookings/${params.id}`);
+        return;
+      }
 
       setBooking(bookingData);
       setPaymentType('full');
