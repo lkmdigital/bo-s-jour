@@ -43,6 +43,11 @@ class AdminDiscoveryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'city' => 'nullable|string|max:255',
+            // Retour client 2026-09-16 : catégories de voyage (mêmes principe
+            // que discovery_activities.categories — un site peut appartenir à
+            // plusieurs), pour filtrer "Les destinations tendances".
+            'categories' => 'nullable|array',
+            'categories.*' => 'string|in:business,balneaire,tourisme_culture,escapade_weekend',
             'display_order' => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
             'image' => 'required|file|image|max:5120',
@@ -53,6 +58,7 @@ class AdminDiscoveryController extends Controller
         $site = DiscoverySite::create([
             'name' => $validated['name'],
             'city' => $validated['city'] ?? null,
+            'categories' => $validated['categories'] ?? [],
             'display_order' => $validated['display_order'] ?? 0,
             'is_published' => $request->boolean('is_published', false),
             'image_path' => Storage::url($path),
@@ -70,12 +76,14 @@ class AdminDiscoveryController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'city' => 'nullable|string|max:255',
+            'categories' => 'nullable|array',
+            'categories.*' => 'string|in:business,balneaire,tourisme_culture,escapade_weekend',
             'display_order' => 'nullable|integer|min:0',
             'is_published' => 'nullable|boolean',
             'image' => 'nullable|file|image|max:5120',
         ]);
 
-        $updateData = array_intersect_key($validated, array_flip(['name', 'city', 'display_order']));
+        $updateData = array_intersect_key($validated, array_flip(['name', 'city', 'categories', 'display_order']));
         if ($request->has('is_published')) {
             $updateData['is_published'] = $request->boolean('is_published');
         }

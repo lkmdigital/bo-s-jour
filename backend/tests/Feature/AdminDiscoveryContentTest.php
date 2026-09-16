@@ -101,6 +101,32 @@ class AdminDiscoveryContentTest extends TestCase
         Storage::disk('public')->assertMissing($path);
     }
 
+    public function test_admin_can_create_a_site_with_categories(): void
+    {
+        Sanctum::actingAs($this->admin());
+
+        $response = $this->postJson('/api/admin/discovery/sites', [
+            'name' => 'Grand-Bassam',
+            'city' => 'Grand-Bassam',
+            'categories' => ['balneaire', 'escapade_weekend'],
+            'is_published' => true,
+            'image' => UploadedFile::fake()->image('bassam.jpg'),
+        ])->assertCreated();
+
+        $this->assertSame(['balneaire', 'escapade_weekend'], $response->json('data.categories'));
+    }
+
+    public function test_site_category_must_be_a_known_tab(): void
+    {
+        Sanctum::actingAs($this->admin());
+
+        $this->postJson('/api/admin/discovery/sites', [
+            'name' => 'Test',
+            'categories' => ['inconnu'],
+            'image' => UploadedFile::fake()->image('t.jpg'),
+        ])->assertStatus(422);
+    }
+
     public function test_public_endpoint_only_returns_published_activities(): void
     {
         DiscoveryActivity::create(['name' => 'Plage de Grand-Bassam', 'categories' => ['plage'], 'image_path' => '/storage/discovery/activities/a.jpg', 'is_published' => true]);

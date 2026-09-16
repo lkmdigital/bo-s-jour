@@ -250,20 +250,36 @@ class AdminDashboardController extends Controller
 
         $data = [];
 
+        // Retour client 2026-09-16 : "Utilisateur devient Clients" — nombre
+        // d'utilisateurs dont le PREMIER paiement complété tombe ce jour-là
+        // (conversion inscrit → client payant), pas juste "paiements reçus ce
+        // jour" (déjà couvert par `revenue`) qui compterait aussi les clients
+        // déjà convertis auparavant. Une seule requête groupée hors de la
+        // boucle par jour plutôt qu'une requête par jour.
+        $firstPaymentByDay = Payment::where('status', 'completed')
+            ->whereNotNull('paid_at')
+            ->select('user_id', DB::raw('MIN(paid_at) as first_paid_at'))
+            ->groupBy('user_id')
+            ->get()
+            ->groupBy(fn ($p) => Carbon::parse($p->first_paid_at)->format('Y-m-d'))
+            ->map(fn ($group) => $group->count());
+
         // Parcourir chaque jour
         $currentDate = $startDate->copy();
         while ($currentDate <= $endDate) {
             $dayStart = $currentDate->copy()->startOfDay();
             $dayEnd = $currentDate->copy()->endOfDay();
+            $dayKey = $currentDate->format('Y-m-d');
 
             $data[] = [
-                'date' => $currentDate->format('Y-m-d'),
+                'date' => $dayKey,
                 'users' => User::whereBetween('created_at', [$dayStart, $dayEnd])->count(),
                 'bookings' => Booking::whereBetween('created_at', [$dayStart, $dayEnd])->count(),
                 'accommodations' => Accommodation::whereBetween('created_at', [$dayStart, $dayEnd])->count(),
                 'revenue' => Payment::where('status', 'completed')
                     ->whereBetween('created_at', [$dayStart, $dayEnd])
                     ->sum('amount'),
+                'users_converted' => $firstPaymentByDay->get($dayKey, 0),
             ];
 
             $currentDate->addDay();
