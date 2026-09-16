@@ -11,6 +11,7 @@ use App\Models\ClientCredit;
 use App\Models\Room;
 use App\Models\RoomAvailability;
 use Carbon\Carbon;
+use App\Mail\BookingApprovedPleasePay;
 use App\Mail\BookingConfirmation;
 use App\Mail\HostNewBooking;
 use Illuminate\Support\Facades\DB;
@@ -52,7 +53,16 @@ class BookingService
                 // nettoyage planifié), une réservation pending ne bloque plus.
                 $q->whereIn('status', BookingStatus::occupying())
                     ->orWhere(function ($pending) {
-                        $pending->where('status', BookingStatus::Pending->value)
+                        // Retour client 2026-09-16 : le parcours "confirmation
+                        // hôte avant paiement" ajoute une étape avant Pending —
+                        // une demande en attente de décision de l'hôte doit
+                        // bloquer la chambre au même titre qu'une réservation
+                        // pending non expirée, sinon deux voyageurs pourraient
+                        // demander les mêmes dates pendant que l'hôte décide.
+                        $pending->whereIn('status', [
+                            BookingStatus::Pending->value,
+                            BookingStatus::AwaitingHostConfirmation->value,
+                        ])
                             ->where(function ($notExpired) {
                                 $notExpired->whereNull('expires_at')->orWhere('expires_at', '>', now());
                             });
@@ -321,6 +331,65 @@ class BookingService
     }
 
     /**
+     * L'hôte confirme la disponibilité — le voyageur peut désormais payer.
+     * Retour client 2026-09-16 : parcours "confirmation hôte avant paiement".
+     * NE génère PAS le code de confirmation et NE bloque PAS les dates : ces
+     * deux effets restent exclusivement liés au paiement effectif (Confirmed,
+     * via confirm() / PaymentController::markConfirmedIfPending()).
+     */
+    public function approveAvailability(Booking $booking, ?int $actorId = null): Booking
+    {
+        $previousExpiresAt = $booking->expires_at;
+
+        DB::transaction(function () use ($booking, $actorId, $previousExpiresAt) {
+            $this->transition($booking, BookingStatus::Pending, 'host_approved', $actorId, null, [
+                'previous_expires_at' => $previousExpiresAt?->toIso8601String(),
+            ]);
+
+            // Réarme le délai de paiement (même fenêtre de 48h qu'aujourd'hui,
+            // simplement décalée dans le temps — la demande n'était jusqu'ici
+            // soumise qu'au délai de réponse de l'hôte).
+            $booking->update(['expires_at' => now()->addHours(48)]);
+        });
+
+        $booking->load(['user', 'accommodation.host', 'room']);
+
+        if ($booking->user?->email) {
+            try {
+                Mail::to($booking->user->email)->send(new BookingApprovedPleasePay($booking));
+                \App\Models\NotificationLog::record($booking->id, 'booking_approved', 'email', 'traveler', $booking->user->email, true);
+            } catch (\Throwable $e) {
+                Log::error('Booking approved email (traveler) failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+                \App\Models\NotificationLog::record($booking->id, 'booking_approved', 'email', 'traveler', $booking->user->email, false, $e->getMessage());
+            }
+        }
+
+        try {
+            $sms = app(\App\Services\SmsService::class);
+            $sms->sendApprovedPleasePayToClient($booking);
+            \App\Models\NotificationLog::record($booking->id, 'booking_approved', 'sms', 'traveler', $booking->user?->phone, true);
+        } catch (\Throwable $e) {
+            Log::error('Booking approved SMS failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+            \App\Models\NotificationLog::record($booking->id, 'booking_approved', 'sms', 'traveler', $booking->user?->phone, false, $e->getMessage());
+        }
+
+        try {
+            app(\App\Services\WhatsAppService::class)->sendApprovedPleasePay($booking);
+            \App\Models\NotificationLog::record($booking->id, 'booking_approved', 'whatsapp', 'traveler', $booking->user?->phone, true);
+        } catch (\Throwable $e) {
+            Log::error('Booking approved WhatsApp failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+            \App\Models\NotificationLog::record($booking->id, 'booking_approved', 'whatsapp', 'traveler', $booking->user?->phone, false, $e->getMessage());
+        }
+
+        Log::info('Booking availability approved by host', [
+            'booking_id' => $booking->id,
+            'actor_id' => $actorId,
+        ]);
+
+        return $booking->fresh();
+    }
+
+    /**
      * Marquer une réservation comme No Show (absence de check-in).
      * L'établissement conserve l'acompte : aucun remboursement ni avoir.
      */
@@ -433,7 +502,8 @@ class BookingService
         BookingStatus $to,
         string $action,
         ?int $actorId,
-        ?string $note = null
+        ?string $note = null,
+        ?array $meta = null
     ): void {
         if (!$booking->canTransitionTo($to)) {
             throw new InvalidBookingTransitionException(
@@ -443,7 +513,7 @@ class BookingService
 
         $from = $booking->status;
         $booking->update(['status' => $to->value]);
-        $this->logHistory($booking, $from, $to, $action, $actorId, $note);
+        $this->logHistory($booking, $from, $to, $action, $actorId, $note, $meta);
     }
 
     public function logHistory(

@@ -85,6 +85,35 @@ class Message extends Model
         ]);
     }
 
+    /**
+     * Nouvelle DEMANDE de réservation — distincte de notifyHostNewBooking
+     * (réservation déjà confirmée). Retour client 2026-09-16 : l'hôte doit
+     * confirmer la disponibilité avant tout paiement.
+     */
+    public static function notifyHostNewRequest(Booking $booking): void
+    {
+        $hostId = $booking->accommodation?->host_id;
+        if (!$hostId) {
+            return;
+        }
+        $accommodationName = $booking->accommodation?->name ?? 'votre établissement';
+        $checkIn = $booking->check_in ? $booking->check_in->format('d/m/Y') : '—';
+        $checkOut = $booking->check_out ? $booking->check_out->format('d/m/Y') : '—';
+        $deadline = $booking->expires_at ? $booking->expires_at->format('d/m/Y à H:i') : '—';
+
+        self::create([
+            'recipient_id' => $hostId,
+            'sender_id' => null,
+            'is_from_platform' => true,
+            'subject' => 'Nouvelle demande de réservation — à confirmer',
+            'body' => "Un voyageur souhaite réserver " . $accommodationName . ".\n\n"
+                . "Séjour du " . $checkIn . " au " . $checkOut . " — " . ($booking->guests ?? 1) . " voyageur(s).\n\n"
+                . "Merci de confirmer la disponibilité avant le " . $deadline . " (sinon la demande sera annulée automatiquement).\n\n"
+                . "Demande #" . $booking->id . ".",
+            'booking_id' => $booking->id,
+        ]);
+    }
+
     public static function notifyHostBookingModified(Booking $booking, string $summary = ''): void
     {
         $hostId = $booking->accommodation?->host_id;

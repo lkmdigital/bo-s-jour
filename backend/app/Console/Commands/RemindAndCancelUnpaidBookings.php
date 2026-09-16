@@ -20,7 +20,14 @@ class RemindAndCancelUnpaidBookings extends Command
         $now = now();
 
         // 1) Rappels : réservations non payées, non annulées, créées il y a plus de 2 jours
-        $remindBookings = Booking::where('status', '!=', 'cancelled')
+        //
+        // Retour client 2026-09-16 : sans filtre explicite de statut, une
+        // réservation encore "awaiting_host_confirmation" (le voyageur n'a
+        // même pas encore été invité à payer) tombait dans ce même lot que
+        // "pending" (payable) — elle recevait alors à tort un rappel "soldez
+        // votre réservation". `whereIn` explicite plutôt qu'une exclusion,
+        // pour rester sûr si un futur statut est ajouté.
+        $remindBookings = Booking::whereIn('status', ['pending', 'confirmed'])
             ->whereNotIn('payment_status', ['paid', 'guarantee_paid'])
             ->where('created_at', '<=', $now->clone()->subDays(2))
             ->where('check_in', '>', $now) // uniquement celles à venir
@@ -62,7 +69,12 @@ class RemindAndCancelUnpaidBookings extends Command
         }
 
         // 2) Annulation : réservations non payées à J-1 (ou aujourd'hui) de l'arrivée
-        $cancelBookings = Booking::where('status', '!=', 'cancelled')
+        //
+        // Même correctif qu'au-dessus : une réservation encore
+        // "awaiting_host_confirmation" ne doit pas être annulée ici avec le
+        // message "faute de paiement" — son propre délai (host_response_deadline)
+        // est déjà géré par CancelExpiredBookings via expires_at.
+        $cancelBookings = Booking::whereIn('status', ['pending', 'confirmed'])
             ->whereNotIn('payment_status', ['paid', 'guarantee_paid'])
             ->whereBetween('check_in', [$now, $now->clone()->addDay()])
             ->with(['user'])

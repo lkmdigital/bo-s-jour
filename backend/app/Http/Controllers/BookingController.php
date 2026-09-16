@@ -10,6 +10,7 @@ use App\Models\Message;
 use App\Models\NotificationLog;
 use App\Models\Promotion;
 use App\Models\Room;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\BookingService;
 use App\Services\PaymentOptionsService;
@@ -356,7 +357,14 @@ class BookingController extends Controller
                 ->where(function ($q) {
                     $q->whereIn('status', BookingStatus::occupying())
                         ->orWhere(function ($pending) {
-                            $pending->where('status', BookingStatus::Pending->value)
+                            // Une demande encore en attente de décision de
+                            // l'hôte bloque aussi la chambre, au même titre
+                            // qu'une réservation pending non expirée (retour
+                            // client 2026-09-16).
+                            $pending->whereIn('status', [
+                                BookingStatus::Pending->value,
+                                BookingStatus::AwaitingHostConfirmation->value,
+                            ])
                                 ->where(function ($notExpired) {
                                     $notExpired->whereNull('expires_at')->orWhere('expires_at', '>', now());
                                 });
@@ -524,6 +532,20 @@ class BookingController extends Controller
             $corporateOwnerId = $membership?->owner_id;
         }
 
+        // Retour client 2026-09-16 : parcours "confirmation hôte avant
+        // paiement" — une réservation démarre en attente de l'hôte, pas
+        // directement payable, sauf paiement différé Corporate (validé sur
+        // facture, inchangé) ou si l'interrupteur est désactivé (rollback
+        // instantané sans déploiement en cas de souci de réactivité des hôtes).
+        $isDeferredCorporate = $request->traveler_type === 'corporate' && $request->boolean('deferred_payment');
+        $hostApprovalRequired = (bool) Setting::get('host_approval_required', true);
+        $initialStatus = (!$isDeferredCorporate && $hostApprovalRequired)
+            ? BookingStatus::AwaitingHostConfirmation
+            : BookingStatus::Pending;
+        $initialExpiresInHours = $initialStatus === BookingStatus::AwaitingHostConfirmation
+            ? max(1, (int) Setting::get('host_response_deadline_hours', 24))
+            : 48;
+
         // ─── ANTI-SURBOOKING TRANSACTIONNEL ──────────────────────────────────
         // Le verrou, la vérification ET la création sont dans la même transaction
         // pour garantir qu'aucune autre requête concurrente ne peut s'intercaler.
@@ -532,7 +554,7 @@ class BookingController extends Controller
             $request, $room, $accommodation, $user, $bookedForThirdParty,
             $totalPrice, $basePrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion, $loyaltyVoucher,
             $extraBreakfastQuantity, $extraBreakfastUnitPrice, $extraBreakfastTotal, $roomsQuantity,
-            $breakfastMenuSelection
+            $breakfastMenuSelection, $isDeferredCorporate, $initialStatus, $initialExpiresInHours
         ) {
             if ($room) {
                 Room::lockForUpdate()->findOrFail($room->id);
@@ -578,7 +600,7 @@ class BookingController extends Controller
                 'base_price' => $basePrice,
                 'deposit_amount' => $depositAmount,
                 'amount_paid' => 0,
-                'status' => 'pending',
+                'status' => $initialStatus->value,
                 'payment_status' => 'pending',
                 'is_non_refundable' => $isNonRefundable,
                 'cancellation_policy_hours_snapshot' => $cancellationHours,
@@ -603,9 +625,9 @@ class BookingController extends Controller
                 'corporate_owner_id' => $corporateOwnerId,
                 'deferred_payment' => $request->traveler_type === 'corporate' && $request->boolean('deferred_payment'),
                 // Paiement différé Corporate : la réservation est validée sur facture (pas d'expiration 48h)
-                'expires_at' => ($request->traveler_type === 'corporate' && $request->boolean('deferred_payment'))
+                'expires_at' => $isDeferredCorporate
                     ? null
-                    : now()->addHours(48),
+                    : now()->addHours($initialExpiresInHours),
             ]);
 
             // NOTE: Les dates ne sont bloquées que lors de la confirmation (après paiement)
@@ -635,11 +657,53 @@ class BookingController extends Controller
         // Historique de création
         $this->bookingService->logHistory(
             $booking,
-            BookingStatus::Pending,
-            BookingStatus::Pending,
+            $booking->status,
+            $booking->status,
             'created',
             $user->id
         );
+
+        // Nouvelle demande à confirmer par l'hôte — notification best-effort,
+        // ne doit jamais faire échouer la création de la réservation elle-même.
+        if ($booking->status === BookingStatus::AwaitingHostConfirmation) {
+            $booking->load(['user', 'accommodation.host', 'room']);
+
+            if ($booking->accommodation?->host?->email) {
+                try {
+                    \Illuminate\Support\Facades\Mail::to($booking->accommodation->host->email)
+                        ->send(new \App\Mail\HostBookingRequest($booking));
+                    NotificationLog::record($booking->id, 'booking_request', 'email', 'host', $booking->accommodation->host->email, true);
+                } catch (\Throwable $e) {
+                    Log::error('Host booking request email failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+                    NotificationLog::record($booking->id, 'booking_request', 'email', 'host', $booking->accommodation->host->email, false, $e->getMessage());
+                }
+            }
+
+            try {
+                Message::notifyHostNewRequest($booking);
+                NotificationLog::record($booking->id, 'booking_request', 'in_app', 'host', null, true);
+            } catch (\Throwable $e) {
+                Log::error('Host booking request in-app notification failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+                NotificationLog::record($booking->id, 'booking_request', 'in_app', 'host', null, false, $e->getMessage());
+            }
+
+            try {
+                $sms = app(\App\Services\SmsService::class);
+                $sms->sendNewRequestNotificationToHost($booking);
+                NotificationLog::record($booking->id, 'booking_request', 'sms', 'host', $booking->accommodation?->host?->phone, true);
+            } catch (\Throwable $e) {
+                Log::error('Host booking request SMS failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+                NotificationLog::record($booking->id, 'booking_request', 'sms', 'host', $booking->accommodation?->host?->phone, false, $e->getMessage());
+            }
+
+            try {
+                app(\App\Services\WhatsAppService::class)->sendNewRequestNotification($booking);
+                NotificationLog::record($booking->id, 'booking_request', 'whatsapp', 'host', $booking->accommodation?->host?->phone, true);
+            } catch (\Throwable $e) {
+                Log::error('Host booking request WhatsApp failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+                NotificationLog::record($booking->id, 'booking_request', 'whatsapp', 'host', $booking->accommodation?->host?->phone, false, $e->getMessage());
+            }
+        }
 
         return response()->json($booking->load(['accommodation', 'room']), 201);
     }
@@ -691,7 +755,19 @@ class BookingController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        if (!in_array($booking->status, ['pending', 'confirmed'])) {
+        // Bug corrigé le 2026-09-16 : comparait $booking->status (casté en
+        // enum BookingStatus) à des chaînes brutes via in_array() — toujours
+        // false en PHP quel que soit le statut réel, donc cet endpoint
+        // renvoyait systématiquement 422 depuis l'introduction de l'enum
+        // (même famille de bug que celui corrigé le 2026-09-15 dans
+        // PaymentController). AwaitingHostConfirmation ajouté : c'est
+        // désormais le cas d'usage principal (hôte refusant une demande avant
+        // tout paiement, retour client 2026-09-16).
+        if (!in_array($booking->status, [
+            \App\Enums\BookingStatus::AwaitingHostConfirmation,
+            \App\Enums\BookingStatus::Pending,
+            \App\Enums\BookingStatus::Confirmed,
+        ], true)) {
             return response()->json(['message' => 'Cette réservation ne peut pas être refusée.'], 422);
         }
 
@@ -709,6 +785,31 @@ class BookingController extends Controller
             'message' => $booking->refund_amount > 0
                 ? 'Demande refusée. Le voyageur sera remboursé automatiquement sous 24h.'
                 : 'Demande refusée.',
+        ]);
+    }
+
+    /**
+     * L'hôte (ou l'admin) confirme la disponibilité d'une demande en attente
+     * — le voyageur pourra alors payer pour la finaliser. Retour client
+     * 2026-09-16 : parcours "confirmation hôte avant paiement".
+     */
+    public function approve(Request $request, Booking $booking): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->isAdmin() && $booking->accommodation?->host_id !== $user->hostScopeId()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if ($booking->status !== BookingStatus::AwaitingHostConfirmation) {
+            return response()->json(['message' => "Cette réservation n'est plus en attente de confirmation."], 422);
+        }
+
+        $booking = $this->bookingService->approveAvailability($booking, $user->id);
+
+        return response()->json([
+            'booking' => $booking,
+            'message' => 'Disponibilité confirmée. Le voyageur est invité à payer pour finaliser sa réservation.',
         ]);
     }
 
@@ -826,13 +927,13 @@ class BookingController extends Controller
         }
 
         // ── Confirmation ───────────────────────────────────────────────────────
+        // Retour client 2026-09-16 : les actions self-service de l'hôte sur
+        // une demande sont désormais approve()/refuse() (avant paiement) —
+        // ce chemin générique reste réservé à l'admin (forcer une
+        // confirmation, avec ou sans paiement, comme avant).
         if ($request->status === 'confirmed') {
             if (!$request->user()->isAdmin()) {
-                if (!$booking->isPaid()) {
-                    return response()->json([
-                        'message' => 'Veuillez d\'abord effectuer le paiement.',
-                    ], 400);
-                }
+                return response()->json(['message' => 'Forbidden'], 403);
             }
 
             $confirmedWithoutPayment = $request->user()->isAdmin() && !$booking->isPaid();

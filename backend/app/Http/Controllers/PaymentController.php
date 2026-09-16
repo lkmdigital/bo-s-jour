@@ -83,7 +83,16 @@ class PaymentController extends Controller
             }
 
             // Vérifier que la réservation n'est pas annulée ou expirée
-            if ($booking->status === 'cancelled' || $booking->isExpired()) {
+            //
+            // Bug corrigé le 2026-09-16 : comparait $booking->status (casté en
+            // enum BookingStatus depuis les tout premiers commits) à la
+            // chaîne brute 'cancelled' via === — toujours false en PHP quel
+            // que soit le statut réel (même famille de bug corrigée le
+            // 2026-09-15 dans updateBookingPaymentState() : `===`/`in_array()`
+            // entre un attribut casté en enum et une chaîne ne matche jamais).
+            // Conséquence en production : une réservation ANNULÉE pouvait
+            // encore être payée si elle n'était pas expirée.
+            if ($booking->status === BookingStatus::Cancelled || $booking->isExpired()) {
                 \Log::info('Payment initiation: Booking unavailable', [
                     'booking_id' => $booking->id,
                     'status' => $booking->status,
@@ -91,6 +100,15 @@ class PaymentController extends Controller
                 ]);
                 return response()->json([
                     'message' => 'Cette réservation n\'est plus disponible'
+                ], 400);
+            }
+
+            // Retour client 2026-09-16 : parcours "confirmation hôte avant
+            // paiement" — le voyageur ne peut payer qu'une fois l'hôte a
+            // confirmé la disponibilité (statut passé à Pending).
+            if ($booking->status === BookingStatus::AwaitingHostConfirmation) {
+                return response()->json([
+                    'message' => "Votre demande est en attente de confirmation par l'hôte. Vous pourrez payer une fois qu'elle sera acceptée.",
                 ], 400);
             }
 

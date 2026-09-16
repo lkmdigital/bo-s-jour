@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\BookingStatus;
+use App\Jobs\SendBookingCancellation;
 use App\Models\Booking;
 use App\Models\RoomAvailability;
 use App\Services\CancellationPolicyService;
@@ -32,6 +34,11 @@ class CancelExpiredBookings extends Command
         $cancelled = 0;
 
         foreach ($bookings as $booking) {
+            // Capturé AVANT la mise à jour : détermine si cette réservation
+            // expirait en attente de l'hôte (retour client 2026-09-16) ou
+            // selon le cas existant (pending non payée après 48h).
+            $wasAwaitingHost = $booking->status === BookingStatus::AwaitingHostConfirmation;
+
             DB::transaction(function () use ($booking, &$cancelled) {
                 $booking->update([
                     'status' => 'cancelled',
@@ -58,6 +65,18 @@ class CancelExpiredBookings extends Command
 
                 $cancelled++;
             });
+
+            // Ce cas précis (délai de réponse hôte dépassé) notifie le
+            // voyageur — contrairement au cas existant "48h sans paiement"
+            // qui reste silencieux (comportement pré-existant, hors périmètre
+            // de ce correctif). Dispatché hors transaction : un échec de
+            // notification ne doit jamais annuler l'annulation elle-même.
+            if ($wasAwaitingHost) {
+                dispatch(new SendBookingCancellation(
+                    $booking->fresh(),
+                    "L'hôte n'a pas répondu à votre demande dans le délai imparti."
+                ))->onQueue('notifications');
+            }
         }
 
         $this->info("{$cancelled} réservation(s) ont été annulées pour non-paiement.");

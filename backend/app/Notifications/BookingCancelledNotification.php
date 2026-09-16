@@ -29,10 +29,20 @@ class BookingCancelledNotification extends Notification implements ShouldQueue
 
     public function toDatabase(object $notifiable): array
     {
+        // Retour client 2026-09-16 : le refus hôte et l'expiration du délai de
+        // réponse (parcours "confirmation hôte avant paiement") annulent
+        // désormais couramment une réservation AVANT tout paiement, donc
+        // AVANT que confirmation_code n'existe (généré uniquement à
+        // Confirmed) — sans ce repli, le message affichait "Réservation #
+        // annulée." (code vide).
+        $reference = $this->booking->confirmation_code
+            ?: $this->booking->booking_number
+            ?: (string) $this->booking->id;
+
         return [
             'type'       => 'booking_cancelled',
             'booking_id' => $this->booking->id,
-            'message'    => "Réservation #{$this->booking->confirmation_code} annulée.",
+            'message'    => "Réservation #{$reference} annulée.",
             'reason'     => $this->reason,
         ];
     }

@@ -124,6 +124,47 @@ class SmsService
     }
 
     /**
+     * SMS de nouvelle DEMANDE de réservation à l'hôte (à confirmer, distinct
+     * de sendBookingNotificationToHost qui suppose une réservation confirmée).
+     */
+    public function sendNewRequestNotificationToHost($booking): bool
+    {
+        $phone = $booking->accommodation?->host?->phone;
+        if (empty($phone)) {
+            return false;
+        }
+
+        $place    = $booking->accommodation?->name ?? 'votre hébergement';
+        $checkIn  = $booking->check_in ? \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') : '';
+        $checkOut = $booking->check_out ? \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') : '';
+
+        $message = "Bosejour : nouvelle demande de reservation pour {$place} du {$checkIn} au {$checkOut}."
+            . " Merci de confirmer la disponibilite depuis votre espace hote.";
+
+        return $this->send($phone, $message);
+    }
+
+    /**
+     * SMS au voyageur : l'hôte a confirmé la disponibilité, invitation à payer.
+     */
+    public function sendApprovedPleasePayToClient($booking): bool
+    {
+        $phone = $booking->user?->phone;
+        if (empty($phone)) {
+            return false;
+        }
+
+        $place    = $booking->accommodation?->name ?? 'votre hébergement';
+        $checkIn  = $booking->check_in ? \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') : '';
+        $checkOut = $booking->check_out ? \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') : '';
+
+        $message = "Bosejour : votre demande pour {$place} du {$checkIn} au {$checkOut} est acceptee !"
+            . " Payez maintenant pour finaliser votre reservation.";
+
+        return $this->send($phone, $message);
+    }
+
+    /**
      * Normaliser un numéro ivoirien / international au format E.164.
      */
     private function normalizeNumber(string $number): string

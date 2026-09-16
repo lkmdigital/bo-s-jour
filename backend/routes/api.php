@@ -341,6 +341,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     Route::put('/bookings/{id}', [BookingController::class, 'update']);
     Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('throttle:5,1,booking-cancel');
     Route::post('/bookings/{booking}/refuse', [BookingController::class, 'refuse'])->middleware(['role:host,admin', 'throttle:10,1,booking-refuse']);
+    Route::post('/bookings/{booking}/approve', [BookingController::class, 'approve'])->middleware(['role:host,admin', 'throttle:10,1,booking-approve']);
     Route::post('/bookings/{booking}/complete', [BookingController::class, 'complete'])->middleware('role:host,admin');
     Route::get('/bookings/{booking}/history', [BookingController::class, 'history']);
     Route::get('/bookings/{id}/messages', [BookingMessageController::class, 'index'])->where('id', '[0-9]+');
