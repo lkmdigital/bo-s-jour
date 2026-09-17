@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -677,22 +677,31 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Zones d'ancrage possibles pour les bulles flottantes, en dehors de la zone
-// centrale occupée par la citation principale — chaque bulle en tire une au
-// hasard à chaque cycle, avec un léger tremblement pour ne jamais réapparaître
-// exactement au même endroit.
+// Zones d'ancrage possibles pour les bulles flottantes : toujours sous le
+// titre "Voyons ce que les gens pensent de boséjour" (jamais au-dessus de
+// 22%) et sur les bords gauche/droite pour ne jamais chevaucher la citation
+// centrale. Retour client 2026-09-17 : deux bulles ne doivent jamais
+// partager le même endroit — chaque bulle réserve son index de zone dans
+// `occupiedRef` (partagé entre les 3 instances) tant qu'elle est visible, et
+// ne pioche que parmi les zones encore libres.
 const FLOAT_ZONES = [
-  { top: 16, left: 2 },
-  { top: 16, left: 72 },
-  { top: 45, left: 1 },
-  { top: 45, left: 73 },
-  { top: 74, left: 4 },
-  { top: 74, left: 68 },
+  { top: 22, left: 2 },
+  { top: 22, left: 74 },
+  { top: 48, left: 1 },
+  { top: 48, left: 75 },
+  { top: 76, left: 4 },
+  { top: 76, left: 70 },
 ];
 
-function randomZone() {
-  const z = pickRandom(FLOAT_ZONES);
-  const jitter = () => (Math.random() - 0.5) * 4;
+function pickFreeZoneIndex(occupied: Set<number>): number {
+  const all = FLOAT_ZONES.map((_, i) => i);
+  const free = all.filter((i) => !occupied.has(i));
+  return pickRandom(free.length > 0 ? free : all);
+}
+
+function zonePosition(index: number) {
+  const z = FLOAT_ZONES[index];
+  const jitter = () => (Math.random() - 0.5) * 2;
   return { top: `${z.top + jitter()}%`, left: `${z.left + jitter()}%` };
 }
 
@@ -712,15 +721,18 @@ function randomDrift() {
  * disparaît en rétrécissant — avant qu'une autre (autre avis, autre
  * position) ne prenne sa place. Chaque instance tourne sur son propre
  * timing, complètement indépendant des deux autres et de la citation
- * principale (pas d'intervalle partagé).
+ * principale (pas d'intervalle partagé). Reste visible 6s pile (durée fixe
+ * demandée par le client — seul le délai avant la prochaine apparition
+ * reste aléatoire, pour ne pas que les 3 bulles se resynchronisent).
  */
-function FloatingTestimonial({ pool }: { pool: TestimonialItem[] }) {
+function FloatingTestimonial({ pool, occupiedRef }: { pool: TestimonialItem[]; occupiedRef: React.MutableRefObject<Set<number>> }) {
   const [current, setCurrent] = useState<null | {
     key: number;
     item: TestimonialItem;
     pos: { top: string; left: string };
     drift: ReturnType<typeof randomDrift>;
   }>(null);
+  const zoneRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (pool.length === 0) return;
@@ -731,19 +743,27 @@ function FloatingTestimonial({ pool }: { pool: TestimonialItem[] }) {
     const showNext = () => {
       if (cancelled) return;
       keySeq += 1;
-      setCurrent({ key: keySeq, item: pickRandom(pool), pos: randomZone(), drift: randomDrift() });
-      const visibleFor = 5000 + Math.random() * 4000;
+      const zoneIndex = pickFreeZoneIndex(occupiedRef.current);
+      occupiedRef.current.add(zoneIndex);
+      zoneRef.current = zoneIndex;
+      setCurrent({ key: keySeq, item: pickRandom(pool), pos: zonePosition(zoneIndex), drift: randomDrift() });
       timer = setTimeout(() => {
         if (cancelled) return;
+        occupiedRef.current.delete(zoneIndex);
+        zoneRef.current = null;
         setCurrent(null);
         const hiddenFor = 1200 + Math.random() * 2800;
         timer = setTimeout(showNext, hiddenFor);
-      }, visibleFor);
+      }, 6000);
     };
 
     timer = setTimeout(showNext, Math.random() * 4000);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [pool]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      if (zoneRef.current !== null) occupiedRef.current.delete(zoneRef.current);
+    };
+  }, [pool, occupiedRef]);
 
   return (
     <div className="hidden md:block absolute inset-0 pointer-events-none z-0">
@@ -771,13 +791,13 @@ function FloatingTestimonial({ pool }: { pool: TestimonialItem[] }) {
   );
 }
 
-/** Citation centrale, plus grande que les bulles flottantes, change toutes les 4s (timing indépendant). */
+/** Citation centrale, plus grande que les bulles flottantes, change toutes les 5s (timing indépendant). */
 function MainTestimonial({ pool }: { pool: TestimonialItem[] }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (pool.length <= 1) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % pool.length), 4000);
+    const id = setInterval(() => setIndex((i) => (i + 1) % pool.length), 5000);
     return () => clearInterval(id);
   }, [pool.length]);
 
@@ -808,6 +828,7 @@ export function Testimonials() {
   const { showError } = useToast();
   const fetched = useTestimonialsFeed();
   const pool = useMemo(() => [...SEED_TESTIMONIALS, ...(fetched || [])], [fetched]);
+  const occupiedZonesRef = useRef<Set<number>>(new Set());
 
   const [showForm, setShowForm] = useState(false);
   const [comment, setComment] = useState('');
@@ -838,17 +859,20 @@ export function Testimonials() {
       <div className="relative bg-gray-50 dark:bg-gray-800/40 rounded-3xl px-6 py-14 min-h-[560px] overflow-hidden">
         <p className="relative z-10 text-center text-gray-500 mb-8">Voyons ce que les gens pensent de <Brand /></p>
 
-        <FloatingTestimonial pool={pool} />
-        <FloatingTestimonial pool={pool} />
-        <FloatingTestimonial pool={pool} />
+        <FloatingTestimonial pool={pool} occupiedRef={occupiedZonesRef} />
+        <FloatingTestimonial pool={pool} occupiedRef={occupiedZonesRef} />
+        <FloatingTestimonial pool={pool} occupiedRef={occupiedZonesRef} />
 
         <MainTestimonial pool={pool} />
+      </div>
 
-        <div className="relative z-10 flex justify-center mt-10">
-          <button type="button" onClick={openForm} className="btn-outline text-sm inline-flex items-center gap-2 bg-white dark:bg-gray-900">
-            <MessageSquarePlus className="w-4 h-4" /> Laissez un avis sur boséjour
-          </button>
-        </div>
+      {/* Retour client 2026-09-17 : le bouton doit être juste sous l'espace
+          commentaires, pas dessus — sorti du cadre plutôt qu'empilé dans son
+          padding bas, pour ne jamais chevaucher une bulle flottante. */}
+      <div className="flex justify-center mt-6">
+        <button type="button" onClick={openForm} className="btn-outline text-sm inline-flex items-center gap-2 bg-white dark:bg-gray-900">
+          <MessageSquarePlus className="w-4 h-4" /> Laissez un avis sur boséjour
+        </button>
       </div>
 
       {showForm && (
