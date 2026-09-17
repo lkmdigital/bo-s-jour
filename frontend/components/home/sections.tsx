@@ -677,18 +677,17 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Zones d'ancrage possibles pour les bulles flottantes : une bande sous le
-// titre (jamais au-dessus de 20%) et une bande tout en bas, en dehors de la
-// bande centrale où vit la citation principale — retour client 2026-09-17,
-// aucune bulle ne doit apparaître sous le commentaire principal. Deux bulles
-// ne doivent jamais partager le même endroit — chaque bulle réserve son
-// index de zone dans `occupiedRef` (partagé entre les instances) tant
-// qu'elle est visible, et ne pioche que parmi les zones encore libres.
+// Zones d'ancrage possibles pour les bulles flottantes : retour client
+// 2026-09-17, elles ne doivent occuper que l'espace du bas (jamais sous le
+// titre, jamais au niveau de la citation principale) — uniquement une bande
+// tout en bas, avec 3 positions possibles pour varier. Deux bulles ne
+// doivent jamais partager le même endroit — chaque bulle réserve son index
+// de zone dans `occupiedRef` (partagé entre les instances) tant qu'elle est
+// visible, et ne pioche que parmi les zones encore libres.
 const FLOAT_ZONES = [
-  { top: 20, left: 2 },
-  { top: 20, left: 74 },
-  { top: 78, left: 4 },
-  { top: 78, left: 68 },
+  { top: 80, left: 3 },
+  { top: 80, left: 36 },
+  { top: 80, left: 68 },
 ];
 
 function pickFreeZoneIndex(occupied: Set<number>): number {
@@ -725,9 +724,10 @@ function randomDrift() {
  * disparaît en rétrécissant — avant qu'une autre (autre avis, autre
  * position) ne prenne sa place. Chaque instance tourne sur son propre
  * timing, complètement indépendant des autres et de la citation principale
- * (pas d'intervalle partagé). Reste visible 6s pile (durée fixe demandée
- * par le client — seul le délai avant la prochaine apparition reste
- * aléatoire, pour ne pas que les bulles se resynchronisent).
+ * (pas d'intervalle partagé). Reste visible 10s pile (retour client
+ * 2026-09-17 : elles disparaissaient trop vite à 6s — durée fixe, seul le
+ * délai avant la prochaine apparition reste aléatoire, pour ne pas que les
+ * bulles se resynchronisent).
  */
 function FloatingTestimonial({
   pool,
@@ -774,7 +774,7 @@ function FloatingTestimonial({
         setCurrent(null);
         const hiddenFor = 1200 + Math.random() * 2800;
         timer = setTimeout(showNext, hiddenFor);
-      }, 6000);
+      }, 10000);
     };
 
     timer = setTimeout(showNext, Math.random() * 4000);
