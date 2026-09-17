@@ -172,9 +172,9 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
         {/* Formulaire (chevauche les onglets) */}
         <form onSubmit={handleSubmit} className="-mt-6 bg-white rounded-3xl shadow-2xl px-2 pt-8 pb-2">
           <div className="flex flex-col lg:flex-row lg:items-stretch">
-            {/* Emplacement */}
+            {/* Destination */}
             <div className="flex-[1.4] px-5 py-3 lg:border-r border-gray-200">
-              <p className="text-[15px] font-semibold text-gray-900 mb-0.5">Emplacement</p>
+              <p className="text-[15px] font-semibold text-gray-900 mb-0.5">Destination</p>
               <SearchInputWithAutocomplete
                 value={city || search}
                 onChange={(value, kind, extra) => {
@@ -189,12 +189,12 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
               />
             </div>
 
-            {/* Enregistrement (arrivée) */}
-            <DateField label="Enregistrement" value={checkIn} min={today}
+            {/* Arrivée */}
+            <DateField label="Arrivée" value={checkIn} min={today}
               onChange={(v) => { setCheckIn(v); if (checkOut && v && checkOut < v) setCheckOut(''); }} />
 
-            {/* Vérifier (départ) */}
-            <DateField label="Vérifier" value={checkOut} min={minCheckOut} disabled={!checkIn}
+            {/* Départ */}
+            <DateField label="Départ" value={checkOut} min={minCheckOut} disabled={!checkIn}
               onChange={setCheckOut} />
 
             {/* Bouton Rechercher */}
