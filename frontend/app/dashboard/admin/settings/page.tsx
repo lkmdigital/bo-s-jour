@@ -90,7 +90,7 @@ export default function AdminSettingsHubPage() {
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || user?.role !== 'admin')) {
-      router.push('/auth/login');
+      router.push('/dashboard/admin/login');
     }
   }, [isLoading, isAuthenticated, user, router]);
 

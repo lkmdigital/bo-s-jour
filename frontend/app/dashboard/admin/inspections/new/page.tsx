@@ -36,7 +36,7 @@ export default function NewInspectionPage() {
     if (!isLoading && isAuthenticated && user) {
       // Rediriger les non-autorisés vers la page de login
       if (!isAdminOrController(user)) {
-        router.push('/auth/login');
+        router.push('/dashboard/admin/login');
       }
     }
   }, [isAuthenticated, isLoading, user, router]);

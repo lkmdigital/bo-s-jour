@@ -77,7 +77,7 @@ export default function AdminComptabilitePage() {
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !isAdminOrController(user))) {
-      router.push('/auth/login');
+      router.push('/dashboard/admin/login');
     }
   }, [isAuthenticated, isLoading, user, router]);
 

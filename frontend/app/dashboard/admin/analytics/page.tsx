@@ -89,7 +89,7 @@ export default function AdminAnalyticsPage() {
       }
       // Rediriger les non-admins vers la page de login
       if (!isAdmin(user)) {
-        router.push('/auth/login');
+        router.push('/dashboard/admin/login');
       }
     }
   }, [isAuthenticated, isLoading, user, router]);

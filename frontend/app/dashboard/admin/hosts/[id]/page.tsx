@@ -132,7 +132,7 @@ export default function AdminHostDetailPage() {
         return;
       }
       if (!isAdmin(user)) {
-        router.push('/auth/login');
+        router.push('/dashboard/admin/login');
       }
     }
   }, [isAuthenticated, isLoading, user, router]);

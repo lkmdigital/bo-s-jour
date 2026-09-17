@@ -154,7 +154,12 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/auth/login');
+    // Bug corrigé le 2026-09-17 : redirigeait vers /auth/login, le portail
+    // voyageurs/partenaires — celui-ci rejette les comptes admin ("Ce
+    // portail est réservé aux voyageurs et aux partenaires."), ce qui
+    // donnait l'impression de revenir sans arrêt sur un écran de
+    // connexion étranger après déconnexion.
+    router.push('/dashboard/admin/login');
   };
 
   return (

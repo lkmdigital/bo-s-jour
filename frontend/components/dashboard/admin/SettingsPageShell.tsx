@@ -21,7 +21,7 @@ export default function SettingsPageShell({ icon: Icon, title, description, chil
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || user?.role !== 'admin')) {
-      router.push('/auth/login');
+      router.push('/dashboard/admin/login');
     }
   }, [isLoading, isAuthenticated, user, router]);
 

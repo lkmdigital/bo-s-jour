@@ -124,7 +124,7 @@ export default function InspectionDetailPage() {
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || !isAdminOrController(user))) {
-      router.push('/auth/login');
+      router.push('/dashboard/admin/login');
     }
   }, [isAuthenticated, isLoading, user, router]);
 

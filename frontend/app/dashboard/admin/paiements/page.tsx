@@ -181,7 +181,7 @@ export default function AdminPaiementsPage() {
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !isAdminOrController(user))) {
-      router.push('/auth/login');
+      router.push('/dashboard/admin/login');
     }
   }, [isAuthenticated, isLoading, user, router]);
 

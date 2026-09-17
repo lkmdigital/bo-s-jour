@@ -60,7 +60,7 @@ export default function AdminInspectionsPage() {
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || (!isAdmin(user) && !isController(user)))) {
-      router.push('/auth/login');
+      router.push('/dashboard/admin/login');
     }
   }, [isAuthenticated, isLoading, user, router]);
 

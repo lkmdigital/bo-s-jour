@@ -35,7 +35,7 @@ export default function AdminReviewsPage() {
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !isAdmin(user))) {
-      router.push('/auth/login');
+      router.push('/dashboard/admin/login');
     }
   }, [isAuthenticated, isLoading, user, router]);
 
