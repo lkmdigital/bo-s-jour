@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Brand from '@/components/common/Brand';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import { formatPrice } from '@/lib/utils';
 import DateRangeFilter, { useDefaultDateRange } from '@/components/common/DateRangeFilter';
@@ -250,7 +251,7 @@ export default function HostFinancesPage() {
                       <th className="text-left py-2 px-3">Date</th>
                       <th className="text-left py-2 px-3">Hébergement</th>
                       <th className="text-right py-2 px-3">Montant brut</th>
-                      <th className="text-right py-2 px-3">Commission BoSéjour</th>
+                      <th className="text-right py-2 px-3">Commission <Brand /></th>
                       <th className="text-right py-2 px-3">Net à reverser</th>
                       <th className="text-center py-2 px-3">Statut</th>
                     </tr>

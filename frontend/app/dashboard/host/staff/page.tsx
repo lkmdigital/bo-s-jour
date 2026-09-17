@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Brand from '@/components/common/Brand';
 import {
   UserCog, UserPlus, Trash2, Check, X, Loader2, ShieldCheck,
 } from 'lucide-react';
@@ -242,7 +243,7 @@ export default function HostStaffPage() {
               <button type="button" onClick={() => setShowInvite(false)} className="text-sm text-gray-500 hover:underline">Annuler</button>
             </div>
             <p className="text-xs text-gray-400">
-              S&apos;il a déjà un compte BoSéjour, une invitation lui est tout de même envoyée pour créer son
+              S&apos;il a déjà un compte <Brand />, une invitation lui est tout de même envoyée pour créer son
               accès collaborateur (distinct de son compte voyageur). Il ne verra que les menus cochés
               ci-dessus et n&apos;a jamais accès à vos coordonnées bancaires ni aux retraits.
             </p>

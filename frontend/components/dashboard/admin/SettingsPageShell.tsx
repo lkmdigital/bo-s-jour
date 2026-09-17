@@ -10,7 +10,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 interface Props {
   icon: LucideIcon;
   title: string;
-  description: string;
+  description: ReactNode;
   children: ReactNode;
 }
 

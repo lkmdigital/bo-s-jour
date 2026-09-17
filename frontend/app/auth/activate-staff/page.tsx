@@ -9,6 +9,7 @@ import { markAuthenticated } from '@/lib/tokenStorage';
 import { useAuthStore } from '@/stores/authStore';
 import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
+import Brand from '@/components/common/Brand';
 
 interface InvitationInfo {
   name: string;
@@ -94,7 +95,7 @@ function ActivateStaffContent() {
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Activez votre accès</h1>
                 <p className="text-sm text-gray-500 mt-1 mb-6">
                   <strong>{info.owner_name}</strong> vous invite en tant que <strong>{info.role_label}</strong>.
-                  Choisissez un mot de passe pour accéder à son espace BoSéjour.
+                  Choisissez un mot de passe pour accéder à son espace <Brand />.
                 </p>
 
                 {error && (

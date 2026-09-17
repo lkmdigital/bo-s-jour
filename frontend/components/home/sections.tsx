@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -12,6 +12,7 @@ import {
 import api from '@/lib/api';
 import DestinationCard, { DestinationCardData } from './DestinationCard';
 import { cn, resolveImageUrl } from '@/lib/utils';
+import Brand from '@/components/common/Brand';
 
 /** Image Unsplash (le domaine est autorisé + images non optimisées) */
 const img = (id: string, w = 800) =>
@@ -53,7 +54,7 @@ export function TrustSection() {
         transition={{ duration: 0.5 }}
         className="text-2xl md:text-3xl font-bold text-center text-gray-900 dark:text-white mb-14"
       >
-        Pourquoi les voyageurs font confiance à BoSéjour ?
+        Pourquoi les voyageurs font confiance à <Brand /> ?
       </motion.h2>
 
       <div className="relative">
@@ -198,10 +199,10 @@ const SAVE_OFFERS = [
   { title: 'Spécial week-end', text: 'Bénéficiez de 12 % de réduction sur les séjours week-end.' },
   { title: "Offre exclusive à l'application", text: "Économisez jusqu'à 20 % lorsque vous réservez via l'application." },
   { title: 'Remise long séjour', text: 'Séjournez 7 nuits ou plus et bénéficiez de 25 % de réduction.' },
-  { title: 'Gagnez des récompenses', text: 'Bénéficiez d\'avantages en tant que membre BoSéjour.' },
+  { title: 'Gagnez des récompenses', text: <>Bénéficiez d&apos;avantages en tant que membre <Brand />.</> },
 ];
 
-function SaveCard({ o }: { o: { title: string; text: string } }) {
+function SaveCard({ o }: { o: { title: string; text: ReactNode } }) {
   return (
     <div className="min-w-[260px] w-[260px] flex-shrink-0 rounded-2xl border-2 border-primary/40 p-5 bg-white dark:bg-gray-900 transition-all duration-300 hover:border-primary hover:shadow-lg hover:-translate-y-1">
       <h3 className="font-bold text-gray-900 dark:text-white mb-2">{o.title}</h3>
@@ -435,7 +436,7 @@ export function VideoShowcase({ photos = [] }: { photos?: string[] }) {
   return (
     <section className="bg-gray-50 dark:bg-gray-900/40 py-16">
       <div className="container mx-auto px-4 md:px-8 max-w-7xl">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Explorez BoSéjour en mouvement</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Explorez <Brand /> en mouvement</h2>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 relative rounded-2xl overflow-hidden min-h-[360px] ring-4 ring-primary/30">
             <Image src={heroImg} alt="Luxe" fill className="object-cover" sizes="66vw" />
@@ -498,7 +499,7 @@ export function Testimonials() {
   return (
     <section className="container mx-auto px-4 md:px-8 max-w-7xl py-16">
       <div className="relative bg-gray-50 dark:bg-gray-800/40 rounded-3xl px-6 py-14 min-h-[520px] overflow-hidden">
-        <p className="text-center text-gray-500 mb-8">Voyons ce que les gens pensent de BoSéjour</p>
+        <p className="text-center text-gray-500 mb-8">Voyons ce que les gens pensent de <Brand /></p>
 
         {/* avatars dispersés (desktop) */}
         <div className="hidden md:block">
@@ -519,7 +520,7 @@ export function Testimonials() {
           <Quote className="hidden md:block absolute -left-6 top-0 w-10 h-10 text-rose-300 fill-rose-300/40" />
           <Quote className="hidden md:block absolute -right-6 bottom-8 w-10 h-10 text-rose-300 fill-rose-300/40 rotate-180" />
           <p className="text-lg md:text-2xl font-medium text-gray-800 dark:text-gray-100 leading-relaxed">
-            Cet endroit est exactement comme la photo publiée sur BoSéjour. Excellent service, nous avons passé un excellent séjour !
+            Cet endroit est exactement comme la photo publiée sur <Brand />. Excellent service, nous avons passé un excellent séjour !
           </p>
           <p className="mt-6 font-bold text-lg text-gray-900 dark:text-white">Ethan Rogrinho</p>
           <p className="text-sm text-gray-500 mt-1">🇲🇾 Malaisie</p>

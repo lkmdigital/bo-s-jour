@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import Brand from '@/components/common/Brand';
 import { ArrowRight, Bell, Sparkles, CheckCircle2, XCircle, Clock, Mail, Award } from 'lucide-react';
 
 interface Notif {
@@ -117,7 +118,7 @@ export default function MemberAside() {
           <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
             <Sparkles className="w-4 h-4" />
           </span>
-          <h3 className="font-bold text-sm">Assistant IA BoSéjour</h3>
+          <h3 className="font-bold text-sm">Assistant IA <Brand /></h3>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400">
           Recherchez un hébergement, comparez, ou posez une question sur vos réservations et votre programme fidélité.

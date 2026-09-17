@@ -2,11 +2,12 @@
 
 import { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 interface KpiCardProps {
   icon: LucideIcon;
   iconColorClass?: string;
-  label: string;
+  label: ReactNode;
   value: string;
   change?: number; // pourcentage, positif ou négatif
   // Retour client 2026-09-15 : les cartes "Vue d'ensemble" doivent renvoyer

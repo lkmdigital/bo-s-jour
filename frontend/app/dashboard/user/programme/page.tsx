@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/components/common/ToastContext';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Brand from '@/components/common/Brand';
 import Pagination from '@/components/common/Pagination';
 import {
   Award, Gift, TrendingUp, Copy, Ticket, History, Megaphone,
@@ -184,7 +185,7 @@ export default function MemberProgrammePage() {
             <Award className="w-7 h-7 text-primary" /> Programme Membre
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Vos points, votre niveau et vos récompenses de fidélité BoSéjour.
+            Vos points, votre niveau et vos récompenses de fidélité <Brand />.
           </p>
         </div>
 

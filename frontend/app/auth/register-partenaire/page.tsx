@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
 import Header from '@/components/common/Header';
+import Brand from '@/components/common/Brand';
 import { Building2, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 
 interface FormState {
@@ -169,7 +170,7 @@ function RegisterPartnerContent() {
               checked={form.accept_terms}
               onChange={(e) => set('accept_terms', e.target.checked)}
             />
-            J&apos;accepte les <Link href="/cgv" className="text-primary hover:underline">conditions générales</Link> et la politique de commission de BoSéjour.
+            J&apos;accepte les <Link href="/cgv" className="text-primary hover:underline">conditions générales</Link> et la politique de commission de <Brand />.
           </label>
 
           {error && (

@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Brand from '@/components/common/Brand';
 import ComposeMessageModal from '@/components/common/ComposeMessageModal';
 import { formatPrice } from '@/lib/utils';
 import {
@@ -332,7 +333,7 @@ export default function MemberCompanyPage() {
                 <button type="button" onClick={() => setShowInvite(false)} className="text-sm text-gray-500 hover:underline">Annuler</button>
               </div>
               <p className="text-xs text-gray-400">
-                S&apos;il a déjà un compte BoSéjour, il est rattaché immédiatement. Sinon, il reçoit un e-mail
+                S&apos;il a déjà un compte <Brand />, il est rattaché immédiatement. Sinon, il reçoit un e-mail
                 d&apos;invitation et sera rattaché automatiquement dès son inscription avec cette adresse.
               </p>
             </form>

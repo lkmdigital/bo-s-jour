@@ -247,7 +247,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
 <body>
   <div class="header">
     <h1>REÇU DE PAIEMENT</h1>
-    <p><strong>BoSéjour</strong> - <span style="font-family: 'Brush Script MT', 'Brush Script Std', cursive; font-style: italic;">Votre séjour commence ici...</span></p>
+    <p><strong><span style="color:#FF0000">bo</span>séjour</strong> - <span style="font-family: 'Brush Script MT', 'Brush Script Std', cursive; font-style: italic;">Votre séjour commence ici...</span></p>
     <p style="font-size: 12px; color: #666; margin-top: 5px;">Plateforme de réservation d&apos;hébergements en Côte d&apos;Ivoire</p>
   </div>
 
@@ -351,7 +351,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
   </div>
 
   <div style="margin-top: 40px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #ddd; padding-top: 20px;">
-    <p><strong>BoSéjour</strong> - <span style="font-family: 'Brush Script MT', 'Brush Script Std', cursive; font-style: italic;">Votre séjour commence ici...</span></p>
+    <p><strong><span style="color:#FF0000">bo</span>séjour</strong> - <span style="font-family: 'Brush Script MT', 'Brush Script Std', cursive; font-style: italic;">Votre séjour commence ici...</span></p>
     <p>Reçu généré le ${format(new Date(), 'dd MMMM yyyy à HH:mm', { locale: fr })}</p>
     <p style="font-weight: bold; margin-top: 10px;">Ce document fait foi de paiement</p>
     <p style="margin-top: 5px; font-size: 11px;">Pour toute question, contactez le support client</p>

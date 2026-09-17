@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
+import Brand from '@/components/common/Brand';
 import {
   Search, ShieldCheck, MessageCircle, CreditCard, Gift, Heart, Star, Building2,
   Wallet, ArrowRight, LogIn, MapPin, Percent, MessagesSquare, Users as UsersIcon,
@@ -13,7 +14,7 @@ const BENEFITS = [
   { icon: CreditCard, title: 'Paiement flexible et sécurisé', desc: 'Acompte ou paiement intégral — Visa, Mastercard, Djamo, Mobile Money.' },
   { icon: MessageCircle, title: 'Confirmation E-mail + WhatsApp', desc: 'Votre code de réservation vous parvient instantanément, sur les deux canaux.' },
   { icon: ShieldCheck, title: 'Annulations claires', desc: 'Politique Flexible, Modérée ou Stricte affichée avant de réserver — aucune mauvaise surprise.' },
-  { icon: Gift, title: 'Programme de fidélité', desc: 'Cumulez des avantages à chaque séjour réservé sur BoSéjour.' },
+  { icon: Gift, title: 'Programme de fidélité', desc: <>Cumulez des avantages à chaque séjour réservé sur <Brand />.</> },
   { icon: Heart, title: 'Vos favoris', desc: 'Enregistrez les établissements qui vous plaisent pour les retrouver facilement.' },
   { icon: Wallet, title: 'Mes avoirs', desc: 'Vos remboursements et avoirs regroupés dans un espace dédié, réutilisables en un clic.' },
   { icon: Star, title: 'Avis authentiques', desc: "Consultez les retours d'autres voyageurs avant de réserver, et laissez le vôtre après votre séjour." },
@@ -47,7 +48,7 @@ export default function TravelerLandingPage() {
       <section className="bg-gray-950 text-white">
         <div className="container mx-auto px-4 py-16 sm:py-24 text-center max-w-3xl">
           <p className="font-slogan text-3xl sm:text-4xl text-primary mb-3">Votre prochain séjour commence ici</p>
-          <h1 className="text-3xl sm:text-5xl font-bold mb-5">Rejoignez BoSéjour, la plateforme qui connecte les voyageurs aux meilleurs hébergements</h1>
+          <h1 className="text-3xl sm:text-5xl font-bold mb-5">Rejoignez <Brand variant="light" />, la plateforme qui connecte les voyageurs aux meilleurs hébergements</h1>
           <p className="text-gray-300 text-lg mb-8">
             Trouvez des hébergements vérifiés, réservez en toute confiance et payez en sécurité — où que vous alliez
             en Côte d&apos;Ivoire.
@@ -68,7 +69,7 @@ export default function TravelerLandingPage() {
 
       {/* Pourquoi rejoindre */}
       <section className="container mx-auto px-4 py-16">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Pourquoi réserver sur BoSéjour ?</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Pourquoi réserver sur <Brand /> ?</h2>
         <p className="text-gray-500 dark:text-gray-400 text-center mb-10 max-w-xl mx-auto">
           Tout ce dont vous avez besoin pour voyager l&apos;esprit tranquille, réuni dans un seul espace.
         </p>

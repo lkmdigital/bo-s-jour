@@ -1,6 +1,7 @@
 'use client';
 
 import { Sparkles } from 'lucide-react';
+import Brand from '@/components/common/Brand';
 
 export interface LongStayTier {
   min_nights: number;
@@ -51,7 +52,7 @@ export default function LongStayDiscountTiers({ enabled, onEnabledChange, tiers,
           </p>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Les voyageurs réservent 3 fois plus lorsqu&apos;une réduction s&apos;applique sur les séjours de plusieurs jours.
-            Souhaitez-vous activer la remise automatique BoSéjour pour augmenter votre taux d&apos;occupation ?
+            Souhaitez-vous activer la remise automatique <Brand /> pour augmenter votre taux d&apos;occupation ?
           </p>
         </div>
       )}

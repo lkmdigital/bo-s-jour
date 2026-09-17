@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
 import Header from '@/components/common/Header';
+import Brand from '@/components/common/Brand';
 import { useSearchStore } from '@/stores/searchStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationPermission } from '@/hooks/useNotificationPermission';
@@ -206,7 +207,7 @@ function BookingSuccessContent() {
             <div className="max-w-2xl mx-auto mb-8 rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1">
                 <p className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-primary" /> Activez votre espace BoSéjour
+                  <UserPlus className="w-5 h-5 text-primary" /> Activez votre espace <Brand />
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   Créez un mot de passe pour retrouver cette réservation et toutes les suivantes, gérer vos avoirs et recevoir des offres.

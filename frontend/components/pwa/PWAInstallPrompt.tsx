@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Download, X } from 'lucide-react';
+import Brand from '@/components/common/Brand';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -100,7 +101,7 @@ export default function PWAInstallPrompt() {
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white">
-                Installer BoSéjour
+                Installer <Brand />
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Accédez rapidement à l'application

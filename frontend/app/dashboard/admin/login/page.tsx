@@ -7,6 +7,7 @@ import { ShieldCheck, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { isAdminOrController, isController } from '@/lib/userUtils';
 import Logo from '@/components/common/Logo';
+import Brand from '@/components/common/Brand';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -64,7 +65,7 @@ export default function AdminLoginPage() {
             <ShieldCheck className="w-6 h-6 text-primary" />
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Espace administrateur</h1>
           </div>
-          <p className="text-sm text-gray-500 mb-6">Portail réservé au personnel BoSéjour.</p>
+          <p className="text-sm text-gray-500 mb-6">Portail réservé au personnel <Brand />.</p>
 
           {error && (
             <div className="mb-4 rounded-xl bg-red-50 border border-red-200 text-[#EE233C] text-sm px-4 py-3">
@@ -109,7 +110,7 @@ export default function AdminLoginPage() {
 
         <div className="text-center mt-6">
           <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Retour au site BoSéjour
+            <ArrowLeft className="w-4 h-4" /> Retour au site <Brand variant="light" />
           </Link>
         </div>
       </div>

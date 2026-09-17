@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import Brand from '@/components/common/Brand';
 import {
   Link2, Unlink, Loader2, CheckCircle2, XCircle, Radio, Mail,
 } from 'lucide-react';
@@ -106,7 +107,7 @@ export default function IcalSyncPanel({ accommodationId, onSkip }: { accommodati
         <p className="font-medium text-gray-900 dark:text-white mb-1">Import iCal</p>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
           Collez le lien iCal exporté par Booking.com, Airbnb ou votre logiciel de gestion (PMS) : vos dates déjà
-          réservées ailleurs seront automatiquement bloquées sur BoSéjour.
+          réservées ailleurs seront automatiquement bloquées sur <Brand />.
         </p>
 
         <form onSubmit={sync} className="flex flex-col sm:flex-row gap-2">

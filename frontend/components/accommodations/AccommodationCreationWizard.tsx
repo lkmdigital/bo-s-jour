@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import api from '@/lib/api';
 import Header from '@/components/common/Header';
+import Brand from '@/components/common/Brand';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import { ArrowLeft, MapPin, Upload, ChevronRight, ChevronLeft, Check, Award } from 'lucide-react';
 import Link from 'next/link';
@@ -1698,7 +1699,7 @@ export default function AccommodationCreationWizard({
                 <h3 className="text-lg font-semibold mb-3">Garantie de réservation</h3>
                 <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/30">
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Les modalités de garantie sont gérées par l'équipe BoSéjour selon le type d'hébergement et
+                    Les modalités de garantie sont gérées par l'équipe <Brand /> selon le type d'hébergement et
                     s'affichent automatiquement aux voyageurs. Aucun paramétrage n'est requis dans ce formulaire.
                     Contactez le support si vous avez besoin d'une configuration spécifique.
                   </p>
@@ -1735,7 +1736,7 @@ export default function AccommodationCreationWizard({
                 <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/30 space-y-2">
                   <p className="text-sm text-gray-600 dark:text-gray-300">
                     Les moyens de paiement ci-dessous sont proposés automatiquement aux voyageurs.
-                    L'équipe BoSéjour se charge de leur activation.
+                    L'équipe <Brand /> se charge de leur activation.
                   </p>
                   <ul className="list-disc pl-5 text-sm text-gray-600 dark:text-gray-300">
                     {paymentMethodOptions.map(method => (
@@ -1834,7 +1835,7 @@ export default function AccommodationCreationWizard({
                     className="rounded mt-1"
                   />
                   <span>
-                    <span className="font-medium block text-sm">Rejoindre le programme fidélité BoSéjour</span>
+                    <span className="font-medium block text-sm">Rejoindre le programme fidélité <Brand /></span>
                     <span className="text-sm text-gray-500 dark:text-gray-400">
                       Les voyageurs pourront utiliser leurs bons de réduction sur cet établissement. La commission
                       reste calculée sur le montant réellement encaissé, réduction incluse. Modifiable à tout
@@ -1849,7 +1850,7 @@ export default function AccommodationCreationWizard({
                 <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/30 space-y-2">
                   <h3 className="text-lg font-semibold">Conditions particulières</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Les conditions particulières (caution, règles spécifiques, etc.) sont intégrées par l'équipe BoSéjour
+                    Les conditions particulières (caution, règles spécifiques, etc.) sont intégrées par l'équipe <Brand />
                     et communiquées automatiquement aux voyageurs. Si vous devez ajouter une précision, merci de la transmettre au support.
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">

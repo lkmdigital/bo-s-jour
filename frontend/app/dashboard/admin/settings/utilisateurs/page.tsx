@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { useToast } from '@/components/common/ToastContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import SettingsPageShell from '@/components/dashboard/admin/SettingsPageShell';
+import Brand from '@/components/common/Brand';
 
 interface RoleOption {
   id: number;
@@ -50,7 +51,7 @@ export default function AdminTeamSettingsPage() {
     <SettingsPageShell
       icon={Users}
       title="Utilisateurs"
-      description="Équipe interne BoSéjour : comptes disposant d'un accès d'administration et leurs rôles."
+      description={<>Équipe interne <Brand /> : comptes disposant d'un accès d'administration et leurs rôles.</>}
     >
       {loading ? (
         <LoadingSpinner />

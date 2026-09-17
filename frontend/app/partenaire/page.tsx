@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
+import Brand from '@/components/common/Brand';
 import {
   TrendingUp, CalendarCheck, Settings2, Globe2, MessageCircle, CreditCard, ShieldCheck,
   Tag, HeartHandshake, ArrowRight, User, Wallet, CalendarRange, LineChart,
@@ -17,11 +18,11 @@ const BENEFITS = [
   { icon: CreditCard, title: 'Paiement en ligne flexible', desc: 'Acompte (dès 1 nuitée) ou paiement intégral — Visa, Mastercard, Djamo, Mobile Money.' },
   { icon: ShieldCheck, title: 'Annulations maîtrisées', desc: "Politique Flexible, Modérée ou Stricte, affichée clairement au voyageur." },
   { icon: Tag, title: 'Promotions & offres', desc: 'Créez vos campagnes pour attirer davantage de clients.' },
-  { icon: HeartHandshake, title: 'Accompagnement BoSéjour', desc: 'Notre équipe vous accompagne à chaque étape.' },
+  { icon: HeartHandshake, title: <>Accompagnement <Brand /></>, desc: 'Notre équipe vous accompagne à chaque étape.' },
 ];
 
 const FLOW = [
-  { icon: UsersIcon, label: 'Voyageur réserve sur BoSéjour' },
+  { icon: UsersIcon, label: <>Voyageur réserve sur <Brand /></> },
   { icon: CreditCard, label: 'Paiement en ligne sécurisé' },
   { icon: Settings2, label: "L'Extranet confirme automatiquement" },
   { icon: MessageCircle, label: 'Confirmation E-mail + WhatsApp' },
@@ -51,7 +52,7 @@ export default function PartnerLandingPage() {
       <section className="bg-gray-950 text-white">
         <div className="container mx-auto px-4 py-16 sm:py-24 text-center max-w-3xl">
           <p className="font-slogan text-3xl sm:text-4xl text-primary mb-3">Votre établissement mérite plus de visibilité</p>
-          <h1 className="text-3xl sm:text-5xl font-bold mb-5">Rejoignez BoSéjour, la plateforme qui protège hôtes et voyageurs</h1>
+          <h1 className="text-3xl sm:text-5xl font-bold mb-5">Rejoignez <Brand variant="light" />, la plateforme qui protège hôtes et voyageurs</h1>
           <p className="text-gray-300 text-lg mb-8">
             Publiez votre établissement, recevez des réservations confirmées automatiquement, et soyez payé en toute
             sécurité — en quelques étapes, à votre rythme.
@@ -72,13 +73,13 @@ export default function PartnerLandingPage() {
 
       {/* Pourquoi rejoindre */}
       <section className="container mx-auto px-4 py-16">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Pourquoi rejoindre BoSéjour ?</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">Pourquoi rejoindre <Brand /> ?</h2>
         <p className="text-gray-500 dark:text-gray-400 text-center mb-10 max-w-xl mx-auto">
           Tout ce dont votre établissement a besoin pour grandir, réuni dans un seul espace.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {BENEFITS.map((b) => (
-            <div key={b.title} className="card">
+          {BENEFITS.map((b, i) => (
+            <div key={i} className="card">
               <span className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
                 <b.icon className="w-5 h-5" />
               </span>
@@ -95,7 +96,7 @@ export default function PartnerLandingPage() {
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">Comment ça marche</h2>
           <div className="flex flex-wrap items-center justify-center gap-3 max-w-4xl mx-auto">
             {FLOW.map((f, i) => (
-              <div key={f.label} className="flex items-center gap-3">
+              <div key={i} className="flex items-center gap-3">
                 <div className="flex flex-col items-center text-center w-32">
                   <span className="w-12 h-12 rounded-full bg-white dark:bg-gray-800 border-2 border-primary text-primary flex items-center justify-center mb-2">
                     <f.icon className="w-5 h-5" />

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import Brand from '@/components/common/Brand';
 import { MessageSquare, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -107,7 +108,7 @@ export default function BookingMessageThread({ bookingId, currentUserId, accommo
                 >
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-1">
                     {msg.is_from_platform ? (
-                      <span>Plateforme BoSéjour</span>
+                      <span>Plateforme <Brand /></span>
                     ) : (
                       <span>{msg.sender?.name ?? (isFromMe(msg) ? 'Vous' : 'Autre')}</span>
                     )}

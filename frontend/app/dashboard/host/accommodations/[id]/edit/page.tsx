@@ -9,6 +9,7 @@ import api from '@/lib/api';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import SuccessDisplay from '@/components/common/SuccessDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Brand from '@/components/common/Brand';
 import { ArrowLeft, MapPin, Trash2, Star, Tag, Bed, Clock, MessageCircle, ShieldCheck, Rocket, CheckCircle2, Circle, Loader2, Award, Coffee } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -1078,7 +1079,7 @@ export default function EditAccommodationPage() {
                 className="rounded mt-1"
               />
               <span>
-                <span className="font-medium block">Rejoindre le programme fidélité BoSéjour</span>
+                <span className="font-medium block">Rejoindre le programme fidélité <Brand /></span>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   Les voyageurs pourront utiliser leurs bons de réduction sur cet établissement. La commission reste
                   calculée sur le montant réellement encaissé, réduction incluse.

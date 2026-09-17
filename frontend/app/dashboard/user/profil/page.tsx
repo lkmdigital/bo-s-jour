@@ -7,6 +7,7 @@ import Image from 'next/image';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Brand from '@/components/common/Brand';
 import { resolveImageUrl } from '@/lib/utils';
 import { User as UserIcon, MapPin, Plane, Bell, Building2, Lock, Loader2, CheckCircle2, Eye, EyeOff, ShieldCheck, Upload, FileText, Camera, Trash2 } from 'lucide-react';
 
@@ -48,7 +49,7 @@ function Field({ label, children, hint }: { label: string; children: React.React
   );
 }
 
-function Card({ icon: Icon, title, subtitle, children, id }: { icon: any; title: string; subtitle?: string; children: React.ReactNode; id?: string }) {
+function Card({ icon: Icon, title, subtitle, children, id }: { icon: any; title: string; subtitle?: React.ReactNode; children: React.ReactNode; id?: string }) {
   return (
     <section id={id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 scroll-mt-24">
       <div className="flex items-center gap-3 mb-5">
@@ -327,7 +328,7 @@ export default function MemberProfilePage() {
         </Card>
 
         {/* Localisation */}
-        <Card icon={MapPin} title="Résidence & localisation" subtitle="Aide BoSéjour à mieux vous connaître (statistiques touristiques)">
+        <Card icon={MapPin} title="Résidence & localisation" subtitle={<>Aide <Brand /> à mieux vous connaître (statistiques touristiques)</>}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Pays de résidence"><input className={inputCls} value={p.residence_country || ''} onChange={(e) => set('residence_country', e.target.value)} placeholder="Côte d'Ivoire" /></Field>
             <Field label="Ville de résidence"><input className={inputCls} value={p.residence_city || ''} onChange={(e) => set('residence_city', e.target.value)} placeholder="Abidjan" /></Field>

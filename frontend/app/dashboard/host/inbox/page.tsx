@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
 import Footer from '@/components/common/Footer';
+import Brand from '@/components/common/Brand';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Link from 'next/link';
@@ -134,7 +135,7 @@ export default function HostInboxPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-2">
                         <span className="font-semibold text-gray-900 dark:text-white">
-                          {msg.is_from_platform ? 'Plateforme BoSéjour' : msg.sender?.name ?? 'Voyageur'}
+                          {msg.is_from_platform ? <>Plateforme <Brand /></> : msg.sender?.name ?? 'Voyageur'}
                         </span>
                         {!msg.read_at && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary">Nouveau</span>

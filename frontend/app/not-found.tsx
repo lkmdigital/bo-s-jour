@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Home, Search, ArrowLeft, MapPin } from 'lucide-react';
 import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
+import Brand from '@/components/common/Brand';
 
 export default function NotFound() {
   return (
@@ -69,7 +70,7 @@ export default function NotFound() {
           <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               💭 <em>Saviez-vous ?</em> En Côte d'Ivoire, il y a des milliers d'hébergements 
-              répertoriés sur BoSéjour. Explorez-les tous !
+              répertoriés sur <Brand />. Explorez-les tous !
             </p>
           </div>
         </div>

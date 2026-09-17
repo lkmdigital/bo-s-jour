@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Facebook, Apple, Play } from 'lucide-react';
 import Logo from './Logo';
+import Brand from './Brand';
 
 const COLUMNS = [
   {
@@ -133,7 +134,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-white/10 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-500">© {currentYear} BoSéjour. Tous droits réservés.</p>
+          <p className="text-sm text-gray-500">© {currentYear} <Brand variant="light" />. Tous droits réservés.</p>
           <div className="flex flex-wrap items-center gap-2">
             {PAYMENT_LOGOS.map((logo) => (
               <span key={logo.src} className="h-8 px-2 rounded-md bg-white flex items-center justify-center">

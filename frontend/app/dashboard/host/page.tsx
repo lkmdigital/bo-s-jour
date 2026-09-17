@@ -5,6 +5,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Brand from '@/components/common/Brand';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import KpiCard from '@/components/dashboard/host/KpiCard';
 import { formatPrice, getRoomCategoryLabel } from '@/lib/utils';
@@ -186,7 +187,7 @@ export default function HostDashboardPage() {
               <Compass className="w-4 h-4 text-secondary" /> Mode expert
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-              Vous connaissez déjà BoSéjour ? Accédez directement à tous les menus de l&apos;Extranet.
+              Vous connaissez déjà <Brand /> ? Accédez directement à tous les menus de l&apos;Extranet.
             </p>
             <button
               type="button"
@@ -213,7 +214,7 @@ export default function HostDashboardPage() {
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bonjour {user?.name?.split(' ')[0] ?? ''} 👋</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Bienvenue dans votre espace partenaire BoSéjour</p>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Bienvenue dans votre espace partenaire <Brand /></p>
       </div>
 
       {complianceMissing.length > 0 && (
@@ -225,7 +226,7 @@ export default function HostDashboardPage() {
                 Votre dossier documentaire n&apos;est pas complet
               </p>
               <p className="text-sm text-amber-800 dark:text-amber-400 mt-1">
-                Merci de fournir les documents manquants pour rester en conformité sur BoSéjour.
+                Merci de fournir les documents manquants pour rester en conformité sur <Brand />.
               </p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {complianceMissing.map((label) => (
@@ -277,7 +278,7 @@ export default function HostDashboardPage() {
             value={data.average_rating ? `${data.average_rating.toFixed(1)}/5` : '—'}
             href="/dashboard/host/reviews"
           />
-          <KpiCard icon={Gauge} label="Score BoSéjour" value={`${data.score_bosejour}%`} href="/dashboard/host/stats" />
+          <KpiCard icon={Gauge} label={<>Score <Brand /></>} value={`${data.score_bosejour}%`} href="/dashboard/host/stats" />
           <KpiCard
             icon={HandCoins}
             label="Commissions reversées"

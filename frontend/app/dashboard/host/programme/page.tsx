@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Brand from '@/components/common/Brand';
 import { formatPrice } from '@/lib/utils';
 import { Award, Users, TrendingUp, Tag, Wallet, Percent, ArrowRight, Building2 } from 'lucide-react';
 
@@ -55,7 +56,7 @@ export default function HostLoyaltyPage() {
           <Award className="w-6 h-6 text-bosejour-red" /> Programme de fidélité
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Performances du Programme Membre BoSéjour sur vos établissements participants.
+          Performances du Programme Membre <Brand /> sur vos établissements participants.
         </p>
       </div>
 
@@ -64,7 +65,7 @@ export default function HostLoyaltyPage() {
           <Award className="w-10 h-10 text-gray-300 mx-auto mb-3" />
           <h2 className="font-semibold text-gray-900 dark:text-white mb-1">Aucun établissement participant</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-md mx-auto">
-            Rejoignez le programme de fidélité BoSéjour depuis la fiche d&apos;un établissement pour
+            Rejoignez le programme de fidélité <Brand /> depuis la fiche d&apos;un établissement pour
             attirer les membres fidèles et suivre ici vos performances (réservations, chiffre
             d&apos;affaires, coût des avantages, ROI estimé).
           </p>

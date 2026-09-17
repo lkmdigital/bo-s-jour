@@ -5,6 +5,7 @@ import { Gift, Search, Sparkles, X, Tag } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/common/ToastContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import Brand from '@/components/common/Brand';
 import Pagination from '@/components/common/Pagination';
 
 interface FeaturedAccommodation {
@@ -144,14 +145,14 @@ export default function AdminPromotionsPage() {
           <Gift className="w-6 h-6 text-primary" /> Promotions
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Mises en avant BoSéjour et supervision des offres créées par les établissements.
+          Mises en avant <Brand /> et supervision des offres créées par les établissements.
         </p>
       </div>
 
       {/* Section 1 : Mises en avant BoSéjour */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-primary" /> Mises en avant BoSéjour
+          <Sparkles className="w-4 h-4 text-primary" /> Mises en avant <Brand />
         </h2>
         <p className="text-xs text-gray-500 -mt-2">
           Établissements affichés dans « Offres promotionnelles » côté voyageur. Décision plateforme, indépendante
