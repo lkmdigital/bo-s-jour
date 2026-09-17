@@ -397,6 +397,7 @@ class AdminDiscoveryController extends Controller
         return response()->json([
             'title' => (string) Setting::get('showcase_title', self::DEFAULT_SHOWCASE_TITLE),
             'description' => (string) Setting::get('showcase_description', self::DEFAULT_SHOWCASE_DESCRIPTION),
+            'image_path' => Setting::get('showcase_image_path') ?: null,
         ]);
     }
 
@@ -407,11 +408,39 @@ class AdminDiscoveryController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string|max:500',
+            // Retour client 2026-09-17 : le grand bloc à gauche (photo réelle
+            // d'hébergement par défaut) doit aussi pouvoir être remplacé par
+            // l'admin — image optionnelle, POST multipart pour l'accepter.
+            'image' => 'nullable|file|image|max:5120',
         ]);
 
         Setting::set('showcase_title', $validated['title'], 'string', 'Titre — accueil "Explorer boséjour"');
         Setting::set('showcase_description', $validated['description'], 'string', 'Description — accueil "Explorer boséjour"');
 
-        return response()->json(['title' => $validated['title'], 'description' => $validated['description']]);
+        $imagePath = Setting::get('showcase_image_path');
+        if ($request->hasFile('image')) {
+            $oldPath = $imagePath ? str_replace('/storage/', '', $imagePath) : null;
+            if ($oldPath) {
+                Storage::disk('public')->delete($oldPath);
+            }
+            $path = $request->file('image')->store('discovery/showcase', 'public');
+            $imagePath = Storage::url($path);
+            Setting::set('showcase_image_path', $imagePath, 'string', 'Image — accueil "Explorer boséjour"');
+        }
+
+        return response()->json(['title' => $validated['title'], 'description' => $validated['description'], 'image_path' => $imagePath ?: null]);
+    }
+
+    public function destroyShowcaseImage(Request $request)
+    {
+        if ($forbidden = $this->checkAdmin($request)) return $forbidden;
+
+        $imagePath = Setting::get('showcase_image_path');
+        if ($imagePath) {
+            Storage::disk('public')->delete(str_replace('/storage/', '', $imagePath));
+        }
+        Setting::set('showcase_image_path', '', 'string', 'Image — accueil "Explorer boséjour"');
+
+        return response()->json(['message' => 'Image réinitialisée.']);
     }
 }

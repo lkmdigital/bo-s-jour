@@ -467,12 +467,16 @@ function useShowcaseVideos() {
 }
 
 function useShowcaseText() {
-  const [text, setText] = useState({ title: "Vivez l'expérience", description: 'Plongez-vous dans des visuels captivants de nos destinations les plus emblématiques.' });
+  const [text, setText] = useState<{ title: string; description: string; image_path: string | null }>({
+    title: "Vivez l'expérience",
+    description: 'Plongez-vous dans des visuels captivants de nos destinations les plus emblématiques.',
+    image_path: null,
+  });
 
   useEffect(() => {
     let cancelled = false;
     api.get('/discovery/showcase-text')
-      .then((r) => { if (!cancelled && r.data?.title) setText({ title: r.data.title, description: r.data.description }); })
+      .then((r) => { if (!cancelled && r.data?.title) setText({ title: r.data.title, description: r.data.description, image_path: r.data.image_path ?? null }); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -483,7 +487,10 @@ function useShowcaseText() {
 export function VideoShowcase({ photos = [] }: { photos?: string[] }) {
   const videos = useShowcaseVideos();
   const text = useShowcaseText();
-  const heroImg = photos[3] || img('1470071459604-3b5ec3a7fe05', 1200);
+  // Retour client 2026-09-17 : l'admin peut choisir une photo pour ce bloc
+  // (showcase_image_path) ; sans choix, on garde le comportement précédent
+  // (vraie photo d'hébergement, jamais une image inventée).
+  const heroImg = (text.image_path && resolveImageUrl(text.image_path)) || photos[3] || img('1470071459604-3b5ec3a7fe05', 1200);
   const hasVideos = videos === null || videos.length > 0;
 
   return (

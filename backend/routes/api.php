@@ -465,6 +465,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::delete('/videos/{id}', [AdminDiscoveryController::class, 'destroyVideo'])->where('id', '[0-9]+');
             Route::get('/showcase-text', [AdminDiscoveryController::class, 'showcaseText']);
             Route::post('/showcase-text', [AdminDiscoveryController::class, 'updateShowcaseText']);
+            Route::delete('/showcase-text/image', [AdminDiscoveryController::class, 'destroyShowcaseImage']);
         });
 
         // Tableau stratégique (vue exécutive)

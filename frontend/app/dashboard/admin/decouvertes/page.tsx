@@ -667,23 +667,34 @@ function DestinationsTab() {
 
 function ShowcaseTextEditor() {
   const { showError, showSuccess } = useToast();
+  const confirmAction = useConfirm();
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [imagePath, setImagePath] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
     api.get('/admin/discovery/showcase-text')
-      .then((r) => { setTitle(r.data?.title ?? ''); setDescription(r.data?.description ?? ''); })
+      .then((r) => { setTitle(r.data?.title ?? ''); setDescription(r.data?.description ?? ''); setImagePath(r.data?.image_path ?? null); })
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
 
   const save = async () => {
     if (!title.trim() || !description.trim()) { showError('Le titre et la description sont requis.'); return; }
     setSaving(true);
     try {
-      await api.post('/admin/discovery/showcase-text', { title: title.trim(), description: description.trim() });
+      const fd = new FormData();
+      fd.append('title', title.trim());
+      fd.append('description', description.trim());
+      if (imageFile) fd.append('image', imageFile);
+      await api.post('/admin/discovery/showcase-text', fd);
       showSuccess('Texte mis à jour.');
+      setImageFile(null);
+      load();
     } catch (err: any) {
       showError(err.response?.data?.message || "Erreur lors de l'enregistrement.");
     } finally {
@@ -691,19 +702,42 @@ function ShowcaseTextEditor() {
     }
   };
 
+  const resetImage = async () => {
+    const ok = await confirmAction({ title: 'Revenir à la photo automatique ?', message: "L'image personnalisée sera retirée — le bloc reprendra une photo d'hébergement réelle par défaut.", variant: 'danger' });
+    if (!ok) return;
+    try {
+      await api.delete('/admin/discovery/showcase-text/image');
+      showSuccess('Image réinitialisée.');
+      setImagePath(null);
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Erreur lors de la réinitialisation.');
+    }
+  };
+
   if (loading) return <div className="py-6"><LoadingSpinner /></div>;
 
   return (
     <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 space-y-3 mb-4">
-      <p className="text-xs text-gray-500">Texte affiché sur le grand bloc, à gauche des vidéos, sur l&apos;accueil.</p>
+      <p className="text-xs text-gray-500">Texte et photo du grand bloc, à gauche des vidéos, sur l&apos;accueil.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre (ex : Vivez l'expérience)"
           className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
         <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description"
           className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
       </div>
+      <div className="flex flex-wrap items-center gap-3">
+        {imagePath && <ImageThumb path={imagePath} alt="Photo du bloc" />}
+        <label className="btn-outline text-sm inline-flex items-center gap-2 cursor-pointer">
+          <ImagePlus className="w-4 h-4" /> {imageFile ? imageFile.name : imagePath ? 'Remplacer la photo' : 'Choisir une photo (optionnel)'}
+          <input type="file" accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
+        </label>
+        {imagePath && !imageFile && (
+          <button onClick={resetImage} type="button" className="text-xs text-red-500 hover:underline">Revenir à la photo automatique</button>
+        )}
+      </div>
+      <p className="text-xs text-gray-400">Sans photo choisie ici, le bloc affiche automatiquement une vraie photo d&apos;hébergement.</p>
       <button onClick={save} disabled={saving} className="btn-primary text-sm inline-flex items-center gap-2 disabled:opacity-50">
-        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Enregistrer le texte
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Enregistrer
       </button>
     </div>
   );

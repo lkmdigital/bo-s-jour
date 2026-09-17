@@ -50,6 +50,7 @@ class DiscoveryController extends Controller
         return response()->json([
             'title' => (string) Setting::get('showcase_title', AdminDiscoveryController::DEFAULT_SHOWCASE_TITLE),
             'description' => (string) Setting::get('showcase_description', AdminDiscoveryController::DEFAULT_SHOWCASE_DESCRIPTION),
+            'image_path' => Setting::get('showcase_image_path') ?: null,
         ]);
     }
 }
