@@ -68,6 +68,7 @@ use Illuminate\Support\Facades\Route;
 // Découvertes (accueil) — retour client 2026-09-15, contenu géré par l'admin.
 Route::get('/discovery/sites', [DiscoveryController::class, 'sites']);
 Route::get('/discovery/activities', [DiscoveryController::class, 'activities']);
+Route::get('/discovery/destinations', [DiscoveryController::class, 'destinations']);
 Route::get('/accommodations', [AccommodationController::class, 'index']);
 Route::get('/accommodations/top-cities', [AccommodationController::class, 'topCities']);
 Route::get('/accommodations/suggestions', [AccommodationController::class, 'suggestions']);
@@ -452,6 +453,10 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::post('/activities', [AdminDiscoveryController::class, 'storeActivity']);
             Route::post('/activities/{id}', [AdminDiscoveryController::class, 'updateActivity'])->where('id', '[0-9]+');
             Route::delete('/activities/{id}', [AdminDiscoveryController::class, 'destroyActivity'])->where('id', '[0-9]+');
+            Route::get('/destinations', [AdminDiscoveryController::class, 'destinations']);
+            Route::post('/destinations', [AdminDiscoveryController::class, 'storeDestination']);
+            Route::post('/destinations/{id}', [AdminDiscoveryController::class, 'updateDestination'])->where('id', '[0-9]+');
+            Route::delete('/destinations/{id}', [AdminDiscoveryController::class, 'destroyDestination'])->where('id', '[0-9]+');
         });
 
         // Tableau stratégique (vue exécutive)

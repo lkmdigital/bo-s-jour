@@ -58,6 +58,17 @@ interface DiscoveryActivity {
   is_published: boolean;
 }
 
+interface TrendingDestination {
+  id: number;
+  city: string;
+  from_price: number;
+  accommodations_count: number;
+  categories: SiteCategory[] | null;
+  image_path: string;
+  display_order: number;
+  is_published: boolean;
+}
+
 function ImageThumb({ path, alt }: { path: string; alt: string }) {
   const url = resolveImageUrl(path);
   return (
@@ -448,9 +459,202 @@ function ActivitiesTab() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Destinations tendances                                              */
+/* ------------------------------------------------------------------ */
+
+function DestinationsTab() {
+  const { showError, showSuccess } = useToast();
+  const confirmAction = useConfirm();
+  const [destinations, setDestinations] = useState<TrendingDestination[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState<null | 'new' | number>(null);
+  const [city, setCity] = useState('');
+  const [fromPrice, setFromPrice] = useState('');
+  const [accommodationsCount, setAccommodationsCount] = useState('');
+  const [categories, setCategories] = useState<SiteCategory[]>([]);
+  const [displayOrder, setDisplayOrder] = useState('0');
+  const [isPublished, setIsPublished] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    api.get('/admin/discovery/destinations').then((r) => setDestinations(r.data?.data ?? [])).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const resetForm = () => {
+    setShowForm(null);
+    setCity('');
+    setFromPrice('');
+    setAccommodationsCount('');
+    setCategories([]);
+    setDisplayOrder('0');
+    setIsPublished(false);
+    setImageFile(null);
+  };
+
+  const openEdit = (d: TrendingDestination) => {
+    setShowForm(d.id);
+    setCity(d.city);
+    setFromPrice(String(d.from_price));
+    setAccommodationsCount(String(d.accommodations_count));
+    setCategories(d.categories || []);
+    setDisplayOrder(String(d.display_order));
+    setIsPublished(d.is_published);
+    setImageFile(null);
+  };
+
+  const toggleCategory = (c: SiteCategory) => {
+    setCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+  };
+
+  const save = async () => {
+    if (!city.trim()) { showError('La ville est requise.'); return; }
+    if (!fromPrice.trim()) { showError('Le prix de départ est requis.'); return; }
+    if (!accommodationsCount.trim()) { showError("Le nombre d'hébergements est requis."); return; }
+    if (showForm === 'new' && !imageFile) { showError('Une photo est requise.'); return; }
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('city', city.trim());
+      fd.append('from_price', fromPrice);
+      fd.append('accommodations_count', accommodationsCount);
+      categories.forEach((c) => fd.append('categories[]', c));
+      fd.append('display_order', displayOrder || '0');
+      fd.append('is_published', isPublished ? '1' : '0');
+      if (imageFile) fd.append('image', imageFile);
+
+      if (showForm === 'new') {
+        await api.post('/admin/discovery/destinations', fd);
+        showSuccess('Destination ajoutée.');
+      } else if (typeof showForm === 'number') {
+        await api.post(`/admin/discovery/destinations/${showForm}`, fd);
+        showSuccess('Destination mise à jour.');
+      }
+      resetForm();
+      load();
+    } catch (err: any) {
+      showError(err.response?.data?.message || "Erreur lors de l'enregistrement.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (id: number) => {
+    const ok = await confirmAction({ title: 'Supprimer cette destination ?', message: 'Cette action est irréversible.', variant: 'danger' });
+    if (!ok) return;
+    try {
+      await api.delete(`/admin/discovery/destinations/${id}`);
+      showSuccess('Destination supprimée.');
+      load();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Erreur lors de la suppression.');
+    }
+  };
+
+  if (loading) return <div className="py-12"><LoadingSpinner /></div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Affichées sur l&apos;accueil dans &laquo;&nbsp;Destinations tendances&nbsp;&raquo; — uniquement les entrées publiées, filtrables par catégorie.
+        </p>
+        {showForm === null && (
+          <button onClick={() => setShowForm('new')} className="btn-primary text-sm inline-flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Ajouter une destination
+          </button>
+        )}
+      </div>
+
+      {showForm !== null && (
+        <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ville (ex : Yamoussoukro)"
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            <input type="number" min={0} value={fromPrice} onChange={(e) => setFromPrice(e.target.value)} placeholder="À partir de (fcfa/nuit)"
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            <input type="number" min={0} value={accommodationsCount} onChange={(e) => setAccommodationsCount(e.target.value)} placeholder="Nombre d'hébergements"
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1.5">Catégories (onglets de filtre)</p>
+            <div className="flex flex-wrap gap-2">
+              {SITE_CATEGORY_OPTIONS.map((c) => {
+                const Icon = c.icon;
+                const isActive = categories.includes(c.value);
+                return (
+                  <button key={c.value} type="button" onClick={() => toggleCategory(c.value)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      isActive ? 'bg-black text-white border-black' : 'bg-white text-gray-700 border-gray-300 hover:border-black'
+                    }`}>
+                    <Icon className="w-3.5 h-3.5" /> {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="btn-outline text-sm inline-flex items-center gap-2 cursor-pointer">
+              <ImagePlus className="w-4 h-4" /> {imageFile ? imageFile.name : 'Choisir une photo'}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              Ordre
+              <input type="number" min={0} value={displayOrder} onChange={(e) => setDisplayOrder(e.target.value)}
+                className="w-20 px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} className="rounded" />
+              Publié (visible sur l&apos;accueil)
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={save} disabled={saving} className="btn-primary text-sm inline-flex items-center gap-2 disabled:opacity-50">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Enregistrer
+            </button>
+            <button onClick={resetForm} className="btn-secondary text-sm">Annuler</button>
+          </div>
+        </div>
+      )}
+
+      {destinations.length === 0 ? (
+        <p className="text-sm text-gray-500 text-center py-8">Aucune destination pour le moment.</p>
+      ) : (
+        <div className="space-y-2">
+          {destinations.map((d) => (
+            <div key={d.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 dark:border-gray-700 flex-wrap">
+              <ImageThumb path={d.image_path} alt={d.city} />
+              <div className="flex-1 min-w-[160px]">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{d.city}</p>
+                <p className="text-xs text-gray-500">
+                  À partir de {d.from_price.toLocaleString('fr-FR')} fcfa/nuit · {d.accommodations_count} hébergement{d.accommodations_count > 1 ? 's' : ''} · ordre {d.display_order}
+                  {(d.categories || []).length > 0 && (
+                    <> · {(d.categories || []).map((c) => SITE_CATEGORY_OPTIONS.find((o) => o.value === c)?.label).filter(Boolean).join(', ')}</>
+                  )}
+                </p>
+              </div>
+              <PublishBadge published={d.is_published} />
+              <button onClick={() => openEdit(d)} className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5" title="Modifier">
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button onClick={() => remove(d.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20" title="Supprimer">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 
 export default function AdminDiscoveryPage() {
-  const [tab, setTab] = useState<'sites' | 'activities'>('sites');
+  const [tab, setTab] = useState<'sites' | 'activities' | 'destinations'>('sites');
 
   return (
     <div className="space-y-6">
@@ -459,7 +663,7 @@ export default function AdminDiscoveryPage() {
           <Compass className="w-6 h-6 text-primary" /> Découvertes
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Contenu éditorial de l&apos;accueil (sites à voir, activités) — tant qu&apos;aucune entrée n&apos;est publiée
+          Contenu éditorial de l&apos;accueil (sites à voir, activités, destinations tendances) — tant qu&apos;aucune entrée n&apos;est publiée
           dans une catégorie, la section correspondante reste masquée pour les visiteurs.
         </p>
       </div>
@@ -477,10 +681,16 @@ export default function AdminDiscoveryPage() {
           }`}>
           Activités
         </button>
+        <button onClick={() => setTab('destinations')}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            tab === 'destinations' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}>
+          Destinations tendances
+        </button>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
-        {tab === 'sites' ? <SitesTab /> : <ActivitiesTab />}
+        {tab === 'sites' ? <SitesTab /> : tab === 'activities' ? <ActivitiesTab /> : <DestinationsTab />}
       </div>
     </div>
   );

@@ -103,64 +103,70 @@ export function TrustSection() {
 /* ------------------------------------------------------------------ */
 /* 2. Destinations tendances                                           */
 /* ------------------------------------------------------------------ */
-// Retour client 2026-09-17 : remplace les 4 onglets saisonniers (jamais
-// vraiment fonctionnels — `active` ne filtrait déjà rien) par les mêmes
-// catégories de voyage que "Principaux sites à voir" (DiscoverySite), pour
-// rester cohérent avec la correction apportée à cette autre section.
-const SEASON_TABS = [
-  { label: 'Business', icon: Briefcase },
-  { label: 'Balnéaires', icon: Waves },
-  { label: 'Tourisme et culture', icon: Landmark },
-  { label: 'Escapade weekend', icon: Palmtree },
+// Retour client 2026-09-17 : les 4 onglets (Business/Balnéaires/Tourisme et
+// culture/Escapade weekend) doivent réellement filtrer, et l'admin doit
+// pouvoir gérer les destinations affichées ici (ajouter/modifier/supprimer,
+// avec leurs catégories) — jusque-là la section agrégeait automatiquement
+// les vraies villes des établissements (/accommodations/top-cities), une
+// donnée qui n'a aucune notion de catégorie. Remplacé par le même principe
+// que "Principaux sites à voir" (TrendingDestination, contenu admin géré
+// dans Paramètres > Découvertes), avec un filtrage par onglet identique à
+// SITE_TABS ci-dessous. Masquée tant qu'aucune entrée n'est publiée.
+type DestinationCategory = 'business' | 'balneaire' | 'tourisme_culture' | 'escapade_weekend';
+const SEASON_TABS: { label: string; icon: typeof Compass; category: DestinationCategory }[] = [
+  { label: 'Business', icon: Briefcase, category: 'business' },
+  { label: 'Balnéaires', icon: Waves, category: 'balneaire' },
+  { label: 'Tourisme et culture', icon: Landmark, category: 'tourisme_culture' },
+  { label: 'Escapade weekend', icon: Palmtree, category: 'escapade_weekend' },
 ];
 
-interface TopCityApi {
+interface TrendingDestinationApi {
+  id: number;
   city: string;
-  accommodations_count: number;
   from_price: number;
-  image: string | null;
+  accommodations_count: number;
+  categories: DestinationCategory[] | null;
+  image_path: string;
 }
 
-/**
- * Retour client 2026-09-02 : la page d'accueil affichait 4 villes codées en
- * dur (Grand-Bassam, Assinie, Man, Yamoussoukro) avec prix et photos
- * inventés, sans lien avec les établissements réels — trompeur pour un
- * visiteur qui clique dessus. Remplacé par /accommodations/top-cities
- * (villes des établissements publiés et réellement réservables en base,
- * triées par nombre d'établissements, avec le vrai prix le plus bas et une
- * vraie photo). Chaque carte mène vers la recherche filtrée sur cette ville.
- */
-function useTopCities() {
-  const [cities, setCities] = useState<DestinationCardData[] | null>(null);
+interface TrendingDestinationData extends DestinationCardData {
+  categories: DestinationCategory[];
+}
+
+function useTrendingDestinations() {
+  const [destinations, setDestinations] = useState<TrendingDestinationData[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    api.get('/accommodations/top-cities?limit=4')
+    api.get('/discovery/destinations')
       .then((r) => {
         if (cancelled) return;
-        const data: TopCityApi[] = r.data?.cities ?? [];
-        setCities(data.map((c) => ({
-          name: c.city,
-          image: resolveImageUrl(c.image) || '',
-          fromPrice: c.from_price,
-          tagline: `${c.accommodations_count} hébergement${c.accommodations_count > 1 ? 's' : ''} disponible${c.accommodations_count > 1 ? 's' : ''}`,
-          href: `/accommodations?city=${encodeURIComponent(c.city)}`,
+        const data: TrendingDestinationApi[] = r.data?.data ?? [];
+        setDestinations(data.map((d) => ({
+          name: d.city,
+          image: resolveImageUrl(d.image_path) || '',
+          fromPrice: d.from_price,
+          tagline: `${d.accommodations_count} hébergement${d.accommodations_count > 1 ? 's' : ''} disponible${d.accommodations_count > 1 ? 's' : ''}`,
+          href: `/accommodations?city=${encodeURIComponent(d.city)}`,
+          categories: d.categories || [],
         })));
       })
-      .catch(() => { if (!cancelled) setCities([]); });
+      .catch(() => { if (!cancelled) setDestinations([]); });
     return () => { cancelled = true; };
   }, []);
 
-  return cities;
+  return destinations;
 }
 
 export function TrendingDestinations() {
   const [active, setActive] = useState(0);
-  const destinations = useTopCities();
+  const destinations = useTrendingDestinations();
+  const category = SEASON_TABS[active].category;
 
-  // Rien de réel à montrer (base vide, ou toutes sans photo) : on masque la
-  // section plutôt que d'afficher des données inventées ou une grille vide.
+  // Rien de publié : on masque la section plutôt que d'afficher une grille vide.
   if (destinations !== null && destinations.length === 0) return null;
+
+  const filtered = destinations === null ? null : destinations.filter((d) => d.categories.includes(category));
 
   return (
     <section className="container mx-auto px-4 md:px-8 max-w-7xl py-12">
@@ -180,15 +186,17 @@ export function TrendingDestinations() {
           );
         })}
       </div>
-      {destinations === null ? (
+      {filtered === null ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-[440px] rounded-2xl skeleton" />
           ))}
         </div>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-gray-500 py-8 text-center">Aucune destination dans cette catégorie pour le moment.</p>
       ) : (
         <Reveal className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {destinations.map((d) => <DestinationCard key={d.name} data={d} />)}
+          {filtered.map((d) => <DestinationCard key={d.name} data={d} />)}
         </Reveal>
       )}
     </section>
@@ -240,7 +248,7 @@ export function SaveMore() {
 // Retour client 2026-09-15 : cette section montrait 5 lieux inventés (photos
 // Unsplash) — remplacée par du contenu réel publié par l'admin (Paramètres >
 // Découvertes). Masquée tant que rien n'est publié, même logique que
-// useTopCities() ci-dessus.
+// useTrendingDestinations() ci-dessus.
 // Retour client 2026-09-16 (correction "Les destinations tendances") :
 // catégories de voyage pour filtrer les sites — distinctes des onglets
 // d'activités ci-dessous, un site peut appartenir à plusieurs.
