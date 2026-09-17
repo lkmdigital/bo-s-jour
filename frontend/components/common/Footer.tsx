@@ -36,6 +36,14 @@ const COLUMNS = [
       { label: 'Contactez-nous', href: '/contact' },
     ],
   },
+  {
+    title: 'Légal',
+    links: [
+      { label: "Conditions générales d'utilisation", href: '/cgu' },
+      { label: 'Conditions générales de vente', href: '/cgv' },
+      { label: 'Avis clients', href: '/avis-clients' },
+    ],
+  },
 ];
 
 // Logos affichés dans le footer (marketing) — uniquement les moyens de

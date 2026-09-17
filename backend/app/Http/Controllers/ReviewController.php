@@ -170,6 +170,25 @@ class ReviewController extends Controller
         return response()->json($reviews);
     }
 
+    /**
+     * Retour client 2026-09-17 : page publique "Avis clients" listant tous les
+     * avis de la plateforme (toutes réservations confondues), pour montrer que
+     * la plateforme est utilisée par de vrais voyageurs. Public, en lecture
+     * seule ; ne renvoie que les avis approuvés. `with('user:id,name,avatar')`
+     * plutôt que la relation complète : jamais les champs sensibles du compte
+     * (documents, coordonnées, finances) dans une réponse publique.
+     */
+    public function all(Request $request)
+    {
+        $query = Review::with(['user:id,name,avatar', 'accommodation:id,name,city'])
+            ->where('moderation_status', 'approved')
+            ->orderByDesc('created_at');
+
+        $reviews = $query->paginate(10);
+
+        return response()->json($reviews);
+    }
+
     public function store(Request $request)
     {
         // Critères de notation par catégorie (1-5, tous facultatifs)
