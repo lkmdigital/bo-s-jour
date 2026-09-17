@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Plus, Pencil, Trash2, X, Check, Loader2, ImagePlus, Briefcase, Palmtree } from 'lucide-react';
+import { Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Plus, Pencil, Trash2, X, Check, Loader2, ImagePlus, Briefcase, Palmtree, Video, Star } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/common/ToastContext';
 import { useConfirm } from '@/components/common/ConfirmContext';
@@ -65,6 +65,16 @@ interface TrendingDestination {
   accommodations_count: number;
   categories: SiteCategory[] | null;
   image_path: string;
+  display_order: number;
+  is_published: boolean;
+}
+
+interface ShowcaseVideo {
+  id: number;
+  label: string;
+  rating: number;
+  image_path: string;
+  video_url: string | null;
   display_order: number;
   is_published: boolean;
 }
@@ -652,9 +662,226 @@ function DestinationsTab() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Vidéos ("Explorer boséjour")                                        */
+/* ------------------------------------------------------------------ */
+
+function ShowcaseTextEditor() {
+  const { showError, showSuccess } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.get('/admin/discovery/showcase-text')
+      .then((r) => { setTitle(r.data?.title ?? ''); setDescription(r.data?.description ?? ''); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = async () => {
+    if (!title.trim() || !description.trim()) { showError('Le titre et la description sont requis.'); return; }
+    setSaving(true);
+    try {
+      await api.post('/admin/discovery/showcase-text', { title: title.trim(), description: description.trim() });
+      showSuccess('Texte mis à jour.');
+    } catch (err: any) {
+      showError(err.response?.data?.message || "Erreur lors de l'enregistrement.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="py-6"><LoadingSpinner /></div>;
+
+  return (
+    <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 space-y-3 mb-4">
+      <p className="text-xs text-gray-500">Texte affiché sur le grand bloc, à gauche des vidéos, sur l&apos;accueil.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre (ex : Vivez l'expérience)"
+          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+        <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description"
+          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+      </div>
+      <button onClick={save} disabled={saving} className="btn-primary text-sm inline-flex items-center gap-2 disabled:opacity-50">
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Enregistrer le texte
+      </button>
+    </div>
+  );
+}
+
+function VideosTab() {
+  const { showError, showSuccess } = useToast();
+  const confirmAction = useConfirm();
+  const [videos, setVideos] = useState<ShowcaseVideo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState<null | 'new' | number>(null);
+  const [label, setLabel] = useState('');
+  const [rating, setRating] = useState('5');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [displayOrder, setDisplayOrder] = useState('0');
+  const [isPublished, setIsPublished] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    api.get('/admin/discovery/videos').then((r) => setVideos(r.data?.data ?? [])).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const resetForm = () => {
+    setShowForm(null);
+    setLabel('');
+    setRating('5');
+    setVideoUrl('');
+    setDisplayOrder('0');
+    setIsPublished(false);
+    setImageFile(null);
+  };
+
+  const openEdit = (v: ShowcaseVideo) => {
+    setShowForm(v.id);
+    setLabel(v.label);
+    setRating(String(v.rating));
+    setVideoUrl(v.video_url || '');
+    setDisplayOrder(String(v.display_order));
+    setIsPublished(v.is_published);
+    setImageFile(null);
+  };
+
+  const save = async () => {
+    if (!label.trim()) { showError('Le nom du lieu est requis.'); return; }
+    if (showForm === 'new' && !imageFile) { showError('Une vignette est requise.'); return; }
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('label', label.trim());
+      fd.append('rating', rating || '5');
+      fd.append('video_url', videoUrl.trim());
+      fd.append('display_order', displayOrder || '0');
+      fd.append('is_published', isPublished ? '1' : '0');
+      if (imageFile) fd.append('image', imageFile);
+
+      if (showForm === 'new') {
+        await api.post('/admin/discovery/videos', fd);
+        showSuccess('Vidéo ajoutée.');
+      } else if (typeof showForm === 'number') {
+        await api.post(`/admin/discovery/videos/${showForm}`, fd);
+        showSuccess('Vidéo mise à jour.');
+      }
+      resetForm();
+      load();
+    } catch (err: any) {
+      showError(err.response?.data?.message || "Erreur lors de l'enregistrement.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (id: number) => {
+    const ok = await confirmAction({ title: 'Supprimer cette vidéo ?', message: 'Cette action est irréversible.', variant: 'danger' });
+    if (!ok) return;
+    try {
+      await api.delete(`/admin/discovery/videos/${id}`);
+      showSuccess('Vidéo supprimée.');
+      load();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Erreur lors de la suppression.');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <ShowcaseTextEditor />
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Affichées sur l&apos;accueil dans &laquo;&nbsp;Explorer boséjour&nbsp;&raquo; — uniquement les entrées publiées.
+        </p>
+        {showForm === null && (
+          <button onClick={() => setShowForm('new')} className="btn-primary text-sm inline-flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Ajouter une vidéo
+          </button>
+        )}
+      </div>
+
+      {showForm !== null && (
+        <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Lieu (ex : Assinie, Côte d'Ivoire)"
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="Lien de la vidéo (YouTube, Vimeo…, optionnel)"
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="btn-outline text-sm inline-flex items-center gap-2 cursor-pointer">
+              <ImagePlus className="w-4 h-4" /> {imageFile ? imageFile.name : 'Choisir une vignette'}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              Note
+              <select value={rating} onChange={(e) => setRating(e.target.value)}
+                className="px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
+                {[0, 1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} / 5</option>)}
+              </select>
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              Ordre
+              <input type="number" min={0} value={displayOrder} onChange={(e) => setDisplayOrder(e.target.value)}
+                className="w-20 px-2 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm" />
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} className="rounded" />
+              Publié (visible sur l&apos;accueil)
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={save} disabled={saving} className="btn-primary text-sm inline-flex items-center gap-2 disabled:opacity-50">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Enregistrer
+            </button>
+            <button onClick={resetForm} className="btn-secondary text-sm">Annuler</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="py-12"><LoadingSpinner /></div>
+      ) : videos.length === 0 ? (
+        <p className="text-sm text-gray-500 text-center py-8">Aucune vidéo pour le moment.</p>
+      ) : (
+        <div className="space-y-2">
+          {videos.map((v) => (
+            <div key={v.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 dark:border-gray-700 flex-wrap">
+              <ImageThumb path={v.image_path} alt={v.label} />
+              <div className="flex-1 min-w-[160px]">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{v.label}</p>
+                <p className="text-xs text-gray-500 flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className={`w-3 h-3 ${i < v.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
+                  ))}
+                  <span className="ml-1">· ordre {v.display_order}{v.video_url ? ' · lien vidéo' : ''}</span>
+                </p>
+              </div>
+              <PublishBadge published={v.is_published} />
+              <button onClick={() => openEdit(v)} className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5" title="Modifier">
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button onClick={() => remove(v.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20" title="Supprimer">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 
 export default function AdminDiscoveryPage() {
-  const [tab, setTab] = useState<'sites' | 'activities' | 'destinations'>('sites');
+  const [tab, setTab] = useState<'sites' | 'activities' | 'destinations' | 'videos'>('sites');
 
   return (
     <div className="space-y-6">
@@ -663,7 +890,7 @@ export default function AdminDiscoveryPage() {
           <Compass className="w-6 h-6 text-primary" /> Découvertes
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Contenu éditorial de l&apos;accueil (sites à voir, activités, destinations tendances) — tant qu&apos;aucune entrée n&apos;est publiée
+          Contenu éditorial de l&apos;accueil (sites à voir, activités, destinations tendances, vidéos) — tant qu&apos;aucune entrée n&apos;est publiée
           dans une catégorie, la section correspondante reste masquée pour les visiteurs.
         </p>
       </div>
@@ -687,10 +914,16 @@ export default function AdminDiscoveryPage() {
           }`}>
           Destinations tendances
         </button>
+        <button onClick={() => setTab('videos')}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            tab === 'videos' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}>
+          Vidéos
+        </button>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
-        {tab === 'sites' ? <SitesTab /> : tab === 'activities' ? <ActivitiesTab /> : <DestinationsTab />}
+        {tab === 'sites' ? <SitesTab /> : tab === 'activities' ? <ActivitiesTab /> : tab === 'destinations' ? <DestinationsTab /> : <VideosTab />}
       </div>
     </div>
   );

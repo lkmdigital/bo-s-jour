@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DiscoveryActivity;
 use App\Models\DiscoverySite;
+use App\Models\Setting;
+use App\Models\ShowcaseVideo;
 use App\Models\TrendingDestination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,6 +20,12 @@ use Illuminate\Support\Facades\Storage;
  */
 class AdminDiscoveryController extends Controller
 {
+    // Valeurs affichées avant toute modification admin — identiques au texte
+    // codé en dur qu'elles remplacent, pour ne rien changer visuellement
+    // tant que l'admin n'a rien édité.
+    const DEFAULT_SHOWCASE_TITLE = "Vivez l'expérience";
+    const DEFAULT_SHOWCASE_DESCRIPTION = "Plongez-vous dans des visuels captivants de nos destinations les plus emblématiques.";
+
     private function checkAdmin(Request $request)
     {
         if (!$request->user() || !$request->user()->isAdmin()) {
@@ -294,5 +302,116 @@ class AdminDiscoveryController extends Controller
         $destination->delete();
 
         return response()->json(['message' => 'Destination supprimée.']);
+    }
+
+    // ------------------------------------------------------------------
+    // Vidéos ("Explorer boséjour")
+    // ------------------------------------------------------------------
+
+    public function videos(Request $request)
+    {
+        if ($forbidden = $this->checkAdmin($request)) return $forbidden;
+
+        return response()->json(['data' => ShowcaseVideo::orderBy('display_order')->orderByDesc('created_at')->get()]);
+    }
+
+    public function storeVideo(Request $request)
+    {
+        if ($forbidden = $this->checkAdmin($request)) return $forbidden;
+
+        $validated = $request->validate([
+            'label' => 'required|string|max:255',
+            'rating' => 'nullable|integer|min:0|max:5',
+            'video_url' => 'nullable|url|max:500',
+            'display_order' => 'nullable|integer|min:0',
+            'is_published' => 'nullable|boolean',
+            'image' => 'required|file|image|max:5120',
+        ]);
+
+        $path = $request->file('image')->store('discovery/videos', 'public');
+
+        $video = ShowcaseVideo::create([
+            'label' => $validated['label'],
+            'rating' => $validated['rating'] ?? 5,
+            'video_url' => $validated['video_url'] ?? null,
+            'display_order' => $validated['display_order'] ?? 0,
+            'is_published' => $request->boolean('is_published', false),
+            'image_path' => Storage::url($path),
+        ]);
+
+        return response()->json(['data' => $video], 201);
+    }
+
+    public function updateVideo(Request $request, int $id)
+    {
+        if ($forbidden = $this->checkAdmin($request)) return $forbidden;
+
+        $video = ShowcaseVideo::findOrFail($id);
+
+        $validated = $request->validate([
+            'label' => 'sometimes|required|string|max:255',
+            'rating' => 'nullable|integer|min:0|max:5',
+            'video_url' => 'nullable|url|max:500',
+            'display_order' => 'nullable|integer|min:0',
+            'is_published' => 'nullable|boolean',
+            'image' => 'nullable|file|image|max:5120',
+        ]);
+
+        $updateData = array_intersect_key($validated, array_flip(['label', 'rating', 'video_url', 'display_order']));
+        if ($request->has('is_published')) {
+            $updateData['is_published'] = $request->boolean('is_published');
+        }
+
+        if ($request->hasFile('image')) {
+            $oldPath = str_replace('/storage/', '', $video->image_path);
+            if ($oldPath) {
+                Storage::disk('public')->delete($oldPath);
+            }
+            $path = $request->file('image')->store('discovery/videos', 'public');
+            $updateData['image_path'] = Storage::url($path);
+        }
+
+        $video->update($updateData);
+
+        return response()->json(['data' => $video->fresh()]);
+    }
+
+    public function destroyVideo(Request $request, int $id)
+    {
+        if ($forbidden = $this->checkAdmin($request)) return $forbidden;
+
+        $video = ShowcaseVideo::findOrFail($id);
+        $oldPath = str_replace('/storage/', '', $video->image_path);
+        if ($oldPath) {
+            Storage::disk('public')->delete($oldPath);
+        }
+        $video->delete();
+
+        return response()->json(['message' => 'Vidéo supprimée.']);
+    }
+
+    public function showcaseText(Request $request)
+    {
+        if ($forbidden = $this->checkAdmin($request)) return $forbidden;
+
+        return response()->json([
+            'title' => (string) Setting::get('showcase_title', self::DEFAULT_SHOWCASE_TITLE),
+            'description' => (string) Setting::get('showcase_description', self::DEFAULT_SHOWCASE_DESCRIPTION),
+        ]);
+    }
+
+    public function updateShowcaseText(Request $request)
+    {
+        if ($forbidden = $this->checkAdmin($request)) return $forbidden;
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|max:500',
+        ]);
+
+        Setting::set('showcase_title', $validated['title'], 'string', 'Titre — accueil "Explorer boséjour"');
+        Setting::set('showcase_description', $validated['description'], 'string', 'Description — accueil "Explorer boséjour"');
+
+        return response()->json(['title' => $validated['title'], 'description' => $validated['description']]);
     }
 }

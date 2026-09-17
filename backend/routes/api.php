@@ -69,6 +69,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/discovery/sites', [DiscoveryController::class, 'sites']);
 Route::get('/discovery/activities', [DiscoveryController::class, 'activities']);
 Route::get('/discovery/destinations', [DiscoveryController::class, 'destinations']);
+Route::get('/discovery/videos', [DiscoveryController::class, 'videos']);
+Route::get('/discovery/showcase-text', [DiscoveryController::class, 'showcaseText']);
 Route::get('/accommodations', [AccommodationController::class, 'index']);
 Route::get('/accommodations/top-cities', [AccommodationController::class, 'topCities']);
 Route::get('/accommodations/suggestions', [AccommodationController::class, 'suggestions']);
@@ -457,6 +459,12 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::post('/destinations', [AdminDiscoveryController::class, 'storeDestination']);
             Route::post('/destinations/{id}', [AdminDiscoveryController::class, 'updateDestination'])->where('id', '[0-9]+');
             Route::delete('/destinations/{id}', [AdminDiscoveryController::class, 'destroyDestination'])->where('id', '[0-9]+');
+            Route::get('/videos', [AdminDiscoveryController::class, 'videos']);
+            Route::post('/videos', [AdminDiscoveryController::class, 'storeVideo']);
+            Route::post('/videos/{id}', [AdminDiscoveryController::class, 'updateVideo'])->where('id', '[0-9]+');
+            Route::delete('/videos/{id}', [AdminDiscoveryController::class, 'destroyVideo'])->where('id', '[0-9]+');
+            Route::get('/showcase-text', [AdminDiscoveryController::class, 'showcaseText']);
+            Route::post('/showcase-text', [AdminDiscoveryController::class, 'updateShowcaseText']);
         });
 
         // Tableau stratégique (vue exécutive)

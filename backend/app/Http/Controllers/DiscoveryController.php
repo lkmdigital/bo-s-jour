@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Admin\AdminDiscoveryController;
 use App\Models\DiscoveryActivity;
 use App\Models\DiscoverySite;
+use App\Models\Setting;
+use App\Models\ShowcaseVideo;
 use App\Models\TrendingDestination;
 
 /**
@@ -32,6 +35,21 @@ class DiscoveryController extends Controller
     {
         return response()->json([
             'data' => TrendingDestination::published()->orderBy('display_order')->orderByDesc('created_at')->get(),
+        ]);
+    }
+
+    public function videos()
+    {
+        return response()->json([
+            'data' => ShowcaseVideo::published()->orderBy('display_order')->orderByDesc('created_at')->get(),
+        ]);
+    }
+
+    public function showcaseText()
+    {
+        return response()->json([
+            'title' => (string) Setting::get('showcase_title', AdminDiscoveryController::DEFAULT_SHOWCASE_TITLE),
+            'description' => (string) Setting::get('showcase_description', AdminDiscoveryController::DEFAULT_SHOWCASE_DESCRIPTION),
         ]);
     }
 }

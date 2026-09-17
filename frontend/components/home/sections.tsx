@@ -434,50 +434,109 @@ export function Activities() {
 }
 
 /* ------------------------------------------------------------------ */
-/* 6. Explorez en mouvement (vidéos)                                   */
+/* 6. Explorer boséjour (vidéos)                                       */
 /* ------------------------------------------------------------------ */
-const VIDEOS = [
-  { name: 'Assinie, Côte d\'Ivoire', image: img('1573843981267-be1999ff37cd', 500), stars: 4 },
-  { name: 'Man, Côte d\'Ivoire', image: img('1506905925346-21bda4d32df4', 500), stars: 5 },
-  { name: 'Grand-Bassam, Côte d\'Ivoire', image: img('1520250497591-112f2f40a3f4', 500), stars: 5 },
-];
+// Retour client 2026-09-17 : les 3 vignettes vidéo (noms de lieux, notes en
+// étoiles) étaient codées en dur, avec un bouton "Lire" qui ne menait à
+// aucune vidéo réelle — le client veut que l'admin puisse ajouter ses
+// propres vidéos ici (Paramètres > Découvertes) et changer le texte du
+// bloc héros. Titre de section aussi raccourci ("Explorez ... en
+// mouvement" -> "Explorer boséjour") à la demande du client. Le grand
+// bloc héros à gauche garde sa vraie photo d'hébergement (non fabriquée) —
+// seules les vignettes vidéo et le texte deviennent gérés par l'admin.
+interface ShowcaseVideoApi {
+  id: number;
+  label: string;
+  rating: number;
+  image_path: string;
+  video_url: string | null;
+}
+
+function useShowcaseVideos() {
+  const [videos, setVideos] = useState<ShowcaseVideoApi[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/discovery/videos')
+      .then((r) => { if (!cancelled) setVideos(r.data?.data ?? []); })
+      .catch(() => { if (!cancelled) setVideos([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return videos;
+}
+
+function useShowcaseText() {
+  const [text, setText] = useState({ title: "Vivez l'expérience", description: 'Plongez-vous dans des visuels captivants de nos destinations les plus emblématiques.' });
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/discovery/showcase-text')
+      .then((r) => { if (!cancelled && r.data?.title) setText({ title: r.data.title, description: r.data.description }); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  return text;
+}
 
 export function VideoShowcase({ photos = [] }: { photos?: string[] }) {
-  const videos = VIDEOS.map((v, i) => ({ ...v, image: photos[i] || v.image }));
+  const videos = useShowcaseVideos();
+  const text = useShowcaseText();
   const heroImg = photos[3] || img('1470071459604-3b5ec3a7fe05', 1200);
+  const hasVideos = videos === null || videos.length > 0;
+
   return (
     <section className="bg-gray-50 dark:bg-gray-900/40 py-16">
       <div className="container mx-auto px-4 md:px-8 max-w-7xl">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Explorez <Brand /> en mouvement</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 relative rounded-2xl overflow-hidden min-h-[360px] ring-4 ring-primary/30">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">Explorer <Brand /></h2>
+        <div className={cn('grid grid-cols-1 gap-5', hasVideos && 'lg:grid-cols-3')}>
+          <div className={cn('relative rounded-2xl overflow-hidden min-h-[360px] ring-4 ring-primary/30', hasVideos && 'lg:col-span-2')}>
             <Image src={heroImg} alt="Luxe" fill className="object-cover" sizes="66vw" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/10" />
             <div className="relative z-10 p-8 md:p-12 max-w-lg text-white h-full flex flex-col justify-center">
-              <h3 className="text-3xl md:text-4xl font-bold">Vivez l&apos;expérience</h3>
-              <p className="mt-3 text-white/90">Plongez-vous dans des visuels captivants de nos destinations les plus emblématiques.</p>
+              <h3 className="text-3xl md:text-4xl font-bold">{text.title}</h3>
+              <p className="mt-3 text-white/90">{text.description}</p>
               <Link href="/accommodations" className="btn-primary mt-6 w-fit">Explorer toutes les vidéos</Link>
             </div>
           </div>
-          <div className="flex flex-col gap-5">
-            {videos.map((v) => (
-              <div key={v.name} className="relative rounded-2xl overflow-hidden h-[112px] flex-1 group">
-                <Image src={v.image} alt={v.name} fill className="object-cover" sizes="33vw" />
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors" />
-                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                  <Play className="w-4 h-4 text-primary fill-primary ml-0.5" />
-                </span>
-                <div className="absolute bottom-2 left-3 text-white text-sm font-medium drop-shadow">
-                  {v.name}
-                  <div className="flex gap-0.5 mt-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={`w-3 h-3 ${i < v.stars ? 'fill-[#F7C948] text-[#F7C948]' : 'text-white/50'}`} />
-                    ))}
+          {videos === null ? (
+            <div className="flex flex-col gap-5">
+              {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[112px] flex-1 rounded-2xl skeleton" />)}
+            </div>
+          ) : videos.length > 0 && (
+            <div className="flex flex-col gap-5">
+              {videos.map((v) => {
+                const Tile = (
+                  <>
+                    <Image src={resolveImageUrl(v.image_path)} alt={v.label} fill className="object-cover" sizes="33vw" />
+                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors" />
+                    <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+                      <Play className="w-4 h-4 text-primary fill-primary ml-0.5" />
+                    </span>
+                    <div className="absolute bottom-2 left-3 text-white text-sm font-medium drop-shadow">
+                      {v.label}
+                      <div className="flex gap-0.5 mt-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={`w-3 h-3 ${i < v.rating ? 'fill-[#F7C948] text-[#F7C948]' : 'text-white/50'}`} />
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                );
+                return v.video_url ? (
+                  <a key={v.id} href={v.video_url} target="_blank" rel="noopener noreferrer"
+                    className="relative rounded-2xl overflow-hidden h-[112px] flex-1 group block">
+                    {Tile}
+                  </a>
+                ) : (
+                  <div key={v.id} className="relative rounded-2xl overflow-hidden h-[112px] flex-1 group">
+                    {Tile}
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </section>
