@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DollarSign, ShieldCheck, FileText,
-  Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Play, Quote, Star,
+  Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Play, Star,
   Briefcase, Palmtree, MessageSquarePlus, X,
 } from 'lucide-react';
 import api from '@/lib/api';
@@ -806,8 +806,6 @@ function MainTestimonial({ pool }: { pool: TestimonialItem[] }) {
 
   return (
     <div className="relative z-10 max-w-2xl mx-auto text-center">
-      <Quote className="hidden md:block absolute -left-6 top-0 w-10 h-10 text-rose-300 fill-rose-300/40" />
-      <Quote className="hidden md:block absolute -right-6 bottom-8 w-10 h-10 text-rose-300 fill-rose-300/40 rotate-180" />
       <AnimatePresence mode="wait">
         <motion.div
           key={item.id}
