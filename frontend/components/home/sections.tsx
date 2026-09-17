@@ -41,8 +41,8 @@ export function Reveal({ children, className, delay = 0 }: { children: React.Rea
 /* 1. Pourquoi faire confiance                                         */
 /* ------------------------------------------------------------------ */
 const TRUST = [
-  { icon: DollarSign, title: 'Pas de frais cachés', text: 'Tarification transparente sans frais cachés.' },
-  { icon: ShieldCheck, title: 'Réservation instantanée', text: 'Confirmation par E-mail et WhatsApp juste après votre réservation.' },
+  { icon: DollarSign, title: 'Pas de frais cachés', text: 'Tarification transparente.' },
+  { icon: ShieldCheck, title: 'Réservation instantanée', text: 'Confirmation par E-mail et WhatsApp.' },
   { icon: FileText, title: 'Flexibilité', text: "Annulation selon les politiques de l'hôtel." },
 ];
 
