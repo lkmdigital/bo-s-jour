@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  DollarSign, ShieldCheck, FileText, Sparkles, Sun, Leaf, Snowflake,
+  DollarSign, ShieldCheck, FileText,
   Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Play, Quote, Star,
   Briefcase, Palmtree,
 } from 'lucide-react';
@@ -103,11 +103,15 @@ export function TrustSection() {
 /* ------------------------------------------------------------------ */
 /* 2. Destinations tendances                                           */
 /* ------------------------------------------------------------------ */
+// Retour client 2026-09-17 : remplace les 4 onglets saisonniers (jamais
+// vraiment fonctionnels — `active` ne filtrait déjà rien) par les mêmes
+// catégories de voyage que "Principaux sites à voir" (DiscoverySite), pour
+// rester cohérent avec la correction apportée à cette autre section.
 const SEASON_TABS = [
-  { label: 'Choix de printemps', icon: Sparkles },
-  { label: "Point chaud de l'été", icon: Sun },
-  { label: "Évasion d'automne", icon: Leaf },
-  { label: 'Escapade hivernale', icon: Snowflake },
+  { label: 'Business', icon: Briefcase },
+  { label: 'Balnéaires', icon: Waves },
+  { label: 'Tourisme et culture', icon: Landmark },
+  { label: 'Escapade weekend', icon: Palmtree },
 ];
 
 interface TopCityApi {
@@ -442,7 +446,7 @@ export function VideoShowcase({ photos = [] }: { photos?: string[] }) {
             <Image src={heroImg} alt="Luxe" fill className="object-cover" sizes="66vw" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/10" />
             <div className="relative z-10 p-8 md:p-12 max-w-lg text-white h-full flex flex-col justify-center">
-              <h3 className="text-3xl md:text-4xl font-bold">Entrez dans un monde du luxe</h3>
+              <h3 className="text-3xl md:text-4xl font-bold">Vivez l&apos;expérience</h3>
               <p className="mt-3 text-white/90">Plongez-vous dans des visuels captivants de nos destinations les plus emblématiques.</p>
               <Link href="/accommodations" className="btn-primary mt-6 w-fit">Explorer toutes les vidéos</Link>
             </div>
@@ -495,7 +499,26 @@ function RingAvatar({ src, size, ring, className = '' }: { src: string; size: st
   );
 }
 
+// Retour client 2026-09-16/17 : remplace la citation unique inventée
+// ("Ethan Rogrinho", Malaisie — nom et pays fictifs) par les avis réels
+// transmis par le client (espace commentaires BoSéjour). Aucun nom ne les
+// accompagnait — plutôt que d'en inventer un, la citation défile parmi les
+// avis réels sans attribution fictive.
+const REAL_REVIEWS = [
+  "Très bonne découverte ! Le site est simple à utiliser et surtout rapide pour trouver un hébergement. Je recommande.",
+  "J'aime beaucoup le concept de BoSéjour. On retrouve facilement les établissements et les informations sont claires. C'est vraiment pratique.",
+  "Site très fluide et facile à utiliser. Ça fait plaisir d'avoir une plateforme qui permet de rechercher rapidement un hébergement en Côte d'Ivoire.",
+  "Franchement, belle plateforme ! Simple, rapide et rassurante. Je pense que je vais passer par BoSéjour pour mes prochaines réservations.",
+];
+
 export function Testimonials() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setActive((a) => (a + 1) % REAL_REVIEWS.length), 5000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <section className="container mx-auto px-4 md:px-8 max-w-7xl py-16">
       <div className="relative bg-gray-50 dark:bg-gray-800/40 rounded-3xl px-6 py-14 min-h-[520px] overflow-hidden">
@@ -510,20 +533,24 @@ export function Testimonials() {
           ))}
         </div>
 
-        {/* avatar central */}
-        <div className="flex justify-center mb-6">
-          <RingAvatar src={portrait('1500648767791-00dcc994a43e', 300)} size="w-24 h-24 md:w-28 md:h-28" ring="from-rose-400 to-pink-300" />
-        </div>
-
-        {/* citation */}
-        <div className="relative max-w-2xl mx-auto text-center">
+        {/* citation — avis réels, défilent (pas de nom/pays/photo : non fournis) */}
+        <div className="relative max-w-2xl mx-auto text-center mt-4">
           <Quote className="hidden md:block absolute -left-6 top-0 w-10 h-10 text-rose-300 fill-rose-300/40" />
           <Quote className="hidden md:block absolute -right-6 bottom-8 w-10 h-10 text-rose-300 fill-rose-300/40 rotate-180" />
-          <p className="text-lg md:text-2xl font-medium text-gray-800 dark:text-gray-100 leading-relaxed">
-            Cet endroit est exactement comme la photo publiée sur <Brand />. Excellent service, nous avons passé un excellent séjour !
+          <p className="text-lg md:text-2xl font-medium text-gray-800 dark:text-gray-100 leading-relaxed min-h-[6rem] md:min-h-[4rem] flex items-center justify-center">
+            {REAL_REVIEWS[active]}
           </p>
-          <p className="mt-6 font-bold text-lg text-gray-900 dark:text-white">Ethan Rogrinho</p>
-          <p className="text-sm text-gray-500 mt-1">🇲🇾 Malaisie</p>
+          <div className="flex justify-center gap-1.5 mt-6">
+            {REAL_REVIEWS.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Avis ${i + 1}`}
+                onClick={() => setActive(i)}
+                className={`w-2 h-2 rounded-full transition-colors ${i === active ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>
