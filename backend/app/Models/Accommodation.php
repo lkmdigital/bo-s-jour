@@ -157,6 +157,11 @@ class Accommodation extends Model
         return $this->hasMany(Review::class);
     }
 
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
     public function images()
     {
         return $this->hasMany(AccommodationImage::class);

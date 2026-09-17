@@ -50,7 +50,11 @@ export default function Home() {
       return;
     }
     if (user?.role !== 'host') {
-      api.get('/accommodations', { params: { per_page: 8 } })
+      // Retour client 2026-09-17 : "Les établissements à la une" doit se
+      // baser sur les mieux notés / plus visités (réservations confirmées) /
+      // plus aimés (favoris), pas sur la simple date de création
+      // (comportement par défaut sans `sort` — voir AccommodationController::index).
+      api.get('/accommodations', { params: { per_page: 8, sort: 'popular' } })
         .then((res) => {
           const list: ApiAccommodation[] = res.data?.data ?? (Array.isArray(res.data) ? res.data : []);
           if (list.length) {

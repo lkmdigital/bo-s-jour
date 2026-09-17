@@ -150,6 +150,22 @@ class AccommodationController extends Controller
             case 'price_desc':  $query->orderBy('price_per_night', 'desc'); break;
             case 'rating':      $query->orderBy('rating', 'desc'); break;
             case 'recommended': $query->orderBy('is_featured', 'desc')->orderBy('rating', 'desc'); break;
+            case 'popular':
+                // Retour client 2026-09-17 : "Les établissements à la une" sur
+                // l'accueil doit se baser sur les mieux notés, les plus
+                // visités (réservations confirmées, faute de tracking de vues)
+                // et les plus aimés (favoris) — pas sur la simple date de
+                // création. Tri à plusieurs clés plutôt qu'un score combiné
+                // arbitraire : note d'abord, puis nombre d'avis (départage un
+                // 5/5 avec un seul avis d'un 4.8/5 avec des centaines), puis
+                // favoris, puis réservations confirmées.
+                $query->withCount('favorites')
+                    ->withCount(['bookings as confirmed_bookings_count' => fn ($q) => $q->where('status', 'confirmed')])
+                    ->orderBy('rating', 'desc')
+                    ->orderBy('total_reviews', 'desc')
+                    ->orderBy('favorites_count', 'desc')
+                    ->orderBy('confirmed_bookings_count', 'desc');
+                break;
             default:
                 $sortBy = $request->get('sort_by', 'created_at');
                 $sortOrder = $request->get('sort_order', 'desc');
