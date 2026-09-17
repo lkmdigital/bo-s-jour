@@ -61,7 +61,9 @@ use App\Http\Controllers\TravelerAiController;
 use App\Http\Controllers\DiscoveryController;
 use App\Http\Controllers\MemberNotificationController;
 use App\Http\Controllers\Admin\AdminReviewController;
+use App\Http\Controllers\Admin\AdminTestimonialController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\TestimonialController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -71,6 +73,9 @@ Route::get('/discovery/activities', [DiscoveryController::class, 'activities']);
 Route::get('/discovery/destinations', [DiscoveryController::class, 'destinations']);
 Route::get('/discovery/videos', [DiscoveryController::class, 'videos']);
 Route::get('/discovery/showcase-text', [DiscoveryController::class, 'showcaseText']);
+// Avis plateforme ("Laissez un avis sur boséjour", accueil) — retour client 2026-09-17.
+Route::get('/testimonials', [TestimonialController::class, 'index']);
+Route::post('/testimonials', [TestimonialController::class, 'store'])->middleware('throttle:5,60');
 Route::get('/accommodations', [AccommodationController::class, 'index']);
 Route::get('/accommodations/top-cities', [AccommodationController::class, 'topCities']);
 Route::get('/accommodations/suggestions', [AccommodationController::class, 'suggestions']);
@@ -466,6 +471,14 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::get('/showcase-text', [AdminDiscoveryController::class, 'showcaseText']);
             Route::post('/showcase-text', [AdminDiscoveryController::class, 'updateShowcaseText']);
             Route::delete('/showcase-text/image', [AdminDiscoveryController::class, 'destroyShowcaseImage']);
+        });
+
+        // Avis plateforme ("Laissez un avis sur boséjour", accueil) — modération.
+        Route::prefix('testimonials')->middleware('role:admin')->group(function () {
+            Route::get('/', [AdminTestimonialController::class, 'index']);
+            Route::post('/{id}/publish', [AdminTestimonialController::class, 'publish'])->where('id', '[0-9]+');
+            Route::post('/{id}/unpublish', [AdminTestimonialController::class, 'unpublish'])->where('id', '[0-9]+');
+            Route::delete('/{id}', [AdminTestimonialController::class, 'destroy'])->where('id', '[0-9]+');
         });
 
         // Tableau stratégique (vue exécutive)

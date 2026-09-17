@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Plus, Pencil, Trash2, X, Check, Loader2, ImagePlus, Briefcase, Palmtree, Video, Star } from 'lucide-react';
+import { Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Plus, Pencil, Trash2, X, Check, Loader2, ImagePlus, Briefcase, Palmtree, Video, Star, EyeOff } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/common/ToastContext';
 import { useConfirm } from '@/components/common/ConfirmContext';
@@ -913,9 +913,120 @@ function VideosTab() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Témoignages ("Laissez un avis sur boséjour")                        */
+/* ------------------------------------------------------------------ */
+
+interface PlatformTestimonial {
+  id: number;
+  first_name: string;
+  avatar_path: string | null;
+  comment: string;
+  is_published: boolean;
+  created_at: string;
+}
+
+function TestimonialAvatar({ t }: { t: PlatformTestimonial }) {
+  const url = t.avatar_path ? resolveImageUrl(t.avatar_path) : null;
+  if (url) {
+    return <img src={url} alt={t.first_name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />;
+  }
+  return (
+    <span className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold flex-shrink-0">
+      {t.first_name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+function TestimonialsTab() {
+  const { showError, showSuccess } = useToast();
+  const confirmAction = useConfirm();
+  const [testimonials, setTestimonials] = useState<PlatformTestimonial[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = () => {
+    setLoading(true);
+    api.get('/admin/testimonials').then((r) => setTestimonials(r.data?.data ?? [])).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const publish = async (id: number) => {
+    try {
+      await api.post(`/admin/testimonials/${id}/publish`);
+      showSuccess('Avis publié.');
+      load();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Erreur.');
+    }
+  };
+
+  const unpublish = async (id: number) => {
+    try {
+      await api.post(`/admin/testimonials/${id}/unpublish`);
+      showSuccess('Avis retiré de l’accueil.');
+      load();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Erreur.');
+    }
+  };
+
+  const remove = async (id: number) => {
+    const ok = await confirmAction({ title: 'Supprimer cet avis ?', message: 'Cette action est irréversible.', variant: 'danger' });
+    if (!ok) return;
+    try {
+      await api.delete(`/admin/testimonials/${id}`);
+      showSuccess('Avis supprimé.');
+      load();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Erreur lors de la suppression.');
+    }
+  };
+
+  if (loading) return <div className="py-12"><LoadingSpinner /></div>;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-500 dark:text-gray-400">
+        Avis soumis par les voyageurs depuis le bouton &laquo;&nbsp;Laissez un avis sur boséjour&nbsp;&raquo; de l&apos;accueil — à valider avant qu&apos;ils n&apos;apparaissent publiquement.
+      </p>
+
+      {testimonials.length === 0 ? (
+        <p className="text-sm text-gray-500 text-center py-8">Aucun avis pour le moment.</p>
+      ) : (
+        <div className="space-y-2">
+          {testimonials.map((t) => (
+            <div key={t.id} className="flex items-start gap-3 p-3 rounded-xl border border-gray-100 dark:border-gray-700 flex-wrap">
+              <TestimonialAvatar t={t} />
+              <div className="flex-1 min-w-[200px]">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{t.first_name}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{t.comment}</p>
+                <p className="text-xs text-gray-400 mt-1">{new Date(t.created_at).toLocaleDateString('fr-FR')}</p>
+              </div>
+              <PublishBadge published={t.is_published} />
+              {t.is_published ? (
+                <button onClick={() => unpublish(t.id)} className="p-2 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20" title="Retirer de l'accueil">
+                  <EyeOff className="w-4 h-4" />
+                </button>
+              ) : (
+                <button onClick={() => publish(t.id)} className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20" title="Publier">
+                  <Check className="w-4 h-4" />
+                </button>
+              )}
+              <button onClick={() => remove(t.id)} className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20" title="Supprimer">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 
 export default function AdminDiscoveryPage() {
-  const [tab, setTab] = useState<'sites' | 'activities' | 'destinations' | 'videos'>('sites');
+  const [tab, setTab] = useState<'sites' | 'activities' | 'destinations' | 'videos' | 'testimonials'>('sites');
 
   return (
     <div className="space-y-6">
@@ -954,10 +1065,16 @@ export default function AdminDiscoveryPage() {
           }`}>
           Vidéos
         </button>
+        <button onClick={() => setTab('testimonials')}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            tab === 'testimonials' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}>
+          Témoignages
+        </button>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
-        {tab === 'sites' ? <SitesTab /> : tab === 'activities' ? <ActivitiesTab /> : tab === 'destinations' ? <DestinationsTab /> : <VideosTab />}
+        {tab === 'sites' ? <SitesTab /> : tab === 'activities' ? <ActivitiesTab /> : tab === 'destinations' ? <DestinationsTab /> : tab === 'videos' ? <VideosTab /> : <TestimonialsTab />}
       </div>
     </div>
   );

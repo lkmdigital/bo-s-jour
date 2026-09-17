@@ -1,18 +1,20 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   DollarSign, ShieldCheck, FileText,
   Compass, Waves, Landmark, Eye, UtensilsCrossed, Moon, Play, Quote, Star,
-  Briefcase, Palmtree,
+  Briefcase, Palmtree, MessageSquarePlus, X,
 } from 'lucide-react';
 import api from '@/lib/api';
 import DestinationCard, { DestinationCardData } from './DestinationCard';
 import { cn, resolveImageUrl } from '@/lib/utils';
 import Brand from '@/components/common/Brand';
+import { useAuthStore } from '@/stores/authStore';
+import { useToast } from '@/components/common/ToastContext';
 
 /** Image Unsplash (le domaine est autorisé + images non optimisées) */
 const img = (id: string, w = 800) =>
@@ -553,80 +555,348 @@ export function VideoShowcase({ photos = [] }: { photos?: string[] }) {
 /* ------------------------------------------------------------------ */
 /* 7. Témoignages                                                      */
 /* ------------------------------------------------------------------ */
-// Avatars décoratifs (positions + anneaux colorés façon design)
-const RING_AVATARS = [
-  { src: portrait('1494790108377-be9c29b29330'), pos: 'top-10 left-[20%]', size: 'w-14 h-14', ring: 'from-teal-400 to-cyan-200' },
-  { src: portrait('1438761681033-6461ffad8d80'), pos: 'top-16 right-[20%]', size: 'w-14 h-14', ring: 'from-amber-300 to-orange-200' },
-  { src: portrait('1544005313-94ddf0286df2'), pos: 'top-1/2 left-[8%]', size: 'w-14 h-14', ring: 'from-yellow-300 to-amber-200' },
-  { src: portrait('1472099645785-5658abf4ff4e'), pos: 'bottom-16 right-[9%]', size: 'w-14 h-14', ring: 'from-teal-300 to-emerald-200' },
-  { src: portrait('1534528741775-53994a69daeb'), pos: 'bottom-8 left-[30%]', size: 'w-12 h-12', ring: 'from-pink-300 to-rose-200' },
-  { src: portrait('1519085360753-af0119f7cbe7'), pos: 'bottom-12 right-[33%]', size: 'w-12 h-12', ring: 'from-emerald-300 to-teal-200' },
+interface TestimonialItem {
+  id: string;
+  comment: string;
+  avatar: string | null;
+  label: string;
+  isSeed?: boolean;
+}
+
+// Retour client 2026-09-16/17 : les 4 avis réels transmis par le client
+// (espace commentaires BoSéjour) n'étaient accompagnés d'aucun nom — plutôt
+// que d'en inventer un, ils gardent un intitulé générique ("Client
+// boséjour"). Retour client 2026-09-17 : leur donner des photos de profil
+// mixtes (photos génériques, non liées à une personne précise — pas
+// d'identité inventée, juste une illustration visuelle diversifiée).
+const SEED_TESTIMONIALS: TestimonialItem[] = [
+  {
+    id: 'seed-1',
+    comment: "Très bonne découverte ! Le site est simple à utiliser et surtout rapide pour trouver un hébergement. Je recommande.",
+    avatar: portrait('1531123897727-8f129e1688ce'),
+    label: 'Client boséjour',
+    isSeed: true,
+  },
+  {
+    id: 'seed-2',
+    comment: "J'aime beaucoup le concept de BoSéjour. On retrouve facilement les établissements et les informations sont claires. C'est vraiment pratique.",
+    avatar: portrait('1531384441138-2736e62e0919'),
+    label: 'Client boséjour',
+    isSeed: true,
+  },
+  {
+    id: 'seed-3',
+    comment: "Site très fluide et facile à utiliser. Ça fait plaisir d'avoir une plateforme qui permet de rechercher rapidement un hébergement en Côte d'Ivoire.",
+    avatar: portrait('1494790108377-be9c29b29330'),
+    label: 'Client boséjour',
+    isSeed: true,
+  },
+  {
+    id: 'seed-4',
+    comment: "Franchement, belle plateforme ! Simple, rapide et rassurante. Je pense que je vais passer par BoSéjour pour mes prochaines réservations.",
+    avatar: portrait('1506794778202-cad84cf45f1d'),
+    label: 'Client boséjour',
+    isSeed: true,
+  },
 ];
 
-function RingAvatar({ src, size, ring, className = '' }: { src: string; size: string; ring: string; className?: string }) {
-  return (
-    <span className={`inline-block p-0.5 rounded-full bg-gradient-to-tr ${ring} ${className}`}>
-      <span className={`relative block ${size} rounded-full overflow-hidden ring-2 ring-white`}>
-        <Image src={src} alt="Voyageur" fill className="object-cover" sizes="80px" />
+interface TestimonialApi { id: number; first_name: string; avatar_path: string | null; comment: string }
+
+/** Avis réels soumis via "Laissez un avis sur boséjour", validés par l'admin. */
+function useTestimonialsFeed() {
+  const [items, setItems] = useState<TestimonialItem[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/testimonials')
+      .then((r) => {
+        if (cancelled) return;
+        const data: TestimonialApi[] = r.data?.data ?? [];
+        setItems(data.map((t) => ({
+          id: `t-${t.id}`,
+          comment: t.comment,
+          avatar: t.avatar_path ? resolveImageUrl(t.avatar_path) : null,
+          label: t.first_name,
+        })));
+      })
+      .catch(() => { if (!cancelled) setItems([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return items;
+}
+
+function TestimonialAvatar({ item, size }: { item: TestimonialItem; size: number }) {
+  if (item.avatar) {
+    return (
+      <span className="relative block rounded-full overflow-hidden ring-2 ring-white shadow shrink-0" style={{ width: size, height: size }}>
+        <Image src={item.avatar} alt={item.label} fill className="object-cover" sizes={`${size}px`} />
       </span>
+    );
+  }
+  // Pas de photo de profil : initiale du prénom, façon avatar générique (montre
+  // que l'avis vient d'un vrai compte, sans jamais inventer de photo).
+  return (
+    <span
+      className="rounded-full bg-primary text-white flex items-center justify-center font-bold ring-2 ring-white shadow shrink-0"
+      style={{ width: size, height: size, fontSize: size * 0.42 }}
+    >
+      {item.label.charAt(0).toUpperCase()}
     </span>
   );
 }
 
-// Retour client 2026-09-16/17 : remplace la citation unique inventée
-// ("Ethan Rogrinho", Malaisie — nom et pays fictifs) par les avis réels
-// transmis par le client (espace commentaires BoSéjour). Aucun nom ne les
-// accompagnait — plutôt que d'en inventer un, la citation défile parmi les
-// avis réels sans attribution fictive.
-const REAL_REVIEWS = [
-  "Très bonne découverte ! Le site est simple à utiliser et surtout rapide pour trouver un hébergement. Je recommande.",
-  "J'aime beaucoup le concept de BoSéjour. On retrouve facilement les établissements et les informations sont claires. C'est vraiment pratique.",
-  "Site très fluide et facile à utiliser. Ça fait plaisir d'avoir une plateforme qui permet de rechercher rapidement un hébergement en Côte d'Ivoire.",
-  "Franchement, belle plateforme ! Simple, rapide et rassurante. Je pense que je vais passer par BoSéjour pour mes prochaines réservations.",
+function TestimonialName({ item }: { item: TestimonialItem }) {
+  return item.isSeed ? <>Client <Brand /></> : <>{item.label}</>;
+}
+
+function TestimonialBubble({ item, variant }: { item: TestimonialItem; variant: 'main' | 'float' }) {
+  if (variant === 'main') {
+    return (
+      <div className="flex flex-col items-center gap-3">
+        <TestimonialAvatar item={item} size={56} />
+        <p className="text-lg md:text-2xl font-medium text-gray-800 dark:text-gray-100 leading-relaxed">
+          {item.comment}
+        </p>
+        <p className="text-sm text-gray-500"><TestimonialName item={item} /></p>
+      </div>
+    );
+  }
+  return (
+    <div className="w-[210px] bg-white/95 dark:bg-gray-900/90 backdrop-blur rounded-2xl shadow-lg p-3 flex items-start gap-2.5">
+      <TestimonialAvatar item={item} size={32} />
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate"><TestimonialName item={item} /></p>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug mt-0.5 line-clamp-3">{item.comment}</p>
+      </div>
+    </div>
+  );
+}
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Zones d'ancrage possibles pour les bulles flottantes, en dehors de la zone
+// centrale occupée par la citation principale — chaque bulle en tire une au
+// hasard à chaque cycle, avec un léger tremblement pour ne jamais réapparaître
+// exactement au même endroit.
+const FLOAT_ZONES = [
+  { top: 16, left: 2 },
+  { top: 16, left: 72 },
+  { top: 45, left: 1 },
+  { top: 45, left: 73 },
+  { top: 74, left: 4 },
+  { top: 74, left: 68 },
 ];
 
-export function Testimonials() {
-  const [active, setActive] = useState(0);
+function randomZone() {
+  const z = pickRandom(FLOAT_ZONES);
+  const jitter = () => (Math.random() - 0.5) * 4;
+  return { top: `${z.top + jitter()}%`, left: `${z.left + jitter()}%` };
+}
+
+function randomDrift() {
+  const span = () => Math.round((Math.random() - 0.5) * 20);
+  return {
+    dx: [0, span(), span(), 0],
+    dy: [0, span(), span(), 0],
+    durX: 5 + Math.random() * 4,
+    durY: 6 + Math.random() * 4,
+  };
+}
+
+/**
+ * Retour client 2026-09-17 : bulle de commentaire qui "sort de la page" en
+ * grandissant, flotte quelques secondes en se baladant doucement, puis
+ * disparaît en rétrécissant — avant qu'une autre (autre avis, autre
+ * position) ne prenne sa place. Chaque instance tourne sur son propre
+ * timing, complètement indépendant des deux autres et de la citation
+ * principale (pas d'intervalle partagé).
+ */
+function FloatingTestimonial({ pool }: { pool: TestimonialItem[] }) {
+  const [current, setCurrent] = useState<null | {
+    key: number;
+    item: TestimonialItem;
+    pos: { top: string; left: string };
+    drift: ReturnType<typeof randomDrift>;
+  }>(null);
 
   useEffect(() => {
-    const id = setInterval(() => setActive((a) => (a + 1) % REAL_REVIEWS.length), 5000);
+    if (pool.length === 0) return;
+    let cancelled = false;
+    let keySeq = 0;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const showNext = () => {
+      if (cancelled) return;
+      keySeq += 1;
+      setCurrent({ key: keySeq, item: pickRandom(pool), pos: randomZone(), drift: randomDrift() });
+      const visibleFor = 5000 + Math.random() * 4000;
+      timer = setTimeout(() => {
+        if (cancelled) return;
+        setCurrent(null);
+        const hiddenFor = 1200 + Math.random() * 2800;
+        timer = setTimeout(showNext, hiddenFor);
+      }, visibleFor);
+    };
+
+    timer = setTimeout(showNext, Math.random() * 4000);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [pool]);
+
+  return (
+    <div className="hidden md:block absolute inset-0 pointer-events-none z-0">
+      <AnimatePresence>
+        {current && (
+          <motion.div
+            key={current.key}
+            className="absolute"
+            style={{ top: current.pos.top, left: current.pos.left }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1, x: current.drift.dx, y: current.drift.dy }}
+            exit={{ opacity: 0, scale: 0, transition: { duration: 0.9, ease: 'easeIn' } }}
+            transition={{
+              opacity: { duration: 0.9, ease: 'easeOut' },
+              scale: { duration: 0.9, ease: 'easeOut' },
+              x: { duration: current.drift.durX, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' },
+              y: { duration: current.drift.durY, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' },
+            }}
+          >
+            <TestimonialBubble item={current.item} variant="float" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/** Citation centrale, plus grande que les bulles flottantes, change toutes les 4s (timing indépendant). */
+function MainTestimonial({ pool }: { pool: TestimonialItem[] }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (pool.length <= 1) return;
+    const id = setInterval(() => setIndex((i) => (i + 1) % pool.length), 4000);
     return () => clearInterval(id);
-  }, []);
+  }, [pool.length]);
+
+  if (pool.length === 0) return null;
+  const item = pool[index % pool.length];
+
+  return (
+    <div className="relative z-10 max-w-2xl mx-auto text-center">
+      <Quote className="hidden md:block absolute -left-6 top-0 w-10 h-10 text-rose-300 fill-rose-300/40" />
+      <Quote className="hidden md:block absolute -right-6 bottom-8 w-10 h-10 text-rose-300 fill-rose-300/40 rotate-180" />
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={item.id}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.5 }}
+        >
+          <TestimonialBubble item={item} variant="main" />
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export function Testimonials() {
+  const { isAuthenticated } = useAuthStore();
+  const { showError } = useToast();
+  const fetched = useTestimonialsFeed();
+  const pool = useMemo(() => [...SEED_TESTIMONIALS, ...(fetched || [])], [fetched]);
+
+  const [showForm, setShowForm] = useState(false);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const openForm = () => {
+    setSubmitted(false);
+    setComment('');
+    setShowForm(true);
+  };
+
+  const submit = async () => {
+    if (comment.trim().length < 5) return;
+    setSubmitting(true);
+    try {
+      await api.post('/testimonials', { comment: comment.trim() });
+      setSubmitted(true);
+    } catch (err: any) {
+      showError(err.response?.data?.message || "Erreur lors de l'envoi de votre avis.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <section className="container mx-auto px-4 md:px-8 max-w-7xl py-16">
-      <div className="relative bg-gray-50 dark:bg-gray-800/40 rounded-3xl px-6 py-14 min-h-[520px] overflow-hidden">
-        <p className="text-center text-gray-500 mb-8">Voyons ce que les gens pensent de <Brand /></p>
+      <div className="relative bg-gray-50 dark:bg-gray-800/40 rounded-3xl px-6 py-14 min-h-[560px] overflow-hidden">
+        <p className="relative z-10 text-center text-gray-500 mb-8">Voyons ce que les gens pensent de <Brand /></p>
 
-        {/* avatars dispersés (desktop) */}
-        <div className="hidden md:block">
-          {RING_AVATARS.map((a, i) => (
-            <span key={i} className={`absolute ${a.pos}`}>
-              <RingAvatar src={a.src} size={a.size} ring={a.ring} />
-            </span>
-          ))}
-        </div>
+        <FloatingTestimonial pool={pool} />
+        <FloatingTestimonial pool={pool} />
+        <FloatingTestimonial pool={pool} />
 
-        {/* citation — avis réels, défilent (pas de nom/pays/photo : non fournis) */}
-        <div className="relative max-w-2xl mx-auto text-center mt-4">
-          <Quote className="hidden md:block absolute -left-6 top-0 w-10 h-10 text-rose-300 fill-rose-300/40" />
-          <Quote className="hidden md:block absolute -right-6 bottom-8 w-10 h-10 text-rose-300 fill-rose-300/40 rotate-180" />
-          <p className="text-lg md:text-2xl font-medium text-gray-800 dark:text-gray-100 leading-relaxed min-h-[6rem] md:min-h-[4rem] flex items-center justify-center">
-            {REAL_REVIEWS[active]}
-          </p>
-          <div className="flex justify-center gap-1.5 mt-6">
-            {REAL_REVIEWS.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`Avis ${i + 1}`}
-                onClick={() => setActive(i)}
-                className={`w-2 h-2 rounded-full transition-colors ${i === active ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}
-              />
-            ))}
-          </div>
+        <MainTestimonial pool={pool} />
+
+        <div className="relative z-10 flex justify-center mt-10">
+          <button type="button" onClick={openForm} className="btn-outline text-sm inline-flex items-center gap-2 bg-white dark:bg-gray-900">
+            <MessageSquarePlus className="w-4 h-4" /> Laissez un avis sur boséjour
+          </button>
         </div>
       </div>
+
+      {showForm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={() => setShowForm(false)}>
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setShowForm(false)} aria-label="Fermer"
+              className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+              <X className="w-4 h-4" />
+            </button>
+
+            {!isAuthenticated ? (
+              <div className="text-center pt-2">
+                <p className="text-gray-700 dark:text-gray-200 mb-4">Connectez-vous pour laisser un avis sur <Brand />.</p>
+                <div className="flex justify-center gap-3">
+                  <Link href="/auth/login" className="btn-primary text-sm">Se connecter</Link>
+                  <Link href="/auth/register" className="btn-outline text-sm">Créer un compte</Link>
+                </div>
+              </div>
+            ) : submitted ? (
+              <div className="text-center pt-2">
+                <p className="font-semibold text-gray-900 dark:text-white mb-1">Merci !</p>
+                <p className="text-sm text-gray-500">Votre avis sera visible après validation par notre équipe.</p>
+                <button type="button" onClick={() => setShowForm(false)} className="btn-primary text-sm mt-4">Fermer</button>
+              </div>
+            ) : (
+              <>
+                <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-3">Laissez un avis sur <Brand /></h3>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={4}
+                  maxLength={500}
+                  placeholder="Partagez votre ressenti sur la plateforme..."
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm resize-none"
+                />
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={submitting || comment.trim().length < 5}
+                  className="btn-primary text-sm mt-3 w-full disabled:opacity-50"
+                >
+                  {submitting ? 'Envoi...' : 'Envoyer mon avis'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
