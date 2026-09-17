@@ -677,20 +677,18 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Zones d'ancrage possibles pour les bulles flottantes : toujours sous le
-// titre "Voyons ce que les gens pensent de boséjour" (jamais au-dessus de
-// 22%) et sur les bords gauche/droite pour ne jamais chevaucher la citation
-// centrale. Retour client 2026-09-17 : deux bulles ne doivent jamais
-// partager le même endroit — chaque bulle réserve son index de zone dans
-// `occupiedRef` (partagé entre les 3 instances) tant qu'elle est visible, et
-// ne pioche que parmi les zones encore libres.
+// Zones d'ancrage possibles pour les bulles flottantes : une bande sous le
+// titre (jamais au-dessus de 20%) et une bande tout en bas, en dehors de la
+// bande centrale où vit la citation principale — retour client 2026-09-17,
+// aucune bulle ne doit apparaître sous le commentaire principal. Deux bulles
+// ne doivent jamais partager le même endroit — chaque bulle réserve son
+// index de zone dans `occupiedRef` (partagé entre les instances) tant
+// qu'elle est visible, et ne pioche que parmi les zones encore libres.
 const FLOAT_ZONES = [
-  { top: 22, left: 2 },
-  { top: 22, left: 74 },
-  { top: 48, left: 1 },
-  { top: 48, left: 75 },
-  { top: 76, left: 4 },
-  { top: 76, left: 70 },
+  { top: 20, left: 2 },
+  { top: 20, left: 74 },
+  { top: 78, left: 4 },
+  { top: 78, left: 68 },
 ];
 
 function pickFreeZoneIndex(occupied: Set<number>): number {
@@ -703,6 +701,12 @@ function zonePosition(index: number) {
   const z = FLOAT_ZONES[index];
   const jitter = () => (Math.random() - 0.5) * 2;
   return { top: `${z.top + jitter()}%`, left: `${z.left + jitter()}%` };
+}
+
+/** Pioche un avis non déjà affiché ailleurs (citation principale + autres bulles) — retour client 2026-09-17 : jamais le même commentaire visible à deux endroits en même temps. */
+function pickAvailableItem(pool: TestimonialItem[], active: Set<string>): TestimonialItem {
+  const free = pool.filter((it) => !active.has(it.id));
+  return pickRandom(free.length > 0 ? free : pool);
 }
 
 function randomDrift() {
@@ -720,12 +724,20 @@ function randomDrift() {
  * grandissant, flotte quelques secondes en se baladant doucement, puis
  * disparaît en rétrécissant — avant qu'une autre (autre avis, autre
  * position) ne prenne sa place. Chaque instance tourne sur son propre
- * timing, complètement indépendant des deux autres et de la citation
- * principale (pas d'intervalle partagé). Reste visible 6s pile (durée fixe
- * demandée par le client — seul le délai avant la prochaine apparition
- * reste aléatoire, pour ne pas que les 3 bulles se resynchronisent).
+ * timing, complètement indépendant des autres et de la citation principale
+ * (pas d'intervalle partagé). Reste visible 6s pile (durée fixe demandée
+ * par le client — seul le délai avant la prochaine apparition reste
+ * aléatoire, pour ne pas que les bulles se resynchronisent).
  */
-function FloatingTestimonial({ pool, occupiedRef }: { pool: TestimonialItem[]; occupiedRef: React.MutableRefObject<Set<number>> }) {
+function FloatingTestimonial({
+  pool,
+  occupiedRef,
+  activeIdsRef,
+}: {
+  pool: TestimonialItem[];
+  occupiedRef: React.MutableRefObject<Set<number>>;
+  activeIdsRef: React.MutableRefObject<Set<string>>;
+}) {
   const [current, setCurrent] = useState<null | {
     key: number;
     item: TestimonialItem;
@@ -733,6 +745,7 @@ function FloatingTestimonial({ pool, occupiedRef }: { pool: TestimonialItem[]; o
     drift: ReturnType<typeof randomDrift>;
   }>(null);
   const zoneRef = useRef<number | null>(null);
+  const itemIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (pool.length === 0) return;
@@ -740,17 +753,24 @@ function FloatingTestimonial({ pool, occupiedRef }: { pool: TestimonialItem[]; o
     let keySeq = 0;
     let timer: ReturnType<typeof setTimeout>;
 
+    const release = () => {
+      if (zoneRef.current !== null) { occupiedRef.current.delete(zoneRef.current); zoneRef.current = null; }
+      if (itemIdRef.current !== null) { activeIdsRef.current.delete(itemIdRef.current); itemIdRef.current = null; }
+    };
+
     const showNext = () => {
       if (cancelled) return;
       keySeq += 1;
       const zoneIndex = pickFreeZoneIndex(occupiedRef.current);
       occupiedRef.current.add(zoneIndex);
       zoneRef.current = zoneIndex;
-      setCurrent({ key: keySeq, item: pickRandom(pool), pos: zonePosition(zoneIndex), drift: randomDrift() });
+      const item = pickAvailableItem(pool, activeIdsRef.current);
+      activeIdsRef.current.add(item.id);
+      itemIdRef.current = item.id;
+      setCurrent({ key: keySeq, item, pos: zonePosition(zoneIndex), drift: randomDrift() });
       timer = setTimeout(() => {
         if (cancelled) return;
-        occupiedRef.current.delete(zoneIndex);
-        zoneRef.current = null;
+        release();
         setCurrent(null);
         const hiddenFor = 1200 + Math.random() * 2800;
         timer = setTimeout(showNext, hiddenFor);
@@ -761,9 +781,9 @@ function FloatingTestimonial({ pool, occupiedRef }: { pool: TestimonialItem[]; o
     return () => {
       cancelled = true;
       clearTimeout(timer);
-      if (zoneRef.current !== null) occupiedRef.current.delete(zoneRef.current);
+      release();
     };
-  }, [pool, occupiedRef]);
+  }, [pool, occupiedRef, activeIdsRef]);
 
   return (
     <div className="hidden md:block absolute inset-0 pointer-events-none z-0">
@@ -791,18 +811,36 @@ function FloatingTestimonial({ pool, occupiedRef }: { pool: TestimonialItem[]; o
   );
 }
 
-/** Citation centrale, plus grande que les bulles flottantes, change toutes les 5s (timing indépendant). */
-function MainTestimonial({ pool }: { pool: TestimonialItem[] }) {
-  const [index, setIndex] = useState(0);
+/**
+ * Citation centrale, plus grande que les bulles flottantes, change toutes
+ * les 5s (timing indépendant). Réserve elle aussi son avis courant dans
+ * `activeIdsRef` — jamais le même commentaire ici et dans une bulle en même
+ * temps.
+ */
+function MainTestimonial({ pool, activeIdsRef }: { pool: TestimonialItem[]; activeIdsRef: React.MutableRefObject<Set<string>> }) {
+  const [item, setItem] = useState<TestimonialItem | null>(null);
+  const currentIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (pool.length <= 1) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % pool.length), 5000);
-    return () => clearInterval(id);
-  }, [pool.length]);
+    if (pool.length === 0) { setItem(null); return; }
 
-  if (pool.length === 0) return null;
-  const item = pool[index % pool.length];
+    const pickNext = () => {
+      if (currentIdRef.current) activeIdsRef.current.delete(currentIdRef.current);
+      const next = pickAvailableItem(pool, activeIdsRef.current);
+      activeIdsRef.current.add(next.id);
+      currentIdRef.current = next.id;
+      setItem(next);
+    };
+
+    pickNext();
+    const id = setInterval(pickNext, 5000);
+    return () => {
+      clearInterval(id);
+      if (currentIdRef.current) { activeIdsRef.current.delete(currentIdRef.current); currentIdRef.current = null; }
+    };
+  }, [pool, activeIdsRef]);
+
+  if (!item) return null;
 
   return (
     <div className="relative z-10 max-w-2xl mx-auto text-center">
@@ -827,6 +865,7 @@ export function Testimonials() {
   const fetched = useTestimonialsFeed();
   const pool = useMemo(() => [...SEED_TESTIMONIALS, ...(fetched || [])], [fetched]);
   const occupiedZonesRef = useRef<Set<number>>(new Set());
+  const activeItemIdsRef = useRef<Set<string>>(new Set());
 
   const [showForm, setShowForm] = useState(false);
   const [comment, setComment] = useState('');
@@ -857,11 +896,10 @@ export function Testimonials() {
       <div className="relative bg-gray-50 dark:bg-gray-800/40 rounded-3xl px-6 py-14 min-h-[560px] overflow-hidden">
         <p className="relative z-10 text-center text-gray-500 mb-8">Voyons ce que les gens pensent de <Brand /></p>
 
-        <FloatingTestimonial pool={pool} occupiedRef={occupiedZonesRef} />
-        <FloatingTestimonial pool={pool} occupiedRef={occupiedZonesRef} />
-        <FloatingTestimonial pool={pool} occupiedRef={occupiedZonesRef} />
+        <FloatingTestimonial pool={pool} occupiedRef={occupiedZonesRef} activeIdsRef={activeItemIdsRef} />
+        <FloatingTestimonial pool={pool} occupiedRef={occupiedZonesRef} activeIdsRef={activeItemIdsRef} />
 
-        <MainTestimonial pool={pool} />
+        <MainTestimonial pool={pool} activeIdsRef={activeItemIdsRef} />
       </div>
 
       {/* Retour client 2026-09-17 : le bouton doit être juste sous l'espace
