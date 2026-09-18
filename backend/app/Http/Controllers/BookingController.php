@@ -198,7 +198,7 @@ class BookingController extends Controller
             // Vérifier l'activité suspecte
             if (!SecurityService::checkSuspiciousActivity($request, 'booking')) {
                 return response()->json([
-                    'message' => 'Too many requests. Please try again later.'
+                    'message' => 'Trop de demandes. Veuillez réessayer dans quelques instants.'
                 ], 429);
             }
 
@@ -238,14 +238,14 @@ class BookingController extends Controller
             if (!SecurityService::validateEmail($request->email)) {
                 SecurityService::recordSuspiciousActivity($request, 'booking');
                 return response()->json([
-                    'message' => 'Invalid email format.'
+                    'message' => 'Format d\'adresse e-mail invalide.'
                 ], 422);
             }
 
             if (!SecurityService::validatePhone($request->phone)) {
                 SecurityService::recordSuspiciousActivity($request, 'booking');
                 return response()->json([
-                    'message' => 'Invalid phone number format.'
+                    'message' => 'Format de numéro de téléphone invalide.'
                 ], 422);
             }
         }
@@ -270,7 +270,7 @@ class BookingController extends Controller
             $user = $request->user();
             // Prevent a host from booking their own accommodation
             if ($user->hostScopeId() === $accommodation->host_id) {
-                return response()->json(['message' => 'Hosts cannot book their own accommodation'], 403);
+                return response()->json(['message' => 'Un hôte ne peut pas réserver son propre établissement.'], 403);
             }
         } else {
             // Créer un compte utilisateur automatiquement
@@ -301,7 +301,7 @@ class BookingController extends Controller
         }
 
         if ($accommodation->status !== 'published') {
-            return response()->json(['message' => 'Accommodation not available'], 400);
+            return response()->json(['message' => 'Cet établissement n\'est pas disponible.'], 400);
         }
 
         // Membre du Programme Membre : compte authentifié et activé (les comptes
@@ -330,7 +330,7 @@ class BookingController extends Controller
             }
 
             if ($request->guests > $room->capacity * $roomsQuantity) {
-                return response()->json(['message' => 'Exceeds room capacity'], 400);
+                return response()->json(['message' => 'Le nombre de voyageurs dépasse la capacité de la chambre.'], 400);
             }
 
             // Tarification par période : prix moyen par nuit selon les périodes
@@ -347,7 +347,7 @@ class BookingController extends Controller
             // valeur rooms_quantity soumise.
             $roomsQuantity = 1;
             if ($request->guests > $accommodation->max_guests) {
-                return response()->json(['message' => 'Exceeds maximum guests'], 400);
+                return response()->json(['message' => 'Le nombre de voyageurs dépasse la capacité maximale de l\'établissement.'], 400);
             }
 
             // Même règle que BookingService::assertAvailable (Partie 4.5) : une
@@ -375,7 +375,7 @@ class BookingController extends Controller
                 ->exists();
 
             if ($conflictingBookings) {
-                return response()->json(['message' => 'Accommodation not available for selected dates'], 400);
+                return response()->json(['message' => 'Cet établissement n\'est plus disponible pour les dates sélectionnées.'], 400);
             }
         }
 
