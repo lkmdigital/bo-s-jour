@@ -14,6 +14,7 @@ import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { formatPrice, resolveImageUrl, cn, toDateInputValue, getRoomCategoryLabel } from '@/lib/utils';
 import { Input } from '@/components/ui';
 import DateSelector from '@/components/booking/DateSelector';
+import PhoneInput from '@/components/common/PhoneInput';
 import { useUnavailableDates } from '@/hooks/useCalendar';
 
 interface PaymentOptionItem { label: string; amount: number; balance_at_hotel?: number; description?: string; discount_percent?: number; }
@@ -591,9 +592,9 @@ export default function BookingWizard(props: Props) {
                 <Input label="Prénom(s)" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
                 <Input label="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
                 <div>
-                  <Input label="Téléphone / WhatsApp" leftIcon={<Phone className="w-4 h-4" />} value={phone}
-                    onChange={(e) => { setPhone(e.target.value); setWaOtpSent(false); setWaCode(''); setWaError(null); }}
-                    placeholder="+225 07 00 00 00 00" required hint="Utilisé pour la confirmation WhatsApp" />
+                  <PhoneInput label="Téléphone / WhatsApp" value={phone}
+                    onChange={(v) => { setPhone(v); setWaOtpSent(false); setWaCode(''); setWaError(null); }}
+                    required hint="Utilisé pour la confirmation WhatsApp" />
 
                   {whatsappVerificationEnabled && phone.trim() && (
                     <div className="mt-2">
@@ -678,8 +679,8 @@ export default function BookingWizard(props: Props) {
                     <div className="grid sm:grid-cols-2 gap-4 pt-2">
                       <Input label="Prénom du voyageur" value={travelerFirstName} onChange={(e) => setTravelerFirstName(e.target.value)} required />
                       <Input label="Nom du voyageur" value={travelerLastName} onChange={(e) => setTravelerLastName(e.target.value)} required />
-                      <Input label="Téléphone du voyageur" containerClassName="sm:col-span-2" leftIcon={<Phone className="w-4 h-4" />} value={travelerPhone}
-                        onChange={(e) => setTravelerPhone(e.target.value)} placeholder="+225 07 00 00 00 00" required
+                      <PhoneInput label="Téléphone du voyageur" containerClassName="sm:col-span-2" value={travelerPhone}
+                        onChange={setTravelerPhone} required
                         hint="Pour que l'établissement puisse joindre directement la personne qui séjourne" />
                     </div>
                   )}
