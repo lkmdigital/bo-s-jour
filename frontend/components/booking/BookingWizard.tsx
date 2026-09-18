@@ -828,7 +828,13 @@ export default function BookingWizard(props: Props) {
               </button>
             ) : (
               <button onClick={submit} disabled={!cgv || submitting} className="btn-primary disabled:opacity-50">
-                {submitting ? 'Traitement…' : travelerType === 'corporate' && deferredPayment ? 'Valider la réservation' : 'Procéder au paiement'}
+                {/* Retour client 2026-09-18 : "ça doit plus être procéder au
+                    paiement mais plutôt réserver maintenant" — ce clic
+                    soumet la DEMANDE de réservation (souvent en attente de
+                    confirmation de l'hôte avant tout paiement, voir submit()
+                    plus haut) plutôt que d'emmener directement vers un
+                    paiement, d'où le nouveau libellé. */}
+                {submitting ? 'Traitement…' : travelerType === 'corporate' && deferredPayment ? 'Valider la réservation' : 'Réserver maintenant'}
               </button>
             )}
           </div>
