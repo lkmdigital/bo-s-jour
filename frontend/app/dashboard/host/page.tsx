@@ -8,7 +8,10 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Brand from '@/components/common/Brand';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import KpiCard from '@/components/dashboard/host/KpiCard';
+import DateRangeFilter, { useDefaultDateRange } from '@/components/common/DateRangeFilter';
 import { formatPrice, getRoomCategoryLabel } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import {
   CalendarCheck,
   CalendarRange,
@@ -79,6 +82,15 @@ export default function HostDashboardPage() {
   // Le rappel "informations établissement non à jour" continue d'exister par
   // e-mail (accommodations:remind-info-update) mais n'est plus affiché ici.
   const [complianceMissing, setComplianceMissing] = useState<string[]>([]);
+  // Retour client 2026-09-18 : "je ne vois pas de filtre sur le menu tableau
+  // de bord" — cette page d'accueil n'avait aucun filtre, contrairement à la
+  // page Statistiques qui utilise déjà /analytics/host avec from_date/to_date.
+  // Même période appliquée ici, sur les indicateurs qui la respectent déjà
+  // côté backend (revenus mensuels notamment) — "aujourd'hui/ce mois-ci"
+  // gardent leur sens fixe, un filtre les rendrait incohérents.
+  const defaultRange = useDefaultDateRange(30);
+  const [dateFrom, setDateFrom] = useState(defaultRange.from);
+  const [dateTo, setDateTo] = useState(defaultRange.to);
 
   const fetchAccommodations = () => {
     api
@@ -92,13 +104,15 @@ export default function HostDashboardPage() {
 
   useEffect(() => {
     api
-      .get('/analytics/host')
+      .get('/analytics/host', { params: { from_date: dateFrom, to_date: dateTo } })
       .then((res) => setData(res.data))
       .catch((err) => {
         setError(err.response?.data?.message || 'Erreur lors du chargement du tableau de bord');
       })
       .finally(() => setLoading(false));
+  }, [dateFrom, dateTo]);
 
+  useEffect(() => {
     fetchAccommodations();
 
     api
@@ -217,6 +231,10 @@ export default function HostDashboardPage() {
         <p className="text-gray-500 dark:text-gray-400 mt-1">Bienvenue dans votre espace partenaire <Brand /></p>
       </div>
 
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+        <DateRangeFilter from={dateFrom} to={dateTo} onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }} label="Période (revenus mensuels)" />
+      </div>
+
       {complianceMissing.length > 0 && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 p-5">
           <div className="flex items-start gap-3">
@@ -292,7 +310,9 @@ export default function HostDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white">Revenus mensuels</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Tendance sur les 12 derniers mois</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Du {format(new Date(dateFrom), 'dd MMM', { locale: fr })} au {format(new Date(dateTo), 'dd MMM yyyy', { locale: fr })}
+          </p>
           {(data.monthly_revenue || []).length === 0 ? (
             <div className="h-[260px] flex items-center justify-center">
               <p className="text-sm text-gray-500 dark:text-gray-400">Pas encore de données</p>

@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import KpiCard from '@/components/dashboard/host/KpiCard';
+import DateRangeFilter, { useDefaultDateRange } from '@/components/common/DateRangeFilter';
 import { formatPrice } from '@/lib/utils';
 import {
   Users,
@@ -115,28 +116,50 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Retour client 2026-09-18 : "je ne vois pas de filtre sur le menu tableau
+  // de bord" — la page d'accueil admin n'avait aucun filtre, contrairement
+  // aux pages listées ailleurs dans le menu. Une période commune contrôle
+  // désormais l'activité, la répartition par région et le top établissements
+  // (les indicateurs "aujourd'hui/ce mois/cette année" et les tendances sur
+  // 12 mois gardent leurs fenêtres fixes, un filtre n'aurait pas de sens
+  // pour eux).
+  const defaultRange = useDefaultDateRange(30);
+  const [dateFrom, setDateFrom] = useState(defaultRange.from);
+  const [dateTo, setDateTo] = useState(defaultRange.to);
+  const [periodLoading, setPeriodLoading] = useState(true);
+
   useEffect(() => {
     Promise.all([
       api.get('/admin/dashboard/stats'),
-      api.get('/admin/dashboard/daily-activity', { params: { period: 30 } }),
       api.get('/admin/dashboard/accommodation-status'),
-      api.get('/admin/dashboard/bookings-by-region'),
-      api.get('/admin/dashboard/top-accommodations', { params: { limit: 5 } }),
       api.get('/admin/dashboard/monthly-revenue-trend'),
       api.get('/admin/dashboard/occupancy-trend'),
     ])
-      .then(([statsRes, dailyRes, statusRes, regionsRes, topRes, monthlyRes, occupancyRes]) => {
+      .then(([statsRes, statusRes, monthlyRes, occupancyRes]) => {
         setStats(statsRes.data?.data ?? null);
-        setDaily(dailyRes.data?.data ?? []);
         setStatusDist(statusRes.data?.data ?? []);
-        setRegions(regionsRes.data?.data ?? []);
-        setTopAccommodations(topRes.data?.data ?? []);
         setMonthlyRevenue(monthlyRes.data?.data ?? []);
         setOccupancyTrend(occupancyRes.data?.data ?? []);
       })
       .catch((err) => setError(err.response?.data?.message || 'Erreur lors du chargement du tableau de bord'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    setPeriodLoading(true);
+    Promise.all([
+      api.get('/admin/dashboard/daily-activity', { params: { from_date: dateFrom, to_date: dateTo } }),
+      api.get('/admin/dashboard/bookings-by-region', { params: { from_date: dateFrom, to_date: dateTo } }),
+      api.get('/admin/dashboard/top-accommodations', { params: { limit: 5, from_date: dateFrom, to_date: dateTo } }),
+    ])
+      .then(([dailyRes, regionsRes, topRes]) => {
+        setDaily(dailyRes.data?.data ?? []);
+        setRegions(regionsRes.data?.data ?? []);
+        setTopAccommodations(topRes.data?.data ?? []);
+      })
+      .catch((err) => setError(err.response?.data?.message || 'Erreur lors du chargement du tableau de bord'))
+      .finally(() => setPeriodLoading(false));
+  }, [dateFrom, dateTo]);
 
   if (loading) {
     return (
@@ -156,7 +179,7 @@ export default function AdminDashboardPage() {
   const verifiedRatio = stats.accommodations.total > 0 ? Math.round((stats.accommodations.published / stats.accommodations.total) * 100) : 0;
   const nonCompliant = stats.accommodations.rejected + stats.accommodations.disabled;
 
-  const last7Days = daily.slice(-7).map((d) => ({ ...d, dayLabel: format(new Date(d.date), 'EEE', { locale: fr }) }));
+  const dailyWithLabel = daily.map((d) => ({ ...d, dayLabel: format(new Date(d.date), 'dd MMM', { locale: fr }) }));
   const statusChartData = statusDist.map((s) => ({ name: STATUS_LABELS[s.status] ?? s.status, value: s.count }));
   const monthlyRevenueData = monthlyRevenue.map((m) => ({ ...m, monthLabel: monthLabel(m.month) }));
   const occupancyData = occupancyTrend.map((m) => ({ ...m, monthLabel: monthLabel(m.month) }));
@@ -175,6 +198,11 @@ export default function AdminDashboardPage() {
           <span className="w-2 h-2 rounded-full bg-bosejour-red animate-pulse" />
           En direct
         </span>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex flex-wrap items-center gap-3">
+        <DateRangeFilter from={dateFrom} to={dateTo} onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }} label="Période (activité, région, top établissements)" />
+        {periodLoading && <span className="text-xs text-gray-400">Mise à jour…</span>}
       </div>
 
       <div>
@@ -207,9 +235,11 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white">Réservations par jour</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">7 derniers jours</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Du {format(new Date(dateFrom), 'dd MMM', { locale: fr })} au {format(new Date(dateTo), 'dd MMM yyyy', { locale: fr })}
+          </p>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={last7Days}>
+            <BarChart data={dailyWithLabel}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="dayLabel" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
@@ -281,7 +311,9 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white">Nouveaux utilisateurs et établissements</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">30 derniers jours</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Du {format(new Date(dateFrom), 'dd MMM', { locale: fr })} au {format(new Date(dateTo), 'dd MMM yyyy', { locale: fr })}
+          </p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={daily}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -297,7 +329,7 @@ export default function AdminDashboardPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white">Réservations par région</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Réservations confirmées, par ville</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Réservations confirmées, par ville, sur la période sélectionnée</p>
           {regions.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">Pas encore de données</p>
           ) : (
@@ -321,7 +353,7 @@ export default function AdminDashboardPage() {
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
         <h3 className="font-semibold text-gray-900 dark:text-white">Top établissements</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Par chiffre d'affaires (réservations confirmées)</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Par chiffre d'affaires (réservations confirmées), sur la période sélectionnée</p>
         {topAccommodations.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">Pas encore de données</p>
         ) : (

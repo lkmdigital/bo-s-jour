@@ -339,10 +339,22 @@ class AdminDashboardController extends Controller
     /**
      * Réservations et CA par ville (proxy de "région" tant qu'aucun champ région dédié n'existe).
      */
-    public function bookingsByRegion()
+    public function bookingsByRegion(Request $request)
     {
-        $data = Booking::join('accommodations', 'bookings.accommodation_id', '=', 'accommodations.id')
-            ->where('bookings.status', 'confirmed')
+        // Retour client 2026-09-18 : filtre de période absent jusqu'ici sur le
+        // tableau de bord (page d'accueil admin) — ajouté en cohérence avec
+        // dailyActivity(), qui le supportait déjà.
+        $query = Booking::join('accommodations', 'bookings.accommodation_id', '=', 'accommodations.id')
+            ->where('bookings.status', 'confirmed');
+
+        if ($request->filled('from_date')) {
+            $query->where('bookings.created_at', '>=', Carbon::parse($request->from_date)->startOfDay());
+        }
+        if ($request->filled('to_date')) {
+            $query->where('bookings.created_at', '<=', Carbon::parse($request->to_date)->endOfDay());
+        }
+
+        $data = $query
             ->select(
                 'accommodations.city',
                 DB::raw('COUNT(bookings.id) as bookings_count'),
@@ -370,12 +382,20 @@ class AdminDashboardController extends Controller
     {
         $limit = (int) $request->get('limit', 10);
 
-        $data = Accommodation::withCount(['bookings' => function ($q) {
-                $q->where('status', 'confirmed');
-            }])
-            ->withSum(['bookings' => function ($q) {
-                $q->where('status', 'confirmed');
-            }], 'total_price')
+        // Retour client 2026-09-18 : même filtre de période que
+        // bookingsByRegion()/dailyActivity() — absent jusqu'ici.
+        $scopeBookings = function ($q) use ($request) {
+            $q->where('status', 'confirmed');
+            if ($request->filled('from_date')) {
+                $q->where('created_at', '>=', Carbon::parse($request->from_date)->startOfDay());
+            }
+            if ($request->filled('to_date')) {
+                $q->where('created_at', '<=', Carbon::parse($request->to_date)->endOfDay());
+            }
+        };
+
+        $data = Accommodation::withCount(['bookings' => $scopeBookings])
+            ->withSum(['bookings' => $scopeBookings], 'total_price')
             ->orderByDesc('bookings_sum_total_price')
             ->limit($limit)
             ->get()
