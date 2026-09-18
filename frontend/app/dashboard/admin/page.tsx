@@ -119,46 +119,37 @@ export default function AdminDashboardPage() {
   // Retour client 2026-09-18 : "je ne vois pas de filtre sur le menu tableau
   // de bord" — la page d'accueil admin n'avait aucun filtre, contrairement
   // aux pages listées ailleurs dans le menu. Une période commune contrôle
-  // désormais l'activité, la répartition par région et le top établissements
-  // (les indicateurs "aujourd'hui/ce mois/cette année" et les tendances sur
-  // 12 mois gardent leurs fenêtres fixes, un filtre n'aurait pas de sens
-  // pour eux).
+  // désormais toute la page : KPI, graphiques, répartition, top.
   const defaultRange = useDefaultDateRange(30);
   const [dateFrom, setDateFrom] = useState(defaultRange.from);
   const [dateTo, setDateTo] = useState(defaultRange.to);
   const [periodLoading, setPeriodLoading] = useState(true);
 
+  // Retour client 2026-09-18 : la période pilote TOUTE la page (KPI, vue
+  // d'ensemble, graphiques, répartition, top).
   useEffect(() => {
+    setPeriodLoading(true);
+    const params = { from_date: dateFrom, to_date: dateTo };
     Promise.all([
-      api.get('/admin/dashboard/stats'),
-      api.get('/admin/dashboard/accommodation-status'),
-      api.get('/admin/dashboard/monthly-revenue-trend'),
-      api.get('/admin/dashboard/occupancy-trend'),
+      api.get('/admin/dashboard/stats', { params }),
+      api.get('/admin/dashboard/accommodation-status', { params }),
+      api.get('/admin/dashboard/monthly-revenue-trend', { params }),
+      api.get('/admin/dashboard/occupancy-trend', { params }),
+      api.get('/admin/dashboard/daily-activity', { params }),
+      api.get('/admin/dashboard/bookings-by-region', { params }),
+      api.get('/admin/dashboard/top-accommodations', { params: { limit: 5, ...params } }),
     ])
-      .then(([statsRes, statusRes, monthlyRes, occupancyRes]) => {
+      .then(([statsRes, statusRes, monthlyRes, occupancyRes, dailyRes, regionsRes, topRes]) => {
         setStats(statsRes.data?.data ?? null);
         setStatusDist(statusRes.data?.data ?? []);
         setMonthlyRevenue(monthlyRes.data?.data ?? []);
         setOccupancyTrend(occupancyRes.data?.data ?? []);
-      })
-      .catch((err) => setError(err.response?.data?.message || 'Erreur lors du chargement du tableau de bord'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    setPeriodLoading(true);
-    Promise.all([
-      api.get('/admin/dashboard/daily-activity', { params: { from_date: dateFrom, to_date: dateTo } }),
-      api.get('/admin/dashboard/bookings-by-region', { params: { from_date: dateFrom, to_date: dateTo } }),
-      api.get('/admin/dashboard/top-accommodations', { params: { limit: 5, from_date: dateFrom, to_date: dateTo } }),
-    ])
-      .then(([dailyRes, regionsRes, topRes]) => {
         setDaily(dailyRes.data?.data ?? []);
         setRegions(regionsRes.data?.data ?? []);
         setTopAccommodations(topRes.data?.data ?? []);
       })
       .catch((err) => setError(err.response?.data?.message || 'Erreur lors du chargement du tableau de bord'))
-      .finally(() => setPeriodLoading(false));
+      .finally(() => { setPeriodLoading(false); setLoading(false); });
   }, [dateFrom, dateTo]);
 
   if (loading) {
@@ -214,8 +205,8 @@ export default function AdminDashboardPage() {
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Principes des KPI</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={Users} label="Utilisateurs totaux" value={stats.users.total.toLocaleString('fr-FR')} href="/dashboard/admin/users" />
-          <KpiCard icon={Building2} label="Hôtels inscrits" value={String(stats.accommodations.total)} href="/dashboard/admin/accommodations" />
+          <KpiCard icon={Users} label="Utilisateurs (période)" value={stats.users.total.toLocaleString('fr-FR')} href="/dashboard/admin/users" />
+          <KpiCard icon={Building2} label="Hôtels inscrits (période)" value={String(stats.accommodations.total)} href="/dashboard/admin/accommodations" />
           <KpiCard icon={CheckCircle2} label="Hôtels vérifiés" value={String(stats.accommodations.published)} change={verifiedRatio} href="/dashboard/admin/accommodations" />
           <KpiCard icon={Clock} label="En attente de validation" value={String(stats.accommodations.pending)} href="/dashboard/admin/accommodations" />
           <KpiCard icon={AlertTriangle} label="Non conforme" value={String(nonCompliant)} href="/dashboard/admin/conformite" />
@@ -232,9 +223,9 @@ export default function AdminDashboardPage() {
           <KpiCard icon={HandCoins} label="Commissions perçues" value={`${formatPrice(stats.accounting.platform_commissions_paid)} FCFA`} href="/dashboard/admin/comptabilite" />
           <KpiCard icon={Hourglass} label="Commissions en attente" value={`${formatPrice(stats.accounting.platform_commissions_pending)} FCFA`} href="/dashboard/admin/comptabilite" />
           <KpiCard icon={ArrowLeftRight} label="Reversements aux hôtes" value={`${formatPrice(stats.accounting.commissions_reversed)} FCFA`} href="/dashboard/admin/comptabilite" />
-          <KpiCard icon={Sun} label="Revenus du jour" value={`${formatPrice(stats.revenue.today)} FCFA`} href="/dashboard/admin/comptabilite" />
-          <KpiCard icon={CalendarRange} label="Revenus du mois" value={`${formatPrice(stats.revenue.this_month)} FCFA`} href="/dashboard/admin/comptabilite" />
-          <KpiCard icon={CalendarDays} label="Revenus annuels" value={`${formatPrice(stats.revenue.this_year)} FCFA`} href="/dashboard/admin/comptabilite" />
+          <KpiCard icon={Sun} label="Revenus du jour (fin de période)" value={`${formatPrice(stats.revenue.today)} FCFA`} href="/dashboard/admin/comptabilite" />
+          <KpiCard icon={CalendarRange} label="Revenus du mois (fin de période)" value={`${formatPrice(stats.revenue.this_month)} FCFA`} href="/dashboard/admin/comptabilite" />
+          <KpiCard icon={CalendarDays} label="Revenus de l'année (fin de période)" value={`${formatPrice(stats.revenue.this_year)} FCFA`} href="/dashboard/admin/comptabilite" />
         </div>
       </div>
 
@@ -257,7 +248,7 @@ export default function AdminDashboardPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white">Statut des établissements</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Répartition actuelle</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Établissements créés du {format(new Date(dateFrom), 'dd MMM', { locale: fr })} au {format(new Date(dateTo), 'dd MMM yyyy', { locale: fr })}</p>
           {statusChartData.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">Pas encore de données</p>
           ) : (
@@ -279,7 +270,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white">Chiffre d'affaires et commissions</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">12 derniers mois</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Du {format(new Date(dateFrom), 'dd MMM', { locale: fr })} au {format(new Date(dateTo), 'dd MMM yyyy', { locale: fr })}</p>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={monthlyRevenueData}>
               <defs>
@@ -301,7 +292,7 @@ export default function AdminDashboardPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white">Taux d'occupation moyen</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">12 derniers mois, tous établissements publiés</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Du {format(new Date(dateFrom), 'dd MMM', { locale: fr })} au {format(new Date(dateTo), 'dd MMM yyyy', { locale: fr })}, tous établissements publiés</p>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={occupancyData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />

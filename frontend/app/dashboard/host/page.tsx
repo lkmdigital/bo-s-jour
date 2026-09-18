@@ -274,8 +274,8 @@ export default function HostDashboardPage() {
       <div>
         <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Vue d&apos;ensemble</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={CalendarCheck} label="Réservations aujourd'hui" value={String(data.bookings_today)} href="/dashboard/host/reservations" />
-          <KpiCard icon={CalendarRange} label="Réservations ce mois" value={String(data.bookings_this_month)} href="/dashboard/host/reservations" />
+          <KpiCard icon={CalendarCheck} label="Réservations du jour (fin de période)" value={String(data.bookings_today)} href="/dashboard/host/reservations" />
+          <KpiCard icon={CalendarRange} label="Réservations du mois (fin de période)" value={String(data.bookings_this_month)} href="/dashboard/host/reservations" />
           <KpiCard icon={Percent} label="Taux d'occupation" value={`${data.occupancy_rate}%`} href="/dashboard/host/stats" />
           <KpiCard icon={BedDouble} label="Chambres disponibles" value={String(data.available_rooms_now)} href="/dashboard/host/rooms" />
 
@@ -285,14 +285,14 @@ export default function HostDashboardPage() {
             value={`${formatPrice(data.kpis?.average_price_per_room || 0)} FCFA`}
             href="/dashboard/host/stats"
           />
-          <KpiCard icon={Wallet} label="Revenus aujourd'hui" value={`${formatPrice(data.daily_revenue || 0)} FCFA`} href="/dashboard/host/finances" />
+          <KpiCard icon={Wallet} label="Revenus du jour (fin de période)" value={`${formatPrice(data.daily_revenue || 0)} FCFA`} href="/dashboard/host/finances" />
           <KpiCard
             icon={TrendingUp}
-            label="Revenus ce mois"
+            label="Revenus de la période"
             value={`${formatPrice(data.monthly_revenue_current || 0)} FCFA`}
             href="/dashboard/host/finances"
           />
-          <KpiCard icon={TrendingUp} label="Revenus annuels" value={`${formatPrice(data.annual_revenue)} FCFA`} href="/dashboard/host/finances" />
+          <KpiCard icon={TrendingUp} label="Revenus de l'année (fin de période)" value={`${formatPrice(data.annual_revenue)} FCFA`} href="/dashboard/host/finances" />
 
           <KpiCard
             icon={Star}
@@ -349,7 +349,7 @@ export default function HostDashboardPage() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
           <h3 className="font-semibold text-gray-900 dark:text-white">Revenus par type de chambre</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Réservations confirmées</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Réservations confirmées du {format(new Date(dateFrom), 'dd MMM', { locale: fr })} au {format(new Date(dateTo), 'dd MMM yyyy', { locale: fr })}</p>
           {revenueByRoomType.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">Pas encore de données</p>
           ) : (
@@ -377,7 +377,7 @@ export default function HostDashboardPage() {
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
         <h3 className="font-semibold text-gray-900 dark:text-white">Taux d&apos;occupation par semaine</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">4 dernières semaines</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">4 semaines se terminant le {format(new Date(dateTo), 'dd MMM yyyy', { locale: fr })}</p>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={data.occupancy_by_week || []}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />

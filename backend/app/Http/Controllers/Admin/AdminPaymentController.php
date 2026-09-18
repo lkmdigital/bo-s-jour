@@ -36,7 +36,7 @@ class AdminPaymentController extends Controller
                 'per_page' => $items->perPage(),
                 'total' => $items->total(),
             ],
-            'summary' => $this->summary(),
+            'summary' => $this->summary($request),
         ]);
     }
 
@@ -69,7 +69,7 @@ class AdminPaymentController extends Controller
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
-    private function filteredPaymentsQuery(Request $request): Builder
+    private function filteredPaymentsQuery(Request $request, bool $forSummary = false): Builder
     {
         // Le menu Paiements ne montre que les transactions finalisées (succès ou
         // échec) — les paiements "pending" sont de simples tentatives de checkout,
@@ -79,9 +79,14 @@ class AdminPaymentController extends Controller
             'booking:id,accommodation_id,check_in,check_out',
             'booking.accommodation:id,name,host_id',
             'booking.accommodation.host:id,name',
-        ])->whereIn('status', ['completed', 'failed'])->orderByDesc('created_at');
+        ])->orderByDesc('created_at');
 
-        if ($request->filled('status')) {
+        if (!$forSummary) {
+            $query->whereIn('status', ['completed', 'failed']);
+        }
+
+        // Le résumé ventile lui-même par statut : le filtre de statut ne s'y applique pas.
+        if (!$forSummary && $request->filled('status')) {
             $query->where('status', $request->status);
         }
 
@@ -123,19 +128,25 @@ class AdminPaymentController extends Controller
      * Money ne sont pas encore actifs au checkout (cf. PaymentController) —
      * leurs totaux seront à 0 tant qu'aucun paiement réel n'y transite.
      */
-    private function summary(): array
+    /**
+     * Retour client 2026-09-18 : les totaux suivent les filtres de la page
+     * (période, type, moyen de paiement, recherche) — plus seulement la liste.
+     */
+    private function summary(Request $request): array
     {
-        $byMethod = Payment::where('status', 'completed')
+        $base = fn () => $this->filteredPaymentsQuery($request, true)->reorder();
+
+        $byMethod = $base()->where('status', 'completed')
             ->select('payment_method', DB::raw('SUM(amount) as total'))
             ->groupBy('payment_method')
             ->pluck('total', 'payment_method');
 
         return [
-            'total_completed' => (float) Payment::where('status', 'completed')->sum('amount'),
-            'total_failed' => (float) Payment::where('status', 'failed')->sum('amount'),
-            'total_refunded' => (float) Payment::where('status', 'refunded')->sum('amount'),
-            'count_completed' => Payment::where('status', 'completed')->count(),
-            'count_failed' => Payment::where('status', 'failed')->count(),
+            'total_completed' => (float) $base()->where('status', 'completed')->sum('amount'),
+            'total_failed' => (float) $base()->where('status', 'failed')->sum('amount'),
+            'total_refunded' => (float) $base()->where('status', 'refunded')->sum('amount'),
+            'count_completed' => $base()->where('status', 'completed')->count(),
+            'count_failed' => $base()->where('status', 'failed')->count(),
             'by_method' => [
                 'wave-ci' => (float) ($byMethod['wave-ci'] ?? 0),
                 'orange-ci' => (float) ($byMethod['orange-ci'] ?? 0),

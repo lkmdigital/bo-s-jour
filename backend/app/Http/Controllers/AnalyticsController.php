@@ -26,15 +26,26 @@ class AnalyticsController extends Controller
         $startDate = $filterByPeriod ? Carbon::parse($request->from_date)->startOfDay() : null;
         $endDate = $filterByPeriod ? Carbon::parse($request->to_date)->endOfDay() : null;
 
+        // Retour client 2026-09-18 : "les filtres ne s'appliquent pas à la vue
+        // d'ensemble et aux KPI" — avec from_date/to_date, TOUS les KPI de ce
+        // tableau de bord suivent la période. Les indicateurs "du jour / de la
+        // semaine / du mois / annuels" se calculent à la FIN de la période
+        // (= aujourd'hui sans filtre, comportement historique).
+        $refDate = $filterByPeriod ? $endDate->copy() : Carbon::now();
+        $byPeriod = fn ($q, string $col = 'created_at') => $filterByPeriod ? $q->whereBetween($col, [$startDate, $endDate]) : $q;
+        $windowStart = $filterByPeriod ? $startDate->copy() : Carbon::now()->subDays(30)->startOfDay();
+        $windowEnd = $filterByPeriod ? $endDate->copy() : Carbon::now();
+        $windowDays = $filterByPeriod ? max(1, (int) round($startDate->diffInDays($endDate))) : 30;
+
         // Total bookings
-        $totalBookings = Booking::whereHas('accommodation', function($q) use ($hostId) {
+        $totalBookings = $byPeriod(Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
-        })->count();
+        }))->count();
 
         // Confirmed bookings
-        $confirmedBookings = Booking::whereHas('accommodation', function($q) use ($hostId) {
+        $confirmedBookings = $byPeriod(Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
-        })->where('status', 'confirmed')->count();
+        })->where('status', 'confirmed'))->count();
 
         // Total revenue (filtré par période si from_date/to_date fournis)
         $totalRevenue = Booking::whereHas('accommodation', function($q) use ($hostId) {
@@ -64,12 +75,13 @@ class AnalyticsController extends Controller
             ->orderBy('month')
             ->get();
 
-        // Occupancy rate (last 30 days)
+        // Occupancy rate (période filtrée, sinon 30 derniers jours)
         $totalNights = Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         })
         ->where('status', 'confirmed')
-        ->where('check_in', '>=', Carbon::now()->subDays(30))
+        ->where('check_in', '>=', $windowStart)
+        ->where('check_in', '<=', $windowEnd)
         ->get()
         ->sum(function($booking) {
             return Carbon::parse($booking->check_in)->diffInDays(Carbon::parse($booking->check_out));
@@ -80,16 +92,16 @@ class AnalyticsController extends Controller
             ->get()
             ->sum('rooms_count');
 
-        $availableNights = $totalRooms * 30;
+        $availableNights = $totalRooms * $windowDays;
         $occupancyRate = $availableNights > 0 ? ($totalNights / $availableNights) * 100 : 0;
 
         // Top performing accommodations
         $topAccommodations = Accommodation::where('host_id', $hostId)
-            ->withCount(['bookings' => function($q) {
-                $q->where('status', 'confirmed');
+            ->withCount(['bookings' => function($q) use ($byPeriod) {
+                $byPeriod($q->where('status', 'confirmed'));
             }])
-            ->withSum(['bookings' => function($q) {
-                $q->where('status', 'confirmed');
+            ->withSum(['bookings' => function($q) use ($byPeriod) {
+                $byPeriod($q->where('status', 'confirmed'));
             }], 'total_price')
             ->orderBy('bookings_sum_total_price', 'desc')
             ->limit(5)
@@ -159,7 +171,8 @@ class AnalyticsController extends Controller
                     ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
                     ->where('accommodations.host_id', $hostId)
                     ->where('bookings.status', 'confirmed')
-                    ->where('bookings.check_in', '>=', Carbon::now()->subDays(30))
+                    ->where('bookings.check_in', '>=', $windowStart)
+                    ->where('bookings.check_in', '<=', $windowEnd)
                     ->count();
 
                 $roomStats = [
@@ -187,20 +200,20 @@ class AnalyticsController extends Controller
         ->count();
 
         // Pending bookings (awaiting confirmation)
-        $pendingBookings = Booking::whereHas('accommodation', function($q) use ($hostId) {
+        $pendingBookings = $byPeriod(Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         })
-        ->where('status', 'pending')
+        ->where('status', 'pending'))
         ->count();
 
         // Réservations modifiées (hôte)
-        $modifiedBookingsHost = Booking::whereHas('accommodation', function($q) use ($hostId) {
+        $modifiedBookingsHost = $byPeriod(Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
-        })->whereRaw('updated_at > DATE_ADD(created_at, INTERVAL 1 MINUTE)')->count();
+        })->whereRaw('updated_at > DATE_ADD(created_at, INTERVAL 1 MINUTE)'))->count();
 
         // Comptabilité hôte : montants dus et déjà reversés
-        $hostCommissionsDue = (float) Commission::where('host_id', $hostId)->where('status', 'pending')->sum('host_amount');
-        $hostCommissionsReversed = (float) Commission::where('host_id', $hostId)->where('status', 'paid')->sum('host_amount');
+        $hostCommissionsDue = (float) $byPeriod(Commission::where('host_id', $hostId)->where('status', 'pending'))->sum('host_amount');
+        $hostCommissionsReversed = (float) $byPeriod(Commission::where('host_id', $hostId)->where('status', 'paid'))->sum('host_amount');
 
         // Promotions actives (hébergements de l'hôte)
         $today = Carbon::today();
@@ -216,8 +229,8 @@ class AnalyticsController extends Controller
             $q->where('host_id', $hostId);
         })
         ->where('status', 'confirmed')
-        ->whereMonth('created_at', Carbon::now()->month)
-        ->whereYear('created_at', Carbon::now()->year)
+        ->whereMonth('created_at', $refDate->month)
+        ->whereYear('created_at', $refDate->year)
         ->sum('total_price');
 
         // Revenue last month
@@ -240,19 +253,20 @@ class AnalyticsController extends Controller
         }
 
         // Daily revenue (today) — 0 si filtre par période
-        $dailyRevenue = $filterByPeriod ? 0 : Booking::whereHas('accommodation', function($q) use ($hostId) {
+        $dailyRevenue = Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         })
         ->where('status', 'confirmed')
-        ->whereDate('created_at', Carbon::today())
+        ->whereDate('created_at', $refDate->toDateString())
         ->sum('total_price');
 
         // Weekly revenue (last 7 days) — 0 si filtre par période
-        $weeklyRevenue = $filterByPeriod ? 0 : Booking::whereHas('accommodation', function($q) use ($hostId) {
+        $weeklyRevenue = Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         })
         ->where('status', 'confirmed')
-        ->where('created_at', '>=', Carbon::now()->subDays(7))
+        ->where('created_at', '>', $refDate->copy()->subDays(7))
+        ->where('created_at', '<=', $refDate->copy()->endOfDay())
         ->sum('total_price');
 
         // Monthly revenue (current month) — période si filtre actif
@@ -333,14 +347,14 @@ class AnalyticsController extends Controller
                 return $row;
             });
 
-        // KPI hôte : RevPAR, prix moyen (sur les 30 derniers jours)
-        $kpiDays = 30;
-        $kpiStartHost = Carbon::now()->subDays($kpiDays)->startOfDay();
+        // KPI hôte : RevPAR, prix moyen (période filtrée, sinon 30 derniers jours)
+        $kpiDays = $windowDays;
+        $kpiStartHost = $windowStart->copy();
         $bookingsKpiHost = Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         })->where('status', 'confirmed')
             ->where('check_out', '>=', $kpiStartHost)
-            ->where('check_in', '<=', Carbon::now())
+            ->where('check_in', '<=', $windowEnd)
             ->get();
         $roomNightsSoldHost = $bookingsKpiHost->sum(function ($b) use ($kpiStartHost) {
             return Carbon::parse($b->check_in)->diffInDays(Carbon::parse($b->check_out));
@@ -355,19 +369,19 @@ class AnalyticsController extends Controller
         // Réservations du jour / du mois (agrégat hôte)
         $bookingsTodayHost = Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
-        })->whereDate('created_at', Carbon::today())->count();
+        })->whereDate('created_at', $refDate->toDateString())->count();
 
         $bookingsThisMonthHost = Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
-        })->whereMonth('created_at', Carbon::now()->month)
-          ->whereYear('created_at', Carbon::now()->year)
+        })->whereMonth('created_at', $refDate->month)
+          ->whereYear('created_at', $refDate->year)
           ->count();
 
         // Revenu annuel (année en cours)
         $annualRevenueHost = (float) Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         })->where('status', 'confirmed')
-          ->whereYear('created_at', Carbon::now()->year)
+          ->whereYear('created_at', $refDate->year)
           ->sum('total_price');
 
         // Note moyenne des établissements de l'hôte
@@ -381,11 +395,11 @@ class AnalyticsController extends Controller
         // room_category regroupait donc tout sous "autre", stat inexploitable. Découvert le
         // 2026-09-02 suite au retour d'un hôte ne voyant la catégorie nulle part sur son
         // tableau de bord. COALESCE garde room_category comme priorité si un jour rempli.
-        $revenueByRoomType = DB::table('bookings')
+        $revenueByRoomType = $byPeriod(DB::table('bookings')
             ->join('rooms', 'bookings.room_id', '=', 'rooms.id')
             ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
             ->where('accommodations.host_id', $hostId)
-            ->where('bookings.status', 'confirmed')
+            ->where('bookings.status', 'confirmed'), 'bookings.created_at')
             ->select(DB::raw('COALESCE(rooms.room_category, rooms.type) as room_category'), DB::raw('SUM(bookings.total_price) as revenue'))
             ->groupBy(DB::raw('COALESCE(rooms.room_category, rooms.type)'))
             ->orderByDesc('revenue')
@@ -400,7 +414,7 @@ class AnalyticsController extends Controller
         // Taux d'occupation par semaine (4 dernières semaines)
         $occupancyByWeek = [];
         for ($i = 3; $i >= 0; $i--) {
-            $weekStart = Carbon::now()->subWeeks($i)->startOfWeek();
+            $weekStart = $refDate->copy()->subWeeks($i)->startOfWeek();
             $weekEnd = (clone $weekStart)->endOfWeek();
             $nightsSoldWeek = Booking::whereHas('accommodation', function($q) use ($hostId) {
                     $q->where('host_id', $hostId);
@@ -436,9 +450,9 @@ class AnalyticsController extends Controller
         $availableRoomsNow = max(0, $activeRoomsNow - $occupiedRoomsNow);
 
         // Score Bosejour — v1 heuristique (note/occupation/annulation). À valider avec le client.
-        $cancelledBookingsHost = Booking::whereHas('accommodation', function($q) use ($hostId) {
+        $cancelledBookingsHost = $byPeriod(Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
-        })->where('status', 'cancelled')->count();
+        })->where('status', 'cancelled'))->count();
         $cancellationRateHost = $totalBookings > 0 ? ($cancelledBookingsHost / $totalBookings) * 100 : 0;
         $scoreBosejour = round(
             (($averageRatingHost / 5) * 100 * 0.4) +

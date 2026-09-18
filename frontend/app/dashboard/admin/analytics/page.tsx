@@ -109,8 +109,8 @@ export default function AdminAnalyticsPage() {
         api.get('/admin/dashboard/daily-activity', {
           params: { from_date: dateRange.from, to_date: dateRange.to },
         }),
-        api.get('/admin/dashboard/host-performance', { params: { limit: 10 } }),
-        api.get('/admin/dashboard/accommodation-status'),
+        api.get('/admin/dashboard/host-performance', { params: { limit: 10, from_date: dateRange.from, to_date: dateRange.to } }),
+        api.get('/admin/dashboard/accommodation-status', { params: { from_date: dateRange.from, to_date: dateRange.to } }),
       ]);
 
       setDailyActivity(activityRes.data.data || []);

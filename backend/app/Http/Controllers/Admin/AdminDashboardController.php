@@ -34,22 +34,32 @@ class AdminDashboardController extends Controller
             $endDate = Carbon::now()->endOfDay();
         }
 
+        // Retour client 2026-09-18 : "les filtres ne s'appliquent pas à la vue
+        // d'ensemble et aux KPI" — quand from_date/to_date sont fournis, TOUS
+        // les compteurs et montants sont restreints à la période (date de
+        // création de chaque élément) ; sans filtre, comportement historique
+        // (totaux toutes périodes).
+        $hasPeriod = $request->has('from_date') && $request->has('to_date');
+        $inPeriod = fn ($q, string $col = 'created_at') => $hasPeriod ? $q->whereBetween($col, [$startDate, $endDate]) : $q;
+        // Point de référence des revenus "du jour / du mois / annuels" : fin de période.
+        $refDate = $hasPeriod ? $endDate->copy() : Carbon::now();
+
         // Utilisateurs
-        $totalUsers = User::count();
-        $activeUsers = User::where('status', 'active')->count();
-        $blockedUsers = User::where('status', 'blocked')->count();
+        $totalUsers = $inPeriod(User::query())->count();
+        $activeUsers = $inPeriod(User::where('status', 'active'))->count();
+        $blockedUsers = $inPeriod(User::where('status', 'blocked'))->count();
         $newUsers = User::where('created_at', '>=', $startDate)->count();
 
         // Hôtes
-        $totalHosts = User::where('role', 'host')->count();
-        $verifiedHosts = User::where('role', 'host')->where('profile_verified', true)->count();
-        $pendingHosts = User::where('role', 'host')->where('profile_verified', false)->count();
+        $totalHosts = $inPeriod(User::where('role', 'host'))->count();
+        $verifiedHosts = $inPeriod(User::where('role', 'host')->where('profile_verified', true))->count();
+        $pendingHosts = $inPeriod(User::where('role', 'host')->where('profile_verified', false))->count();
         // Hôtes rejetés : ceux qui ont au moins une validation avec action 'rejected'
         try {
-            $rejectedHosts = User::where('role', 'host')
+            $rejectedHosts = $inPeriod(User::where('role', 'host')
                 ->whereHas('hostValidationHistory', function ($q) {
                     $q->where('action', 'rejected');
-                })
+                }))
                 ->count();
         } catch (\Throwable $e) {
             \Log::warning('AdminDashboardController::stats hostValidationHistory: ' . $e->getMessage());
@@ -57,28 +67,28 @@ class AdminDashboardController extends Controller
         }
 
         // Établissements
-        $totalAccommodations = Accommodation::count();
-        $publishedAccommodations = Accommodation::where('status', 'published')->count();
-        $pendingAccommodations = Accommodation::where('status', 'pending')->count();
-        $rejectedAccommodations = Accommodation::where('status', 'rejected')->count();
-        $removedAccommodations = Accommodation::where('status', 'removed')->count();
-        $disabledAccommodations = Accommodation::where('status', 'disabled')->count();
+        $totalAccommodations = $inPeriod(Accommodation::query())->count();
+        $publishedAccommodations = $inPeriod(Accommodation::where('status', 'published'))->count();
+        $pendingAccommodations = $inPeriod(Accommodation::where('status', 'pending'))->count();
+        $rejectedAccommodations = $inPeriod(Accommodation::where('status', 'rejected'))->count();
+        $removedAccommodations = $inPeriod(Accommodation::where('status', 'removed'))->count();
+        $disabledAccommodations = $inPeriod(Accommodation::where('status', 'disabled'))->count();
 
         // Réservations
-        $totalBookings = Booking::count();
-        $confirmedBookings = Booking::where('status', 'confirmed')->count();
-        $cancelledBookings = Booking::where('status', 'cancelled')->count();
-        $pendingBookings = Booking::where('status', 'pending')->count();
+        $totalBookings = $inPeriod(Booking::query())->count();
+        $confirmedBookings = $inPeriod(Booking::where('status', 'confirmed'))->count();
+        $cancelledBookings = $inPeriod(Booking::where('status', 'cancelled'))->count();
+        $pendingBookings = $inPeriod(Booking::where('status', 'pending'))->count();
         $newBookings = Booking::where('created_at', '>=', $startDate)->count();
         // Réservations modifiées (updated_at > created_at avec écart significatif)
-        $modifiedBookings = Booking::whereRaw('updated_at > DATE_ADD(created_at, INTERVAL 1 MINUTE)')->count();
+        $modifiedBookings = $inPeriod(Booking::whereRaw('updated_at > DATE_ADD(created_at, INTERVAL 1 MINUTE)'))->count();
 
         // Comptabilité : commissions et reversements
-        $commissionsDue = (float) Commission::where('status', 'pending')->sum('host_amount');
-        $commissionsReversed = (float) Commission::where('status', 'paid')->sum('host_amount');
-        $platformCommissionsTotal = (float) Commission::sum('commission_amount');
-        $platformCommissionsPending = (float) Commission::where('status', 'pending')->sum('commission_amount');
-        $platformCommissionsPaid = (float) Commission::where('status', 'paid')->sum('commission_amount');
+        $commissionsDue = (float) $inPeriod(Commission::where('status', 'pending'))->sum('host_amount');
+        $commissionsReversed = (float) $inPeriod(Commission::where('status', 'paid'))->sum('host_amount');
+        $platformCommissionsTotal = (float) $inPeriod(Commission::query())->sum('commission_amount');
+        $platformCommissionsPending = (float) $inPeriod(Commission::where('status', 'pending'))->sum('commission_amount');
+        $platformCommissionsPaid = (float) $inPeriod(Commission::where('status', 'paid'))->sum('commission_amount');
 
         // Promotions actives (à la date du jour)
         $today = Carbon::today();
@@ -91,28 +101,35 @@ class AdminDashboardController extends Controller
         $totalRevenue = Payment::where('status', 'completed')
             ->where('created_at', '>=', $startDate)
             ->sum('amount');
-        $totalRevenueAllTime = Payment::where('status', 'completed')->sum('amount');
+        $totalRevenueAllTime = $inPeriod(Payment::where('status', 'completed'))->sum('amount');
         $revenueToday = (float) Payment::where('status', 'completed')
-            ->whereDate('created_at', Carbon::today())
+            ->whereDate('created_at', $refDate->toDateString())
             ->sum('amount');
         $revenueThisMonth = (float) Payment::where('status', 'completed')
-            ->whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
+            ->whereMonth('created_at', $refDate->month)
+            ->whereYear('created_at', $refDate->year)
             ->sum('amount');
         $revenueThisYear = (float) Payment::where('status', 'completed')
-            ->whereYear('created_at', Carbon::now()->year)
+            ->whereYear('created_at', $refDate->year)
             ->sum('amount');
 
         // Inspections
-        $totalInspections = Inspection::count();
-        $completedInspections = Inspection::where('status', 'completed')->count();
-        $approvedInspections = Inspection::where('result', 'approved')->count();
-        $rejectedInspections = Inspection::where('result', 'rejected')->count();
+        $totalInspections = $inPeriod(Inspection::query())->count();
+        $completedInspections = $inPeriod(Inspection::where('status', 'completed'))->count();
+        $approvedInspections = $inPeriod(Inspection::where('result', 'approved'))->count();
+        $rejectedInspections = $inPeriod(Inspection::where('result', 'rejected'))->count();
 
-        // KPI : RevPAR, taux d'occupation, prix moyen (sur les 30 derniers jours)
-        $kpiDays = 30;
-        $kpiStart = Carbon::now()->subDays($kpiDays)->startOfDay();
-        $kpiEnd = Carbon::now()->endOfDay();
+        // KPI : RevPAR, taux d'occupation, prix moyen — sur la période filtrée,
+        // ou les 30 derniers jours par défaut.
+        if ($hasPeriod) {
+            $kpiDays = max(1, (int) round($startDate->diffInDays($endDate)));
+            $kpiStart = $startDate->copy();
+            $kpiEnd = $endDate->copy();
+        } else {
+            $kpiDays = 30;
+            $kpiStart = Carbon::now()->subDays($kpiDays)->startOfDay();
+            $kpiEnd = Carbon::now()->endOfDay();
+        }
         $roomNightsSold = 0;
         $totalRoomsKpi = 0;
         $revenueKpiPeriod = 0.0;
@@ -295,10 +312,19 @@ class AdminDashboardController extends Controller
     {
         $limit = $request->get('limit', 10);
 
+        // Retour client 2026-09-18 : les réservations comptées suivent la période filtrée.
+        $hasPeriod = $request->has('from_date') && $request->has('to_date');
+        $from = $hasPeriod ? Carbon::parse($request->from_date)->startOfDay() : null;
+        $to = $hasPeriod ? Carbon::parse($request->to_date)->endOfDay() : null;
+
         $hosts = User::where('role', 'host')
             ->withCount([
                 'accommodations',
-                'bookings',
+                'bookings' => function ($q) use ($hasPeriod, $from, $to) {
+                    if ($hasPeriod) {
+                        $q->whereBetween('bookings.created_at', [$from, $to]);
+                    }
+                },
             ])
             ->withSum('accommodations', 'total_reviews')
             ->orderBy('accommodations_count', 'desc')
@@ -321,9 +347,16 @@ class AdminDashboardController extends Controller
     /**
      * Répartition des états des biens
      */
-    public function accommodationStatusDistribution()
+    public function accommodationStatusDistribution(Request $request)
     {
-        $distribution = Accommodation::select('status', DB::raw('count(*) as count'))
+        $query = Accommodation::select('status', DB::raw('count(*) as count'));
+        if ($request->has('from_date') && $request->has('to_date')) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($request->from_date)->startOfDay(),
+                Carbon::parse($request->to_date)->endOfDay(),
+            ]);
+        }
+        $distribution = $query
             ->groupBy('status')
             ->get()
             ->map(function ($item) {
@@ -413,26 +446,44 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * Évolution du chiffre d'affaires et des commissions sur les 12 derniers mois.
+     * Fenêtre des graphiques mensuels : la période filtrée (from_date/to_date,
+     * retour client 2026-09-18) — au moins 1 mois, au plus 24 —, sinon les 12
+     * derniers mois. Retourne [début de fenêtre, fin de fenêtre, nombre de mois].
      */
-    public function monthlyRevenueTrend()
+    private function monthlyWindow(Request $request): array
     {
-        $startDate = Carbon::now()->subMonths(11)->startOfMonth();
+        if ($request->has('from_date') && $request->has('to_date')) {
+            $from = Carbon::parse($request->from_date)->startOfDay();
+            $to = Carbon::parse($request->to_date)->endOfDay();
+            $firstMonth = $from->copy()->startOfMonth();
+            $months = min(24, max(1, $firstMonth->diffInMonths($to->copy()->startOfMonth()) + 1));
+            return [$from, $to, $months, $firstMonth];
+        }
+        $firstMonth = Carbon::now()->subMonths(11)->startOfMonth();
+        return [$firstMonth->copy(), Carbon::now()->endOfDay(), 12, $firstMonth];
+    }
+
+    /**
+     * Évolution du chiffre d'affaires et des commissions (période filtrée, sinon 12 derniers mois).
+     */
+    public function monthlyRevenueTrend(Request $request)
+    {
+        [$startDate, $endDate, $months, $firstMonth] = $this->monthlyWindow($request);
 
         $revenueByMonth = Payment::where('status', 'completed')
-            ->where('created_at', '>=', $startDate)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'), DB::raw('SUM(amount) as revenue'))
             ->groupBy('month')
             ->pluck('revenue', 'month');
 
-        $commissionsByMonth = Commission::where('created_at', '>=', $startDate)
+        $commissionsByMonth = Commission::whereBetween('created_at', [$startDate, $endDate])
             ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'), DB::raw('SUM(commission_amount) as commissions'))
             ->groupBy('month')
             ->pluck('commissions', 'month');
 
         $data = [];
-        $cursor = $startDate->copy();
-        for ($i = 0; $i < 12; $i++) {
+        $cursor = $firstMonth->copy();
+        for ($i = 0; $i < $months; $i++) {
             $key = $cursor->format('Y-m');
             $data[] = [
                 'month' => $key,
@@ -446,18 +497,19 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * Tendance du taux d'occupation moyen sur les 12 derniers mois (tous établissements publiés).
+     * Tendance du taux d'occupation moyen (période filtrée, sinon 12 derniers mois ; tous établissements publiés).
      */
-    public function occupancyTrend()
+    public function occupancyTrend(Request $request)
     {
+        [, , $months, $firstMonth] = $this->monthlyWindow($request);
         $totalRooms = (int) DB::table('rooms')
             ->join('accommodations', 'rooms.accommodation_id', '=', 'accommodations.id')
             ->where('accommodations.status', 'published')
             ->count();
 
         $data = [];
-        $cursor = Carbon::now()->subMonths(11)->startOfMonth();
-        for ($i = 0; $i < 12; $i++) {
+        $cursor = $firstMonth->copy();
+        for ($i = 0; $i < $months; $i++) {
             $monthStart = $cursor->copy()->startOfMonth();
             $monthEnd = $cursor->copy()->endOfMonth();
             $daysInMonth = $monthStart->daysInMonth;

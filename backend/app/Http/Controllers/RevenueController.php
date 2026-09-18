@@ -36,34 +36,51 @@ class RevenueController extends Controller
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
+        // Retour client 2026-09-18 : les statistiques (et pas seulement la
+        // liste) suivent la période from_date/to_date. Les indicateurs "du
+        // jour / 7 jours / mois" se calculent à la fin de la période
+        // (aujourd'hui sans filtre).
+        $inPeriod = function ($q) use ($request) {
+            if ($request->has('from_date')) {
+                $q->whereDate('created_at', '>=', $request->from_date);
+            }
+            if ($request->has('to_date')) {
+                $q->whereDate('created_at', '<=', $request->to_date);
+            }
+            return $q;
+        };
+        $refDate = $request->filled('to_date') ? Carbon::parse($request->to_date) : Carbon::now();
+
         // Statistiques globales
-        $totalCommissions = Commission::sum('commission_amount');
-        $paidCommissions = Commission::where('status', 'paid')->sum('commission_amount');
-        $pendingCommissions = Commission::where('status', 'pending')->sum('commission_amount');
-        $totalBookings = Commission::count();
+        $totalCommissions = $inPeriod(Commission::query())->sum('commission_amount');
+        $paidCommissions = $inPeriod(Commission::where('status', 'paid'))->sum('commission_amount');
+        $pendingCommissions = $inPeriod(Commission::where('status', 'pending'))->sum('commission_amount');
+        $totalBookings = $inPeriod(Commission::query())->count();
 
-        // Revenus journaliers (aujourd'hui)
-        $dailyCommissions = Commission::whereDate('created_at', Carbon::today())
+        // Revenus journaliers (jour de référence)
+        $dailyCommissions = Commission::whereDate('created_at', $refDate->toDateString())
             ->sum('commission_amount');
-        $dailyBookings = Commission::whereDate('created_at', Carbon::today())
+        $dailyBookings = Commission::whereDate('created_at', $refDate->toDateString())
             ->count();
 
-        // Revenus hebdomadaires (7 derniers jours)
-        $weeklyCommissions = Commission::where('created_at', '>=', Carbon::now()->subDays(7))
+        // Revenus hebdomadaires (7 jours se terminant au jour de référence)
+        $weeklyCommissions = Commission::whereDate('created_at', '>', $refDate->copy()->subDays(7)->toDateString())
+            ->whereDate('created_at', '<=', $refDate->toDateString())
             ->sum('commission_amount');
-        $weeklyBookings = Commission::where('created_at', '>=', Carbon::now()->subDays(7))
+        $weeklyBookings = Commission::whereDate('created_at', '>', $refDate->copy()->subDays(7)->toDateString())
+            ->whereDate('created_at', '<=', $refDate->toDateString())
             ->count();
 
-        // Revenus mensuels (mois en cours)
-        $monthlyCommissions = Commission::whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
+        // Revenus mensuels (mois du jour de référence)
+        $monthlyCommissions = Commission::whereMonth('created_at', $refDate->month)
+            ->whereYear('created_at', $refDate->year)
             ->sum('commission_amount');
-        $monthlyBookings = Commission::whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
+        $monthlyBookings = Commission::whereMonth('created_at', $refDate->month)
+            ->whereYear('created_at', $refDate->year)
             ->count();
 
         // Revenus par période (tendance mensuelle)
-        $monthlyRevenue = Commission::select(
+        $monthlyRevenue = $inPeriod(Commission::query())->select(
             DB::raw('YEAR(created_at) as year'),
             DB::raw('MONTH(created_at) as month'),
             DB::raw('SUM(commission_amount) as total'),
@@ -166,26 +183,38 @@ class RevenueController extends Controller
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
-        // Statistiques globales
+        $inPeriod = function ($q) use ($request) {
+            if ($request->has('from_date')) {
+                $q->whereDate('created_at', '>=', $request->from_date);
+            }
+            if ($request->has('to_date')) {
+                $q->whereDate('created_at', '<=', $request->to_date);
+            }
+            return $q;
+        };
+
+        // Statistiques globales (retour client 2026-09-18 : suivent la période ;
+        // le solde disponible pour retrait et les montants en attente de
+        // check-in restent des SOLDES à l'instant T, jamais filtrés)
         // Solde disponible pour retrait = commissions dont le séjour a commencé (released_at) et pas encore versées
         $availableBalance = (float) Commission::where('host_id', $hostId)
             ->whereNotNull('released_at')
             ->where('status', 'pending')
             ->sum('host_amount');
-        $totalRevenue = Commission::where('host_id', $hostId)->sum('host_amount');
-        $paidRevenue = Commission::where('host_id', $hostId)
-            ->where('status', 'paid')
+        $totalRevenue = $inPeriod(Commission::where('host_id', $hostId))->sum('host_amount');
+        $paidRevenue = $inPeriod(Commission::where('host_id', $hostId)
+            ->where('status', 'paid'))
             ->sum('host_amount');
-        $pendingRevenue = Commission::where('host_id', $hostId)
-            ->where('status', 'pending')
+        $pendingRevenue = $inPeriod(Commission::where('host_id', $hostId)
+            ->where('status', 'pending'))
             ->sum('host_amount');
         $awaitingCheckin = (float) Commission::where('host_id', $hostId)
             ->whereNull('released_at')
             ->sum('host_amount');
-        $totalBookings = Commission::where('host_id', $hostId)->count();
+        $totalBookings = $inPeriod(Commission::where('host_id', $hostId))->count();
 
         // Revenus par période
-        $monthlyRevenue = Commission::select(
+        $monthlyRevenue = $inPeriod(Commission::query())->select(
             DB::raw('YEAR(created_at) as year'),
             DB::raw('MONTH(created_at) as month'),
             DB::raw('SUM(host_amount) as total')
