@@ -253,7 +253,7 @@ class AccommodationController extends Controller
      * Nuits déjà prises pour un établissement (publique) — sert à griser ces
      * dates dans les calendriers de réservation. Mêmes règles de blocage que
      * BookingService::assertAvailable() / BookingController::store() : une
-     * réservation confirmée, ou en attente (hôte/paiement) non expirée,
+     * réservation confirmée (payée),
      * occupe ses nuits [check_in, check_out) ; une chambre n'est indisponible
      * qu'une fois toutes ses unités prises ou bloquée par l'hôte. Sans
      * chambre active, seules les réservations "sans chambre" comptent. Avec
@@ -267,16 +267,9 @@ class AccommodationController extends Controller
         $today = \Carbon\Carbon::today();
         $end = $today->copy()->addMonths(18);
 
+        // Seules les réservations confirmées (payées) bloquent une date.
         $blocking = function ($q) {
-            $q->whereIn('status', \App\Enums\BookingStatus::occupying())
-                ->orWhere(function ($pending) {
-                    $pending->whereIn('status', [
-                        \App\Enums\BookingStatus::Pending->value,
-                        \App\Enums\BookingStatus::AwaitingHostConfirmation->value,
-                    ])->where(function ($notExpired) {
-                        $notExpired->whereNull('expires_at')->orWhere('expires_at', '>', now());
-                    });
-                });
+            $q->whereIn('status', \App\Enums\BookingStatus::occupying());
         };
 
         $rooms = $accommodation->rooms()->where('is_active', true);

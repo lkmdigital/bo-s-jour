@@ -41,33 +41,13 @@ class BookingService
         $quantity = max(1, (int) ($room->quantity ?? 1));
 
         $query = Booking::where('room_id', $roomId)
-            ->where(function ($q) {
-                // Une réservation confirmée bloque toujours une unité. Une
-                // réservation encore "pending" (paiement pas encore confirmé)
-                // la bloque AUSSI tant que sa fenêtre n'a pas expiré — retour
-                // client 2026-09-02 (Partie 4.5) : sans ce verrou temporaire,
-                // deux voyageurs pouvaient payer en même temps pour la même
-                // chambre pendant que l'un des deux était encore sur la
-                // passerelle de paiement (occupying() n'incluait que
-                // "confirmed"). Une fois expirée (ou déjà annulée par le
-                // nettoyage planifié), une réservation pending ne bloque plus.
-                $q->whereIn('status', BookingStatus::occupying())
-                    ->orWhere(function ($pending) {
-                        // Retour client 2026-09-16 : le parcours "confirmation
-                        // hôte avant paiement" ajoute une étape avant Pending —
-                        // une demande en attente de décision de l'hôte doit
-                        // bloquer la chambre au même titre qu'une réservation
-                        // pending non expirée, sinon deux voyageurs pourraient
-                        // demander les mêmes dates pendant que l'hôte décide.
-                        $pending->whereIn('status', [
-                            BookingStatus::Pending->value,
-                            BookingStatus::AwaitingHostConfirmation->value,
-                        ])
-                            ->where(function ($notExpired) {
-                                $notExpired->whereNull('expires_at')->orWhere('expires_at', '>', now());
-                            });
-                    });
-            })
+            // Retour client 2026-09-18 : seules les réservations CONFIRMÉES (donc
+            // payées) occupent une chambre. Une demande en attente (hôte ou
+            // paiement) ne bloque plus personne : plusieurs voyageurs peuvent
+            // demander les mêmes dates, l'hôte n'en accepte qu'une et les
+            // autres sont annulées automatiquement (voir
+            // cancelCompetingRequests()).
+            ->whereIn('status', BookingStatus::occupying())
             ->where('check_in', '<', $checkOut)
             ->where('check_out', '>', $checkIn)
             ->lockForUpdate();
@@ -179,6 +159,8 @@ class BookingService
                 Carbon::parse($booking->check_out)
             );
         }
+
+        $this->cancelCompetingRequests($booking, [BookingStatus::AwaitingHostConfirmation, BookingStatus::Pending]);
 
         $booking->load(['user', 'accommodation', 'room']);
 
@@ -330,6 +312,74 @@ class BookingService
         return $booking->fresh();
     }
 
+    /** Réservations qui se chevauchent sur la même unité (même chambre, ou "sans chambre" du même établissement). */
+    private function overlappingQuery(Booking $booking)
+    {
+        $q = Booking::where('id', '!=', $booking->id)
+            ->where('check_in', '<', $booking->check_out)
+            ->where('check_out', '>', $booking->check_in);
+
+        return $booking->room_id
+            ? $q->where('room_id', $booking->room_id)
+            : $q->whereNull('room_id')->where('accommodation_id', $booking->accommodation_id);
+    }
+
+    private function unitsCapacity(Booking $booking): int
+    {
+        return $booking->room_id
+            ? max(1, (int) (Room::find($booking->room_id)?->quantity ?? 1))
+            : 1;
+    }
+
+    /** Unités déjà engagées par d'autres réservations : confirmées, ou acceptées par l'hôte et en attente de paiement (non expirées). */
+    private function committedUnits(Booking $booking): int
+    {
+        return (int) $this->overlappingQuery($booking)
+            ->where(function ($q) {
+                $q->where('status', BookingStatus::Confirmed->value)
+                    ->orWhere(function ($pending) {
+                        $pending->where('status', BookingStatus::Pending->value)
+                            ->where(function ($notExpired) {
+                                $notExpired->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                            });
+                    });
+            })
+            ->sum('rooms_quantity');
+    }
+
+    /** L'hôte peut-il accepter cette demande ? (une seule demande acceptée par unité et par période) */
+    public function canApprove(Booking $booking): bool
+    {
+        return $this->committedUnits($booking) + max(1, (int) $booking->rooms_quantity) <= $this->unitsCapacity($booking);
+    }
+
+    /**
+     * Retour client 2026-09-18 : dès qu'une demande est acceptée (ou payée),
+     * les autres demandes qui se disputent les mêmes dates sont annulées
+     * automatiquement, tant que plus aucune unité n'est disponible.
+     *
+     * @param  BookingStatus[]  $statuses  statuts des demandes concurrentes à annuler
+     */
+    public function cancelCompetingRequests(Booking $winner, array $statuses): void
+    {
+        try {
+            if ($this->committedUnits($winner) + max(1, (int) $winner->rooms_quantity) < $this->unitsCapacity($winner)) {
+                return; // il reste des unités : personne n'est évincé
+            }
+
+            $competitors = $this->overlappingQuery($winner)
+                ->whereIn('status', array_map(fn ($st) => $st->value, $statuses))
+                ->orderBy('created_at')
+                ->get();
+
+            foreach ($competitors as $competitor) {
+                $this->cancel($competitor, 'Ces dates ont été attribuées à une autre réservation.');
+            }
+        } catch (\Throwable $e) {
+            Log::error('cancelCompetingRequests failed', ['booking_id' => $winner->id, 'error' => $e->getMessage()]);
+        }
+    }
+
     /**
      * L'hôte confirme la disponibilité — le voyageur peut désormais payer.
      * Retour client 2026-09-16 : parcours "confirmation hôte avant paiement".
@@ -351,6 +401,8 @@ class BookingService
             // soumise qu'au délai de réponse de l'hôte).
             $booking->update(['expires_at' => now()->addHours(48)]);
         });
+
+        $this->cancelCompetingRequests($booking->fresh(), [BookingStatus::AwaitingHostConfirmation]);
 
         $booking->load(['user', 'accommodation.host', 'room']);
 

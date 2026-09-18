@@ -354,22 +354,8 @@ class BookingController extends Controller
             // réservation pending non expirée bloque aussi, pas seulement confirmed.
             $conflictingBookings = Booking::where('accommodation_id', $request->accommodation_id)
                 ->whereNull('room_id')
-                ->where(function ($q) {
-                    $q->whereIn('status', BookingStatus::occupying())
-                        ->orWhere(function ($pending) {
-                            // Une demande encore en attente de décision de
-                            // l'hôte bloque aussi la chambre, au même titre
-                            // qu'une réservation pending non expirée (retour
-                            // client 2026-09-16).
-                            $pending->whereIn('status', [
-                                BookingStatus::Pending->value,
-                                BookingStatus::AwaitingHostConfirmation->value,
-                            ])
-                                ->where(function ($notExpired) {
-                                    $notExpired->whereNull('expires_at')->orWhere('expires_at', '>', now());
-                                });
-                        });
-                })
+                // Retour client 2026-09-18 : seules les réservations confirmées (payées) bloquent.
+                ->whereIn('status', BookingStatus::occupying())
                 ->where('check_in', '<', $request->check_out)
                 ->where('check_out', '>', $request->check_in)
                 ->exists();
@@ -803,6 +789,12 @@ class BookingController extends Controller
 
         if ($booking->status !== BookingStatus::AwaitingHostConfirmation) {
             return response()->json(['message' => "Cette réservation n'est plus en attente de confirmation."], 422);
+        }
+
+        if (!$this->bookingService->canApprove($booking)) {
+            return response()->json([
+                'message' => "Vous avez déjà accepté une autre demande pour ces dates : une seule demande peut être acceptée à la fois.",
+            ], 422);
         }
 
         $booking = $this->bookingService->approveAvailability($booking, $user->id);

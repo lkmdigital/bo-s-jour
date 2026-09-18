@@ -52,21 +52,38 @@ class RoomAvailabilityLockTest extends TestCase
         ];
     }
 
-    public function test_a_pending_unpaid_booking_blocks_the_room_for_another_traveler(): void
+    /**
+     * Retour client 2026-09-18 : une demande non payée ne bloque plus les
+     * dates — plusieurs voyageurs peuvent demander la même chambre, l'hôte
+     * n'en accepte qu'une (voir BookingHostApprovalFlowTest).
+     */
+    public function test_a_pending_unpaid_booking_does_not_block_the_room_for_another_traveler(): void
     {
         $room = $this->makeRoom();
-        $firstTraveler = User::factory()->create();
-        Sanctum::actingAs($firstTraveler);
-
+        Sanctum::actingAs(User::factory()->create());
         $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated();
 
-        $secondTraveler = User::factory()->create();
-        Sanctum::actingAs($secondTraveler);
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated();
 
-        $response = $this->postJson('/api/bookings', $this->bookingPayload($room));
+        $this->assertSame(2, Booking::where('room_id', $room->id)->count());
+    }
 
-        $response->assertStatus(409);
-        $this->assertSame(1, Booking::where('room_id', $room->id)->count(), 'la deuxième réservation ne doit pas avoir été créée');
+    public function test_a_confirmed_paid_booking_blocks_the_room_for_another_traveler(): void
+    {
+        $room = $this->makeRoom();
+        Booking::factory()->for(User::factory()->create())->create([
+            'accommodation_id' => $room->accommodation_id,
+            'room_id' => $room->id,
+            'status' => 'confirmed',
+            'payment_status' => 'paid',
+            'check_in' => now()->addDays(10)->toDateString(),
+            'check_out' => now()->addDays(12)->toDateString(),
+        ]);
+
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertStatus(409);
+        $this->assertSame(1, Booking::where('room_id', $room->id)->count());
     }
 
     public function test_an_expired_pending_booking_no_longer_blocks_the_room(): void
@@ -146,10 +163,17 @@ class RoomAvailabilityLockTest extends TestCase
     {
         $room = $this->makeRoom(quantity: 2);
 
-        Sanctum::actingAs(User::factory()->create());
-        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated();
-        Sanctum::actingAs(User::factory()->create());
-        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated();
+        foreach ([1, 2] as $_) {
+            Booking::factory()->for(User::factory()->create())->create([
+                'accommodation_id' => $room->accommodation_id,
+                'room_id' => $room->id,
+                'status' => 'confirmed',
+                'payment_status' => 'paid',
+                'rooms_quantity' => 1,
+                'check_in' => now()->addDays(10)->toDateString(),
+                'check_out' => now()->addDays(12)->toDateString(),
+            ]);
+        }
 
         Sanctum::actingAs(User::factory()->create());
         $this->postJson('/api/bookings', $this->bookingPayload($room))->assertStatus(409);

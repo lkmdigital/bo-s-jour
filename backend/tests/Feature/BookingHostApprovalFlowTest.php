@@ -216,14 +216,72 @@ class BookingHostApprovalFlowTest extends TestCase
         $response->assertStatus(400);
     }
 
-    public function test_an_awaiting_host_confirmation_booking_blocks_the_room_for_another_traveler(): void
+    private function makeRequest(Room $room, string $status = 'awaiting_host_confirmation'): Booking
+    {
+        return Booking::factory()->for(User::factory()->create())->create([
+            'accommodation_id' => $room->accommodation_id,
+            'room_id' => $room->id,
+            'status' => $status,
+            'payment_status' => 'pending',
+            'check_in' => now()->addDays(10)->toDateString(),
+            'check_out' => now()->addDays(12)->toDateString(),
+            'expires_at' => now()->addHours(24),
+        ]);
+    }
+
+    // Retour client 2026-09-18 : une demande en attente ne bloque plus les
+    // dates — l'hôte peut en recevoir plusieurs pour la même période.
+    public function test_an_awaiting_host_confirmation_booking_does_not_block_another_traveler(): void
     {
         [$host, $accommodation, $room] = $this->makeRoom();
         Sanctum::actingAs(User::factory()->create());
         $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated();
 
         Sanctum::actingAs(User::factory()->create());
-        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertStatus(409);
+        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated();
+    }
+
+    public function test_approving_one_request_automatically_cancels_the_other_pending_requests(): void
+    {
+        Bus::fake();
+        Mail::fake();
+        [$host, $accommodation, $room] = $this->makeRoom();
+        $winner = $this->makeRequest($room);
+        $loserA = $this->makeRequest($room);
+        $loserB = $this->makeRequest($room);
+
+        Sanctum::actingAs($host);
+        $this->postJson("/api/bookings/{$winner->id}/approve")->assertOk();
+
+        $this->assertSame(BookingStatus::Pending, $winner->fresh()->status);
+        $this->assertSame(BookingStatus::Cancelled, $loserA->fresh()->status);
+        $this->assertSame(BookingStatus::Cancelled, $loserB->fresh()->status);
+    }
+
+    public function test_host_cannot_approve_a_second_request_while_another_one_is_awaiting_payment(): void
+    {
+        Mail::fake();
+        [$host, $accommodation, $room] = $this->makeRoom();
+        $this->makeRequest($room, 'pending'); // déjà acceptée, en attente de paiement
+        $other = $this->makeRequest($room);
+
+        Sanctum::actingAs($host);
+        $this->postJson("/api/bookings/{$other->id}/approve")->assertStatus(422);
+        $this->assertSame(BookingStatus::AwaitingHostConfirmation, $other->fresh()->status);
+    }
+
+    public function test_confirming_a_paid_booking_cancels_remaining_competing_requests(): void
+    {
+        Bus::fake();
+        Mail::fake();
+        [$host, $accommodation, $room] = $this->makeRoom();
+        $paying = $this->makeRequest($room, 'pending');
+        $competitor = $this->makeRequest($room);
+
+        app(\App\Services\BookingService::class)->confirm($paying);
+
+        $this->assertSame(BookingStatus::Confirmed, $paying->fresh()->status);
+        $this->assertSame(BookingStatus::Cancelled, $competitor->fresh()->status);
     }
 
     public function test_cancel_expired_bookings_notifies_the_traveler_when_host_never_responded(): void

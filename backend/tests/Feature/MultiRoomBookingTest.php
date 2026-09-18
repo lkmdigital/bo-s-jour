@@ -112,11 +112,18 @@ class MultiRoomBookingTest extends TestCase
     {
         $room = $this->makeRoom(quantity: 3);
 
-        // Un premier voyageur consomme 2 des 3 unités disponibles.
-        Sanctum::actingAs(User::factory()->create());
-        $this->postJson('/api/bookings', $this->bookingPayload($room, [
+        // Un premier voyageur a une réservation CONFIRMÉE (payée) sur 2 des 3
+        // unités (retour client 2026-09-18 : seules les confirmées bloquent).
+        $payload = $this->bookingPayload($room, ['rooms_quantity' => 2]);
+        Booking::factory()->for(User::factory()->create())->create([
+            'accommodation_id' => $room->accommodation_id,
+            'room_id' => $room->id,
+            'status' => 'confirmed',
+            'payment_status' => 'paid',
             'rooms_quantity' => 2,
-        ]))->assertCreated();
+            'check_in' => $payload['check_in'],
+            'check_out' => $payload['check_out'],
+        ]);
 
         // Un deuxième voyageur demande 2 unités -> il n'en reste qu'1 -> refusé.
         Sanctum::actingAs(User::factory()->create());
