@@ -337,7 +337,15 @@ export default function BookingWizard(props: Props) {
     if (step === 0) { setStep(2); return; }
     setStep((s) => Math.min(4, s + 1));
   };
+  // Retour client 2026-09-18 : "je ne peux pas retourner sur la fiche
+  // établissement" — au step 0 (le tout premier), "Retour" n'avait aucune
+  // étape antérieure vers laquelle aller et restait donc désactivé, un
+  // bouton mort à l'endroit même où l'utilisateur s'attend à pouvoir
+  // reculer. Il ramène désormais vers la fiche établissement à ce step-là
+  // (le lien dédié en haut de page fait la même chose mais est loin du
+  // bouton "Retour"/"Continuer" sur lequel l'attention est concentrée).
   const goPrev = () => {
+    if (step === 0) { router.push(`/accommodations/${props.accommodationId}`); return; }
     if (step === 2) { setStep(0); return; }
     setStep((s) => Math.max(0, s - 1));
   };
@@ -801,10 +809,20 @@ export default function BookingWizard(props: Props) {
 
           {/* Navigation */}
           <div className="flex items-center justify-between mt-8 pt-5 border-t border-gray-100 dark:border-gray-700">
-            <button onClick={goPrev} disabled={step === 0} className="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary disabled:opacity-40">
+            <button onClick={goPrev} className="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary">
               <ChevronLeft className="w-4 h-4" /> Retour
             </button>
-            {step < STEPS.length - 1 ? (
+            {/* Retour client 2026-09-18 : "je n'arrive pas à procéder au
+                paiement" — `STEPS.length - 1` (3) ne correspondait plus au
+                dernier step réel (4) depuis la suppression de l'étape
+                "Compte" (step 1, jamais atteint, voir STEP_SEQUENCE plus
+                haut) : le bouton "Procéder au paiement" apparaissait dès le
+                step 3 ("Coordonnées"), avant même que la case CGU/CGV (qui
+                seule le débloque) ne soit affichée — étape "Vérification"
+                (step 4) inatteignable, la case n'existant nulle part avant.
+                `step < STEP_SEQUENCE[STEP_SEQUENCE.length - 1]` suit le vrai
+                dernier step plutôt que la longueur des libellés affichés. */}
+            {step < STEP_SEQUENCE[STEP_SEQUENCE.length - 1] ? (
               <button onClick={goNext} disabled={!canNext} className="btn-primary inline-flex items-center gap-1 disabled:opacity-50">
                 Continuer <ChevronRight className="w-4 h-4" />
               </button>
