@@ -72,6 +72,11 @@ const DEFAULT_DIAL = '+225';
 const DIAL_OPTIONS = DIAL_COUNTRIES.filter((c, i, all) => all.findIndex((x) => x.dial === c.dial) === i);
 const DIALS_LONGEST_FIRST = DIAL_OPTIONS.map((c) => c.dial).sort((a, b) => b.length - a.length);
 
+// Drapeau emoji dérivé du code ISO (indicateurs régionaux Unicode).
+function flag(iso: string) {
+  return String.fromCodePoint(...iso.split('').map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65));
+}
+
 /** Sépare "+225 0700000000" en { dial: '+225', national: '0700000000' } (sans indicatif reconnu : +225 par défaut). */
 export function splitPhone(value: string): { dial: string; national: string } {
   const v = (value || '').trim();
@@ -127,11 +132,11 @@ export default function PhoneInput({ label, value, onChange, required, hint, pla
           aria-label="Indicatif du pays"
           value={dial}
           onChange={(e) => emit(e.target.value, national)}
-          className={cn(fieldClass, 'w-[10.5rem] shrink-0 pl-2.5 pr-1 text-sm')}
+          className={cn(fieldClass, 'w-[12rem] shrink-0 pl-2.5 pr-1 text-sm')}
         >
           {DIAL_OPTIONS.map((c) => (
             <option key={c.dial} value={c.dial}>
-              {c.name} ({c.dial})
+              {flag(c.iso)} {c.name} ({c.dial})
             </option>
           ))}
         </select>
