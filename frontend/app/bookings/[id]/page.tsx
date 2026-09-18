@@ -459,7 +459,11 @@ export default function BookingDetailPage() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <p className="font-semibold">Dates de séjour</p>
-                      {canCancel && !isPast && (
+                      {/* Même bug/même correctif que "Annuler la réservation"
+                          plus bas : PUT /bookings/{id} est protégé par
+                          auth:sanctum, donc inutilisable par un voyageur
+                          invité (sans compte). */}
+                      {canCancel && !isPast && isAuthenticated && (
                         <button
                           type="button"
                           onClick={() => setShowModifyDates(true)}
@@ -743,13 +747,43 @@ export default function BookingDetailPage() {
                 {canCancel && !isPast && booking.payment_status !== 'paid' && (
                   <div className="card">
                     <h3 className="text-xl font-bold mb-4">Actions</h3>
-                    <button
-                      onClick={handleCancel}
-                      disabled={cancelling}
-                      className="w-full btn-outline text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
-                    >
-                      {cancelling ? 'Annulation...' : 'Annuler la réservation'}
-                    </button>
+                    {isAuthenticated ? (
+                      <button
+                        onClick={handleCancel}
+                        disabled={cancelling}
+                        className="w-full btn-outline text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+                      >
+                        {cancelling ? 'Annulation...' : 'Annuler la réservation'}
+                      </button>
+                    ) : (
+                      // Retour client 2026-09-18 : "le btn pour annuler ne
+                      // fonctionne pas" — reproduit pour une réservation faite
+                      // sans compte (voyageur non connecté, booking.user_id
+                      // null) : le bouton s'affichait normalement (canCancel
+                      // ne tient pas compte de l'authentification) mais l'appel
+                      // PUT /bookings/{id} échouait systématiquement en 401
+                      // (route protégée par auth:sanctum), avec un simple
+                      // toast discret — invisible en pratique, d'où
+                      // l'impression d'un bouton mort. Un voyageur invité n'a
+                      // aucun compte vers lequel se connecter (user_id est
+                      // null), donc pas de correctif "connectez-vous" possible
+                      // ici : on oriente vers le support, seul canal capable
+                      // de vérifier son identité (nom/e-mail/téléphone saisis
+                      // à la réservation) avant d'annuler en son nom.
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                          Réservation faite sans compte : contactez-nous pour l'annuler.
+                        </p>
+                        <a
+                          href={`https://wa.me/2250706402929?text=${encodeURIComponent(`Bonjour, je souhaite annuler ma réservation #${booking.id} (${booking.accommodation.name}).`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full btn-outline text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 inline-flex items-center justify-center"
+                        >
+                          Contacter le support
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
               </>
