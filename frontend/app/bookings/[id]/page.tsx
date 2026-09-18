@@ -359,6 +359,9 @@ export default function BookingDetailPage() {
   const StatusIcon = status?.icon || Clock;
   const canCancel = booking.status === 'awaiting_host_confirmation' || booking.status === 'pending' || booking.status === 'confirmed';
   const isPast = new Date(booking.check_out) < new Date();
+  // Retour client 2026-09-18 : une réservation annulée sans paiement ne doit
+  // plus afficher de récapitulatif de prix ni de "Payer maintenant".
+  const cancelledUnpaid = booking.status === 'cancelled' && !['paid', 'refunded', 'guarantee_paid'].includes(booking.payment_status as string);
 
   return (
     <div className="min-h-screen">
@@ -604,6 +607,7 @@ export default function BookingDetailPage() {
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Récapitulatif de prix */}
+            {!cancelledUnpaid && (
             <div className="card">
               <h3 className="text-xl font-bold mb-4">Récapitulatif</h3>
               <div className="space-y-3">
@@ -628,6 +632,7 @@ export default function BookingDetailPage() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Actions */}
             {!isLoading && isHost ? (
@@ -696,7 +701,7 @@ export default function BookingDetailPage() {
                 )}
 
                 {/* Statut de paiement */}
-                {booking.status !== 'awaiting_host_confirmation' && booking.payment_status && (
+                {booking.status !== 'awaiting_host_confirmation' && !cancelledUnpaid && booking.payment_status && (
                   <div className="card">
                     <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                       Statut de paiement
