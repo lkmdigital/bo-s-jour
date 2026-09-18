@@ -6,8 +6,9 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Pagination from '@/components/common/Pagination';
 import DateRangeFilter from '@/components/common/DateRangeFilter';
+import { FilterSearch } from '@/components/common/FilterBar';
 import { formatPrice } from '@/lib/utils';
-import { Users, Mail, Phone, Search } from 'lucide-react';
+import { Users, Mail, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -77,27 +78,21 @@ export default function HostClientsPage() {
         <p className="text-gray-500 dark:text-gray-400 mt-1">Voyageurs ayant réservé chez vous</p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex flex-wrap items-center gap-3">
-        <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Rechercher un client (nom, email, téléphone)..."
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none focus:ring-2 focus:ring-bosejour-red/40 outline-none"
-          />
-        </form>
-        <DateRangeFilter from={dateFrom} to={dateTo} onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }} label="Dernier séjour" />
-        {(dateFrom || dateTo) && (
-          <button
-            type="button"
-            onClick={() => { setDateFrom(''); setDateTo(''); }}
-            className="text-xs font-medium text-gray-500 hover:text-bosejour-red"
-          >
-            Effacer les dates
-          </button>
-        )}
+      <div className="space-y-3">
+        <FilterSearch
+          value={searchInput}
+          onChange={setSearchInput}
+          onSubmit={handleSearchSubmit}
+          placeholder="Rechercher un client (nom, email, téléphone)..."
+          className="w-full"
+        />
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }}
+          label="Dernier séjour"
+          onReset={() => { setSearch(''); setSearchInput(''); setDateFrom(''); setDateTo(''); }}
+        />
       </div>
 
       {error && <ErrorDisplay error={error} onDismiss={() => setError(null)} />}

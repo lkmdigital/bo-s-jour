@@ -10,6 +10,7 @@ import Brand from '@/components/common/Brand';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Pagination from '@/components/common/Pagination';
 import DateRangeFilter, { useDefaultDateRange } from '@/components/common/DateRangeFilter';
+import { FilterSearch, FilterSelect } from '@/components/common/FilterBar';
 import { formatPrice } from '@/lib/utils';
 import { CreditCard, Wallet, CheckCircle, XCircle, Clock, User, DollarSign, Gift, Download, Plus, Printer } from 'lucide-react';
 import { format } from 'date-fns';
@@ -439,51 +440,42 @@ export default function AdminPaiementsPage() {
 
         {tab === 'transactions' && (
           <>
-            <div className="card mb-6 space-y-4">
-              <input
-                type="text"
-                placeholder="Rechercher par référence, voyageur..."
+            <div className="mb-6 space-y-3">
+              <FilterSearch
                 value={search}
-                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                onChange={(v) => { setSearch(v); setCurrentPage(1); }}
+                onSubmit={(e) => e.preventDefault()}
+                placeholder="Rechercher par référence, voyageur..."
+                className="w-full"
               />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                >
+              <DateRangeFilter
+                from={dateRange.from}
+                to={dateRange.to}
+                onRangeChange={(from, to) => { setDateRange({ from, to }); setCurrentPage(1); }}
+                onReset={() => {
+                  setSearch(''); setStatusFilter('all'); setMethodFilter('all'); setPurposeFilter('all');
+                  setDateRange(defaultRange); setCurrentPage(1);
+                }}
+              >
+                <FilterSelect value={statusFilter} onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }} ariaLabel="Statut">
                   <option value="all">Tous les statuts</option>
                   <option value="completed">Payé</option>
                   <option value="failed">Échoué</option>
-                </select>
-                <select
-                  value={methodFilter}
-                  onChange={(e) => { setMethodFilter(e.target.value); setCurrentPage(1); }}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                >
+                </FilterSelect>
+                <FilterSelect value={methodFilter} onChange={(v) => { setMethodFilter(v); setCurrentPage(1); }} ariaLabel="Moyen de paiement">
                   <option value="all">Tous les moyens</option>
                   <option value="wave-ci">Wave</option>
                   <option value="orange-ci">Orange Money</option>
                   <option value="djamo">Djamo</option>
                   <option value="visa-mastercard">Visa / Mastercard</option>
-                </select>
-                <select
-                  value={purposeFilter}
-                  onChange={(e) => { setPurposeFilter(e.target.value); setCurrentPage(1); }}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                >
+                </FilterSelect>
+                <FilterSelect value={purposeFilter} onChange={(v) => { setPurposeFilter(v); setCurrentPage(1); }} ariaLabel="Type de paiement">
                   <option value="all">Tous les types</option>
                   <option value="full">Paiement intégral</option>
                   <option value="deposit">Acompte</option>
                   <option value="guarantee">Garantie</option>
-                </select>
-              </div>
-              <DateRangeFilter
-                from={dateRange.from}
-                to={dateRange.to}
-                onRangeChange={(from, to) => { setDateRange({ from, to }); setCurrentPage(1); }}
-              />
+                </FilterSelect>
+              </DateRangeFilter>
             </div>
 
             <div className="flex justify-end mb-4">

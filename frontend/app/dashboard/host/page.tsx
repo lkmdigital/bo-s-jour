@@ -231,9 +231,13 @@ export default function HostDashboardPage() {
         <p className="text-gray-500 dark:text-gray-400 mt-1">Bienvenue dans votre espace partenaire <Brand /></p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-        <DateRangeFilter from={dateFrom} to={dateTo} onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }} label="Période (revenus mensuels)" />
-      </div>
+      <DateRangeFilter
+        from={dateFrom}
+        to={dateTo}
+        onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }}
+        onReset={() => { setDateFrom(defaultRange.from); setDateTo(defaultRange.to); }}
+        label="Période (revenus mensuels)"
+      />
 
       {complianceMissing.length > 0 && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 p-5">

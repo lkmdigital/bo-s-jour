@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBar, FilterSearch, FilterSelect, FilterResetButton } from '@/components/common/FilterBar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
@@ -10,7 +11,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Pagination from '@/components/common/Pagination';
 import Link from 'next/link';
-import { ArrowLeft, Inbox, MessageSquare, Send, Search } from 'lucide-react';
+import { ArrowLeft, Inbox, MessageSquare, Send } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -145,27 +146,20 @@ export default function HostInboxPage() {
 
           <ErrorDisplay error={error} onDismiss={() => setError(null)} type="error" />
 
-          <div className="card p-4 flex flex-wrap items-center gap-3 mb-6">
-            <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Rechercher un expéditeur, un mot du message..."
-                className="w-full pl-9 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none focus:ring-2 focus:ring-primary/40 outline-none"
-              />
-            </form>
-            <select
-              value={readStatusFilter}
-              onChange={(e) => setReadStatusFilter(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
-            >
+          <FilterBar className="mb-6">
+            <FilterSearch
+              value={searchInput}
+              onChange={setSearchInput}
+              onSubmit={handleSearchSubmit}
+              placeholder="Rechercher un expéditeur, un mot du message..."
+            />
+            <FilterSelect value={readStatusFilter} onChange={setReadStatusFilter} ariaLabel="Lecture">
               <option value="all">Tous les messages</option>
               <option value="unread">Non lus</option>
               <option value="read">Lus</option>
-            </select>
-          </div>
+            </FilterSelect>
+            <FilterResetButton onClick={() => { setSearch(''); setSearchInput(''); setReadStatusFilter('all'); }} />
+          </FilterBar>
 
           {messages.length === 0 ? (
             <div className="card text-center py-12">

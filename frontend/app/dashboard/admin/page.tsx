@@ -200,9 +200,15 @@ export default function AdminDashboardPage() {
         </span>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex flex-wrap items-center gap-3">
-        <DateRangeFilter from={dateFrom} to={dateTo} onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }} label="Période (activité, région, top établissements)" />
-        {periodLoading && <span className="text-xs text-gray-400">Mise à jour…</span>}
+      <div className="space-y-1">
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }}
+          onReset={() => { setDateFrom(defaultRange.from); setDateTo(defaultRange.to); }}
+          label="Période (activité, région, top établissements)"
+        />
+        {periodLoading && <p className="text-xs text-gray-400">Mise à jour…</p>}
       </div>
 
       <div>

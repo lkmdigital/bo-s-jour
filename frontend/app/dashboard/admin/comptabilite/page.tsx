@@ -162,6 +162,7 @@ export default function AdminComptabilitePage() {
               from={dateRange.from}
               to={dateRange.to}
               onRangeChange={(from, to) => setDateRange({ from, to })}
+              onReset={() => setDateRange(defaultRange)}
               label="Période"
             />
             <button

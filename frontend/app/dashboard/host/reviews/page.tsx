@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBar, FilterSearch, FilterSelect, FilterResetButton } from '@/components/common/FilterBar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
@@ -9,7 +10,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Pagination from '@/components/common/Pagination';
 import Link from 'next/link';
-import { ArrowLeft, Star, MessageSquare, Send, Building2, Sparkles, Loader2, Search } from 'lucide-react';
+import { ArrowLeft, Star, MessageSquare, Send, Building2, Sparkles, Loader2 } from 'lucide-react';
 
 interface Review {
   id: number;
@@ -158,49 +159,36 @@ export default function HostReviewsPage() {
 
           <ErrorDisplay error={error} onDismiss={() => setError(null)} type="error" />
 
-          <div className="card p-4 flex flex-wrap items-center gap-3 mb-6">
-            <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Rechercher un voyageur, un mot du commentaire..."
-                className="w-full pl-9 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none focus:ring-2 focus:ring-primary/40 outline-none"
-              />
-            </form>
+          <FilterBar className="mb-6">
+            <FilterSearch
+              value={searchInput}
+              onChange={setSearchInput}
+              onSubmit={handleSearchSubmit}
+              placeholder="Rechercher un voyageur, un mot du commentaire..."
+            />
             {accommodations.length > 1 && (
-              <select
-                value={accommodationFilter}
-                onChange={(e) => setAccommodationFilter(e.target.value)}
-                className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
-              >
+              <FilterSelect value={accommodationFilter} onChange={setAccommodationFilter} ariaLabel="Établissement">
                 <option value="all">Tous les établissements</option>
                 {accommodations.map((a) => (
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
-              </select>
+              </FilterSelect>
             )}
-            <select
-              value={ratingFilter}
-              onChange={(e) => setRatingFilter(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
-            >
+            <FilterSelect value={ratingFilter} onChange={setRatingFilter} ariaLabel="Note">
               <option value="all">Toutes les notes</option>
               {[5, 4, 3, 2, 1].map((n) => (
                 <option key={n} value={n}>{n} étoile{n > 1 ? 's' : ''}</option>
               ))}
-            </select>
-            <select
-              value={replyStatusFilter}
-              onChange={(e) => setReplyStatusFilter(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
-            >
+            </FilterSelect>
+            <FilterSelect value={replyStatusFilter} onChange={setReplyStatusFilter} ariaLabel="Réponse">
               <option value="all">Réponse : toutes</option>
               <option value="not_replied">Sans réponse</option>
               <option value="replied">Déjà répondu</option>
-            </select>
-          </div>
+            </FilterSelect>
+            <FilterResetButton onClick={() => {
+              setSearch(''); setSearchInput(''); setAccommodationFilter('all'); setRatingFilter('all'); setReplyStatusFilter('all');
+            }} />
+          </FilterBar>
 
           {loading && reviews.length === 0 ? (
             <div className="py-12"><LoadingSpinner /></div>

@@ -163,6 +163,7 @@ export default function HostAnalyticsPage() {
               from={dateRange.from}
               to={dateRange.to}
               onRangeChange={(from, to) => setDateRange({ from, to })}
+              onReset={() => setDateRange(defaultRange)}
               label="Période"
             />
             <Link href="/dashboard/host" className="btn-secondary text-sm">

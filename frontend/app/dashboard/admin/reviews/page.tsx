@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBar, FilterSearch, FilterSelect, FilterResetButton } from '@/components/common/FilterBar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
@@ -8,7 +9,7 @@ import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Pagination from '@/components/common/Pagination';
-import { Star, Eye, EyeOff, Flag, Search } from 'lucide-react';
+import { Star, Eye, EyeOff, Flag } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -120,34 +121,20 @@ export default function AdminReviewsPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <div className="flex gap-2">
-            {['pending', 'approved', 'hidden'].map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  filter === status
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {status === 'pending' ? 'En attente' : status === 'approved' ? 'Approuvés' : 'Masqués'}
-              </button>
-            ))}
-          </div>
-          <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Rechercher un voyageur, un établissement, un mot du commentaire..."
-              className="w-full pl-9 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none focus:ring-2 focus:ring-primary/40 outline-none"
-            />
-          </form>
-        </div>
+        <FilterBar className="mb-4">
+          <FilterSearch
+            value={searchInput}
+            onChange={setSearchInput}
+            onSubmit={handleSearchSubmit}
+            placeholder="Rechercher un voyageur, un établissement, un mot du commentaire..."
+          />
+          <FilterSelect value={filter} onChange={setFilter} ariaLabel="Statut">
+            <option value="pending">En attente</option>
+            <option value="approved">Approuvés</option>
+            <option value="hidden">Masqués</option>
+          </FilterSelect>
+          <FilterResetButton onClick={() => { setFilter('pending'); setSearch(''); setSearchInput(''); }} />
+        </FilterBar>
 
         {error && <ErrorDisplay error={error} onDismiss={() => setError(null)} />}
 

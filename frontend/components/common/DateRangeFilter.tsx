@@ -1,17 +1,18 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
-import { Calendar } from 'lucide-react';
+import { Children, isValidElement, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { FilterBar, FilterResetButton, FilterSelect, filterBoxClass } from './FilterBar';
 
 function formatDate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
 const PRESETS = [
-  { label: '7 jours', days: 7 },
-  { label: '30 jours', days: 30 },
-  { label: '90 jours', days: 90 },
-  { label: 'Mois en cours', type: 'current_month' as const },
+  { key: '7', label: '7 derniers jours' },
+  { key: '30', label: '30 derniers jours' },
+  { key: '90', label: '90 derniers jours' },
+  { key: 'month', label: 'Mois en cours' },
+  { key: 'year', label: 'Cette année' },
 ];
 
 export interface DateRange {
@@ -23,80 +24,103 @@ interface DateRangeFilterProps {
   from: string;
   to: string;
   onRangeChange: (from: string, to: string) => void;
+  /** Décrit ce que la période filtre (info-bulle de la case dates). */
   label?: string;
+  /** Autres filtres (FilterSelect…) affichés dans la même rangée, après les dates. */
+  children?: ReactNode;
+  /** Affiche le bouton de réinitialisation (icône rouge) en fin de rangée. */
+  onReset?: () => void;
+  /** Sans cadre blanc (déjà dans un conteneur). */
+  bare?: boolean;
   className?: string;
 }
 
+function presetRange(key: string): DateRange {
+  const now = new Date();
+  if (key === 'month') return { from: formatDate(new Date(now.getFullYear(), now.getMonth(), 1)), to: formatDate(now) };
+  if (key === 'year') return { from: formatDate(new Date(now.getFullYear(), 0, 1)), to: formatDate(now) };
+  const from = new Date(now);
+  from.setDate(from.getDate() - Number(key));
+  return { from: formatDate(from), to: formatDate(now) };
+}
+
+/**
+ * Rangée de filtres au style de référence client (2026-09-18) :
+ * [Période rapide ▾] | [jj/mm/aaaa au jj/mm/aaaa] [Filtrer] | autres filtres | [↺].
+ * Les dates ne s'appliquent qu'au clic sur "Filtrer" (brouillon local) ; les
+ * périodes rapides s'appliquent immédiatement.
+ */
 export default function DateRangeFilter({
   from,
   to,
   onRangeChange,
   label = 'Période',
+  children,
+  onReset,
+  bare = false,
   className = '',
 }: DateRangeFilterProps) {
-  const applyPreset = useCallback(
-    (preset: (typeof PRESETS)[number]) => {
-      const now = new Date();
-      let fromDate: Date;
-      let toDate: Date;
-      if (preset.type === 'current_month') {
-        fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        toDate = new Date();
-      } else {
-        toDate = new Date();
-        fromDate = new Date(toDate);
-        fromDate.setDate(fromDate.getDate() - (preset.days ?? 0));
-      }
-      onRangeChange(formatDate(fromDate), formatDate(toDate));
-    },
-    [onRangeChange]
-  );
+  const [draftFrom, setDraftFrom] = useState(from);
+  const [draftTo, setDraftTo] = useState(to);
 
-  const handleFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value;
-    if (v && to) onRangeChange(v, to);
+  useEffect(() => {
+    setDraftFrom(from);
+    setDraftTo(to);
+  }, [from, to]);
+
+  const applyDraft = () => {
+    if (draftFrom && draftTo) onRangeChange(draftFrom, draftTo);
   };
 
-  const handleToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value;
-    if (from && v) onRangeChange(from, v);
-  };
+  const dateInput = 'bg-white dark:bg-gray-900 px-2.5 py-1.5 text-gray-900 dark:text-white';
 
-  return (
-    <div className={`flex flex-wrap items-center gap-3 ${className}`}>
-      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-        <Calendar className="w-4 h-4" />
-        <span className="text-sm font-medium">{label}</span>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          type="date"
-          value={from}
-          onChange={handleFromChange}
-          className="input border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-        />
-        <span className="text-gray-500 dark:text-gray-400">→</span>
-        <input
-          type="date"
-          value={to}
-          onChange={handleToChange}
-          className="input border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-        />
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {PRESETS.map((preset) => (
-          <button
-            key={preset.label}
-            type="button"
-            onClick={() => applyPreset(preset)}
-            className="px-2.5 py-1 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary/10 hover:text-primary transition-colors"
-          >
-            {preset.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  const items: ReactNode[] = [
+    <FilterSelect
+      key="preset"
+      ariaLabel="Période rapide"
+      value=""
+      onChange={(k) => {
+        if (!k) return;
+        const r = presetRange(k);
+        onRangeChange(r.from, r.to);
+      }}
+    >
+      <option value="">Période rapide</option>
+      {PRESETS.map((p) => (
+        <option key={p.key} value={p.key}>
+          {p.label}
+        </option>
+      ))}
+    </FilterSelect>,
+    <div key="dates" className="flex flex-wrap items-center gap-2" title={label}>
+      <input
+        type="date"
+        aria-label={`${label} — du`}
+        value={draftFrom}
+        onChange={(e) => setDraftFrom(e.target.value)}
+        className={`${filterBoxClass} ${dateInput}`}
+      />
+      <span className="text-sm text-gray-500">au</span>
+      <input
+        type="date"
+        aria-label={`${label} — au`}
+        value={draftTo}
+        onChange={(e) => setDraftTo(e.target.value)}
+        className={`${filterBoxClass} ${dateInput}`}
+      />
+      <button
+        type="button"
+        onClick={applyDraft}
+        className="px-4 py-2 rounded-md bg-primary hover:bg-primary-dark text-white text-sm font-medium transition-colors whitespace-nowrap"
+      >
+        Filtrer
+      </button>
+    </div>,
+    ...Children.toArray(children).filter((c) => isValidElement(c)),
+  ];
+  if (onReset) items.push(<FilterResetButton key="reset" onClick={onReset} />);
+
+  return <FilterBar className={`${bare ? '!bg-transparent !border-0 !p-0 dark:!bg-transparent' : ''} ${className}`}>{items}</FilterBar>;
 }
 
 export function useDefaultDateRange(defaultDays = 30): DateRange {

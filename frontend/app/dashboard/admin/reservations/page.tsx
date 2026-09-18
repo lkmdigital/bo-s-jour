@@ -6,8 +6,9 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Pagination from '@/components/common/Pagination';
 import DateRangeFilter from '@/components/common/DateRangeFilter';
+import { FilterSearch, FilterSelect } from '@/components/common/FilterBar';
 import { formatPrice } from '@/lib/utils';
-import { Search, Filter, MapPin, Building2 } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -111,78 +112,50 @@ export default function AdminReservationsPage() {
         <p className="text-gray-500 dark:text-gray-400 mt-1">Vue globale de toutes les réservations, tous établissements confondus</p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex flex-wrap items-center gap-3">
-        <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Rechercher un client (nom, email, téléphone)..."
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none focus:ring-2 focus:ring-bosejour-red/40 outline-none"
-          />
-        </form>
-
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
-          >
+      <div className="space-y-3">
+        <FilterSearch
+          value={searchInput}
+          onChange={setSearchInput}
+          onSubmit={handleSearchSubmit}
+          placeholder="Rechercher un client (nom, email, téléphone)..."
+          className="w-full"
+        />
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }}
+          label="Dates de séjour"
+          onReset={() => {
+            setSearch(''); setSearchInput('');
+            setStatusFilter('all'); setPaymentStatusFilter('all'); setCityFilter('all');
+            setDateFrom(''); setDateTo('');
+          }}
+        >
+          <FilterSelect value={statusFilter} onChange={setStatusFilter} ariaLabel="Statut">
             <option value="all">Tous les statuts</option>
             <option value="awaiting_host_confirmation">À confirmer par l'hôte</option>
             <option value="pending">En attente de paiement</option>
             <option value="confirmed">Confirmée</option>
             <option value="completed">Terminée</option>
             <option value="cancelled">Annulée</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-400" />
-          <select
-            value={paymentStatusFilter}
-            onChange={(e) => setPaymentStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
-          >
+          </FilterSelect>
+          <FilterSelect value={paymentStatusFilter} onChange={setPaymentStatusFilter} ariaLabel="Paiement">
             <option value="all">Tous les paiements</option>
             <option value="pending">Non payé</option>
             <option value="guarantee_paid">Payé partiellement</option>
             <option value="paid">Payé intégralement</option>
             <option value="failed">Échoué</option>
             <option value="refunded">Remboursé</option>
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-gray-400" />
-          <select
-            value={cityFilter}
-            onChange={(e) => setCityFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
-          >
+          </FilterSelect>
+          <FilterSelect value={cityFilter} onChange={setCityFilter} ariaLabel="Ville">
             <option value="all">Toutes les villes</option>
             {cities.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex flex-wrap items-center gap-3">
-        <DateRangeFilter from={dateFrom} to={dateTo} onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }} label="Dates de séjour" />
-        {(dateFrom || dateTo) && (
-          <button
-            type="button"
-            onClick={() => { setDateFrom(''); setDateTo(''); }}
-            className="text-xs font-medium text-gray-500 hover:text-bosejour-red"
-          >
-            Effacer les dates
-          </button>
-        )}
+          </FilterSelect>
+        </DateRangeFilter>
       </div>
 
       {error && <ErrorDisplay error={error} onDismiss={() => setError(null)} />}
