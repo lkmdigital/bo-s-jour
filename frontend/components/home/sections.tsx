@@ -585,13 +585,16 @@ const SEED_TESTIMONIALS: TestimonialItem[] = [
   {
     id: 'seed-3',
     comment: "Site très fluide et facile à utiliser. Ça fait plaisir d'avoir une plateforme qui permet de rechercher rapidement un hébergement en Côte d'Ivoire.",
-    avatar: portrait('1494790108377-be9c29b29330'),
+    // Retour client 2026-09-18 : nom choisi par nous (pas fourni par le
+    // client, contrairement aux deux premiers) — pas de photo associée,
+    // repli sur l'initiale comme pour un compte sans avatar.
+    avatar: null,
     label: 'DIABATÉ Fatou',
   },
   {
     id: 'seed-4',
     comment: "Franchement, belle plateforme ! Simple, rapide et rassurante. Je pense que je vais passer par BoSéjour pour mes prochaines réservations.",
-    avatar: portrait('1506794778202-cad84cf45f1d'),
+    avatar: null,
     label: 'KOUAME Yannick',
   },
 ];
