@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Review;
+use App\Models\ReviewReaction;
 use App\Models\Booking;
 use App\Models\Accommodation;
 use App\Models\LoyaltyPointsTransaction;
@@ -181,10 +182,27 @@ class ReviewController extends Controller
     public function all(Request $request)
     {
         $query = Review::with(['user:id,name,avatar', 'accommodation:id,name,city'])
+            ->withCount([
+                'reactions as likes_count' => fn ($q) => $q->where('type', 'like'),
+                'reactions as dislikes_count' => fn ($q) => $q->where('type', 'dislike'),
+            ])
             ->where('moderation_status', 'approved')
             ->orderByDesc('created_at');
 
         $reviews = $query->paginate(10);
+
+        // Retour client 2026-09-18 : réaction de l'utilisateur connecté, pour
+        // que le bouton reflète son propre choix (même principe que les avis
+        // plateforme).
+        if ($request->user()) {
+            $myReactions = ReviewReaction::where('user_id', $request->user()->id)
+                ->whereIn('review_id', $reviews->pluck('id'))
+                ->pluck('type', 'review_id');
+
+            $reviews->getCollection()->each(function ($r) use ($myReactions) {
+                $r->my_reaction = $myReactions->get($r->id);
+            });
+        }
 
         return response()->json($reviews);
     }
@@ -320,6 +338,55 @@ class ReviewController extends Controller
             null,
             'Merci pour votre avis !'
         );
+    }
+
+    /**
+     * Retour client 2026-09-18 : "on doit pouvoir liker les avis sur les
+     * établissements" — j'aime/je n'aime pas, un seul des deux par
+     * utilisateur et par avis. Recliquer sur la même réaction la retire ;
+     * cliquer sur l'autre la remplace. Même principe que
+     * TestimonialController::react().
+     */
+    public function react(Request $request, int $id)
+    {
+        if (!$request->user()) {
+            return response()->json([
+                'message' => 'Connectez-vous pour réagir à un avis.',
+                'requires_auth' => true,
+            ], 401);
+        }
+
+        $validated = $request->validate([
+            'type' => 'required|in:like,dislike',
+        ]);
+
+        $review = Review::where('moderation_status', 'approved')->findOrFail($id);
+        $userId = $request->user()->id;
+
+        $existing = ReviewReaction::where('review_id', $review->id)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($existing && $existing->type === $validated['type']) {
+            $existing->delete();
+            $myReaction = null;
+        } elseif ($existing) {
+            $existing->update(['type' => $validated['type']]);
+            $myReaction = $validated['type'];
+        } else {
+            ReviewReaction::create([
+                'review_id' => $review->id,
+                'user_id' => $userId,
+                'type' => $validated['type'],
+            ]);
+            $myReaction = $validated['type'];
+        }
+
+        return response()->json([
+            'likes_count' => ReviewReaction::where('review_id', $review->id)->where('type', 'like')->count(),
+            'dislikes_count' => ReviewReaction::where('review_id', $review->id)->where('type', 'dislike')->count(),
+            'my_reaction' => $myReaction,
+        ]);
     }
 }
 

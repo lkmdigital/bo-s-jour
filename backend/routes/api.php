@@ -86,6 +86,7 @@ Route::get('/accommodations/{id}/similar', [AccommodationController::class, 'get
 Route::get('/accommodations/{id}/reviews', [ReviewController::class, 'index'])->where('id', '[0-9]+');
 // Avis clients (toutes réservations) — page publique "Avis clients" du footer.
 Route::get('/reviews', [ReviewController::class, 'all']);
+Route::post('/reviews/{id}/react', [ReviewController::class, 'react'])->where('id', '[0-9]+')->middleware('throttle:30,1');
 Route::get('/reviews/booking-by-token/{token}', [ReviewController::class, 'getBookingByToken']);
 Route::post('/reviews/submit-by-token', [ReviewController::class, 'submitByToken'])->middleware('throttle:5,1,review-token');
 Route::get('/accommodations/{id}/promotions', [PromotionController::class, 'index'])->where('id', '[0-9]+');

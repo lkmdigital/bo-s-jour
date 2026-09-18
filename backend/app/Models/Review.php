@@ -62,5 +62,10 @@ class Review extends Model
     {
         return $this->belongsTo(Accommodation::class);
     }
+
+    public function reactions()
+    {
+        return $this->hasMany(ReviewReaction::class);
+    }
 }
 
