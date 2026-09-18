@@ -188,6 +188,26 @@ export default function BookingDetailPage() {
     }
   };
 
+  const [showGuestCancel, setShowGuestCancel] = useState(false);
+  const [guestEmail, setGuestEmail] = useState('');
+  const [guestCancelError, setGuestCancelError] = useState<string | null>(null);
+
+  // Voyageur sans compte : pas de session, l'e-mail de la réservation sert de preuve.
+  const handleGuestCancel = async () => {
+    setCancelling(true);
+    setGuestCancelError(null);
+    try {
+      await api.post(`/bookings/${params.id}/guest-cancel`, { email: guestEmail.trim() });
+      setShowGuestCancel(false);
+      setGuestEmail('');
+      await fetchBooking();
+    } catch (err: any) {
+      setGuestCancelError(err.response?.data?.message || err.response?.data?.errors?.email?.[0] || "Erreur lors de l'annulation");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   const handleCancel = async () => {
     const ok = await confirmAction({
       title: 'Annuler la réservation',
@@ -756,34 +776,47 @@ export default function BookingDetailPage() {
                         {cancelling ? 'Annulation...' : 'Annuler la réservation'}
                       </button>
                     ) : (
-                      // Retour client 2026-09-18 : "le btn pour annuler ne
-                      // fonctionne pas" — reproduit pour une réservation faite
-                      // sans compte (voyageur non connecté, booking.user_id
-                      // null) : le bouton s'affichait normalement (canCancel
-                      // ne tient pas compte de l'authentification) mais l'appel
-                      // PUT /bookings/{id} échouait systématiquement en 401
-                      // (route protégée par auth:sanctum), avec un simple
-                      // toast discret — invisible en pratique, d'où
-                      // l'impression d'un bouton mort. Un voyageur invité n'a
-                      // aucun compte vers lequel se connecter (user_id est
-                      // null), donc pas de correctif "connectez-vous" possible
-                      // ici : on oriente vers le support, seul canal capable
-                      // de vérifier son identité (nom/e-mail/téléphone saisis
-                      // à la réservation) avant d'annuler en son nom.
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                          Réservation faite sans compte : contactez-nous pour l'annuler.
-                        </p>
-                        <a
-                          href={`https://wa.me/2250706402929?text=${encodeURIComponent(`Bonjour, je souhaite annuler ma réservation #${booking.id} (${booking.accommodation.name}).`)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-full btn-outline text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 inline-flex items-center justify-center"
-                        >
-                          Contacter le support
-                        </a>
-                      </div>
+                      // Voyageur sans compte (user_id = compte "invité" sans
+                      // session) : PUT /bookings/{id} exige auth:sanctum, donc
+                      // route dédiée POST /bookings/{id}/guest-cancel avec
+                      // l'e-mail de la réservation comme preuve.
+                      <button
+                        onClick={() => { setGuestCancelError(null); setShowGuestCancel(true); }}
+                        className="w-full btn-outline text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        Annuler la réservation
+                      </button>
                     )}
+                  </div>
+                )}
+                {showGuestCancel && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowGuestCancel(false)} aria-hidden="true" />
+                    <div className="relative w-full max-w-md rounded-xl bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 p-6">
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Annuler la réservation</h2>
+                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                        Pour confirmer que cette réservation est bien la vôtre, saisissez l&apos;adresse e-mail utilisée lors de la réservation.
+                      </p>
+                      <input
+                        type="email"
+                        value={guestEmail}
+                        onChange={(e) => setGuestEmail(e.target.value)}
+                        placeholder="votre@email.com"
+                        className="mt-4 w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                      />
+                      {guestCancelError && <p className="mt-2 text-sm text-red-600">{guestCancelError}</p>}
+                      <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+                        <button type="button" onClick={() => setShowGuestCancel(false)} className="btn-secondary w-full sm:w-auto">Non</button>
+                        <button
+                          type="button"
+                          onClick={handleGuestCancel}
+                          disabled={cancelling || !guestEmail.trim()}
+                          className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {cancelling ? 'Annulation...' : 'Oui, annuler'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </>

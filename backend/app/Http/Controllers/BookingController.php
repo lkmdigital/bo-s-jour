@@ -730,6 +730,38 @@ class BookingController extends Controller
     }
 
     /**
+     * Annulation par un voyageur SANS COMPTE (réservation "invité") : il n'a
+     * aucune session, donc l'adresse e-mail saisie à la réservation sert de
+     * preuve (retour client 2026-09-18 : "remets le bouton annuler pour que
+     * le client annule lui-même sa réservation"). Réservée aux demandes non
+     * payées ; un compte activé doit se connecter ; une réservation payée
+     * passe par le support (remboursement/avoir).
+     */
+    public function guestCancel(Request $request, $id): JsonResponse
+    {
+        $request->validate(['email' => 'required|email|max:255']);
+
+        $booking = Booking::with('user')->findOrFail($id);
+        $owner = $booking->user;
+
+        if (!$owner || !$owner->is_guest) {
+            return response()->json(['message' => 'Connectez-vous à votre compte pour annuler cette réservation.'], 403);
+        }
+
+        if (strcasecmp(trim((string) $owner->email), trim((string) $request->input('email'))) !== 0) {
+            return response()->json(['message' => "Cette adresse e-mail ne correspond pas à celle de la réservation."], 403);
+        }
+
+        if (!$booking->status->isActive() || $booking->payment_status === 'paid' || (float) $booking->amount_paid > 0) {
+            return response()->json(['message' => "Cette réservation ne peut plus être annulée en ligne. Contactez le support."], 422);
+        }
+
+        $this->bookingService->cancel($booking, 'Annulée par le voyageur', null);
+
+        return response()->json(['message' => 'Votre réservation a été annulée.']);
+    }
+
+    /**
      * Refus d'une demande de réservation par l'établissement (mode "sur demande").
      * -> Remboursement intégral automatique (≤ 24h) ; pas d'avoir.
      */

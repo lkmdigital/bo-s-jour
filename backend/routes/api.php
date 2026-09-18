@@ -120,6 +120,8 @@ Route::post('/booking/whatsapp-otp/verify', [BookingWhatsappOtpController::class
 // Public booking routes (le contrôleur gère les permissions)
 Route::get('/bookings/{id}', [BookingController::class, 'show']); // Peut être consultée sans authentification
 
+Route::post('/bookings/{id}/guest-cancel', [BookingController::class, 'guestCancel'])->where('id', '[0-9]+')->middleware('throttle:5,1,booking-guest-cancel'); // annulation sans compte, preuve = e-mail de la réservation
+
 // Payment initiation (public - permet le paiement sans authentification pour les réservations sans compte)
 Route::post('/bookings/{bookingId}/payment/initiate', [PaymentController::class, 'initiate'])->middleware('throttle:15,1,payment-initiate'); // 15 tentatives par minute — un aller-retour passerelle qui échoue (timeout réseau, retour "Annulé") pousse à réessayer plusieurs fois de suite
 
