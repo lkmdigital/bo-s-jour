@@ -7,7 +7,8 @@ import { isAdmin } from '@/lib/userUtils';
 import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
-import { Star, Eye, EyeOff, Flag } from 'lucide-react';
+import Pagination from '@/components/common/Pagination';
+import { Star, Eye, EyeOff, Flag, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -32,6 +33,10 @@ export default function AdminReviewsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('pending');
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, per_page: 20, current_page: 1, last_page: 1 });
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !isAdmin(user))) {
@@ -43,23 +48,37 @@ export default function AdminReviewsPage() {
     if (isAuthenticated && isAdmin(user)) {
       fetchReviews();
     }
-  }, [isAuthenticated, user, filter]);
+  }, [isAuthenticated, user, filter, search, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, search]);
 
   const fetchReviews = async () => {
     try {
       setLoading(true);
       setError(null);
-      const params: Record<string, string> = { per_page: '50' };
+      const params: Record<string, string | number> = { per_page: 20, page };
       if (filter) params.moderation_status = filter;
+      if (search) params.search = search;
       const res = await api.get('/admin/reviews', { params });
-      const raw = res.data?.data ?? res.data;
-      const data = Array.isArray(raw) ? raw : [];
-      setReviews(data);
+      setReviews(res.data?.data ?? []);
+      setPagination({
+        total: res.data?.total ?? 0,
+        per_page: res.data?.per_page ?? 20,
+        current_page: res.data?.current_page ?? 1,
+        last_page: res.data?.last_page ?? 1,
+      });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(searchInput.trim());
   };
 
   const handleModerate = async (id: number, action: 'approve' | 'hide') => {
@@ -101,21 +120,33 @@ export default function AdminReviewsPage() {
           </p>
         </div>
 
-        <div className="flex gap-2 mb-4">
-          {['pending', 'approved', 'hidden'].map((status) => (
-            <button
-              key={status}
-              type="button"
-              onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                filter === status
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              {status === 'pending' ? 'En attente' : status === 'approved' ? 'Approuvés' : 'Masqués'}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="flex gap-2">
+            {['pending', 'approved', 'hidden'].map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setFilter(status)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  filter === status
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                {status === 'pending' ? 'En attente' : status === 'approved' ? 'Approuvés' : 'Masqués'}
+              </button>
+            ))}
+          </div>
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Rechercher un voyageur, un établissement, un mot du commentaire..."
+              className="w-full pl-9 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none focus:ring-2 focus:ring-primary/40 outline-none"
+            />
+          </form>
         </div>
 
         {error && <ErrorDisplay error={error} onDismiss={() => setError(null)} />}
@@ -180,6 +211,16 @@ export default function AdminReviewsPage() {
             ))
           )}
         </div>
+
+        {pagination.last_page > 1 && (
+          <Pagination
+            currentPage={pagination.current_page}
+            totalPages={pagination.last_page}
+            onPageChange={setPage}
+            totalItems={pagination.total}
+            itemsPerPage={pagination.per_page}
+          />
+        )}
       </main>
     </div>
   );

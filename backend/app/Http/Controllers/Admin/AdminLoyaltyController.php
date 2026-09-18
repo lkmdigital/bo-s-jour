@@ -197,6 +197,15 @@ class AdminLoyaltyController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
+        // Retour client 2026-09-18 : recherche absente jusqu'ici — utile dès
+        // qu'il y a beaucoup de bons émis.
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($uq) => $uq->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
+            });
+        }
 
         $vouchers = $query->orderByDesc('issued_at')->paginate($request->get('per_page', 20));
 

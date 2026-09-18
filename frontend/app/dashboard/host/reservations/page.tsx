@@ -87,9 +87,14 @@ export default function HostReservationsPage() {
       params.append('per_page', '10');
       params.append('page', currentPage.toString());
       if (statusFilter !== 'all') params.append('status', statusFilter);
+      // Retour client 2026-09-18 : ce filtre ne filtrait que la page déjà
+      // paginée reçue (10 résultats), sous-comptant les réservations —
+      // envoyé au backend désormais (BookingController::index le supporte
+      // déjà) comme statusFilter juste au-dessus.
+      if (paymentFilter !== 'all') params.append('payment_status', paymentFilter);
 
       const response = await api.get(`/bookings?${params.toString()}`);
-      let bookingsData = response.data.data || response.data;
+      const bookingsData = response.data.data || response.data;
 
       if (response.data.data && Array.isArray(response.data.data)) {
         setPagination({
@@ -98,11 +103,6 @@ export default function HostReservationsPage() {
           current_page: response.data.current_page || 1,
           last_page: response.data.last_page || 1,
         });
-      }
-
-      if (paymentFilter !== 'all') {
-        bookingsData = bookingsData.filter((b: BookingRequest) => b.payment_status === paymentFilter);
-        setPagination((prev) => ({ ...prev, total: bookingsData.length, last_page: Math.ceil(bookingsData.length / 10) }));
       }
 
       setBookings(bookingsData);

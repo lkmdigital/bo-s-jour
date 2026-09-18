@@ -97,10 +97,17 @@ export default function BookingRequestsPage() {
       if (statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
-      
+      // Retour client 2026-09-18 : ce filtre ne filtrait que la page déjà
+      // paginée reçue (10 résultats), sous-comptant les réservations —
+      // envoyé au backend désormais (BookingController::index le supporte
+      // déjà) comme statusFilter juste au-dessus.
+      if (paymentFilter !== 'all') {
+        params.append('payment_status', paymentFilter);
+      }
+
       const response = await api.get(`/bookings?${params.toString()}`);
-      let bookingsData = response.data.data || response.data;
-      
+      const bookingsData = response.data.data || response.data;
+
       // Gérer la pagination
       if (response.data.data && Array.isArray(response.data.data)) {
         setPagination({
@@ -110,18 +117,7 @@ export default function BookingRequestsPage() {
           last_page: response.data.last_page || 1,
         });
       }
-      
-      // Filtrer par statut de paiement côté client
-      if (paymentFilter !== 'all') {
-        bookingsData = bookingsData.filter((b: BookingRequest) => b.payment_status === paymentFilter);
-        // Ajuster le total après filtrage client
-        setPagination(prev => ({
-          ...prev,
-          total: bookingsData.length,
-          last_page: Math.ceil(bookingsData.length / 10),
-        }));
-      }
-      
+
       setBookings(bookingsData);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement des réservations');

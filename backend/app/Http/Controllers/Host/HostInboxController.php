@@ -15,10 +15,28 @@ class HostInboxController extends Controller
     {
         $query = Message::with(['sender:id,name,email'])
             ->where('recipient_id', $request->user()->id)
-            ->whereNull('parent_id')
-            ->orderByDesc('created_at');
+            ->whereNull('parent_id');
 
-        $messages = $query->paginate($request->get('per_page', 20));
+        // Retour client 2026-09-18 : filtre lu/non lu + recherche — absents
+        // jusqu'ici, utiles dès que la boîte de réception contient beaucoup
+        // de messages.
+        if ($request->filled('read_status')) {
+            if ($request->read_status === 'unread') {
+                $query->whereNull('read_at');
+            } elseif ($request->read_status === 'read') {
+                $query->whereNotNull('read_at');
+            }
+        }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('subject', 'like', "%{$search}%")
+                    ->orWhere('body', 'like', "%{$search}%")
+                    ->orWhereHas('sender', fn ($sq) => $sq->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        $messages = $query->orderByDesc('created_at')->paginate($request->get('per_page', 20));
 
         // Charger les réponses pour chaque message
         $messages->getCollection()->each(function (Message $msg) {

@@ -8,8 +8,9 @@ import Footer from '@/components/common/Footer';
 import Brand from '@/components/common/Brand';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
+import Pagination from '@/components/common/Pagination';
 import Link from 'next/link';
-import { ArrowLeft, Inbox, MessageSquare, Send } from 'lucide-react';
+import { ArrowLeft, Inbox, MessageSquare, Send, Search } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -37,6 +38,12 @@ export default function HostInboxPage() {
   const [replyBody, setReplyBody] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [readStatusFilter, setReadStatusFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, per_page: 20, current_page: 1, last_page: 1 });
+
   useEffect(() => {
     if (authLoading) return;
     if (!isAuthenticated || user?.role !== 'host') {
@@ -44,20 +51,42 @@ export default function HostInboxPage() {
       return;
     }
     fetchInbox();
-  }, [authLoading, isAuthenticated, user]);
+  }, [authLoading, isAuthenticated, user, readStatusFilter, search, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [readStatusFilter, search]);
 
   const fetchInbox = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get('/host/inbox', { params: { per_page: 50 } });
+      const res = await api.get('/host/inbox', {
+        params: {
+          per_page: 20,
+          page,
+          read_status: readStatusFilter !== 'all' ? readStatusFilter : undefined,
+          search: search || undefined,
+        },
+      });
       const data = res.data?.data ?? res.data;
       setMessages(Array.isArray(data) ? data : []);
+      setPagination({
+        total: res.data?.total ?? 0,
+        per_page: res.data?.per_page ?? 20,
+        current_page: res.data?.current_page ?? 1,
+        last_page: res.data?.last_page ?? 1,
+      });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement des messages.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(searchInput.trim());
   };
 
   const handleReply = async () => {
@@ -115,6 +144,28 @@ export default function HostInboxPage() {
           </p>
 
           <ErrorDisplay error={error} onDismiss={() => setError(null)} type="error" />
+
+          <div className="card p-4 flex flex-wrap items-center gap-3 mb-6">
+            <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Rechercher un expéditeur, un mot du message..."
+                className="w-full pl-9 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none focus:ring-2 focus:ring-primary/40 outline-none"
+              />
+            </form>
+            <select
+              value={readStatusFilter}
+              onChange={(e) => setReadStatusFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
+            >
+              <option value="all">Tous les messages</option>
+              <option value="unread">Non lus</option>
+              <option value="read">Lus</option>
+            </select>
+          </div>
 
           {messages.length === 0 ? (
             <div className="card text-center py-12">
@@ -219,6 +270,16 @@ export default function HostInboxPage() {
                 </div>
               ))}
             </div>
+          )}
+
+          {pagination.last_page > 1 && (
+            <Pagination
+              currentPage={pagination.current_page}
+              totalPages={pagination.last_page}
+              onPageChange={setPage}
+              totalItems={pagination.total}
+              itemsPerPage={pagination.per_page}
+            />
           )}
         </div>
       </main>

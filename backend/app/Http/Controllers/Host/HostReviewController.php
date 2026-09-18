@@ -17,8 +17,33 @@ class HostReviewController extends Controller
         $hostId = $request->user()->hostScopeId();
         $accommodationIds = Accommodation::where('host_id', $hostId)->pluck('id');
 
-        $reviews = Review::with(['user:id,name', 'accommodation:id,name,city'])
-            ->whereIn('accommodation_id', $accommodationIds)
+        $query = Review::with(['user:id,name', 'accommodation:id,name,city'])
+            ->whereIn('accommodation_id', $accommodationIds);
+
+        // Retour client 2026-09-18 : filtres absents jusqu'ici — utiles dès
+        // qu'un hôte gère plusieurs établissements ou reçoit beaucoup d'avis.
+        if ($request->filled('accommodation_id')) {
+            $query->where('accommodation_id', $request->accommodation_id);
+        }
+        if ($request->filled('rating')) {
+            $query->where('rating', $request->rating);
+        }
+        if ($request->filled('reply_status')) {
+            if ($request->reply_status === 'replied') {
+                $query->whereNotNull('host_reply');
+            } elseif ($request->reply_status === 'not_replied') {
+                $query->whereNull('host_reply');
+            }
+        }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('comment', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($uq) => $uq->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        $reviews = $query
             ->orderByDesc('created_at')
             ->paginate($request->get('per_page', 15));
 

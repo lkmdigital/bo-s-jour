@@ -7,8 +7,9 @@ import api from '@/lib/api';
 import Footer from '@/components/common/Footer';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
+import Pagination from '@/components/common/Pagination';
 import Link from 'next/link';
-import { ArrowLeft, Star, MessageSquare, Send, Building2, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, Star, MessageSquare, Send, Building2, Sparkles, Loader2, Search } from 'lucide-react';
 
 interface Review {
   id: number;
@@ -22,6 +23,8 @@ interface Review {
   accommodation: { id: number; name: string; city: string };
 }
 
+interface AccommodationOption { id: number; name: string }
+
 export default function HostReviewsPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
@@ -33,26 +36,68 @@ export default function HostReviewsPage() {
   const [saving, setSaving] = useState(false);
   const [generatingId, setGeneratingId] = useState<number | null>(null);
 
+  const [accommodations, setAccommodations] = useState<AccommodationOption[]>([]);
+  const [accommodationFilter, setAccommodationFilter] = useState('all');
+  const [ratingFilter, setRatingFilter] = useState('all');
+  const [replyStatusFilter, setReplyStatusFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, per_page: 15, current_page: 1, last_page: 1 });
+
   useEffect(() => {
     if (authLoading) return;
     if (!isAuthenticated || user?.role !== 'host') {
       router.push('/auth/login');
       return;
     }
-    fetchReviews();
+    api.get('/accommodations/my').then((res) => {
+      const items = res.data?.data ?? res.data ?? [];
+      setAccommodations(Array.isArray(items) ? items : []);
+    }).catch(() => {});
   }, [authLoading, isAuthenticated, user]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated || user?.role !== 'host') return;
+    fetchReviews();
+  }, [authLoading, isAuthenticated, user, accommodationFilter, ratingFilter, replyStatusFilter, search, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [accommodationFilter, ratingFilter, replyStatusFilter, search]);
 
   const fetchReviews = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get('/host/reviews', { params: { per_page: 50 } });
+      const res = await api.get('/host/reviews', {
+        params: {
+          per_page: 15,
+          page,
+          accommodation_id: accommodationFilter !== 'all' ? accommodationFilter : undefined,
+          rating: ratingFilter !== 'all' ? ratingFilter : undefined,
+          reply_status: replyStatusFilter !== 'all' ? replyStatusFilter : undefined,
+          search: search || undefined,
+        },
+      });
       setReviews(Array.isArray(res.data?.data) ? res.data.data : res.data || []);
+      setPagination({
+        total: res.data?.total ?? 0,
+        per_page: res.data?.per_page ?? 15,
+        current_page: res.data?.current_page ?? 1,
+        last_page: res.data?.last_page ?? 1,
+      });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement des avis.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(searchInput.trim());
   };
 
   const generateReply = async (reviewId: number) => {
@@ -113,7 +158,53 @@ export default function HostReviewsPage() {
 
           <ErrorDisplay error={error} onDismiss={() => setError(null)} type="error" />
 
-          {reviews.length === 0 ? (
+          <div className="card p-4 flex flex-wrap items-center gap-3 mb-6">
+            <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Rechercher un voyageur, un mot du commentaire..."
+                className="w-full pl-9 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none focus:ring-2 focus:ring-primary/40 outline-none"
+              />
+            </form>
+            {accommodations.length > 1 && (
+              <select
+                value={accommodationFilter}
+                onChange={(e) => setAccommodationFilter(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
+              >
+                <option value="all">Tous les établissements</option>
+                {accommodations.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            )}
+            <select
+              value={ratingFilter}
+              onChange={(e) => setRatingFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
+            >
+              <option value="all">Toutes les notes</option>
+              {[5, 4, 3, 2, 1].map((n) => (
+                <option key={n} value={n}>{n} étoile{n > 1 ? 's' : ''}</option>
+              ))}
+            </select>
+            <select
+              value={replyStatusFilter}
+              onChange={(e) => setReplyStatusFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
+            >
+              <option value="all">Réponse : toutes</option>
+              <option value="not_replied">Sans réponse</option>
+              <option value="replied">Déjà répondu</option>
+            </select>
+          </div>
+
+          {loading && reviews.length === 0 ? (
+            <div className="py-12"><LoadingSpinner /></div>
+          ) : reviews.length === 0 ? (
             <div className="card text-center py-12">
               <MessageSquare className="w-12 h-12 mx-auto text-gray-400 mb-4" />
               <p className="text-gray-600 dark:text-gray-400">Aucun commentaire pour le moment.</p>
@@ -218,6 +309,16 @@ export default function HostReviewsPage() {
                 </div>
               ))}
             </div>
+          )}
+
+          {pagination.last_page > 1 && (
+            <Pagination
+              currentPage={pagination.current_page}
+              totalPages={pagination.last_page}
+              onPageChange={setPage}
+              totalItems={pagination.total}
+              itemsPerPage={pagination.per_page}
+            />
           )}
         </div>
       </main>

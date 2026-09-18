@@ -25,6 +25,17 @@ class AdminReviewController extends Controller
         if ($request->filled('accommodation_id')) {
             $query->where('accommodation_id', $request->accommodation_id);
         }
+        // Retour client 2026-09-18 : filtre recherche (voyageur ou
+        // établissement) — absent jusqu'ici côté admin, alors que le voyageur
+        // et l'hôte peuvent tous deux filtrer leurs propres avis.
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('comment', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($uq) => $uq->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('accommodation', fn ($aq) => $aq->where('name', 'like', "%{$search}%"));
+            });
+        }
 
         $reviews = $query->paginate($request->get('per_page', 20));
 

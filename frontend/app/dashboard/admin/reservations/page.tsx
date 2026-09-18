@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Pagination from '@/components/common/Pagination';
+import DateRangeFilter from '@/components/common/DateRangeFilter';
 import { formatPrice } from '@/lib/utils';
 import { Search, Filter, MapPin, Building2 } from 'lucide-react';
 import Link from 'next/link';
@@ -55,6 +56,12 @@ export default function AdminReservationsPage() {
   const [cityFilter, setCityFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  // Retour client 2026-09-18 : dates de séjour filtrables — le backend
+  // (AdminBookingController::index) supportait déjà from_date/to_date, non
+  // exposés jusqu'ici dans cette page. Pas de valeur par défaut (page "vue
+  // globale") : n'exclut des réservations que si l'admin choisit une plage.
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     api
@@ -75,6 +82,8 @@ export default function AdminReservationsPage() {
           payment_status: paymentStatusFilter !== 'all' ? paymentStatusFilter : undefined,
           city: cityFilter !== 'all' ? cityFilter : undefined,
           search: search || undefined,
+          from_date: dateFrom || undefined,
+          to_date: dateTo || undefined,
         },
       })
       .then((res) => {
@@ -84,11 +93,11 @@ export default function AdminReservationsPage() {
       })
       .catch((err) => setError(err.response?.data?.message || 'Erreur lors du chargement des réservations'))
       .finally(() => setLoading(false));
-  }, [page, statusFilter, paymentStatusFilter, cityFilter, search]);
+  }, [page, statusFilter, paymentStatusFilter, cityFilter, search, dateFrom, dateTo]);
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, paymentStatusFilter, cityFilter, search]);
+  }, [statusFilter, paymentStatusFilter, cityFilter, search, dateFrom, dateTo]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,6 +170,19 @@ export default function AdminReservationsPage() {
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex flex-wrap items-center gap-3">
+        <DateRangeFilter from={dateFrom} to={dateTo} onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }} label="Dates de séjour" />
+        {(dateFrom || dateTo) && (
+          <button
+            type="button"
+            onClick={() => { setDateFrom(''); setDateTo(''); }}
+            className="text-xs font-medium text-gray-500 hover:text-bosejour-red"
+          >
+            Effacer les dates
+          </button>
+        )}
       </div>
 
       {error && <ErrorDisplay error={error} onDismiss={() => setError(null)} />}

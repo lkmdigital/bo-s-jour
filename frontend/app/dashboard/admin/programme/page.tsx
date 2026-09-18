@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Award, Users, Gift, Megaphone, Ticket, Building2, Plus, Pencil, Settings as SettingsIcon, Briefcase,
+  Award, Users, Gift, Megaphone, Ticket, Building2, Plus, Pencil, Settings as SettingsIcon, Briefcase, Search,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
@@ -125,6 +125,9 @@ export default function AdminProgrammePage() {
   const [vouchersLoading, setVouchersLoading] = useState(true);
   const [voucherPage, setVoucherPage] = useState(1);
   const [voucherLastPage, setVoucherLastPage] = useState(1);
+  const [voucherStatusFilter, setVoucherStatusFilter] = useState('all');
+  const [voucherSearch, setVoucherSearch] = useState('');
+  const [voucherSearchInput, setVoucherSearchInput] = useState('');
 
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [establishmentsLoading, setEstablishmentsLoading] = useState(true);
@@ -211,11 +214,21 @@ export default function AdminProgrammePage() {
 
   useEffect(() => {
     setVouchersLoading(true);
-    api.get('/admin/loyalty/vouchers', { params: { page: voucherPage } })
+    api.get('/admin/loyalty/vouchers', {
+      params: {
+        page: voucherPage,
+        status: voucherStatusFilter !== 'all' ? voucherStatusFilter : undefined,
+        search: voucherSearch || undefined,
+      },
+    })
       .then((r) => { setVouchers(r.data?.data ?? []); setVoucherLastPage(r.data?.pagination?.last_page ?? 1); })
       .catch(() => setVouchers([]))
       .finally(() => setVouchersLoading(false));
-  }, [voucherPage]);
+  }, [voucherPage, voucherStatusFilter, voucherSearch]);
+
+  useEffect(() => {
+    setVoucherPage(1);
+  }, [voucherStatusFilter, voucherSearch]);
 
   useEffect(() => {
     setAnnualRewardsLoading(true);
@@ -520,6 +533,29 @@ export default function AdminProgrammePage() {
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
           <Ticket className="w-4 h-4 text-primary" /> Bons émis
         </h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={voucherSearchInput}
+              onChange={(e) => setVoucherSearchInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') setVoucherSearch(voucherSearchInput.trim()); }}
+              placeholder="Rechercher un code, un bénéficiaire..."
+              className="w-full pl-9 pr-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none focus:ring-2 focus:ring-primary/40 outline-none"
+            />
+          </div>
+          <select
+            value={voucherStatusFilter}
+            onChange={(e) => setVoucherStatusFilter(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-sm border-none outline-none"
+          >
+            <option value="all">Tous les statuts</option>
+            <option value="available">Disponible</option>
+            <option value="used">Utilisé</option>
+            <option value="expired">Expiré</option>
+          </select>
+        </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
           {vouchersLoading ? (
             <div className="p-8"><LoadingSpinner /></div>
