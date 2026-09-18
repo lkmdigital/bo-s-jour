@@ -733,9 +733,10 @@ class BookingController extends Controller
      * Annulation par un voyageur SANS COMPTE (réservation "invité") : il n'a
      * aucune session, donc l'adresse e-mail saisie à la réservation sert de
      * preuve (retour client 2026-09-18 : "remets le bouton annuler pour que
-     * le client annule lui-même sa réservation"). Réservée aux demandes non
-     * payées ; un compte activé doit se connecter ; une réservation payée
-     * passe par le support (remboursement/avoir).
+     * le client annule lui-même sa réservation"). Valable aussi pour une
+     * réservation rattachée à un compte activé quand le voyageur n'est pas
+     * connecté (même e-mail = même preuve). Réservée aux demandes non payées ;
+     * une réservation payée passe par le support (remboursement/avoir).
      */
     public function guestCancel(Request $request, $id): JsonResponse
     {
@@ -744,11 +745,12 @@ class BookingController extends Controller
         $booking = Booking::with('user')->findOrFail($id);
         $owner = $booking->user;
 
-        if (!$owner || !$owner->is_guest) {
-            return response()->json(['message' => 'Connectez-vous à votre compte pour annuler cette réservation.'], 403);
+        $travelerEmail = $booking->traveler_email ?? null;
+        $emailOk = $owner && strcasecmp(trim((string) $owner->email), trim((string) $request->input('email'))) === 0;
+        if (!$emailOk && $travelerEmail && strcasecmp(trim((string) $travelerEmail), trim((string) $request->input('email'))) === 0) {
+            $emailOk = true;
         }
-
-        if (strcasecmp(trim((string) $owner->email), trim((string) $request->input('email'))) !== 0) {
+        if (!$emailOk) {
             return response()->json(['message' => "Cette adresse e-mail ne correspond pas à celle de la réservation."], 403);
         }
 

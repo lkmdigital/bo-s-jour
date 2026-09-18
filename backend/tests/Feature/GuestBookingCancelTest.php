@@ -50,15 +50,27 @@ class GuestBookingCancelTest extends TestCase
         $this->assertSame(BookingStatus::AwaitingHostConfirmation, $booking->fresh()->status);
     }
 
-    public function test_activated_account_bookings_require_login(): void
+    public function test_booking_attached_to_an_activated_account_can_be_cancelled_with_its_email(): void
     {
+        Bus::fake();
         $user = User::factory()->create(['email' => 'membre@example.com', 'is_guest' => false]);
         $booking = Booking::factory()->for($user)->create([
             'accommodation_id' => Accommodation::factory()->create(['status' => 'published'])->id,
             'status' => 'awaiting_host_confirmation',
+            'payment_status' => 'pending',
+            'amount_paid' => 0,
         ]);
 
-        $this->postJson("/api/bookings/{$booking->id}/guest-cancel", ['email' => 'membre@example.com'])->assertForbidden();
+        $this->postJson("/api/bookings/{$booking->id}/guest-cancel", ['email' => 'membre@example.com'])->assertOk();
+        $this->assertSame(BookingStatus::Cancelled, $booking->fresh()->status);
+
+        $other = Booking::factory()->for($user)->create([
+            'accommodation_id' => $booking->accommodation_id,
+            'status' => 'awaiting_host_confirmation',
+            'payment_status' => 'pending',
+            'amount_paid' => 0,
+        ]);
+        $this->postJson("/api/bookings/{$other->id}/guest-cancel", ['email' => 'intrus@example.com'])->assertForbidden();
     }
 
     public function test_paid_booking_cannot_be_cancelled_this_way(): void
