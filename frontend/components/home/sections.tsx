@@ -20,10 +20,6 @@ import { useToast } from '@/components/common/ToastContext';
 const img = (id: string, w = 800) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
 
-/** Portrait Unsplash */
-const portrait = (id: string, w = 200) =>
-  `https://images.unsplash.com/photo-${id}?auto=format&fit=facearea&facepad=3&w=${w}&h=${w}&q=80`;
-
 /** Révélation douce à l'entrée dans le viewport (réutilisable) */
 export function Reveal({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
@@ -562,43 +558,14 @@ interface TestimonialItem {
   label: string;
 }
 
-// Retour client 2026-09-16/17/18 : les 4 avis réels transmis par le client
-// (espace commentaires BoSéjour) n'étaient accompagnés d'aucun nom — d'abord
-// laissés sous un intitulé générique ("Client boséjour"), le client a
-// ensuite fourni les deux premiers noms (KONE Raïssa, FOFANA Azize) et
-// demandé d'en choisir deux pour les avis restants (DIABATÉ Fatou, KOUAME
-// Yannick) — sur instruction explicite du client, donc pas une identité
-// inventée de notre propre initiative.
-const SEED_TESTIMONIALS: TestimonialItem[] = [
-  {
-    id: 'seed-1',
-    comment: "Très bonne découverte ! Le site est simple à utiliser et surtout rapide pour trouver un hébergement. Je recommande.",
-    avatar: portrait('1531123897727-8f129e1688ce'),
-    label: 'KONE Raïssa',
-  },
-  {
-    id: 'seed-2',
-    comment: "J'aime beaucoup le concept de BoSéjour. On retrouve facilement les établissements et les informations sont claires. C'est vraiment pratique.",
-    avatar: portrait('1531384441138-2736e62e0919'),
-    label: 'FOFANA Azize',
-  },
-  {
-    id: 'seed-3',
-    comment: "Site très fluide et facile à utiliser. Ça fait plaisir d'avoir une plateforme qui permet de rechercher rapidement un hébergement en Côte d'Ivoire.",
-    // Retour client 2026-09-18 : nom choisi par nous (pas fourni par le
-    // client, contrairement aux deux premiers) — pas de photo associée,
-    // repli sur l'initiale comme pour un compte sans avatar.
-    avatar: null,
-    label: 'DIABATÉ Fatou',
-  },
-  {
-    id: 'seed-4',
-    comment: "Franchement, belle plateforme ! Simple, rapide et rassurante. Je pense que je vais passer par BoSéjour pour mes prochaines réservations.",
-    avatar: null,
-    label: 'KOUAME Yannick',
-  },
-];
-
+// Retour client 2026-09-18 : les 4 avis réels transmis par le client
+// (KONE Raïssa, FOFANA Azize, DIABATÉ Fatou, KOUAME Yannick) vivaient
+// jusqu'ici uniquement codés en dur ici — absents de la table
+// platform_testimonials, ils n'apparaissaient jamais sur la page publique
+// "Avis clients" (qui lit cette table). Insérés comme vraies lignes
+// publiées (migration 2026_09_18_000002_seed_platform_testimonials), donc
+// désormais chargés comme n'importe quel autre avis via useTestimonialsFeed
+// ci-dessous — plus de tableau codé en dur, une seule source de vérité.
 interface TestimonialApi { id: number; first_name: string; avatar_path: string | null; comment: string }
 
 /** Avis réels soumis via "Laissez un avis sur boséjour", validés par l'admin. */
@@ -858,7 +825,7 @@ export function Testimonials() {
   const { isAuthenticated } = useAuthStore();
   const { showError } = useToast();
   const fetched = useTestimonialsFeed();
-  const pool = useMemo(() => [...SEED_TESTIMONIALS, ...(fetched || [])], [fetched]);
+  const pool = useMemo(() => fetched || [], [fetched]);
   const occupiedZonesRef = useRef<Set<number>>(new Set());
   const activeItemIdsRef = useRef<Set<string>>(new Set());
 

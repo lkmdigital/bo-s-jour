@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PlatformTestimonial;
+use App\Models\TestimonialReaction;
 use Illuminate\Http\Request;
 
 /**
@@ -14,14 +15,30 @@ use Illuminate\Http\Request;
  */
 class TestimonialController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json([
-            'data' => PlatformTestimonial::published()
-                ->orderByDesc('created_at')
-                ->limit(30)
-                ->get(['id', 'first_name', 'avatar_path', 'comment']),
-        ]);
+        $testimonials = PlatformTestimonial::published()
+            ->withCount([
+                'reactions as likes_count' => fn ($q) => $q->where('type', 'like'),
+                'reactions as dislikes_count' => fn ($q) => $q->where('type', 'dislike'),
+            ])
+            ->orderByDesc('created_at')
+            ->limit(30)
+            ->get(['id', 'first_name', 'avatar_path', 'comment']);
+
+        // Retour client 2026-09-18 : réaction (j'aime / je n'aime pas) de
+        // l'utilisateur connecté, pour que le bouton reflète son propre choix.
+        if ($request->user()) {
+            $myReactions = TestimonialReaction::where('user_id', $request->user()->id)
+                ->whereIn('platform_testimonial_id', $testimonials->pluck('id'))
+                ->pluck('type', 'platform_testimonial_id');
+
+            $testimonials->each(function ($t) use ($myReactions) {
+                $t->my_reaction = $myReactions->get($t->id);
+            });
+        }
+
+        return response()->json(['data' => $testimonials]);
     }
 
     public function store(Request $request)
@@ -55,5 +72,52 @@ class TestimonialController extends Controller
             'data' => $testimonial,
             'message' => 'Merci ! Votre avis sera visible après validation par notre équipe.',
         ], 201);
+    }
+
+    /**
+     * Retour client 2026-09-18 : "apprécier ou pas" un avis (like/dislike),
+     * un seul des deux par utilisateur et par avis. Recliquer sur la même
+     * réaction la retire ; cliquer sur l'autre la remplace.
+     */
+    public function react(Request $request, int $id)
+    {
+        if (!$request->user()) {
+            return response()->json([
+                'message' => 'Connectez-vous pour réagir à un avis.',
+                'requires_auth' => true,
+            ], 401);
+        }
+
+        $validated = $request->validate([
+            'type' => 'required|in:like,dislike',
+        ]);
+
+        $testimonial = PlatformTestimonial::published()->findOrFail($id);
+        $userId = $request->user()->id;
+
+        $existing = TestimonialReaction::where('platform_testimonial_id', $testimonial->id)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($existing && $existing->type === $validated['type']) {
+            $existing->delete();
+            $myReaction = null;
+        } elseif ($existing) {
+            $existing->update(['type' => $validated['type']]);
+            $myReaction = $validated['type'];
+        } else {
+            TestimonialReaction::create([
+                'platform_testimonial_id' => $testimonial->id,
+                'user_id' => $userId,
+                'type' => $validated['type'],
+            ]);
+            $myReaction = $validated['type'];
+        }
+
+        return response()->json([
+            'likes_count' => TestimonialReaction::where('platform_testimonial_id', $testimonial->id)->where('type', 'like')->count(),
+            'dislikes_count' => TestimonialReaction::where('platform_testimonial_id', $testimonial->id)->where('type', 'dislike')->count(),
+            'my_reaction' => $myReaction,
+        ]);
     }
 }

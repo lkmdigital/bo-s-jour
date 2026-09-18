@@ -27,6 +27,11 @@ class PlatformTestimonial extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function reactions()
+    {
+        return $this->hasMany(TestimonialReaction::class);
+    }
+
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('is_published', true);

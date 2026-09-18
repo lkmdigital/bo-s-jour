@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Star, MessageSquareText } from 'lucide-react';
+import { Star, MessageSquareText, ThumbsUp, ThumbsDown } from 'lucide-react';
 import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Pagination from '@/components/common/Pagination';
 import Brand from '@/components/common/Brand';
+import { useAuthStore } from '@/stores/authStore';
+import { useToast } from '@/components/common/ToastContext';
 import api from '@/lib/api';
 import { resolveImageUrl } from '@/lib/utils';
 
@@ -25,6 +27,16 @@ interface PaginatedReviews {
   current_page: number;
   last_page: number;
   total: number;
+}
+
+interface TestimonialApi {
+  id: number;
+  first_name: string;
+  avatar_path: string | null;
+  comment: string;
+  likes_count: number;
+  dislikes_count: number;
+  my_reaction: 'like' | 'dislike' | null;
 }
 
 function reviewAvatarUrl(user: { name: string; avatar?: string | null } | null): string {
@@ -72,10 +84,76 @@ function ReviewCard({ review }: { review: ReviewApi }) {
   );
 }
 
+function TestimonialAvatar({ t }: { t: TestimonialApi }) {
+  if (t.avatar_path) {
+    return (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        src={resolveImageUrl(t.avatar_path)}
+        alt={t.first_name}
+        className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-gray-800 flex-shrink-0"
+      />
+    );
+  }
+  return (
+    <span className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold flex-shrink-0">
+      {t.first_name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+function TestimonialCard({ t, onReact }: { t: TestimonialApi; onReact: (id: number, type: 'like' | 'dislike') => void }) {
+  return (
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col bg-white dark:bg-gray-900">
+      <div className="flex items-center gap-3 mb-3">
+        <TestimonialAvatar t={t} />
+        <p className="font-semibold text-sm truncate">{t.first_name}</p>
+      </div>
+
+      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-4 flex-1">{t.comment}</p>
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onReact(t.id, 'like')}
+          aria-pressed={t.my_reaction === 'like'}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+            t.my_reaction === 'like'
+              ? 'bg-primary text-white border-primary'
+              : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-primary hover:text-primary'
+          }`}
+        >
+          <ThumbsUp className="w-3.5 h-3.5" /> {t.likes_count}
+        </button>
+        <button
+          type="button"
+          onClick={() => onReact(t.id, 'dislike')}
+          aria-pressed={t.my_reaction === 'dislike'}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+            t.my_reaction === 'dislike'
+              ? 'bg-gray-800 text-white border-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:border-gray-100'
+              : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-gray-800 hover:text-gray-800 dark:hover:border-gray-100 dark:hover:text-gray-100'
+          }`}
+        >
+          <ThumbsDown className="w-3.5 h-3.5" /> {t.dislikes_count}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AvisClientsPage() {
+  const { isAuthenticated } = useAuthStore();
+  const { showError } = useToast();
+
+  const [testimonials, setTestimonials] = useState<TestimonialApi[] | null>(null);
   const [page, setPage] = useState(1);
   const [reviews, setReviews] = useState<PaginatedReviews | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/testimonials').then((res) => setTestimonials(res.data?.data ?? [])).catch(() => setTestimonials([]));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,6 +165,20 @@ export default function AvisClientsPage() {
     return () => { cancelled = true; };
   }, [page]);
 
+  const react = useCallback(async (id: number, type: 'like' | 'dislike') => {
+    if (!isAuthenticated) {
+      showError('Connectez-vous pour apprécier un avis.');
+      return;
+    }
+    // Optimiste : on applique le résultat tout de suite, la réponse serveur (comptes/état exacts) prend le relais juste après.
+    try {
+      const res = await api.post(`/testimonials/${id}/react`, { type });
+      setTestimonials((prev) => prev && prev.map((t) => (t.id === id ? { ...t, ...res.data } : t)));
+    } catch (err: any) {
+      showError(err.response?.data?.message || "Erreur lors de l'enregistrement de votre réaction.");
+    }
+  }, [isAuthenticated, showError]);
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -94,32 +186,50 @@ export default function AvisClientsPage() {
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold mb-2">Avis clients</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Ce que les voyageurs pensent de leurs séjours réservés sur <Brand />.
+            Ce que les voyageurs pensent de <Brand /> et de leurs séjours réservés.
           </p>
         </div>
 
-        {loading ? (
-          <LoadingSpinner message="Chargement des avis…" size="lg" />
-        ) : !reviews || reviews.data.length === 0 ? (
-          <div className="card text-center py-16">
-            <MessageSquareText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-            <h2 className="text-xl font-bold mb-2">Aucun avis pour le moment</h2>
-            <p className="text-gray-600 dark:text-gray-400">Les avis laissés par les voyageurs après leur séjour apparaîtront ici.</p>
-          </div>
-        ) : (
-          <>
+        {/* Avis plateforme ("Laissez un avis sur boséjour") */}
+        <section className="mb-14">
+          <h2 className="text-xl font-bold mb-5">Avis sur la plateforme</h2>
+          {testimonials === null ? (
+            <LoadingSpinner message="Chargement des avis…" size="md" />
+          ) : testimonials.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">Aucun avis pour le moment.</p>
+          ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {reviews.data.map((r) => <ReviewCard key={r.id} review={r} />)}
+              {testimonials.map((t) => <TestimonialCard key={t.id} t={t} onReact={react} />)}
             </div>
-            <Pagination
-              currentPage={reviews.current_page}
-              totalPages={reviews.last_page}
-              totalItems={reviews.total}
-              itemsPerPage={10}
-              onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            />
-          </>
-        )}
+          )}
+        </section>
+
+        {/* Avis sur les établissements (post-séjour) */}
+        <section>
+          <h2 className="text-xl font-bold mb-5">Avis sur les établissements</h2>
+          {loading ? (
+            <LoadingSpinner message="Chargement des avis…" size="lg" />
+          ) : !reviews || reviews.data.length === 0 ? (
+            <div className="card text-center py-16">
+              <MessageSquareText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-xl font-bold mb-2">Aucun avis pour le moment</h3>
+              <p className="text-gray-600 dark:text-gray-400">Les avis laissés par les voyageurs après leur séjour apparaîtront ici.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {reviews.data.map((r) => <ReviewCard key={r.id} review={r} />)}
+              </div>
+              <Pagination
+                currentPage={reviews.current_page}
+                totalPages={reviews.last_page}
+                totalItems={reviews.total}
+                itemsPerPage={10}
+                onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              />
+            </>
+          )}
+        </section>
       </main>
       <Footer />
     </div>

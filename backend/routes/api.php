@@ -76,6 +76,7 @@ Route::get('/discovery/showcase-text', [DiscoveryController::class, 'showcaseTex
 // Avis plateforme ("Laissez un avis sur boséjour", accueil) — retour client 2026-09-17.
 Route::get('/testimonials', [TestimonialController::class, 'index']);
 Route::post('/testimonials', [TestimonialController::class, 'store'])->middleware('throttle:5,60');
+Route::post('/testimonials/{id}/react', [TestimonialController::class, 'react'])->where('id', '[0-9]+')->middleware('throttle:30,1');
 Route::get('/accommodations', [AccommodationController::class, 'index']);
 Route::get('/accommodations/top-cities', [AccommodationController::class, 'topCities']);
 Route::get('/accommodations/suggestions', [AccommodationController::class, 'suggestions']);
