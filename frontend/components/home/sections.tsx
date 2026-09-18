@@ -560,43 +560,39 @@ interface TestimonialItem {
   comment: string;
   avatar: string | null;
   label: string;
-  isSeed?: boolean;
 }
 
-// Retour client 2026-09-16/17 : les 4 avis réels transmis par le client
-// (espace commentaires BoSéjour) n'étaient accompagnés d'aucun nom — plutôt
-// que d'en inventer un, ils gardent un intitulé générique ("Client
-// boséjour"). Retour client 2026-09-17 : leur donner des photos de profil
-// mixtes (photos génériques, non liées à une personne précise — pas
-// d'identité inventée, juste une illustration visuelle diversifiée).
+// Retour client 2026-09-16/17/18 : les 4 avis réels transmis par le client
+// (espace commentaires BoSéjour) n'étaient accompagnés d'aucun nom — d'abord
+// laissés sous un intitulé générique ("Client boséjour"), le client a
+// ensuite fourni les deux premiers noms (KONE Raïssa, FOFANA Azize) et
+// demandé d'en choisir deux pour les avis restants (DIABATÉ Fatou, KOUAME
+// Yannick) — sur instruction explicite du client, donc pas une identité
+// inventée de notre propre initiative.
 const SEED_TESTIMONIALS: TestimonialItem[] = [
   {
     id: 'seed-1',
     comment: "Très bonne découverte ! Le site est simple à utiliser et surtout rapide pour trouver un hébergement. Je recommande.",
     avatar: portrait('1531123897727-8f129e1688ce'),
-    label: 'Client boséjour',
-    isSeed: true,
+    label: 'KONE Raïssa',
   },
   {
     id: 'seed-2',
     comment: "J'aime beaucoup le concept de BoSéjour. On retrouve facilement les établissements et les informations sont claires. C'est vraiment pratique.",
     avatar: portrait('1531384441138-2736e62e0919'),
-    label: 'Client boséjour',
-    isSeed: true,
+    label: 'FOFANA Azize',
   },
   {
     id: 'seed-3',
     comment: "Site très fluide et facile à utiliser. Ça fait plaisir d'avoir une plateforme qui permet de rechercher rapidement un hébergement en Côte d'Ivoire.",
     avatar: portrait('1494790108377-be9c29b29330'),
-    label: 'Client boséjour',
-    isSeed: true,
+    label: 'DIABATÉ Fatou',
   },
   {
     id: 'seed-4',
     comment: "Franchement, belle plateforme ! Simple, rapide et rassurante. Je pense que je vais passer par BoSéjour pour mes prochaines réservations.",
     avatar: portrait('1506794778202-cad84cf45f1d'),
-    label: 'Client boséjour',
-    isSeed: true,
+    label: 'KOUAME Yannick',
   },
 ];
 
@@ -646,10 +642,6 @@ function TestimonialAvatar({ item, size }: { item: TestimonialItem; size: number
   );
 }
 
-function TestimonialName({ item }: { item: TestimonialItem }) {
-  return item.isSeed ? <>Client <Brand /></> : <>{item.label}</>;
-}
-
 function TestimonialBubble({ item, variant }: { item: TestimonialItem; variant: 'main' | 'float' }) {
   if (variant === 'main') {
     return (
@@ -658,7 +650,7 @@ function TestimonialBubble({ item, variant }: { item: TestimonialItem; variant: 
         <p className="text-lg md:text-2xl font-medium text-gray-800 dark:text-gray-100 leading-relaxed">
           {item.comment}
         </p>
-        <p className="text-sm text-gray-500"><TestimonialName item={item} /></p>
+        <p className="text-sm text-gray-500">{item.label}</p>
       </div>
     );
   }
@@ -666,7 +658,7 @@ function TestimonialBubble({ item, variant }: { item: TestimonialItem; variant: 
     <div className="w-[210px] bg-white/95 dark:bg-gray-900/90 backdrop-blur rounded-2xl shadow-lg p-3 flex items-start gap-2.5">
       <TestimonialAvatar item={item} size={32} />
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate"><TestimonialName item={item} /></p>
+        <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate">{item.label}</p>
         <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug mt-0.5 line-clamp-3">{item.comment}</p>
       </div>
     </div>
