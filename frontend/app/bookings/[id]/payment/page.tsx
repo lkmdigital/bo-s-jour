@@ -226,8 +226,8 @@ export default function BookingPaymentPage() {
         <div className="container mx-auto px-4 py-8">
           <ErrorDisplay error={error} onRetry={fetchBooking} type="error" />
           <div className="text-center mt-8">
-            <Link href="/bookings" className="btn-primary">
-              Retour aux réservations
+            <Link href={isAuthenticated ? '/bookings' : '/'} className="btn-primary">
+              {isAuthenticated ? 'Retour aux réservations' : "Retour à l'accueil"}
             </Link>
           </div>
         </div>

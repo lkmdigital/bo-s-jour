@@ -234,7 +234,7 @@ function BookingSuccessContent() {
               </Link>
             )}
             <Link
-              href="/bookings"
+              href={`/bookings/${bookingId}`}
               className="btn-secondary inline-flex items-center justify-center gap-2"
             >
               <List className="w-5 h-5" />

@@ -6,6 +6,7 @@ import { formatPrice } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import api from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
 
 interface Payment {
@@ -47,6 +48,7 @@ interface PaymentReceiptProps {
 }
 
 export default function PaymentReceipt({ bookingId, booking, userRole, payments: initialPayments }: PaymentReceiptProps) {
+  const { isAuthenticated } = useAuthStore();
   const [payments, setPayments] = useState<Payment[]>(initialPayments || []);
   const [loading, setLoading] = useState(!initialPayments);
   const [copied, setCopied] = useState(false);
@@ -573,6 +575,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
         </div>
 
         {/* Bouton de retour */}
+        {isAuthenticated && (
         <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 no-print">
           <Link
             href="/bookings"
@@ -582,6 +585,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
             Retour aux réservations
           </Link>
         </div>
+        )}
       </div>
     </div>
   );

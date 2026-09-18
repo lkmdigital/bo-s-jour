@@ -298,8 +298,8 @@ export default function BookingDetailPage() {
             type="error"
           />
           <div className="text-center mt-8">
-            <Link href={user?.role === 'host' ? '/dashboard/host/bookings' : '/bookings'} className="btn-primary">
-              Retour aux réservations
+            <Link href={!isLoading && !isAuthenticated ? '/' : user?.role === 'host' ? '/dashboard/host/bookings' : '/bookings'} className="btn-primary">
+              {!isLoading && !isAuthenticated ? "Retour à l'accueil" : 'Retour aux réservations'}
             </Link>
           </div>
         </div>
@@ -361,6 +361,7 @@ export default function BookingDetailPage() {
   const isPast = new Date(booking.check_out) < new Date();
   // Retour client 2026-09-18 : une réservation annulée sans paiement ne doit
   // plus afficher de récapitulatif de prix ni de "Payer maintenant".
+  const isGuestViewer = !isLoading && !isAuthenticated;
   const cancelledUnpaid = booking.status === 'cancelled' && !['paid', 'refunded', 'guarantee_paid'].includes(booking.payment_status as string);
 
   return (
@@ -369,12 +370,15 @@ export default function BookingDetailPage() {
       <main className="container mx-auto px-4 py-8">
         {/* Header avec bouton retour */}
         <div className="mb-6">
+          {/* Retour client 2026-09-18 : /bookings exige une connexion — un
+              voyageur sans compte y était renvoyé vers la page de login
+              (sans identifiants possibles). Il revient donc à l'établissement. */}
           <Link 
-            href={user?.role === 'host' ? '/dashboard/host/bookings' : '/bookings'} 
+            href={isGuestViewer ? `/accommodations/${booking.accommodation.id}` : user?.role === 'host' ? '/dashboard/host/bookings' : '/bookings'} 
             className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary transition mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Retour aux réservations
+            {isGuestViewer ? "Retour à l'établissement" : 'Retour aux réservations'}
           </Link>
           <div className="flex items-center justify-between">
             <div>
