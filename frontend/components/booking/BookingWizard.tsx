@@ -14,6 +14,7 @@ import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { formatPrice, resolveImageUrl, cn, toDateInputValue, getRoomCategoryLabel } from '@/lib/utils';
 import { Input } from '@/components/ui';
 import DateSelector from '@/components/booking/DateSelector';
+import { useUnavailableDates } from '@/hooks/useCalendar';
 
 interface PaymentOptionItem { label: string; amount: number; balance_at_hotel?: number; description?: string; discount_percent?: number; }
 interface LongStayDiscountInfo {
@@ -134,6 +135,7 @@ function sanitizedInitialDates(checkIn?: string, checkOut?: string): { checkIn?:
 
 export default function BookingWizard(props: Props) {
   const router = useRouter();
+  const unavailableDates = useUnavailableDates(props.accommodationId, props.roomId);
   const { user, isAuthenticated } = useAuthStore();
   const { whatsappVerificationEnabled } = useAppSettingsStore();
 
@@ -448,6 +450,7 @@ export default function BookingWizard(props: Props) {
                     initialCheckIn={checkIn ? new Date(checkIn) : undefined}
                     initialCheckOut={checkOut ? new Date(checkOut) : undefined}
                     initialGuests={guests}
+                    disabledDates={unavailableDates}
                   />
                 </>
               ) : (

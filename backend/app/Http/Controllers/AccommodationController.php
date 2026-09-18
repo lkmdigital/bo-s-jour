@@ -250,6 +250,107 @@ class AccommodationController extends Controller
     }
 
     /**
+     * Nuits déjà prises pour un établissement (publique) — sert à griser ces
+     * dates dans les calendriers de réservation. Mêmes règles de blocage que
+     * BookingService::assertAvailable() / BookingController::store() : une
+     * réservation confirmée, ou en attente (hôte/paiement) non expirée,
+     * occupe ses nuits [check_in, check_out) ; une chambre n'est indisponible
+     * qu'une fois toutes ses unités prises ou bloquée par l'hôte. Sans
+     * chambre active, seules les réservations "sans chambre" comptent. Avec
+     * plusieurs chambres et sans room_id, une nuit n'est grisée que si TOUTES
+     * les chambres sont prises. Sous-ensemble de dates uniquement (aucune
+     * donnée voyageur exposée).
+     */
+    public function unavailableDates(Request $request, $id)
+    {
+        $accommodation = Accommodation::where('status', 'published')->findOrFail($id);
+        $today = \Carbon\Carbon::today();
+        $end = $today->copy()->addMonths(18);
+
+        $blocking = function ($q) {
+            $q->whereIn('status', \App\Enums\BookingStatus::occupying())
+                ->orWhere(function ($pending) {
+                    $pending->whereIn('status', [
+                        \App\Enums\BookingStatus::Pending->value,
+                        \App\Enums\BookingStatus::AwaitingHostConfirmation->value,
+                    ])->where(function ($notExpired) {
+                        $notExpired->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                    });
+                });
+        };
+
+        $rooms = $accommodation->rooms()->where('is_active', true);
+        if ($request->filled('room_id')) {
+            $rooms->where('id', (int) $request->input('room_id'));
+        }
+        $rooms = $rooms->get();
+
+        $nights = []; // date => true, nuits indisponibles
+
+        $expand = function ($booking, callable $add) use ($today, $end) {
+            $cursor = \Carbon\Carbon::parse($booking->check_in)->startOfDay();
+            $stop = \Carbon\Carbon::parse($booking->check_out)->startOfDay();
+            while ($cursor->lt($stop)) {
+                if ($cursor->gte($today) && $cursor->lte($end)) {
+                    $add($cursor->toDateString(), (int) ($booking->rooms_quantity ?? 1));
+                }
+                $cursor->addDay();
+            }
+        };
+
+        // Réservations "sans chambre" : occupent l'établissement entier.
+        $legacy = \App\Models\Booking::where('accommodation_id', $accommodation->id)
+            ->whereNull('room_id')
+            ->where($blocking)
+            ->where('check_out', '>', $today->toDateString())
+            ->where('check_in', '<', $end->toDateString())
+            ->get(['check_in', 'check_out', 'rooms_quantity']);
+        foreach ($legacy as $b) {
+            $expand($b, function ($d) use (&$nights) { $nights[$d] = true; });
+        }
+
+        if (!$rooms->isEmpty()) {
+            $perRoomUnavailable = [];
+            foreach ($rooms as $room) {
+                $units = max(1, (int) ($room->quantity ?? 1));
+                $used = [];
+                $bookings = \App\Models\Booking::where('room_id', $room->id)
+                    ->where($blocking)
+                    ->where('check_out', '>', $today->toDateString())
+                    ->where('check_in', '<', $end->toDateString())
+                    ->get(['check_in', 'check_out', 'rooms_quantity']);
+                foreach ($bookings as $b) {
+                    $expand($b, function ($d, $q) use (&$used) { $used[$d] = ($used[$d] ?? 0) + $q; });
+                }
+                $roomNights = [];
+                foreach ($used as $d => $q) {
+                    if ($q >= $units) $roomNights[$d] = true;
+                }
+                \App\Models\RoomAvailability::where('room_id', $room->id)
+                    ->where('status', 'blocked')
+                    ->where('date', '>=', $today->toDateString())
+                    ->where('date', '<=', $end->toDateString())
+                    ->pluck('date')
+                    ->each(function ($d) use (&$roomNights) { $roomNights[\Carbon\Carbon::parse($d)->toDateString()] = true; });
+                $perRoomUnavailable[] = $roomNights;
+            }
+            $candidate = array_keys($perRoomUnavailable[0] ?? []);
+            foreach ($candidate as $d) {
+                $all = true;
+                foreach ($perRoomUnavailable as $set) {
+                    if (!isset($set[$d])) { $all = false; break; }
+                }
+                if ($all) $nights[$d] = true;
+            }
+        }
+
+        $dates = array_keys($nights);
+        sort($dates);
+
+        return response()->json(['dates' => $dates]);
+    }
+
+    /**
      * Aperçu du prix effectif selon les dates et la politique d'annulation.
      * Utilise la tarification automatique (non remboursable -10%, modifiable +10%, long séjour -15%).
      */

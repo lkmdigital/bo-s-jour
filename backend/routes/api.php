@@ -81,6 +81,7 @@ Route::get('/accommodations', [AccommodationController::class, 'index']);
 Route::get('/accommodations/top-cities', [AccommodationController::class, 'topCities']);
 Route::get('/accommodations/suggestions', [AccommodationController::class, 'suggestions']);
 Route::get('/accommodations/{id}', [AccommodationController::class, 'show'])->where('id', '[0-9]+');
+Route::get('/accommodations/{id}/unavailable-dates', [AccommodationController::class, 'unavailableDates'])->where('id', '[0-9]+');
 Route::get('/accommodations/{id}/price-preview', [AccommodationController::class, 'pricePreview'])->where('id', '[0-9]+');
 Route::get('/accommodations/{id}/similar', [AccommodationController::class, 'getSimilarByCity'])->where('id', '[0-9]+');
 Route::get('/accommodations/{id}/reviews', [ReviewController::class, 'index'])->where('id', '[0-9]+');

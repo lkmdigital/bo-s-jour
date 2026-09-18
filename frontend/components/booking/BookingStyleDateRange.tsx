@@ -75,6 +75,14 @@ export default function BookingStyleDateRange({
         onChange(d, null);
         return;
       }
+      // Un séjour ne peut pas enjamber une nuit déjà prise (le départ peut,
+      // lui, tomber le jour d'arrivée d'une autre réservation).
+      for (let n = new Date(checkIn); isBefore(n, d); n = addDays(n, 1)) {
+        if (disabledSet.has(format(n, 'yyyy-MM-dd'))) {
+          onChange(d, null);
+          return;
+        }
+      }
       const nights = differenceInDays(d, checkIn);
       if (nights < minNights) {
         const newOut = addDays(checkIn, minNights);
@@ -181,7 +189,7 @@ export default function BookingStyleDateRange({
                   className={`
                     w-11 h-11 sm:w-12 sm:h-12 text-base rounded-lg flex items-center justify-center transition-colors
                     ${otherMonth ? 'text-gray-300 dark:text-gray-600' : 'text-gray-900 dark:text-gray-100'}
-                    ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700'}
+                    ${disabled ? `cursor-not-allowed opacity-40 ${disabledSet.has(format(day, 'yyyy-MM-dd')) ? 'bg-gray-200 dark:bg-gray-700 line-through' : ''}` : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700'}
                     ${isToday(day) && !start && !end ? 'ring-2 ring-primary font-semibold' : ''}
                     ${inRange ? 'bg-primary/15 dark:bg-primary/20 rounded-none' : ''}
                     ${start ? 'rounded-r-none bg-primary text-white hover:bg-primary hover:text-white font-semibold' : ''}

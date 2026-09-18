@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Calendar, Users, Lock, ShieldCheck, MessageSquare } from 'lucide-react';
 import { formatPrice, toDateInputValue } from '@/lib/utils';
 import DateSelector from '@/components/booking/DateSelector';
+import { useUnavailableDates } from '@/hooks/useCalendar';
 import ComposeMessageModal from '@/components/common/ComposeMessageModal';
 import api from '@/lib/api';
 
@@ -73,6 +74,7 @@ export default function BookingSidebar({
   isAuthenticated = false,
 }: BookingSidebarProps) {
   const router = useRouter();
+  const unavailableDates = useUnavailableDates(accommodationId);
   const [editingDates, setEditingDates] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const hasDates = !!(selectedDates.checkIn && selectedDates.checkOut);
@@ -104,6 +106,7 @@ export default function BookingSidebar({
               initialCheckIn={selectedDates.checkIn || undefined}
               initialCheckOut={selectedDates.checkOut || undefined}
               initialGuests={selectedDates.guests}
+              disabledDates={unavailableDates}
             />
             <button
               type="button"

@@ -49,3 +49,19 @@ export function useCheckAvailability(
     retry: false,
   });
 }
+
+/** Nuits déjà prises d'un établissement (YYYY-MM-DD), pour griser le calendrier de réservation. */
+export function useUnavailableDates(accommodationId: number | undefined, roomId?: number): string[] {
+  const { data } = useQuery({
+    queryKey: ['unavailable-dates', accommodationId, roomId ?? null],
+    queryFn: async (): Promise<string[]> => {
+      const { data } = await api.get(`/accommodations/${accommodationId}/unavailable-dates`, {
+        params: roomId ? { room_id: roomId } : undefined,
+      });
+      return data?.dates ?? [];
+    },
+    enabled: !!accommodationId,
+    staleTime: 60_000,
+  });
+  return data ?? [];
+}
