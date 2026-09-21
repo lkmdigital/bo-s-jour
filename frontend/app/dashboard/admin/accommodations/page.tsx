@@ -32,6 +32,7 @@ interface Accommodation {
   name: string;
   type: string;
   city: string;
+  establishment_code?: string | null;
   address: string;
   status: 'pending' | 'published' | 'rejected' | 'unavailable' | 'renovation' | 'removed' | 'disabled';
   compliance_status?: 'conforme' | 'non_conforme';
@@ -277,7 +278,7 @@ export default function AdminAccommodationsPage() {
             value={search}
             onChange={(v) => { setSearch(v); setCurrentPage(1); }}
             onSubmit={(e) => e.preventDefault()}
-            placeholder="Rechercher par nom, adresse, ville, partenaire..."
+            placeholder="Rechercher par nom, ID, adresse, ville, partenaire..."
             className="w-full"
           />
           <FilterBar>
@@ -373,6 +374,10 @@ export default function AdminAccommodationsPage() {
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                       {acc.address}
+                    </p>
+                    {/* ID établissement */}
+                    <p className="mt-2 inline-flex items-center gap-1 rounded-md bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-mono font-semibold text-gray-700 dark:text-gray-200">
+                      ID : {acc.establishment_code || `#${acc.id}`}
                     </p>
                   </div>
                   <div className="flex items-center justify-between mb-4">

@@ -306,11 +306,9 @@ export default function AdminAccommodationDetailPage() {
                   <span className="text-gray-400"> · {accommodationSubtypeLabel(accommodation.type, accommodation.subtype)}</span>
                 )}
               </span>
-              {accommodation.establishment_code && (
-                <span className="flex items-center gap-1 font-mono text-xs text-gray-400">
-                  {accommodation.establishment_code}
-                </span>
-              )}
+              <span className="flex items-center gap-1 rounded-md bg-gray-100 dark:bg-gray-700 px-2 py-0.5 font-mono text-xs font-semibold text-gray-700 dark:text-gray-200">
+                ID : {accommodation.establishment_code || `#${accommodation.id}`}
+              </span>
               {host && (
                 <span className="flex items-center gap-1">
                   <Users className="w-4 h-4" />
@@ -421,7 +419,12 @@ export default function AdminAccommodationDetailPage() {
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-semibold text-gray-900 dark:text-white">{room.name}</h3>
+                          <h3 className="font-semibold text-gray-900 dark:text-white">
+                            {room.name}
+                            <span className="ml-2 rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                              N° chambre {room.id}
+                            </span>
+                          </h3>
                           <span
                             className={`px-2 py-0.5 text-xs font-medium rounded-full shrink-0 ${
                               room.is_active

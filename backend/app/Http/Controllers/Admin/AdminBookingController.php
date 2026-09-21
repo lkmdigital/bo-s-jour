@@ -13,7 +13,7 @@ class AdminBookingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Booking::with(['user:id,name,email,phone', 'accommodation:id,name,city,host_id', 'accommodation.host:id,name', 'room:id,name', 'payments:id,booking_id,status']);
+        $query = Booking::with(['user:id,name,email,phone', 'accommodation:id,name,city,host_id,establishment_code', 'accommodation.host:id,name', 'room:id,name', 'payments:id,booking_id,status']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -43,13 +43,16 @@ class AdminBookingController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('booking_number', 'like', "%{$search}%")
+                    ->orWhere('confirmation_code', 'like', "%{$search}%")
+                    ->orWhere('assigned_room_number', 'like', "%{$search}%")
                     ->orWhereHas('user', function ($q2) use ($search) {
                         $q2->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%")
                             ->orWhere('phone', 'like', "%{$search}%");
                     })
                     ->orWhereHas('accommodation', function ($q2) use ($search) {
-                        $q2->where('name', 'like', "%{$search}%");
+                        $q2->where('name', 'like', "%{$search}%")
+                            ->orWhere('establishment_code', 'like', "%{$search}%");
                     });
             });
         }

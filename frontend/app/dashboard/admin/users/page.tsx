@@ -102,7 +102,7 @@ export default function AdminUsersPage() {
         last_page: 1,
       });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors du chargement des utilisateurs');
+      setError(err.response?.data?.message || 'Erreur lors du chargement des clients');
       console.error('Error fetching users:', err);
     } finally {
       setLoading(false);
@@ -216,10 +216,10 @@ export default function AdminUsersPage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Gestion des Utilisateurs
+              Gestion des Clients
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Gérez tous les utilisateurs de la plateforme
+              Gérez tous les clients de la plateforme
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -227,7 +227,7 @@ export default function AdminUsersPage() {
               href="/dashboard/admin/users/new"
               className="btn-primary"
             >
-              Créer un utilisateur
+              Créer un client
             </Link>
             <Link
               href="/dashboard/admin"

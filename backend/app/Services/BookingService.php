@@ -406,6 +406,12 @@ class BookingService
 
         $booking->load(['user', 'accommodation.host', 'room']);
 
+        try {
+            $booking->user?->notifyNow(new \App\Notifications\TravelerBookingUpdateNotification($booking, 'booking_approved'));
+        } catch (\Throwable $e) {
+            Log::error('Traveler in-app notification (approved) failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+        }
+
         if ($booking->user?->email) {
             try {
                 Mail::to($booking->user->email)->send(new BookingApprovedPleasePay($booking));

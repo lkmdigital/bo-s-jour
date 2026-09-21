@@ -83,6 +83,27 @@ class BookingHostApprovalFlowTest extends TestCase
         Mail::assertSent(\App\Mail\BookingRequestReceived::class, fn ($m) => $m->hasTo('voyageur@example.com'));
     }
 
+    public function test_traveler_bell_gets_a_notification_when_sending_and_when_approved(): void
+    {
+        Mail::fake();
+        Bus::fake();
+        [$host, $accommodation, $room] = $this->makeRoom();
+        $traveler = User::factory()->create();
+        Sanctum::actingAs($traveler);
+
+        $id = $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated()->json('id');
+
+        $types = fn () => $traveler->fresh()->notifications()->pluck('data')->pluck('type')->all();
+        $this->assertContains('booking_request_received', $types());
+
+        Sanctum::actingAs($host);
+        $this->postJson("/api/bookings/{$id}/approve")->assertOk();
+
+        $this->assertContains('booking_approved', $types());
+        Sanctum::actingAs($traveler);
+        $this->getJson('/api/me/notifications')->assertOk()->assertJsonPath('unread_count', 2);
+    }
+
     public function test_corporate_deferred_payment_booking_skips_host_approval_and_has_no_expiry(): void
     {
         [$host, $accommodation, $room] = $this->makeRoom();

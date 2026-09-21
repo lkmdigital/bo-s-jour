@@ -30,6 +30,9 @@ import { fr } from 'date-fns/locale';
 
 interface BookingRequest {
   id: number;
+  booking_number?: string | null;
+  confirmation_code?: string | null;
+  assigned_room_number?: string | null;
   check_in: string;
   check_out: string;
   guests: number;
@@ -42,7 +45,7 @@ interface BookingRequest {
   deposit_paid_at?: string;
   created_at: string;
   payment_type?: 'full' | 'guarantee';
-  accommodation: { id: number; name: string; city: string };
+  accommodation: { id: number; name: string; city: string; establishment_code?: string | null };
   room?: { id: number; name: string; type?: string; room_category?: string } | null;
   user: { id: number; name: string; email: string; phone?: string };
   payment?: { id: number; status: string; amount: number; purpose?: string };
@@ -270,6 +273,14 @@ export default function HostReservationsPage() {
                         <p className="text-gray-500 dark:text-gray-400 flex items-center gap-1.5 text-sm mt-0.5">
                           <MapPin className="w-3.5 h-3.5" />
                           {booking.accommodation.city}
+                        </p>
+                        <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs font-mono text-gray-500 dark:text-gray-400">
+                          <span>Réservation : <strong className="text-gray-700 dark:text-gray-200">{booking.booking_number || `#${booking.id}`}</strong></span>
+                          {booking.confirmation_code && <span>Code boséjour : <strong className="text-gray-700 dark:text-gray-200">{booking.confirmation_code}</strong></span>}
+                          {booking.accommodation.establishment_code && <span>ID : <strong className="text-gray-700 dark:text-gray-200">{booking.accommodation.establishment_code}</strong></span>}
+                          {(booking.room || booking.assigned_room_number) && (
+                            <span>Chambre : <strong className="text-gray-700 dark:text-gray-200">{booking.assigned_room_number || booking.room?.name}</strong></span>
+                          )}
                         </p>
                       </div>
                       <div className="flex gap-2">

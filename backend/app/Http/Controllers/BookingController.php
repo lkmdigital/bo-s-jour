@@ -703,6 +703,13 @@ class BookingController extends Controller
                 NotificationLog::record($booking->id, 'booking_request', 'sms', 'host', $booking->accommodation?->host?->phone, false, $e->getMessage());
             }
 
+            // Cloche in-app du voyageur.
+            try {
+                $booking->user?->notifyNow(new \App\Notifications\TravelerBookingUpdateNotification($booking, 'booking_request_received'));
+            } catch (\Throwable $e) {
+                Log::error('Traveler in-app notification (request received) failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+            }
+
             // Accusé de réception au voyageur (texte fourni par le client, 2026-09-21).
             // Toujours la personne qui a réservé (et paie), pas le voyageur tiers éventuel.
             $travelerEmail = $booking->user?->email;

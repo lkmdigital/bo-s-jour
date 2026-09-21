@@ -41,6 +41,7 @@ const COLUMNS = [
     links: [
       { label: "Conditions générales d'utilisation", href: '/cgu' },
       { label: 'Conditions générales de vente', href: '/cgv' },
+      { label: 'Politique de confidentialité', href: '/confidentialite' },
       { label: 'Avis clients', href: '/avis-clients' },
     ],
   },

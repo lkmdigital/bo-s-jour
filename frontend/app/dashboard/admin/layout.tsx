@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { isAdminOrController } from '@/lib/userUtils';
 import AdminSidebar from '@/components/dashboard/admin/AdminSidebar';
+import AdminNotificationBell from '@/components/dashboard/admin/AdminNotificationBell';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
@@ -42,7 +43,12 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
       <AdminSidebar />
-      <main className="flex-1 min-w-0 p-4 lg:p-8">{children}</main>
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="flex justify-end items-center px-4 lg:px-8 pt-3">
+          <AdminNotificationBell />
+        </div>
+        <main className="flex-1 min-w-0 p-4 lg:p-8 pt-2 lg:pt-4">{children}</main>
+      </div>
     </div>
   );
 }

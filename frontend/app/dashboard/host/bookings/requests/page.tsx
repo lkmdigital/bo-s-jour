@@ -31,6 +31,9 @@ import { fr } from 'date-fns/locale';
 
 interface BookingRequest {
   id: number;
+  booking_number?: string | null;
+  confirmation_code?: string | null;
+  assigned_room_number?: string | null;
   check_in: string;
   check_out: string;
   guests: number;
@@ -371,6 +374,11 @@ export default function BookingRequestsPage() {
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                         <div>
                           <h3 className="text-xl font-bold mb-1">{booking.accommodation.name}</h3>
+                          <p className="mb-1 flex flex-wrap gap-x-3 text-xs font-mono text-gray-500 dark:text-gray-400">
+                            <span>Réservation : <strong>{booking.booking_number || `#${booking.id}`}</strong></span>
+                            {booking.confirmation_code && <span>Code boséjour : <strong>{booking.confirmation_code}</strong></span>}
+                            {booking.assigned_room_number && <span>N° de chambre : <strong>{booking.assigned_room_number}</strong></span>}
+                          </p>
                           <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
                             <MapPin className="w-4 h-4" />
                             {booking.accommodation.city}

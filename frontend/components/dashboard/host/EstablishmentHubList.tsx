@@ -12,6 +12,7 @@ interface Accommodation {
   id: number;
   name: string;
   city: string;
+  establishment_code?: string | null;
   status: string;
   images?: Array<{ id: number; url: string; is_primary?: boolean }>;
 }
@@ -105,6 +106,7 @@ export default function EstablishmentHubList({ title, description, actionHref, a
                     <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${status.color}`}>{status.label}</span>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{acc.city}</p>
+                  <p className="mt-1 inline-block rounded-md bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-mono font-semibold text-gray-700 dark:text-gray-200">ID : {acc.establishment_code || `#${acc.id}`}</p>
                   <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-bosejour-red">
                     {actionLabel}
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />

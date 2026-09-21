@@ -58,6 +58,7 @@ interface BookingDetail {
   traveler_email?: string;
   confirmation_code?: string;
   booking_number?: string | null;
+  assigned_room_number?: string | null;
   created_at: string;
   updated_at?: string;
   user: { id: number; name: string; email: string; phone?: string };
@@ -209,7 +210,7 @@ export default function AdminReservationDetailPage() {
               {booking.updated_at && booking.updated_at !== booking.created_at && (
                 <> · Mise à jour le {format(new Date(booking.updated_at), 'dd MMM yyyy à HH:mm', { locale: fr })}</>
               )}
-              {booking.confirmation_code && <> · Code : {booking.confirmation_code}</>}
+              {booking.confirmation_code && <> · Code boséjour : <span className="font-mono font-semibold text-gray-800 dark:text-gray-200">{booking.confirmation_code}</span></>}
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -265,6 +266,14 @@ export default function AdminReservationDetailPage() {
                 {(booking.rooms_quantity || 1) > 1 && (
                   <> · Nombre de chambres : <span className="text-gray-800 dark:text-gray-200 font-medium">{booking.rooms_quantity}</span></>
                 )}
+                {booking.assigned_room_number && (
+                  <> · N° de chambre : <span className="text-gray-800 dark:text-gray-200 font-mono font-semibold">{booking.assigned_room_number}</span></>
+                )}
+              </p>
+            )}
+            {!booking.room && booking.assigned_room_number && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+                N° de chambre : <span className="text-gray-800 dark:text-gray-200 font-mono font-semibold">{booking.assigned_room_number}</span>
               </p>
             )}
             {booking.special_requests && (
@@ -293,7 +302,7 @@ export default function AdminReservationDetailPage() {
               {booking.accommodation.name}
             </Link>
             {booking.accommodation.establishment_code && (
-              <p className="text-xs font-mono text-gray-400 mt-0.5">{booking.accommodation.establishment_code}</p>
+              <p className="mt-1 inline-block rounded-md bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-mono font-semibold text-gray-700 dark:text-gray-200">ID : {booking.accommodation.establishment_code}</p>
             )}
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5" />

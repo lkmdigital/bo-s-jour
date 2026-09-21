@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Search, Bell, MessageSquare, Globe, LogOut } from 'lucide-react';
+import { Search, MessageSquare, Globe, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Logo from '@/components/common/Logo';
+import NotificationBell, { type BellItem } from '@/components/common/NotificationBell';
 
 interface Accommodation {
   id: number;
@@ -17,6 +18,7 @@ export default function HostTopbar() {
   const { user, logout } = useAuthStore();
   const router = useRouter();
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [bellItems, setBellItems] = useState<BellItem[]>([]);
   const [establishments, setEstablishments] = useState<Accommodation[]>([]);
 
   useEffect(() => {
@@ -25,6 +27,20 @@ export default function HostTopbar() {
       .then((res) => {
         const items = res.data?.data ?? [];
         setUnreadMessages(items.filter((m: any) => !m.read_at).length);
+        // Cloche : notifications de la plateforme (nouvelles demandes, confirmations, annulations…)
+        setBellItems(
+          items
+            .filter((m: any) => m.is_from_platform)
+            .slice(0, 8)
+            .map((m: any) => ({
+              id: m.id,
+              title: m.subject ?? 'Notification',
+              text: m.body,
+              href: '/dashboard/host/inbox',
+              unread: !m.read_at,
+              date: m.created_at ? new Date(m.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : undefined,
+            }))
+        );
       })
       .catch(() => {});
 
@@ -65,13 +81,12 @@ export default function HostTopbar() {
       </div>
 
       <div className="flex items-center gap-2 lg:gap-5 shrink-0">
-        <button
-          type="button"
-          title="Notifications"
-          className="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          <Bell className="w-5 h-5 text-gray-500 dark:text-gray-300" />
-        </button>
+        <NotificationBell
+          items={bellItems}
+          count={bellItems.filter((i) => i.unread).length}
+          seeAllHref="/dashboard/host/inbox"
+          seeAllLabel="Ouvrir la boîte de réception"
+        />
 
         <Link
           href="/dashboard/host/inbox"

@@ -15,6 +15,9 @@ import { fr } from 'date-fns/locale';
 
 interface AdminBooking {
   id: number;
+  booking_number?: string | null;
+  confirmation_code?: string | null;
+  assigned_room_number?: string | null;
   check_in: string;
   check_out: string;
   guests: number;
@@ -25,7 +28,7 @@ interface AdminBooking {
   display_payment_status_label?: string;
   created_at: string;
   user: { id: number; name: string; email: string; phone?: string };
-  accommodation: { id: number; name: string; city: string; host?: { id: number; name: string } };
+  accommodation: { id: number; name: string; city: string; establishment_code?: string | null; host?: { id: number; name: string } };
   room?: { id: number; name: string } | null;
 }
 
@@ -117,7 +120,7 @@ export default function AdminReservationsPage() {
           value={searchInput}
           onChange={setSearchInput}
           onSubmit={handleSearchSubmit}
-          placeholder="Rechercher un client (nom, email, téléphone)..."
+          placeholder="Rechercher (n° de réservation, code, ID établissement, client)..."
           className="w-full"
         />
         <DateRangeFilter
@@ -173,6 +176,7 @@ export default function AdminReservationsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400">
+                <th className="text-left py-3 px-4">N° / Code</th>
                 <th className="text-left py-3 px-4">Client</th>
                 <th className="text-left py-3 px-4">Établissement</th>
                 <th className="text-left py-3 px-4">Dates</th>
@@ -184,6 +188,12 @@ export default function AdminReservationsPage() {
             <tbody>
               {bookings.map((b) => (
                 <tr key={b.id} className="border-b border-gray-100 dark:border-gray-800">
+                  <td className="py-3 px-4">
+                    <Link href={`/dashboard/admin/reservations/${b.id}`} className="font-mono text-xs font-semibold text-gray-800 dark:text-gray-200 hover:text-bosejour-red">
+                      {b.booking_number || `#${b.id}`}
+                    </Link>
+                    {b.confirmation_code && <p className="font-mono text-[11px] text-gray-400">Code : {b.confirmation_code}</p>}
+                  </td>
                   <td className="py-3 px-4">
                     <p className="font-medium text-gray-900 dark:text-white">{b.user?.name ?? '—'}</p>
                     <p className="text-xs text-gray-400">{b.user?.email}</p>
@@ -197,6 +207,12 @@ export default function AdminReservationsPage() {
                       {b.accommodation?.name ?? '—'}
                     </Link>
                     <p className="text-xs text-gray-400">{b.accommodation?.city}</p>
+                    {b.accommodation?.establishment_code && <p className="font-mono text-[11px] text-gray-400">ID : {b.accommodation.establishment_code}</p>}
+                    {(b.room || b.assigned_room_number) && (
+                      <p className="text-[11px] text-gray-400">
+                        {b.room ? `Chambre : ${b.room.name}` : ''}{b.assigned_room_number ? ` · N° ${b.assigned_room_number}` : ''}
+                      </p>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-gray-600 dark:text-gray-300">
                     {format(new Date(b.check_in), 'dd MMM', { locale: fr })} → {format(new Date(b.check_out), 'dd MMM yyyy', { locale: fr })}
