@@ -141,6 +141,29 @@ class Booking extends Model
         return in_array($this->payment_status, ['paid', 'guarantee_paid'], true);
     }
 
+    /**
+     * Réservations que l'hôte doit voir (retour client 2026-09-18) : seulement
+     * celles menées jusqu'au bout — demandes envoyées en attente de validation,
+     * validées (en attente de paiement), confirmées (payées / en cours),
+     * terminées — et les annulations de réservations qui avaient été
+     * confirmées. Les demandes abandonnées, expirées, refusées ou annulées
+     * avant toute confirmation n'ont pas d'intérêt pour lui.
+     */
+    public function scopeVisibleToHost($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereIn('bookings.status', [
+                BookingStatus::AwaitingHostConfirmation->value,
+                BookingStatus::Pending->value,
+                BookingStatus::Confirmed->value,
+                BookingStatus::Completed->value,
+            ])->orWhere(function ($c) {
+                $c->where('bookings.status', BookingStatus::Cancelled->value)
+                    ->whereNotNull('bookings.confirmation_code');
+            });
+        });
+    }
+
     public function scopePending($query)
     {
         return $query->where('status', BookingStatus::Pending->value);

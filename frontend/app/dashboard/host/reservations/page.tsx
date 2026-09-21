@@ -36,7 +36,7 @@ interface BookingRequest {
   total_price: number;
   deposit_amount: number;
   amount_paid: number;
-  status: 'awaiting_host_confirmation' | 'pending' | 'confirmed' | 'cancelled';
+  status: 'awaiting_host_confirmation' | 'pending' | 'confirmed' | 'completed' | 'cancelled';
   payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
   expires_at?: string;
   deposit_paid_at?: string;
@@ -49,11 +49,27 @@ interface BookingRequest {
 }
 
 const STATUS_CONFIG = {
-  awaiting_host_confirmation: { label: 'À confirmer', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400', icon: AlertCircle },
-  pending: { label: 'En attente de paiement', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400', icon: Clock },
+  awaiting_host_confirmation: { label: 'En attente de validation', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400', icon: AlertCircle },
+  pending: { label: 'Validée · paiement en attente', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400', icon: Clock },
   confirmed: { label: 'Confirmée', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400', icon: CheckCircle },
+  in_progress: { label: 'En cours', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400', icon: Bed },
+  finished: { label: 'Terminée', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400', icon: CheckCircle },
   cancelled: { label: 'Annulée', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400', icon: XCircle },
 };
+
+type StatusKey = keyof typeof STATUS_CONFIG;
+
+// Statut affiché : "en cours" / "terminée" sont déduits des dates du séjour.
+function displayStatus(b: { status: string; check_in: string; check_out: string }): StatusKey {
+  const now = new Date();
+  if (b.status === 'completed') return 'finished';
+  if (b.status === 'confirmed') {
+    if (new Date(b.check_out) <= now) return 'finished';
+    if (new Date(b.check_in) <= now) return 'in_progress';
+    return 'confirmed';
+  }
+  return (b.status in STATUS_CONFIG ? b.status : 'pending') as StatusKey;
+}
 
 const PAYMENT_CONFIG = {
   pending: { label: 'Non payé', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400' },
@@ -67,7 +83,7 @@ export default function HostReservationsPage() {
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'awaiting_host_confirmation' | 'pending' | 'confirmed' | 'cancelled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | StatusKey>('all');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending' | 'paid' | 'failed'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -207,7 +223,7 @@ export default function HostReservationsPage() {
       >
         <FilterSelect value={statusFilter} onChange={(v) => setStatusFilter(v as typeof statusFilter)} ariaLabel="Statut">
           <option value="all">Tous les statuts</option>
-          {(['awaiting_host_confirmation', 'pending', 'confirmed', 'cancelled'] as const).map((status) => (
+          {(['awaiting_host_confirmation', 'pending', 'confirmed', 'in_progress', 'finished', 'cancelled'] as const).map((status) => (
             <option key={status} value={status}>{STATUS_CONFIG[status].label}</option>
           ))}
         </FilterSelect>
@@ -233,7 +249,7 @@ export default function HostReservationsPage() {
       ) : (
         <div className="space-y-4">
           {bookings.map((booking) => {
-            const statusConfig = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.pending;
+            const statusConfig = STATUS_CONFIG[displayStatus(booking)];
             const StatusIcon = statusConfig.icon;
             const paymentConfig = PAYMENT_CONFIG[booking.payment_status] ?? PAYMENT_CONFIG.pending;
             const nights = differenceInDays(new Date(booking.check_out), new Date(booking.check_in));

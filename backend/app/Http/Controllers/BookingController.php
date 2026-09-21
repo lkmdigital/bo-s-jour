@@ -42,11 +42,23 @@ class BookingController extends Controller
             $hostScopeId = $request->user()->hostScopeId();
             $query->whereHas('accommodation', function($q) use ($hostScopeId) {
                 $q->where('host_id', $hostScopeId);
-            });
+            })->visibleToHost();
         }
 
-        // Filtre par statut
-        if ($request->has('status') && $request->status !== 'all') {
+        // Filtre par statut. "in_progress" (séjour en cours) et "finished"
+        // (séjour terminé) sont dérivés des dates, pour l'espace partenaire.
+        if ($request->status === 'in_progress') {
+            $query->where('status', 'confirmed')
+                ->whereDate('check_in', '<=', now())
+                ->whereDate('check_out', '>', now());
+        } elseif ($request->status === 'finished') {
+            $query->where(function ($q) {
+                $q->where('status', 'completed')
+                    ->orWhere(function ($c) {
+                        $c->where('status', 'confirmed')->whereDate('check_out', '<=', now());
+                    });
+            });
+        } elseif ($request->has('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 

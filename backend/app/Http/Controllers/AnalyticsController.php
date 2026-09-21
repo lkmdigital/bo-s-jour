@@ -38,7 +38,7 @@ class AnalyticsController extends Controller
         $windowDays = $filterByPeriod ? max(1, (int) round($startDate->diffInDays($endDate))) : 30;
 
         // Total bookings
-        $totalBookings = $byPeriod(Booking::whereHas('accommodation', function($q) use ($hostId) {
+        $totalBookings = $byPeriod(Booking::visibleToHost()->whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         }))->count();
 

@@ -18,7 +18,7 @@ class HostClientController extends Controller
         $hostId = $request->user()->hostScopeId();
         $accommodationIds = Accommodation::where('host_id', $hostId)->pluck('id');
 
-        $query = Booking::whereIn('accommodation_id', $accommodationIds)
+        $query = Booking::visibleToHost()->whereIn('accommodation_id', $accommodationIds)
             ->whereNotNull('user_id')
             ->join('users', 'bookings.user_id', '=', 'users.id');
 
