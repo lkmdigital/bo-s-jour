@@ -304,10 +304,14 @@ export default function BookingWizard(props: Props) {
   useEffect(() => {
     if (!hasDates) { setQuote(null); return; }
     const roomsParam = canBookMultipleRooms ? `&rooms_quantity=${roomsQuantity}` : '';
-    api.get(`/accommodations/${props.accommodationId}/price-preview?check_in=${checkIn}&check_out=${checkOut}${roomsParam}`)
+    // Retour client 2026-09-21 : sans room_id, l'aperçu calculait le prix avec le
+    // tarif de l'établissement (ex. 30 000 F) au lieu de celui de la chambre
+    // choisie (ex. 1 000 F) — le vrai montant n'apparaissait qu'au paiement.
+    const roomParam = props.roomId ? `&room_id=${props.roomId}` : '';
+    api.get(`/accommodations/${props.accommodationId}/price-preview?check_in=${checkIn}&check_out=${checkOut}${roomParam}${roomsParam}`)
       .then((r) => setQuote(r.data))
       .catch(() => setQuote(null));
-  }, [checkIn, checkOut, props.accommodationId, hasDates, canBookMultipleRooms, roomsQuantity]);
+  }, [checkIn, checkOut, props.accommodationId, props.roomId, hasDates, canBookMultipleRooms, roomsQuantity]);
 
   const guarantee = quote?.payment_options?.options?.guarantee;
   const full = quote?.payment_options?.options?.full;
