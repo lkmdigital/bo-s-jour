@@ -740,6 +740,9 @@ class BookingController extends Controller
             }
         }
 
+        // Le jeton n'est rendu qu'au créateur : c'est lui qui bâtit ses liens (paiement…).
+        $booking->makeVisible('access_token');
+
         return response()->json($booking->load(['accommodation', 'room']), 201);
     }
 
@@ -779,6 +782,45 @@ class BookingController extends Controller
     }
 
     /**
+     * "Retrouver ma réservation" (retour client 2026-09-21) : un voyageur sans
+     * compte qui a perdu son lien saisit son n° de réservation (ou son code
+     * boséjour) et l'adresse e-mail utilisée ; on lui renvoie le lien sécurisé.
+     * Réponse volontairement identique qu'il s'agisse d'un n° inconnu ou d'un
+     * e-mail erroné (pas de fuite d'existence).
+     */
+    public function lookup(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'reference' => 'required|string|max:64',
+            'email' => 'required|email|max:255',
+        ]);
+
+        $ref = trim($data['reference']);
+        $refNumeric = ltrim(preg_replace('/^#/', '', $ref));
+        $email = mb_strtolower(trim($data['email']));
+
+        $booking = Booking::with('user')
+            ->where(function ($q) use ($ref, $refNumeric) {
+                $q->whereRaw('LOWER(booking_number) = ?', [mb_strtolower($ref)])
+                  ->orWhereRaw('LOWER(confirmation_code) = ?', [mb_strtolower($ref)]);
+                if (ctype_digit($refNumeric)) {
+                    $q->orWhere('id', (int) $refNumeric);
+                }
+            })
+            ->get()
+            ->first(function (Booking $b) use ($email) {
+                return mb_strtolower((string) $b->user?->email) === $email
+                    || mb_strtolower((string) $b->traveler_email) === $email;
+            });
+
+        if (!$booking) {
+            return response()->json(['message' => "Aucune réservation ne correspond à ce numéro et à cette adresse e-mail."], 404);
+        }
+
+        return response()->json(['access_token' => $booking->access_token]);
+    }
+
+    /**
      * Annulation par un voyageur SANS COMPTE (réservation "invité") : il n'a
      * aucune session, donc l'adresse e-mail saisie à la réservation sert de
      * preuve (retour client 2026-09-18 : "remets le bouton annuler pour que
@@ -791,7 +833,10 @@ class BookingController extends Controller
     {
         $request->validate(['email' => 'required|email|max:255']);
 
-        $booking = Booking::with('user')->findOrFail($id);
+        $booking = Booking::findByRef((string) $id, $request->user(), ['user']);
+        if (!$booking) {
+            return response()->json(['message' => 'Réservation introuvable.'], 404);
+        }
         $owner = $booking->user;
 
         $travelerEmail = $booking->traveler_email ?? null;
@@ -1099,7 +1144,14 @@ class BookingController extends Controller
 
     public function show(Request $request, $id)
     {
-        $booking = Booking::with(['accommodation.images', 'room', 'user', 'payment', 'payments'])->findOrFail($id);
+        // Retour client 2026-09-21 : la référence d'un lien est un jeton aléatoire ;
+        // l'id numérique n'ouvre plus la page à un visiteur anonyme (il pouvait
+        // deviner les réservations des autres).
+        $booking = Booking::findByRef((string) $id, $request->user(), ['accommodation.images', 'room', 'user', 'payment', 'payments']);
+        if (!$booking) {
+            return response()->json(['message' => 'Réservation introuvable.'], 404);
+        }
+        $byToken = !ctype_digit((string) $id);
 
         // Cet endpoint reste accessible sans authentification (réservations invité) et n'importe
         // quel appelant, authentifié ou non, peut donc potentiellement l'atteindre : ni le
@@ -1112,14 +1164,15 @@ class BookingController extends Controller
         $canView = false;
 
         // Si l'utilisateur n'est pas authentifié, permettre l'accès si c'est sa réservation (via email ou autre identifiant)
-        if (!$user) {
-            // Permettre l'accès sans authentification pour les réservations récentes
-            // (dans un vrai système, on pourrait utiliser un token unique dans l'URL)
-            $canView = true; // Pour simplifier, on permet l'accès sans authentification
+        if ($byToken) {
+            // Le jeton aléatoire est le secret : il suffit, connecté ou non.
+            $canView = true;
+            $booking->makeVisible('access_token');
         } elseif ($user->isAdmin()) {
             $canView = true;
         } elseif ($user->isUser() && $booking->user_id === $user->id) {
             $canView = true;
+            $booking->makeVisible('access_token');
         } elseif ($user->isHost() && $booking->accommodation->host_id === $user->hostScopeId()) {
             $canView = true;
         }

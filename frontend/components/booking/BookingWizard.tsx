@@ -400,7 +400,8 @@ export default function BookingWizard(props: Props) {
         payload.deferred_payment = deferredPayment;
       }
       const res = await api.post('/bookings', payload);
-      const id = res.data?.id;
+      // Référence des liens : jeton aléatoire (un id numérique n'ouvre plus une réservation sans connexion).
+      const id = res.data?.access_token ?? res.data?.id;
       // Paiement différé Corporate : la réservation est validée sur facture
       if (travelerType === 'corporate' && deferredPayment) {
         router.push(`/bookings/${id}?corporate=1`);

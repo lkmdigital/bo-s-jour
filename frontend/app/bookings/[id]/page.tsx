@@ -42,6 +42,7 @@ import { fr } from 'date-fns/locale';
 
 interface BookingDetail {
   id: number;
+  access_token?: string;
   check_in: string;
   check_out: string;
   guests: number;
@@ -297,8 +298,13 @@ export default function BookingDetailPage() {
             onRetry={fetchBooking}
             type="error"
           />
-          <div className="text-center mt-8">
-            <Link href={!isLoading && !isAuthenticated ? '/' : user?.role === 'host' ? '/dashboard/host/bookings' : '/bookings'} className="btn-primary">
+          <div className="text-center mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            {!isLoading && !isAuthenticated && (
+              <Link href="/retrouver-reservation" className="btn-primary">
+                Retrouver ma réservation
+              </Link>
+            )}
+            <Link href={!isLoading && !isAuthenticated ? '/' : user?.role === 'host' ? '/dashboard/host/bookings' : '/bookings'} className={!isLoading && !isAuthenticated ? 'btn-outline' : 'btn-primary'}>
               {!isLoading && !isAuthenticated ? "Retour à l'accueil" : 'Retour aux réservations'}
             </Link>
           </div>
@@ -764,7 +770,7 @@ export default function BookingDetailPage() {
                       
                       {booking.payment_status === 'pending' && !isPast && (
                         <Link
-                          href={`/bookings/${booking.id}/payment`}
+                          href={`/bookings/${booking.access_token ?? booking.id}/payment`}
                           className="w-full btn-primary inline-flex items-center justify-center gap-2"
                         >
                           <CreditCard className="w-5 h-5" />
@@ -917,7 +923,7 @@ export default function BookingDetailPage() {
               </div>
             )}
             <PaymentReceipt
-              bookingId={booking.id}
+              bookingId={booking.access_token ?? booking.id}
               booking={booking}
               userRole="user"
             />

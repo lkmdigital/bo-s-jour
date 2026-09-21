@@ -12,6 +12,42 @@ class Booking extends Model
 {
     use HasFactory;
 
+    // Jeton d'accès public : jamais exposé dans les listes (hôte, admin…) ; rendu
+    // visible explicitement à la création et à la consultation par jeton/propriétaire.
+    protected $hidden = ['access_token'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Booking $booking) {
+            if (empty($booking->access_token)) {
+                $booking->access_token = self::generateAccessToken();
+            }
+        });
+    }
+
+    public static function generateAccessToken(): string
+    {
+        do {
+            $token = \Illuminate\Support\Str::random(48);
+        } while (self::where('access_token', $token)->exists());
+
+        return $token;
+    }
+
+    /**
+     * Retrouve une réservation depuis la référence d'un lien : un jeton (accès
+     * public possible) ou un id numérique (réservé aux appelants connectés,
+     * les droits fins restant vérifiés par l'appelant).
+     */
+    public static function findByRef(string $ref, $user = null, array $with = []): ?self
+    {
+        if (ctype_digit($ref)) {
+            return $user ? self::with($with)->find((int) $ref) : null;
+        }
+
+        return self::with($with)->where('access_token', $ref)->first();
+    }
+
     protected $fillable = [
         'user_id',
         'accommodation_id',

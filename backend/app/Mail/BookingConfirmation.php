@@ -31,9 +31,9 @@ class BookingConfirmation extends Mailable
         // "un lien de consultation") — absent jusqu'ici, seul un lien générique
         // vers bosejour.ci figurait dans l'e-mail.
         $frontend = rtrim(config('services.frontend_url', 'https://bosejour.ci'), '/');
-        $bookingUrl = "{$frontend}/bookings/{$this->booking->id}";
+        $bookingUrl = "{$frontend}/bookings/{$this->booking->access_token}";
 
-        return $this->subject('Votre réservation Bosejour est confirmée — ' . $reference)
+        $mail = $this->subject('Votre réservation Bosejour est confirmée — ' . $reference)
                     ->view('emails.booking-confirmation')
                     ->with([
                         'booking'       => $this->booking,
@@ -41,7 +41,16 @@ class BookingConfirmation extends Mailable
                         'room'          => $this->booking->room,
                         'user'          => $this->booking->user,
                         'bookingUrl'    => $bookingUrl,
+                        'lookupUrl'     => "{$frontend}/retrouver-reservation",
                     ]);
+
+        // Reçu de paiement en PDF en pièce jointe (retour client 2026-09-21).
+        $pdf = \App\Services\ReceiptPdfService::forBooking($this->booking);
+        if ($pdf !== null) {
+            $mail->attachData($pdf, 'recu-bosejour-' . preg_replace('/[^A-Za-z0-9_-]/', '', (string) $reference) . '.pdf', ['mime' => 'application/pdf']);
+        }
+
+        return $mail;
     }
 }
 

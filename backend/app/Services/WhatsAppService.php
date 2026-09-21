@@ -184,7 +184,7 @@ class WhatsAppService
         $ci = \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y');
         $co = \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y');
         $frontend = rtrim(config('services.frontend_url', 'https://bosejour.ci'), '/');
-        $link = "{$frontend}/bookings/{$booking->id}/payment";
+        $link = "{$frontend}/bookings/{$booking->access_token}/payment";
 
         $template = (string) Setting::get('whatsapp_template_approved_please_pay', self::DEFAULT_APPROVED_PLEASE_PAY_TEMPLATE);
         $msg = strtr($template, [

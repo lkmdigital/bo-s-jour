@@ -96,12 +96,12 @@ class MaliaPayIntegrationTest extends TestCase
         $booking = Booking::factory()->for($traveler)->create(['total_price' => 50000, 'deposit_amount' => 50000]);
         Sanctum::actingAs($traveler);
 
-        $this->postJson("/api/bookings/{$booking->id}/payment/initiate", ['payment_method' => 'wave-ci'])
+        $this->postJson("/api/bookings/{$booking->access_token}/payment/initiate", ['payment_method' => 'wave-ci'])
             ->assertOk();
 
         Http::assertSent(function ($request) use ($booking) {
             return isset($request['success_url'])
-                && str_contains($request['success_url'], "/bookings/success?id={$booking->id}")
+                && str_contains($request['success_url'], "/bookings/success?id={$booking->access_token}")
                 && !str_contains($request['success_url'], "/bookings/{$booking->id}?payment=success");
         });
     }

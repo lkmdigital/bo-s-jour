@@ -203,7 +203,7 @@ export default function EnhancedBookingForm({ accommodationId, pricePerNight, ro
       const response = await api.post('/bookings', bookingData);
 
       // Rediriger vers la page de paiement
-      router.push(`/bookings/${response.data.id}/payment`);
+      router.push(`/bookings/${response.data.access_token ?? response.data.id}/payment`);
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 
                           err.response?.data?.error || 

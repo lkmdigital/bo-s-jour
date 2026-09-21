@@ -31,7 +31,30 @@ class BookingConfirmationEmailTest extends TestCase
 
         $html = (new BookingConfirmation($booking))->render();
 
-        $this->assertStringContainsString("https://bosejour.ci/bookings/{$booking->id}", $html);
+        $this->assertStringContainsString("https://bosejour.ci/bookings/{$booking->access_token}", $html);
         $this->assertStringContainsString('Voir ma réservation', $html);
+    }
+
+    public function test_email_carries_the_payment_receipt_as_a_pdf_attachment(): void
+    {
+        $traveler = User::factory()->create();
+        $booking = Booking::factory()->for($traveler)->create([
+            'accommodation_id' => Accommodation::factory()->create()->id,
+            'booking_number' => 'BS-2026-000043',
+            'total_price' => 10000,
+            'payment_type' => 'full',
+            'payment_status' => 'paid',
+        ]);
+        \App\Models\Payment::create([
+            'booking_id' => $booking->id, 'user_id' => $traveler->id, 'amount' => 9500, 'status' => 'completed',
+            'purpose' => 'deposit', 'payment_method' => 'wave-ci', 'paid_at' => now(),
+        ]);
+
+        $mail = new BookingConfirmation($booking);
+        $mail->build();
+
+        $this->assertCount(1, $mail->rawAttachments);
+        $this->assertSame('application/pdf', $mail->rawAttachments[0]['options']['mime']);
+        $this->assertStringStartsWith('%PDF', $mail->rawAttachments[0]['data']);
     }
 }

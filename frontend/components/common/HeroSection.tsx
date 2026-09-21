@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, Building2, Home, BedDouble, TreePalm } from 'lucide-react';
+import { Search, Building2, Home, BedDouble, TreePalm, Minus, Plus } from 'lucide-react';
 import SearchInputWithAutocomplete from './SearchInputWithAutocomplete';
 import { useSearchStore } from '@/stores/searchStore';
 import { motion } from 'framer-motion';
@@ -69,6 +69,38 @@ function DateField({ label, value, onChange, min, disabled }: {
   );
 }
 
+/** Nombre de voyageurs : champ − / + de la barre de recherche (retour client 2026-09-21). */
+function GuestsField({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex-1 px-5 py-3 lg:border-r border-gray-200">
+      <p className="text-[15px] font-semibold text-gray-900 mb-0.5">Voyageurs</p>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          aria-label="Retirer un voyageur"
+          onClick={() => onChange(Math.max(1, value - 1))}
+          disabled={value <= 1}
+          className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center hover:border-gray-900 disabled:opacity-40 disabled:hover:border-gray-300"
+        >
+          <Minus className="w-3.5 h-3.5" />
+        </button>
+        <span className="text-sm text-gray-700 min-w-[5.5rem] text-center">
+          {value} voyageur{value > 1 ? 's' : ''}
+        </span>
+        <button
+          type="button"
+          aria-label="Ajouter un voyageur"
+          onClick={() => onChange(Math.min(20, value + 1))}
+          disabled={value >= 20}
+          className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center hover:border-gray-900 disabled:opacity-40 disabled:hover:border-gray-300"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function HeroSection({ onSearch, initialValues }: HeroSectionProps) {
   const { session, setSearchSession } = useSearchStore();
   const [search, setSearch] = useState(initialValues?.search || session?.search || '');
@@ -76,6 +108,7 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
   const [checkIn, setCheckIn] = useState(initialValues?.checkIn || session?.checkIn || '');
   const [checkOut, setCheckOut] = useState(initialValues?.checkOut || session?.checkOut || '');
   const [type, setType] = useState(initialValues?.type || session?.type || 'hotel');
+  const [guests, setGuests] = useState(initialValues?.guests || session?.guests || 1);
   const [slide, setSlide] = useState(0);
 
   useEffect(() => {
@@ -90,6 +123,7 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
       setSearch(session.search || '');
       setCity(session.city || '');
       if (session.type) setType(session.type);
+      if (session.guests) setGuests(session.guests);
     }
   }, [session]);
 
@@ -103,6 +137,7 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
       city: city.trim() || undefined,
       checkIn: checkIn || undefined,
       checkOut: checkOut || undefined,
+      guests,
       type,
     };
     setSearchSession(params);
@@ -196,6 +231,9 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
             {/* Départ */}
             <DateField label="Départ" value={checkOut} min={minCheckOut} disabled={!checkIn}
               onChange={setCheckOut} />
+
+            {/* Voyageurs */}
+            <GuestsField value={guests} onChange={setGuests} />
 
             {/* Bouton Rechercher */}
             <div className="p-2 flex">

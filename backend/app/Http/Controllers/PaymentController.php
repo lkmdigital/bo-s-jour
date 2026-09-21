@@ -51,7 +51,11 @@ class PaymentController extends Controller
                 'user_id' => $request->user()?->id,
             ]);
 
-            $booking = Booking::with(['accommodation', 'user'])->findOrFail($bookingId);
+            // Référence = jeton (accès public) ou id numérique (connecté uniquement).
+            $booking = Booking::findByRef((string) $bookingId, $request->user(), ['accommodation', 'user']);
+            if (!$booking) {
+                return response()->json(['message' => 'Réservation introuvable.'], 404);
+            }
 
             \Log::info('Booking found', [
                 'booking_id' => $booking->id,
@@ -389,8 +393,8 @@ class PaymentController extends Controller
             // directement sur la fiche réservation générique sans confirmation
             // visuelle. /bookings/success est l'écran de confirmation dédié
             // (existait déjà côté front mais n'était jamais utilisé par ce flux).
-            'success_url' => "{$frontend}/bookings/success?id={$booking->id}",
-            'error_url' => "{$frontend}/bookings/{$booking->id}/payment?error=1",
+            'success_url' => "{$frontend}/bookings/success?id={$booking->access_token}",
+            'error_url' => "{$frontend}/bookings/{$booking->access_token}/payment?error=1",
         ];
 
         // Ne jamais logger nom/téléphone/email du client en clair — seules les données

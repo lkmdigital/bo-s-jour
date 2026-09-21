@@ -43,6 +43,7 @@ const COLUMNS = [
       { label: 'Conditions générales de vente', href: '/cgv' },
       { label: 'Politique de confidentialité', href: '/confidentialite' },
       { label: 'Avis clients', href: '/avis-clients' },
+      { label: 'Retrouver ma réservation', href: '/retrouver-reservation' },
     ],
   },
 ];

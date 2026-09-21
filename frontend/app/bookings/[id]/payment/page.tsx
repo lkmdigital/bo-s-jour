@@ -170,7 +170,7 @@ export default function BookingPaymentPage() {
     setError(null);
     setRetryAfter(null);
     try {
-      const res = await api.post(`/bookings/${booking.id}/payment/initiate`, {
+      const res = await api.post(`/bookings/${params.id}/payment/initiate`, {
         payment_method: selectedPaymentMethod,
         payment_type: paymentType,
       });
@@ -300,7 +300,7 @@ export default function BookingPaymentPage() {
         {/* En-tête */}
         <div className="mb-6">
           <Link
-            href={`/bookings/${booking.id}`}
+            href={`/bookings/${params.id}`}
             className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary transition mb-4"
           >
             <ArrowLeft className="w-4 h-4" />

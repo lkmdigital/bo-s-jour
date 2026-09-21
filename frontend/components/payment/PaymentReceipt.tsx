@@ -22,9 +22,10 @@ interface Payment {
 }
 
 interface PaymentReceiptProps {
-  bookingId: number;
+  bookingId: number | string;
   booking: {
     id: number;
+    access_token?: string;
     booking_number?: string | null;
     check_in: string;
     check_out: string;
@@ -122,7 +123,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
   };
 
   const handleShare = async () => {
-    const receiptUrl = `${window.location.origin}/bookings/${booking.id}?receipt=true`;
+    const receiptUrl = `${window.location.origin}/bookings/${booking.access_token ?? booking.id}?receipt=true`;
     
     if (navigator.share) {
       try {
@@ -167,6 +168,12 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
     hideOnlineDiscount && rawPaid > 0 && rawPaid < booking.total_price
       ? Math.round((amount * booking.total_price) / rawPaid)
       : amount;
+
+  // Voyageur : la réduction du paiement en ligne est affichée, le solde est nul.
+  const onlineDiscountFor = (paid: number) =>
+    userRole === 'user' && booking.payment_type === 'full' && booking.payment_status === 'paid' && paid < booking.total_price
+      ? booking.total_price - paid
+      : 0;
 
   const generateReceiptHTML = () => {
     const completedPayments = payments.filter(p => p.status === 'completed');
@@ -352,6 +359,10 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
       <span class="info-label">Montant total de la réservation:</span>
       <span>${formatPrice(booking.total_price)} FCFA</span>
     </div>
+    ${onlineDiscountFor(totalPaid) > 0 ? `<div class="info-row">
+      <span class="info-label">Réduction paiement en ligne:</span>
+      <span>- ${formatPrice(onlineDiscountFor(totalPaid))} FCFA</span>
+    </div>` : ''}
     <div class="info-row">
       <span class="info-label">Montant total payé:</span>
       <span>${formatPrice(totalPaid)} FCFA</span>
@@ -359,7 +370,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
     <div class="total">
       <div class="info-row">
         <span>Solde restant:</span>
-        <span>${formatPrice(booking.total_price - totalPaid)} FCFA</span>
+        <span>${formatPrice(booking.total_price - totalPaid - onlineDiscountFor(totalPaid))} FCFA</span>
       </div>
     </div>
   </div>
@@ -565,6 +576,12 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
               <span className="text-gray-600 dark:text-gray-400">Montant total de la réservation:</span>
               <span className="font-medium">{formatPrice(booking.total_price)} FCFA</span>
             </div>
+            {onlineDiscountFor(totalPaid) > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Réduction paiement en ligne:</span>
+                <span className="font-medium text-green-600 dark:text-green-400">- {formatPrice(onlineDiscountFor(totalPaid))} FCFA</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm">
               <span className="text-gray-600 dark:text-gray-400">Montant total payé:</span>
               <span className="font-medium text-green-600 dark:text-green-400">
@@ -573,8 +590,8 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
             </div>
             <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200 dark:border-gray-700">
               <span>Solde restant:</span>
-              <span className={booking.total_price - totalPaid > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}>
-                {formatPrice(booking.total_price - totalPaid)} FCFA
+              <span className={booking.total_price - totalPaid - onlineDiscountFor(totalPaid) > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}>
+                {formatPrice(booking.total_price - totalPaid - onlineDiscountFor(totalPaid))} FCFA
               </span>
             </div>
           </div>

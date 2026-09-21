@@ -221,6 +221,17 @@
           </tr>
           @endif
 
+          @if(isset($lookupUrl))
+          <tr>
+            <td style="padding:0 40px 24px;text-align:center;">
+              <p style="margin:0;font-size:13px;color:#6b7280;">
+                Votre reçu de paiement est joint à cet e-mail (PDF). Lien perdu ? Retrouvez votre réservation avec son numéro et votre e-mail sur
+                <a href="{{ $lookupUrl }}" style="color:#FF0000;text-decoration:none;">{{ $lookupUrl }}</a>
+              </p>
+            </td>
+          </tr>
+          @endif
+
           {{-- Message --}}
           <tr>
             <td style="padding:0 40px 32px;">

@@ -36,7 +36,7 @@ class GuestBookingCancelTest extends TestCase
         Bus::fake();
         $booking = $this->guestBooking();
 
-        $this->postJson("/api/bookings/{$booking->id}/guest-cancel", ['email' => 'INVITE@example.com'])->assertOk();
+        $this->postJson("/api/bookings/{$booking->access_token}/guest-cancel", ['email' => 'INVITE@example.com'])->assertOk();
 
         $this->assertSame(BookingStatus::Cancelled, $booking->fresh()->status);
     }
@@ -45,7 +45,7 @@ class GuestBookingCancelTest extends TestCase
     {
         $booking = $this->guestBooking();
 
-        $this->postJson("/api/bookings/{$booking->id}/guest-cancel", ['email' => 'autre@example.com'])->assertForbidden();
+        $this->postJson("/api/bookings/{$booking->access_token}/guest-cancel", ['email' => 'autre@example.com'])->assertForbidden();
 
         $this->assertSame(BookingStatus::AwaitingHostConfirmation, $booking->fresh()->status);
     }
@@ -61,7 +61,7 @@ class GuestBookingCancelTest extends TestCase
             'amount_paid' => 0,
         ]);
 
-        $this->postJson("/api/bookings/{$booking->id}/guest-cancel", ['email' => 'membre@example.com'])->assertOk();
+        $this->postJson("/api/bookings/{$booking->access_token}/guest-cancel", ['email' => 'membre@example.com'])->assertOk();
         $this->assertSame(BookingStatus::Cancelled, $booking->fresh()->status);
 
         $other = Booking::factory()->for($user)->create([
@@ -70,13 +70,33 @@ class GuestBookingCancelTest extends TestCase
             'payment_status' => 'pending',
             'amount_paid' => 0,
         ]);
-        $this->postJson("/api/bookings/{$other->id}/guest-cancel", ['email' => 'intrus@example.com'])->assertForbidden();
+        $this->postJson("/api/bookings/{$other->access_token}/guest-cancel", ['email' => 'intrus@example.com'])->assertForbidden();
     }
 
     public function test_paid_booking_cannot_be_cancelled_this_way(): void
     {
         $booking = $this->guestBooking(['status' => 'confirmed', 'payment_status' => 'paid', 'amount_paid' => 10000]);
 
-        $this->postJson("/api/bookings/{$booking->id}/guest-cancel", ['email' => 'invite@example.com'])->assertStatus(422);
+        $this->postJson("/api/bookings/{$booking->access_token}/guest-cancel", ['email' => 'invite@example.com'])->assertStatus(422);
+    }
+
+    public function test_a_numeric_id_no_longer_opens_a_booking_for_an_anonymous_visitor(): void
+    {
+        $booking = $this->guestBooking();
+
+        $this->postJson("/api/bookings/{$booking->id}/guest-cancel", ['email' => 'invite@example.com'])->assertNotFound();
+        $this->getJson("/api/bookings/{$booking->id}")->assertNotFound();
+        $this->getJson("/api/bookings/{$booking->access_token}")->assertOk()->assertJsonPath('id', $booking->id);
+    }
+
+    public function test_lookup_returns_the_secure_link_for_the_right_email_only(): void
+    {
+        $booking = $this->guestBooking(['booking_number' => 'BS-2026-000777']);
+
+        $this->postJson('/api/bookings/lookup', ['reference' => 'bs-2026-000777', 'email' => 'INVITE@example.com'])
+            ->assertOk()->assertJsonPath('access_token', $booking->access_token);
+        $this->postJson('/api/bookings/lookup', ['reference' => (string) $booking->id, 'email' => 'invite@example.com'])
+            ->assertOk();
+        $this->postJson('/api/bookings/lookup', ['reference' => 'BS-2026-000777', 'email' => 'autre@example.com'])->assertNotFound();
     }
 }

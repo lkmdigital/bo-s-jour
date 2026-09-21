@@ -33,7 +33,7 @@ class BookingApprovedPleasePay extends Mailable
                         'booking'       => $this->booking,
                         'accommodation' => $this->booking->accommodation,
                         'room'          => $this->booking->room,
-                        'paymentUrl'    => "{$frontend}/bookings/{$this->booking->id}/payment",
+                        'paymentUrl'    => "{$frontend}/bookings/{$this->booking->access_token}/payment",
                     ]);
     }
 }

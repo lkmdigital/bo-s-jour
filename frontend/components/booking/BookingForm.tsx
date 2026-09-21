@@ -97,7 +97,7 @@ export default function BookingForm({ accommodationId, pricePerNight }: BookingF
 
       const response = await api.post('/bookings', bookingData);
 
-      router.push(`/bookings/${response.data.id}`);
+      router.push(`/bookings/${response.data.access_token ?? response.data.id}`);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors de la réservation');
     } finally {
