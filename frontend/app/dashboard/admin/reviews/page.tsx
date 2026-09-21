@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { FilterBar, FilterSearch, FilterSelect, FilterResetButton } from '@/components/common/FilterBar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -33,6 +34,13 @@ export default function AdminReviewsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('pending');
+  const [pendingTestimonials, setPendingTestimonials] = useState(0);
+
+  useEffect(() => {
+    api.get('/admin/testimonials')
+      .then((r) => setPendingTestimonials((r.data?.data ?? []).filter((t: { is_published: boolean }) => !t.is_published).length))
+      .catch(() => setPendingTestimonials(0));
+  }, []);
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -120,6 +128,18 @@ export default function AdminReviewsPage() {
             Approuver ou masquer les avis signalés
           </p>
         </div>
+
+        {pendingTestimonials > 0 && (
+          <Link
+            href="/dashboard/admin/decouvertes"
+            className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 p-4 text-sm text-amber-900 dark:text-amber-300"
+          >
+            <span>
+              <strong>{pendingTestimonials}</strong> avis sur boséjour (« Laissez un avis » de l&apos;accueil) en attente de validation
+            </span>
+            <span className="font-semibold underline">Modérer (Découvertes › Témoignages)</span>
+          </Link>
+        )}
 
         <FilterBar className="mb-4">
           <FilterSearch

@@ -61,12 +61,14 @@ export default function MemberReviewsPage() {
   const [pending, setPending] = useState<PendingReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [writingFor, setWritingFor] = useState<PendingReview | null>(null);
+  const [platformReviews, setPlatformReviews] = useState<Array<{ id: number; comment: string; is_published: boolean; created_at: string }>>([]);
 
   const load = () => {
     api.get('/me/reviews')
       .then((r) => { setSubmitted(r.data?.submitted ?? []); setPending(r.data?.pending ?? []); })
       .catch(() => { setSubmitted([]); setPending([]); })
       .finally(() => setLoading(false));
+    api.get('/me/testimonials').then((r) => setPlatformReviews(r.data?.data ?? [])).catch(() => setPlatformReviews([]));
   };
 
   useEffect(() => {
@@ -104,6 +106,26 @@ export default function MemberReviewsPage() {
                   <button onClick={() => setWritingFor(p)} className="btn-primary text-sm inline-flex items-center gap-2 flex-shrink-0">
                     <MessageSquare className="w-4 h-4" /> Laisser un avis
                   </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Avis sur boséjour (bouton "Laissez un avis" de l'accueil) */}
+        {platformReviews.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold">Mes avis sur boséjour</h2>
+            <div className="space-y-3">
+              {platformReviews.map((p) => (
+                <div key={p.id} className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{p.comment}</p>
+                    <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium ${p.is_published ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'}`}>
+                      {p.is_published ? 'Publié' : 'En attente de validation'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400">{fmt(p.created_at)}</p>
                 </div>
               ))}
             </div>

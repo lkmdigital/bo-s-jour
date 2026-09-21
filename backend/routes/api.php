@@ -417,6 +417,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
     // Reviews
     Route::get('/me/reviews', [ReviewController::class, 'myReviews']);
+    Route::get('/me/testimonials', [TestimonialController::class, 'mine']);
     Route::post('/reviews', [ReviewController::class, 'store']);
     Route::post('/reviews/{id}/report', [ReviewController::class, 'report'])->where('id', '[0-9]+');
 

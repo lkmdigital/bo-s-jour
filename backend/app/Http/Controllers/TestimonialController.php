@@ -41,6 +41,19 @@ class TestimonialController extends Controller
         return response()->json(['data' => $testimonials]);
     }
 
+    /**
+     * Mes avis sur boséjour (utilisateur connecté), publiés ou non : l'auteur
+     * doit retrouver son avis même tant que l'équipe ne l'a pas validé.
+     */
+    public function mine(Request $request)
+    {
+        $items = PlatformTestimonial::where('user_id', $request->user()->id)
+            ->orderByDesc('created_at')
+            ->get(['id', 'comment', 'is_published', 'created_at']);
+
+        return response()->json(['data' => $items]);
+    }
+
     public function store(Request $request)
     {
         if (!$request->user()) {
