@@ -75,7 +75,7 @@ const NAV_GROUPS: NavGroup[] = [
       // reliée au menu depuis la refonte du tableau de bord admin — un hôte
       // inscrit restait donc bloqué (impossible d'ajouter un hébergement tant
       // que l'admin ne l'a pas vérifié). Badge = comptes en attente de validation.
-      { href: '/dashboard/admin/hosts', label: 'Hôtes', icon: Handshake, badgeKey: 'hosts' },
+      { href: '/dashboard/admin/hosts', label: 'Partenaires', icon: Handshake, badgeKey: 'hosts' },
       { href: '/dashboard/admin/users', label: 'Utilisateurs', icon: Users },
       { href: '/dashboard/admin/reservations', label: 'Réservations', icon: CalendarCheck, badgeKey: 'reservations' },
     ],

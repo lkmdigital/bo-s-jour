@@ -236,7 +236,7 @@ export default function BookingSidebar({
       <ComposeMessageModal
         open={contactOpen}
         title="Contacter l'établissement"
-        recipientLabel={accommodationName ? `À l'attention de ${accommodationName}` : "À l'attention de l'hôte"}
+        recipientLabel={accommodationName ? `À l'attention de ${accommodationName}` : "À l'attention du partenaire"}
         placeholder="Ex : avez-vous une chambre disponible pour 2 personnes du 12 au 15 octobre ?"
         onSend={async (body) => {
           await api.post(`/accommodations/${accommodationId}/contact`, { body });

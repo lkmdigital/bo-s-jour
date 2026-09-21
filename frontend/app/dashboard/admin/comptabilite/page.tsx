@@ -312,10 +312,10 @@ export default function AdminComptabilitePage() {
                       <tr className="border-b border-gray-200 dark:border-gray-700">
                         <th className="text-left py-3 px-4">Date</th>
                         <th className="text-left py-3 px-4">Hébergement</th>
-                        <th className="text-left py-3 px-4">Hôte</th>
+                        <th className="text-left py-3 px-4">Partenaire</th>
                         <th className="text-right py-3 px-4">Montant réservation</th>
                         <th className="text-right py-3 px-4">Commission ({commissionRate}%)</th>
-                        <th className="text-right py-3 px-4">Montant hôte</th>
+                        <th className="text-right py-3 px-4">Montant partenaire</th>
                         <th className="text-center py-3 px-4">Statut</th>
                       </tr>
                     </thead>

@@ -92,7 +92,7 @@ export default function AnalyticsDashboard() {
             <p className="text-3xl font-bold">{data.total_users || 0}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Total hôtes</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Total partenaires</p>
             <p className="text-3xl font-bold">{data.total_hosts || 0}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">

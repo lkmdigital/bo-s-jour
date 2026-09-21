@@ -142,7 +142,7 @@ export default function Header() {
             className={`hover:text-primary transition-colors inline-flex items-center gap-1.5 ${pathname?.startsWith('/dashboard/admin/hosts') ? 'text-primary font-semibold' : ''}`}
           >
             <Handshake className="w-4 h-4" />
-            Hôtes
+            Partenaires
           </Link>
           <Link 
             href="/dashboard/admin/accommodations" 
@@ -334,7 +334,7 @@ export default function Header() {
             <Users className="w-4 h-4" /> Utilisateurs
           </Link>
           <Link href="/dashboard/admin/hosts" onClick={closeMobileMenu} className={linkClass(false)}>
-            <Handshake className="w-4 h-4" /> Hôtes
+            <Handshake className="w-4 h-4" /> Partenaires
           </Link>
           <Link href="/dashboard/admin/accommodations" onClick={closeMobileMenu} className={linkClass(false)}>
             <Building2 className="w-4 h-4" /> Établissements

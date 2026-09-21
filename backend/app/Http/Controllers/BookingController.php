@@ -291,7 +291,7 @@ class BookingController extends Controller
             $user = $request->user();
             // Prevent a host from booking their own accommodation
             if ($user->hostScopeId() === $accommodation->host_id) {
-                return response()->json(['message' => 'Un hôte ne peut pas réserver son propre établissement.'], 403);
+                return response()->json(['message' => 'Un partenaire ne peut pas réserver son propre établissement.'], 403);
             }
         } else {
             // Créer un compte utilisateur automatiquement

@@ -157,8 +157,8 @@ export default function AdminMarketingPage() {
                 <label className="block text-sm font-medium mb-1">Rôle</label>
                 <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm">
                   <option value="user">Voyageurs</option>
-                  <option value="host">Hôtes</option>
-                  <option value="all">Tous (voyageurs + hôtes)</option>
+                  <option value="host">Partenaires</option>
+                  <option value="all">Tous (voyageurs + partenaires)</option>
                 </select>
               </div>
               <div>

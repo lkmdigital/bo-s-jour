@@ -179,7 +179,7 @@ export default function AdminUsersPage() {
       ),
       host: (
         <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-          Hôte
+          Partenaire
         </span>
       ),
       admin: (
@@ -264,7 +264,7 @@ export default function AdminUsersPage() {
             <FilterSelect value={roleFilter} onChange={(v) => { setRoleFilter(v); setCurrentPage(1); }} ariaLabel="Rôle">
                 <option value="all">Tous les rôles</option>
                 <option value="user">Utilisateur</option>
-                <option value="host">Hôte</option>
+                <option value="host">Partenaire</option>
                 <option value="admin">Admin</option>
             </FilterSelect>
             <FilterResetButton onClick={() => { setSearch(''); setStatusFilter('all'); setRoleFilter('all'); setCurrentPage(1); }} />

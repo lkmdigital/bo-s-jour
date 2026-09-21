@@ -19,7 +19,7 @@ class SeedTestHostAccommodations extends Command
 {
     protected $signature = 'dev:seed-host-accommodations {email}';
 
-    protected $description = "Crée ~20 établissements de démo pour un compte hôte (3 par commune/ville).";
+    protected $description = "Crée ~20 établissements de démo pour un compte partenaire (3 par commune/ville).";
 
     private const IMAGES = [
         'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
@@ -41,11 +41,11 @@ class SeedTestHostAccommodations extends Command
 
         $host = User::where('email', $this->argument('email'))->first();
         if (!$host) {
-            $this->error('Hôte introuvable pour cet e-mail.');
+            $this->error('Partenaire introuvable pour cet e-mail.');
             return self::FAILURE;
         }
         if ($host->role !== 'host') {
-            $this->error('Ce compte n\'a pas le rôle hôte.');
+            $this->error('Ce compte n\'a pas le rôle partenaire.');
             return self::FAILURE;
         }
 

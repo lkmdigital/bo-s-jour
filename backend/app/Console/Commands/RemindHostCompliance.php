@@ -16,7 +16,7 @@ class RemindHostCompliance extends Command
 {
     protected $signature = 'compliance:remind-hosts';
 
-    protected $description = "Relance les hôtes dont le dossier de conformité est incomplet (J+30, J+60, J+90, J+120 depuis l'inscription).";
+    protected $description = "Relance les partenaires dont le dossier de conformité est incomplet (J+30, J+60, J+90, J+120 depuis l'inscription).";
 
     public function handle(): int
     {

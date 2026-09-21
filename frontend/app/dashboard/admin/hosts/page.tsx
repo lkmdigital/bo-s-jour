@@ -121,7 +121,7 @@ export default function AdminHostsPage() {
         last_page: 1,
       });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors du chargement des hôtes');
+      setError(err.response?.data?.message || 'Erreur lors du chargement des partenaires');
       console.error('Error fetching hosts:', err);
     } finally {
       setLoading(false);
@@ -140,7 +140,7 @@ export default function AdminHostsPage() {
     if (type === 'validate' && host?.compliance_status === 'non_conforme') {
       showValidation({
         title: 'Valider un profil non conforme',
-        message: 'Cet hôte est validé mais son profil reste non conforme. Ses établissements afficheront la mention "Profil non conforme". L\'hôte est invité à compléter ses documents manquants.',
+        message: 'Ce partenaire est validé mais son profil reste non conforme. Ses établissements afficheront la mention "Profil non conforme". Le partenaire est invité à compléter ses documents manquants.',
         requirements: host?.compliance_requirements || [],
         complianceStatus: 'non_conforme',
         variant: 'warning',
@@ -174,9 +174,9 @@ export default function AdminHostsPage() {
 
       // Afficher un message approprié selon le statut de conformité
       if (response.data.compliance_status === 'non_conforme') {
-        showWarning('Hôte validé mais profil non conforme - documents manquants');
+        showWarning('Partenaire validé mais profil non conforme - documents manquants');
       } else {
-        showSuccess('Hôte validé avec succès');
+        showSuccess('Partenaire validé avec succès');
       }
 
       fetchHosts();
@@ -199,7 +199,7 @@ export default function AdminHostsPage() {
       setActionComment('');
       setActionInternalNotes('');
       fetchHosts();
-      showSuccess(type === 'reject' ? 'Hôte rejeté' : 'Hôte suspendu');
+      showSuccess(type === 'reject' ? 'Partenaire rejeté' : 'Partenaire suspendu');
     } catch (err: any) {
       showError(err.response?.data?.message || `Erreur lors de l'action ${type}`);
     } finally {
@@ -253,10 +253,10 @@ export default function AdminHostsPage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Gestion des Hôtes
+              Gestion des Partenaires
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Validez, rejetez ou suspendez les hôtes de la plateforme
+              Validez, rejetez ou suspendez les partenaires de la plateforme
             </p>
           </div>
           <Link href="/dashboard/admin" className="btn-secondary">
@@ -303,7 +303,7 @@ export default function AdminHostsPage() {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">
-                    Hôte
+                    Partenaire
                   </th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">
                     Établissement
@@ -323,7 +323,7 @@ export default function AdminHostsPage() {
                 {hosts.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      Aucun hôte trouvé
+                      Aucun partenaire trouvé
                     </td>
                   </tr>
                 ) : (
@@ -445,9 +445,9 @@ export default function AdminHostsPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
               <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-                {showActionModal.type === 'validate' && 'Valider l\'hôte'}
-                {showActionModal.type === 'reject' && 'Rejeter l\'hôte'}
-                {showActionModal.type === 'suspend' && 'Suspendre l\'hôte'}
+                {showActionModal.type === 'validate' && 'Valider le partenaire'}
+                {showActionModal.type === 'reject' && 'Rejeter le partenaire'}
+                {showActionModal.type === 'suspend' && 'Suspendre le partenaire'}
               </h3>
               
               <div className="space-y-4">

@@ -140,7 +140,7 @@ class RevenueController extends Controller
         return response()->streamDownload(function () use ($commissions) {
             $out = fopen('php://output', 'w');
             fwrite($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($out, ['Date', 'Établissement', 'Hôte', 'Montant réservation (FCFA)', 'Commission (FCFA)', 'Montant hôte (FCFA)', 'Statut']);
+            fputcsv($out, ['Date', 'Établissement', 'Partenaire', 'Montant réservation (FCFA)', 'Commission (FCFA)', 'Montant partenaire (FCFA)', 'Statut']);
             foreach ($commissions as $c) {
                 fputcsv($out, [
                     optional($c->created_at)->format('Y-m-d H:i'),

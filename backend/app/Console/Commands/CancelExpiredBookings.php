@@ -74,7 +74,7 @@ class CancelExpiredBookings extends Command
             if ($wasAwaitingHost) {
                 dispatch(new SendBookingCancellation(
                     $booking->fresh(),
-                    "L'hôte n'a pas répondu à votre demande dans le délai imparti."
+                    "Le partenaire n'a pas répondu à votre demande dans le délai imparti."
                 ))->onQueue('notifications');
             }
         }

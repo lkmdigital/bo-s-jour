@@ -99,7 +99,7 @@ const NOTIFICATION_CHANNEL_LABEL: Record<string, string> = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  awaiting_host_confirmation: { label: "À confirmer par l'hôte", color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400' },
+  awaiting_host_confirmation: { label: "À confirmer par le partenaire", color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400' },
   pending: { label: 'En attente de paiement', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' },
   confirmed: { label: 'Confirmée', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' },
   cancelled: { label: 'Annulée', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' },
@@ -155,7 +155,7 @@ export default function AdminReservationDetailPage() {
       title: 'Confirmer cette réservation ?',
       message: booking && !booking.amount_paid
         ? "Cette réservation n'a reçu aucun paiement. La confirmer manuellement passe outre ce contrôle."
-        : 'Le voyageur et l\'hôte seront notifiés.',
+        : 'Le voyageur et le partenaire seront notifiés.',
       confirmLabel: 'Confirmer la réservation',
       variant: 'default',
     });
@@ -375,7 +375,7 @@ export default function AdminReservationDetailPage() {
                       )}
                       <span className="text-gray-800 dark:text-gray-200">
                         {NOTIFICATION_CHANNEL_LABEL[n.channel] ?? n.channel} · {NOTIFICATION_EVENT_LABEL[n.event] ?? n.event}
-                        <span className="text-gray-400"> — {n.recipient_type === 'host' ? 'hôte' : 'voyageur'}</span>
+                        <span className="text-gray-400"> — {n.recipient_type === 'host' ? 'partenaire' : 'voyageur'}</span>
                       </span>
                     </div>
                     <span className="text-xs text-gray-400">{format(new Date(n.created_at), 'dd MMM HH:mm', { locale: fr })}</span>

@@ -101,7 +101,7 @@ export interface BookingCreatePayload {
 // Labels et couleurs par statut
 export const BOOKING_STATUS_CONFIG: Record<BookingStatus, { label: string; color: string; bg: string }> = {
   awaiting_host_confirmation: {
-    label: "En attente de confirmation de l'hôte",
+    label: "En attente de confirmation du partenaire",
     color: 'text-orange-800 dark:text-orange-400',
     bg: 'bg-orange-100 dark:bg-orange-900/20',
   },

@@ -61,7 +61,7 @@ PROMPT;
         return [
             [
                 'name' => 'get_pending_establishments',
-                'description' => "Liste les établissements en attente de validation (status = pending), avec leur nom, ville, hôte et date de soumission.",
+                'description' => "Liste les établissements en attente de validation (status = pending), avec leur nom, ville, partenaire et date de soumission.",
                 'inputSchema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
             [

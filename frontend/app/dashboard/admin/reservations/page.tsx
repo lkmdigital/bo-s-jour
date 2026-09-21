@@ -30,7 +30,7 @@ interface AdminBooking {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  awaiting_host_confirmation: { label: "À confirmer par l'hôte", color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400' },
+  awaiting_host_confirmation: { label: "À confirmer par le partenaire", color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400' },
   pending: { label: 'En attente de paiement', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' },
   confirmed: { label: 'Confirmée', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' },
   cancelled: { label: 'Annulée', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' },
@@ -133,7 +133,7 @@ export default function AdminReservationsPage() {
         >
           <FilterSelect value={statusFilter} onChange={setStatusFilter} ariaLabel="Statut">
             <option value="all">Tous les statuts</option>
-            <option value="awaiting_host_confirmation">À confirmer par l'hôte</option>
+            <option value="awaiting_host_confirmation">À confirmer par le partenaire</option>
             <option value="pending">En attente de paiement</option>
             <option value="confirmed">Confirmée</option>
             <option value="completed">Terminée</option>

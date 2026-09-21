@@ -22,7 +22,7 @@ class CleanDuplicateCommissions extends Command
      *
      * @var string
      */
-    protected $description = 'Nettoyer les commissions en double pour éviter les surpaiements aux hôtes';
+    protected $description = 'Nettoyer les commissions en double pour éviter les surpaiements aux partenaires';
 
     /**
      * Execute the console command.
@@ -65,7 +65,7 @@ class CleanDuplicateCommissions extends Command
             $this->line("  - Commissions trouvées: {$commissions->count()}");
             $this->line("  - À conserver: Commission #{$keepCommission->id} (créée le {$keepCommission->created_at})");
             $this->line("  - Montant de la commission conservée: " . number_format($keepCommission->commission_amount, 2) . " FCFA");
-            $this->line("  - Montant pour l'hôte conservé: " . number_format($keepCommission->host_amount, 2) . " FCFA");
+            $this->line("  - Montant pour le partenaire conservé: " . number_format($keepCommission->host_amount, 2) . " FCFA");
 
             foreach ($toDelete as $commission) {
                 $totalToDelete++;

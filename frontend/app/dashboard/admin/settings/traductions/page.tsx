@@ -12,9 +12,9 @@ const TRANSLATED = [
 
 const NOT_TRANSLATED = [
   'Formulaires de réservation',
-  'Descriptions des hébergements (saisies par les hôtes)',
+  'Descriptions des hébergements (saisies par les partenaires)',
   'E-mails et messages WhatsApp automatiques',
-  'Espace partenaire (hôtes)',
+  'Espace partenaire (partenaires)',
 ];
 
 export default function AdminTranslationsSettingsPage() {
@@ -28,7 +28,7 @@ export default function AdminTranslationsSettingsPage() {
         <p className="text-sm text-gray-600 dark:text-gray-400">
           <Brand /> est disponible en français et en anglais. La traduction couvre aujourd&apos;hui
           la structure de l&apos;espace membre voyageur ; le contenu détaillé (formulaires,
-          descriptions saisies par les hôtes) reste en français pour le moment.
+          descriptions saisies par les partenaires) reste en français pour le moment.
         </p>
 
         <div>

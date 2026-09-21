@@ -835,7 +835,7 @@ export default function BookingWizard(props: Props) {
                 {/* Retour client 2026-09-18 : "ça doit plus être procéder au
                     paiement mais plutôt réserver maintenant" — ce clic
                     soumet la DEMANDE de réservation (souvent en attente de
-                    confirmation de l'hôte avant tout paiement, voir submit()
+                    confirmation du partenaire avant tout paiement, voir submit()
                     plus haut) plutôt que d'emmener directement vers un
                     paiement, d'où le nouveau libellé. */}
                 {submitting ? 'Traitement…' : travelerType === 'corporate' && deferredPayment ? 'Valider la réservation' : 'Réserver maintenant'}

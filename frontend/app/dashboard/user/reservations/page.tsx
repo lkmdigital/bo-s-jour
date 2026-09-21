@@ -29,7 +29,7 @@ interface Booking {
 type Tab = 'upcoming' | 'past' | 'cancelled';
 
 const STATUS: Record<string, { label: string; cls: string }> = {
-  awaiting_host_confirmation: { label: "À confirmer par l'hôte", cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400' },
+  awaiting_host_confirmation: { label: "À confirmer par le partenaire", cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400' },
   pending: { label: 'En attente de paiement', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' },
   confirmed: { label: 'Confirmée', cls: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' },
   cancelled: { label: 'Annulée', cls: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' },

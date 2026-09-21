@@ -295,7 +295,7 @@ export default function AdminPaiementsPage() {
   const handleCreateWithdrawal = async () => {
     setCreateError(null);
     if (!createForm.host_id || !createForm.amount || !createForm.payment_method) {
-      setCreateError('Hôte, montant et méthode sont requis.');
+      setCreateError('Partenaire, montant et méthode sont requis.');
       return;
     }
     setCreating(true);
@@ -357,7 +357,7 @@ export default function AdminPaiementsPage() {
             Paiements
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Transactions voyageurs et demandes de retrait des hôtes
+            Transactions voyageurs et demandes de retrait des partenaires
           </p>
         </div>
 
@@ -600,7 +600,7 @@ export default function AdminPaiementsPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                        <th className="text-left py-3 px-4">Hôte</th>
+                        <th className="text-left py-3 px-4">Partenaire</th>
                         <th className="text-right py-3 px-4">Montant</th>
                         <th className="text-center py-3 px-4">Statut</th>
                         <th className="text-left py-3 px-4">Date</th>
@@ -617,7 +617,7 @@ export default function AdminPaiementsPage() {
                               <div className="flex items-center gap-2">
                                 <User className="w-4 h-4 text-gray-500" />
                                 <div>
-                                  <span className="font-medium">{req.host?.name ?? `Hôte #${req.host_id}`}</span>
+                                  <span className="font-medium">{req.host?.name ?? `Partenaire #${req.host_id}`}</span>
                                   {req.host?.email && <span className="block text-sm text-gray-500">{req.host.email}</span>}
                                 </div>
                               </div>
@@ -767,10 +767,10 @@ export default function AdminPaiementsPage() {
                 {actionType === 'approve' ? 'Approuver la demande' : 'Refuser la demande'}
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-2">
-                {formatPrice(modalRequest.amount)} FCFA — {modalRequest.host?.name ?? `Hôte #${modalRequest.host_id}`}
+                {formatPrice(modalRequest.amount)} FCFA — {modalRequest.host?.name ?? `Partenaire #${modalRequest.host_id}`}
               </p>
               {modalRequest.host_note && (
-                <p className="text-sm text-gray-500 mb-2">Note de l&apos;hôte : {modalRequest.host_note}</p>
+                <p className="text-sm text-gray-500 mb-2">Note du partenaire : {modalRequest.host_note}</p>
               )}
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Note admin (optionnel)
@@ -807,7 +807,7 @@ export default function AdminPaiementsPage() {
 
               {createError && <ErrorDisplay error={createError} onDismiss={() => setCreateError(null)} />}
 
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hôte</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Partenaire</label>
               {selectedHost ? (
                 <div className="flex items-center justify-between px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-3 bg-gray-50 dark:bg-gray-900/40">
                   <span className="text-sm">{selectedHost.name} — {selectedHost.email}</span>
@@ -825,7 +825,7 @@ export default function AdminPaiementsPage() {
                     type="text"
                     value={hostSearch}
                     onChange={(e) => setHostSearch(e.target.value)}
-                    placeholder="Rechercher un hôte par nom ou email..."
+                    placeholder="Rechercher un partenaire par nom ou email..."
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
                   />
                   {hostResults.length > 0 && (
@@ -933,7 +933,7 @@ export default function AdminPaiementsPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between"><span className="text-gray-500">Référence</span><span className="font-medium">{w.payment_reference ?? '—'}</span></div>
                       <div className="flex justify-between"><span className="text-gray-500">Date</span><span className="font-medium">{format(new Date(w.created_at), 'dd MMM yyyy HH:mm', { locale: fr })}</span></div>
-                      <div className="flex justify-between"><span className="text-gray-500">Hôte</span><span className="font-medium">{w.host?.name ?? `Hôte #${w.host_id}`}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Partenaire</span><span className="font-medium">{w.host?.name ?? `Partenaire #${w.host_id}`}</span></div>
                       <div className="flex justify-between"><span className="text-gray-500">Méthode</span><span className="font-medium capitalize">{w.payment_method?.replace(/-/g, ' ') ?? '—'}</span></div>
                       <div className="flex justify-between"><span className="text-gray-500">Statut</span><span className="font-medium">{withdrawalStatusConfig[w.status]?.label ?? w.status}</span></div>
                       {w.admin_note && <div className="flex justify-between"><span className="text-gray-500">Note</span><span className="font-medium">{w.admin_note}</span></div>}

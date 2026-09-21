@@ -55,7 +55,7 @@ export default function AdminRegionalSettingsPage() {
     <SettingsPageShell
       icon={Globe2}
       title="Paramètres régionaux"
-      description="Devise de la plateforme, nom de l'application et coordonnées de support affichées aux voyageurs et hôtes."
+      description="Devise de la plateforme, nom de l'application et coordonnées de support affichées aux voyageurs et partenaires."
     >
       {loading ? (
         <LoadingSpinner />

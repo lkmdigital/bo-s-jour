@@ -79,7 +79,7 @@ export default function BookingMessageThread({ bookingId, currentUserId, accommo
         Messages – {accommodationName}
       </h2>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-        {isHost ? 'Échangez avec le voyageur' : "Échangez avec l'hôte"} concernant cette réservation.
+        {isHost ? 'Échangez avec le voyageur' : "Échangez avec le partenaire"} concernant cette réservation.
       </p>
 
       {loading ? (

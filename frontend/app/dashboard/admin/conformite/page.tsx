@@ -144,18 +144,18 @@ export default function AdminCompliancePage() {
           <ShieldCheck className="w-6 h-6 text-primary" /> Conformité
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Dossier documentaire des hôtes (pièce du gérant, RCCM, numéro contribuable…) et relances automatiques.
+          Dossier documentaire des partenaires (pièce du gérant, RCCM, numéro contribuable…) et relances automatiques.
         </p>
       </div>
 
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-xs text-blue-800 dark:text-blue-400">
-        Les hôtes non conformes reçoivent une relance automatique par e-mail à J+30, J+60, J+90 et J+120 après
+        Les partenaires non conformes reçoivent une relance automatique par e-mail à J+30, J+60, J+90 et J+120 après
         leur inscription (tant que le dossier reste incomplet).
       </div>
 
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-          <p className="text-xs text-gray-500">Hôtes</p>
+          <p className="text-xs text-gray-500">Partenaires</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{summary.total}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
@@ -173,7 +173,7 @@ export default function AdminCompliancePage() {
           value={search}
           onChange={(v) => { setSearch(v); setPage(1); }}
           onSubmit={(e) => e.preventDefault()}
-          placeholder="Rechercher un hôte…"
+          placeholder="Rechercher un partenaire…"
           className="w-full"
         />
         <FilterBar>
@@ -190,7 +190,7 @@ export default function AdminCompliancePage() {
         {loading ? (
           <div className="p-8"><LoadingSpinner /></div>
         ) : hosts.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 p-8 text-center">Aucun hôte trouvé pour ces filtres.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 p-8 text-center">Aucun partenaire trouvé pour ces filtres.</p>
         ) : (
           hosts.map((host) => <HostRow key={host.id} host={host} />)
         )}

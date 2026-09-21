@@ -198,7 +198,7 @@ class SettingsController extends Controller
                 'registration_hosts_enabled',
                 $data['registration_hosts_enabled'],
                 'boolean',
-                'Inscription hôtes autorisée'
+                'Inscription partenaires autorisée'
             );
         }
 

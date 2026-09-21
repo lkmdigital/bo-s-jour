@@ -29,7 +29,7 @@ class AdminWithdrawalController extends Controller
         return response()->streamDownload(function () use ($withdrawals) {
             $out = fopen('php://output', 'w');
             fwrite($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($out, ['Date', 'Hôte', 'Email', 'Montant (FCFA)', 'Méthode', 'Référence', 'Statut', 'Traité le', 'Note admin']);
+            fputcsv($out, ['Date', 'Partenaire', 'Email', 'Montant (FCFA)', 'Méthode', 'Référence', 'Statut', 'Traité le', 'Note admin']);
             foreach ($withdrawals as $w) {
                 fputcsv($out, [
                     optional($w->created_at)->format('Y-m-d H:i'),
@@ -76,7 +76,7 @@ class AdminWithdrawalController extends Controller
 
         $host = User::findOrFail($validated['host_id']);
         if (!$host->isHost()) {
-            return response()->json(['message' => "Cet utilisateur n'est pas un hôte."], 422);
+            return response()->json(['message' => "Cet utilisateur n'est pas un partenaire."], 422);
         }
 
         $withdrawal = DB::transaction(function () use ($host, $validated, $request) {

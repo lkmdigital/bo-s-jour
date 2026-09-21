@@ -188,7 +188,7 @@ class AdminAccommodationController extends Controller
 
         if ($duplicate) {
             return response()->json([
-                'message' => 'Cet hôte a déjà un établissement avec ce nom dans cette ville. Modifiez l\'établissement existant ou choisissez un autre nom.',
+                'message' => 'Ce partenaire a déjà un établissement avec ce nom dans cette ville. Modifiez l\'établissement existant ou choisissez un autre nom.',
                 'existing_id' => $duplicate->id,
             ], 422);
         }

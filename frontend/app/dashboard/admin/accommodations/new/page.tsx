@@ -73,7 +73,7 @@ export default function AdminNewAccommodationPage() {
       cancelHref="/dashboard/admin/accommodations"
       successRedirectHref="/dashboard/admin/accommodations"
       title="Créer un établissement"
-      subtitle="Ajoutez un établissement au nom d'un hôte. Toutes les informations seront soumises à validation."
+      subtitle="Ajoutez un établissement au nom d'un partenaire. Toutes les informations seront soumises à validation."
     />
   );
 }

@@ -23,7 +23,7 @@ class RemindAccommodationInfoUpdate extends Command
 {
     protected $signature = 'accommodations:remind-info-update';
 
-    protected $description = "Relance les hôtes dont un établissement publié n'a pas confirmé ses informations depuis " . Accommodation::INFO_UPDATE_REMINDER_MONTHS . ' mois.';
+    protected $description = "Relance les partenaires dont un établissement publié n'a pas confirmé ses informations depuis " . Accommodation::INFO_UPDATE_REMINDER_MONTHS . ' mois.';
 
     /** Délai minimum entre deux relances pour un même établissement, pour ne pas spammer un hôte qui n'a pas encore réagi. */
     private const MIN_DAYS_BETWEEN_REMINDERS = 30;

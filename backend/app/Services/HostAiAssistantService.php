@@ -52,7 +52,7 @@ class HostAiAssistantService extends AiAssistantService
     {
         return <<<'PROMPT'
 Tu es l'assistant IA partenaire de la plateforme BoSéjour (hébergements en
-Côte d'Ivoire). Réponds aux questions de l'hôte UNIQUEMENT à partir des
+Côte d'Ivoire). Réponds aux questions du partenaire UNIQUEMENT à partir des
 résultats des outils fournis, qui interrogent les données réelles de SES
 propres établissements — jamais celles d'un autre partenaire.
 
@@ -64,7 +64,7 @@ Règles :
   longue analyse sauf si la question le demande explicitement).
 - Les montants sont en FCFA.
 - Toute suggestion (tarif, promotion, contenu) reste une recommandation
-  facultative — l'hôte garde le contrôle complet, ne présente jamais un
+  facultative — le partenaire garde le contrôle complet, ne présente jamais un
   conseil comme une décision déjà prise.
 - Pour les prévisions, rappelle toujours qu'il s'agit d'une estimation
   indicative basée sur l'historique récent, pas une prédiction garantie.
@@ -76,32 +76,32 @@ PROMPT;
         return [
             [
                 'name' => 'get_occupancy_rate',
-                'description' => "Taux d'occupation de l'hôte sur les 30 derniers jours, tous établissements confondus.",
+                'description' => "Taux d'occupation du partenaire sur les 30 derniers jours, tous établissements confondus.",
                 'inputSchema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
             [
                 'name' => 'get_next_payout',
-                'description' => "Solde actuellement disponible pour retrait (commissions déjà libérées par la plateforme, pas encore versées à l'hôte).",
+                'description' => "Solde actuellement disponible pour retrait (commissions déjà libérées par la plateforme, pas encore versées au partenaire).",
                 'inputSchema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
             [
                 'name' => 'get_most_profitable_room',
-                'description' => "Classe les chambres de l'hôte par chiffre d'affaires généré (réservations confirmées), de la plus rentable à la moins rentable.",
+                'description' => "Classe les chambres du partenaire par chiffre d'affaires généré (réservations confirmées), de la plus rentable à la moins rentable.",
                 'inputSchema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
             [
                 'name' => 'get_listing_quality_score',
-                'description' => "Score de complétude de la fiche de chaque établissement de l'hôte (description, photos, équipements, tarification) avec les manques identifiés.",
+                'description' => "Score de complétude de la fiche de chaque établissement du partenaire (description, photos, équipements, tarification) avec les manques identifiés.",
                 'inputSchema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
             [
                 'name' => 'get_pricing_context',
-                'description' => "Compare le tarif de chaque établissement de l'hôte au prix moyen des établissements publiés dans la même ville, avec le taux d'occupation actuel. Ne couvre pas les événements locaux ni la saisonnalité (données absentes de la plateforme).",
+                'description' => "Compare le tarif de chaque établissement du partenaire au prix moyen des établissements publiés dans la même ville, avec le taux d'occupation actuel. Ne couvre pas les événements locaux ni la saisonnalité (données absentes de la plateforme).",
                 'inputSchema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
             [
                 'name' => 'get_promotion_context',
-                'description' => "Liste les promotions actives de l'hôte et la répartition des réservations par jour de la semaine sur les 8 dernières semaines, pour identifier les créneaux à faible demande.",
+                'description' => "Liste les promotions actives du partenaire et la répartition des réservations par jour de la semaine sur les 8 dernières semaines, pour identifier les créneaux à faible demande.",
                 'inputSchema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
             [
@@ -116,7 +116,7 @@ PROMPT;
             ],
             [
                 'name' => 'get_recent_reviews',
-                'description' => "Avis récents (note + commentaire) des établissements de l'hôte, pour en dégager les points forts, les points faibles et les thèmes récurrents.",
+                'description' => "Avis récents (note + commentaire) des établissements du partenaire, pour en dégager les points forts, les points faibles et les thèmes récurrents.",
                 'inputSchema' => [
                     'type' => 'object',
                     'properties' => [
@@ -126,7 +126,7 @@ PROMPT;
             ],
             [
                 'name' => 'get_anomaly_signals',
-                'description' => "Compare les 7 derniers jours aux 7 jours précédents (réservations, chiffre d'affaires, annulations) sur les établissements de l'hôte.",
+                'description' => "Compare les 7 derniers jours aux 7 jours précédents (réservations, chiffre d'affaires, annulations) sur les établissements du partenaire.",
                 'inputSchema' => ['type' => 'object', 'properties' => new \stdClass()],
             ],
             [

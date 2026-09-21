@@ -123,7 +123,7 @@ class AdminStrategicController extends Controller
             $alerts[] = [
                 'severity' => $nonConformeCount >= 5 ? 'high' : 'medium',
                 'category' => 'compliance',
-                'message' => "{$nonConformeCount} hôte(s) avec un dossier de conformité incomplet.",
+                'message' => "{$nonConformeCount} partenaire(s) avec un dossier de conformité incomplet.",
                 'link' => '/dashboard/admin/conformite',
             ];
         }

@@ -277,7 +277,7 @@ export default function AdminAccommodationsPage() {
             value={search}
             onChange={(v) => { setSearch(v); setCurrentPage(1); }}
             onSubmit={(e) => e.preventDefault()}
-            placeholder="Rechercher par nom, adresse, ville, hôte..."
+            placeholder="Rechercher par nom, adresse, ville, partenaire..."
             className="w-full"
           />
           <FilterBar>
@@ -397,7 +397,7 @@ export default function AdminAccommodationsPage() {
                   </div>
                   {acc.host && (
                     <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
-                      Hôte: {acc.host.name}
+                      Partenaire: {acc.host.name}
                     </p>
                   )}
                   

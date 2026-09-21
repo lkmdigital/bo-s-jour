@@ -62,7 +62,7 @@ export default function MobileBottomBar() {
           { href: '/dashboard/admin', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard', isActive: isActive('/dashboard/admin', true) },
           { href: '/dashboard/admin/users', icon: <Users className="w-5 h-5" />, label: 'Utilisateurs', isActive: isActive('/dashboard/admin/users') },
           { href: '/dashboard/admin/accommodations', icon: <Building2 className="w-5 h-5" />, label: 'Établis.', isActive: isActive('/dashboard/admin/accommodations') },
-          { href: '/dashboard/admin/hosts', icon: <Handshake className="w-5 h-5" />, label: 'Hôtes', isActive: isActive('/dashboard/admin/hosts') },
+          { href: '/dashboard/admin/hosts', icon: <Handshake className="w-5 h-5" />, label: 'Partenaires', isActive: isActive('/dashboard/admin/hosts') },
         ],
         more: [
           { href: '/dashboard/admin/inspections', icon: <ShieldCheck className="w-5 h-5" />, label: 'Inspections', isActive: isActive('/dashboard/admin/inspections') },

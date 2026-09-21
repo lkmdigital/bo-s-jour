@@ -157,7 +157,7 @@ export default function AdminPromotionsPage() {
         </h2>
         <p className="text-xs text-gray-500 -mt-2">
           Établissements affichés dans « Offres promotionnelles » côté voyageur. Décision plateforme, indépendante
-          des offres créées par les hôtes ci-dessous.
+          des offres créées par les partenaires ci-dessous.
         </p>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
@@ -238,7 +238,7 @@ export default function AdminPromotionsPage() {
           <Tag className="w-4 h-4 text-primary" /> Offres des établissements
         </h2>
         <p className="text-xs text-gray-500 -mt-2">
-          Codes promo et réductions créés par les hôtes sur leurs établissements. Vous pouvez désactiver une offre
+          Codes promo et réductions créés par les partenaires sur leurs établissements. Vous pouvez désactiver une offre
           non conforme.
         </p>
 
@@ -284,7 +284,7 @@ export default function AdminPromotionsPage() {
                         )}
                       </div>
                       <p className="text-sm text-gray-500 mt-1">
-                        {p.accommodation?.city} · {p.accommodation?.host_name || 'hôte inconnu'}
+                        {p.accommodation?.city} · {p.accommodation?.host_name || 'partenaire inconnu'}
                         {p.room && ` · Chambre : ${p.room.name}`}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">

@@ -333,7 +333,7 @@ export default function BookingDetailPage() {
       label: "À confirmer",
       color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
       icon: AlertCircle,
-      description: isHost ? 'Demande en attente de votre confirmation de disponibilité' : "Votre demande est en attente de confirmation par l'hôte",
+      description: isHost ? 'Demande en attente de votre confirmation de disponibilité' : "Votre demande est en attente de confirmation par le partenaire",
     },
     pending: {
       label: 'En attente de paiement',
@@ -680,10 +680,10 @@ export default function BookingDetailPage() {
               // Actions pour le client uniquement
               <>
                 {/* Retour client 2026-09-16 : "confirmation hôte avant
-                    paiement" — tant que l'hôte n'a pas confirmé la
+                    paiement" — tant que le partenaire n'a pas confirmé la
                     disponibilité, aucune action de paiement n'est proposée
                     (le payment_status reste "pending" à ce stade, comme une
-                    fois l'hôte a confirmé — ce bloc dédié évite d'afficher un
+                    fois le partenaire a confirmé — ce bloc dédié évite d'afficher un
                     bouton "Payer maintenant" prématuré). */}
                 {booking.status === 'awaiting_host_confirmation' && (
                   <div className="card">
@@ -693,7 +693,7 @@ export default function BookingDetailPage() {
                     </h3>
                     <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
                       <p className="text-sm text-orange-800 dark:text-orange-400">
-                        Votre demande est en attente de confirmation par l'hôte. Vous serez invité à payer dès qu'elle sera acceptée.
+                        Votre demande est en attente de confirmation par le partenaire. Vous serez invité à payer dès qu'elle sera acceptée.
                       </p>
                       {booking.expires_at && (
                         <p className="text-xs text-orange-700 dark:text-orange-500 mt-2">
@@ -852,7 +852,7 @@ export default function BookingDetailPage() {
                   <div className="mt-4 p-3 rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 text-xs text-yellow-800 dark:text-yellow-200">
                     🎉 Félicitations ! Vous faites partie des meilleurs clients de <Brand />
                     avec <strong>{booking.loyalty.total_confirmed_bookings}</strong> séjours confirmés.
-                    Lors de vos échanges avec l&apos;hôte, n&apos;hésitez pas à mentionner votre statut
+                    Lors de vos échanges avec le partenaire, n&apos;hésitez pas à mentionner votre statut
                     pour bénéficier d&apos;une réduction d&apos;environ{' '}
                     <strong>{booking.loyalty.recommended_discount_percent}%</strong>, selon la politique
                     de l&apos;établissement.

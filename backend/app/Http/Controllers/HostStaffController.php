@@ -84,7 +84,7 @@ class HostStaffController extends Controller
         // ceux du nouveau propriétaire).
         if ($existingUser && ($existingUser->isAdmin() || ($existingUser->isHost() && !$existingUser->isStaff()))) {
             return response()->json([
-                'message' => "Cette adresse e-mail est déjà associée à un compte hôte ou administrateur indépendant. Utilisez une autre adresse.",
+                'message' => "Cette adresse e-mail est déjà associée à un compte partenaire ou administrateur indépendant. Utilisez une autre adresse.",
             ], 422);
         }
         if ($existingUser && $existingUser->isStaff() && (int) $existingUser->staff_owner_id !== (int) $ownerId) {

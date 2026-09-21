@@ -119,7 +119,7 @@ PROMPT;
         $establishment = $review->accommodation->name ?? 'l\'établissement';
 
         return $this->complete(
-            "Tu rédiges, au nom d'un hôte de la plateforme BoSéjour, une réponse professionnelle et courtoise à un avis de voyageur. Ton chaleureux mais sobre, 2 à 4 phrases, en français. Remercie, réponds aux points soulevés si pertinent, n'invente rien sur l'établissement. Réponds uniquement avec le texte de la réponse.",
+            "Tu rédiges, au nom d'un partenaire de la plateforme BoSéjour, une réponse professionnelle et courtoise à un avis de voyageur. Ton chaleureux mais sobre, 2 à 4 phrases, en français. Remercie, réponds aux points soulevés si pertinent, n'invente rien sur l'établissement. Réponds uniquement avec le texte de la réponse.",
             "Établissement : {$establishment}\nNote laissée : {$rating}/5\nAvis du voyageur : \"{$comment}\""
         );
     }

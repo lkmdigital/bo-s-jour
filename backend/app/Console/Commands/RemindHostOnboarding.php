@@ -18,7 +18,7 @@ class RemindHostOnboarding extends Command
 {
     protected $signature = 'hosts:remind-onboarding';
 
-    protected $description = "Relance les hôtes dont l'établissement n'est pas encore soumis à la revue (H+24, H+72, H+168 après la dernière connexion).";
+    protected $description = "Relance les partenaires dont l'établissement n'est pas encore soumis à la revue (H+24, H+72, H+168 après la dernière connexion).";
 
     public function handle(): int
     {
@@ -73,7 +73,7 @@ class RemindHostOnboarding extends Command
                 }
             });
 
-        $this->info("{$sent} relance(s) d'onboarding hôte envoyée(s).");
+        $this->info("{$sent} relance(s) d'onboarding partenaire envoyée(s).");
         return self::SUCCESS;
     }
 

@@ -108,7 +108,7 @@ class PaymentController extends Controller
             // confirmé la disponibilité (statut passé à Pending).
             if ($booking->status === BookingStatus::AwaitingHostConfirmation) {
                 return response()->json([
-                    'message' => "Votre demande est en attente de confirmation par l'hôte. Vous pourrez payer une fois qu'elle sera acceptée.",
+                    'message' => "Votre demande est en attente de confirmation par le partenaire. Vous pourrez payer une fois qu'elle sera acceptée.",
                 ], 400);
             }
 

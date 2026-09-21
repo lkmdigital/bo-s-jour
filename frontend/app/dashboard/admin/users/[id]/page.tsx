@@ -293,7 +293,7 @@ export default function UserDetailPage() {
       ),
       host: (
         <span className="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-          Hôte
+          Partenaire
         </span>
       ),
       admin: (
@@ -609,7 +609,7 @@ export default function UserDetailPage() {
 
             {/* Conformité documentaire (hôtes uniquement) — retour client
                 2026-09-15 : vue centralisée pour que l'admin puisse vérifier
-                en un coup d'œil l'état et les documents d'un hôte. */}
+                en un coup d'œil l'état et les documents d'un partenaire. */}
             {userDetail.role === 'host' && userDetail.compliance_requirements && (
               <div className="card">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">

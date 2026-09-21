@@ -265,7 +265,7 @@ export default function HostBookingsPage() {
     <div className="min-h-screen">
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Mes réservations (hôte)</h1>
+          <h1 className="text-3xl font-bold">Mes réservations (partenaire)</h1>
           <p className="text-gray-600 dark:text-gray-400">Vue calendrier et liste par période</p>
         </div>
 

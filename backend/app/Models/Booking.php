@@ -317,7 +317,7 @@ class Booking extends Model
                 return 'Séjour terminé';
             }
             if ($this->status === BookingStatus::AwaitingHostConfirmation) {
-                return $this->isExpired() ? 'Expirée' : "En attente de confirmation de l'hôte";
+                return $this->isExpired() ? 'Expirée' : "En attente de confirmation du partenaire";
             }
             if ($this->status === BookingStatus::Pending) {
                 if ($this->isExpired()) {

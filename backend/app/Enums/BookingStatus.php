@@ -20,7 +20,7 @@ enum BookingStatus: string
     public function label(): string
     {
         return match($this) {
-            self::AwaitingHostConfirmation => "En attente de confirmation de l'hôte",
+            self::AwaitingHostConfirmation => "En attente de confirmation du partenaire",
             self::Pending   => 'En attente',
             self::Confirmed => 'Confirmée',
             self::Cancelled => 'Annulée',

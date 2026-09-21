@@ -110,8 +110,8 @@ export default function UserInboxPage() {
         <div className="max-w-4xl">
           <h1 className="text-3xl font-bold mb-2">Mes messages</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-8">
-            Messages de la plateforme, des hôtes et des membres de votre compte entreprise. Pour une réservation en
-            cours, ouvrez-la pour échanger avec l&apos;hôte ; sinon, contactez un établissement depuis sa fiche ou
+            Messages de la plateforme, des partenaires et des membres de votre compte entreprise. Pour une réservation en
+            cours, ouvrez-la pour échanger avec le partenaire ; sinon, contactez un établissement depuis sa fiche ou
             répondez directement ici.
           </p>
 
@@ -122,7 +122,7 @@ export default function UserInboxPage() {
               <Inbox className="w-12 h-12 mx-auto text-gray-400 mb-4" />
               <p className="text-gray-600 dark:text-gray-400">Aucun message.</p>
               <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                Les messages liés à vos réservations et les réponses des hôtes apparaîtront ici.
+                Les messages liés à vos réservations et les réponses des partenaires apparaîtront ici.
               </p>
               <Link href="/bookings" className="btn-primary inline-flex items-center gap-2 mt-4">
                 <MessageSquare className="w-4 h-4" />
@@ -140,7 +140,7 @@ export default function UserInboxPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-2">
                         <span className="font-semibold text-gray-900 dark:text-white">
-                          {msg.is_from_platform ? <>Plateforme <Brand /></> : msg.sender?.name ?? 'Hôte'}
+                          {msg.is_from_platform ? <>Plateforme <Brand /></> : msg.sender?.name ?? 'Partenaire'}
                         </span>
                         {!msg.read_at && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary">Nouveau</span>

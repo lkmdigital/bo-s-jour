@@ -117,7 +117,7 @@ class AdminHostController extends Controller
         $host->refresh();
 
         return response()->json([
-            'message' => 'Hôte validé avec succès',
+            'message' => 'Partenaire validé avec succès',
             'data' => $host->load('hostValidationHistory'),
             'compliance_status' => $host->compliance_status,
             'compliance_requirements' => $host->compliance_requirements,
@@ -153,7 +153,7 @@ class AdminHostController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Hôte rejeté avec succès',
+            'message' => 'Partenaire rejeté avec succès',
             'data' => $host->load('hostValidationHistory'),
         ]);
     }
@@ -182,7 +182,7 @@ class AdminHostController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Hôte suspendu avec succès',
+            'message' => 'Partenaire suspendu avec succès',
             'data' => $host,
         ]);
     }
@@ -210,7 +210,7 @@ class AdminHostController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Statut hôte retiré avec succès',
+            'message' => 'Statut partenaire retiré avec succès',
             'data' => $host,
         ]);
     }

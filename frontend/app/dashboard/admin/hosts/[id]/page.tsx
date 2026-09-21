@@ -151,7 +151,7 @@ export default function AdminHostDetailPage() {
       const res = await api.get(`/admin/hosts/${hostId}`);
       setHost(res.data.data || res.data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors du chargement des détails de l’hôte');
+      setError(err.response?.data?.message || 'Erreur lors du chargement des détails du partenaire');
     } finally {
       setLoading(false);
     }
@@ -160,8 +160,8 @@ export default function AdminHostDetailPage() {
   const validateHost = async () => {
     if (!host) return;
     const ok = await confirmAction({
-      title: "Valider le profil d'hôte",
-      message: "Valider ce profil d'hôte ?",
+      title: "Valider le profil de partenaire",
+      message: "Valider ce profil de partenaire ?",
       confirmLabel: 'Valider',
       cancelLabel: 'Annuler',
     });
@@ -171,7 +171,7 @@ export default function AdminHostDetailPage() {
       await api.post(`/admin/hosts/${host.id}/validate`, {});
       await fetchHost();
     } catch (err: any) {
-      setError(err.response?.data?.message || "Erreur lors de la validation de l'hôte");
+      setError(err.response?.data?.message || "Erreur lors de la validation du partenaire");
     } finally {
       setActionLoading(false);
     }
@@ -186,7 +186,7 @@ export default function AdminHostDetailPage() {
       await api.post(`/admin/hosts/${host.id}/reject`, { comment });
       await fetchHost();
     } catch (err: any) {
-      setError(err.response?.data?.message || "Erreur lors du rejet de l'hôte");
+      setError(err.response?.data?.message || "Erreur lors du rejet du partenaire");
     } finally {
       setActionLoading(false);
     }
@@ -249,7 +249,7 @@ export default function AdminHostDetailPage() {
               className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary"
             >
               <ArrowLeft className="w-5 h-5" />
-              Retour à la liste des hôtes
+              Retour à la liste des partenaires
             </Link>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -261,7 +261,7 @@ export default function AdminHostDetailPage() {
                   disabled={actionLoading}
                   className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Valider l&apos;hôte
+                  Valider le partenaire
                 </button>
                 <button
                   type="button"
@@ -269,7 +269,7 @@ export default function AdminHostDetailPage() {
                   disabled={actionLoading}
                   className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Refuser l&apos;hôte
+                  Refuser le partenaire
                 </button>
               </>
             )}
@@ -290,7 +290,7 @@ export default function AdminHostDetailPage() {
                   {host.name}
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  Hôte depuis le{' '}
+                  Partenaire depuis le{' '}
                   {new Date(host.created_at).toLocaleDateString('fr-FR', {
                     year: 'numeric',
                     month: 'long',
@@ -538,7 +538,7 @@ export default function AdminHostDetailPage() {
           </h2>
           {documents.length === 0 ? (
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Aucun document n&apos;a été téléchargé pour cet hôte.
+              Aucun document n&apos;a été téléchargé pour ce partenaire.
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -605,11 +605,11 @@ export default function AdminHostDetailPage() {
         <div className="card mb-8">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Home className="w-5 h-5 text-primary" />
-            Établissements de l’hôte
+            Établissements du partenaire
           </h2>
           {!host.accommodations || host.accommodations.length === 0 ? (
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Aucun établissement n&apos;est encore rattaché à cet hôte.
+              Aucun établissement n&apos;est encore rattaché à ce partenaire.
             </p>
           ) : (
             <div className="space-y-3">
@@ -655,7 +655,7 @@ export default function AdminHostDetailPage() {
             </h2>
             {!host.host_validation_history || host.host_validation_history.length === 0 ? (
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Aucun historique de validation n&apos;est disponible pour cet hôte.
+                Aucun historique de validation n&apos;est disponible pour ce partenaire.
               </p>
             ) : (
               <div className="space-y-3 text-sm">
@@ -712,7 +712,7 @@ export default function AdminHostDetailPage() {
             </h2>
             {!host.admin_notes || host.admin_notes.length === 0 ? (
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Aucune note interne n&apos;a encore été enregistrée pour cet hôte.
+                Aucune note interne n&apos;a encore été enregistrée pour ce partenaire.
               </p>
             ) : (
               <div className="space-y-3 text-sm">

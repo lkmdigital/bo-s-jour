@@ -36,7 +36,7 @@ const MODULES = [
   { icon: Gift, label: 'Programme de fidélité' },
   { icon: Wallet, label: 'Mes avoirs' },
   { icon: UsersIcon, label: 'Espace Entreprise' },
-  { icon: MessagesSquare, label: 'Messagerie avec l’hôte' },
+  { icon: MessagesSquare, label: 'Messagerie avec le partenaire' },
 ];
 
 export default function TravelerLandingPage() {

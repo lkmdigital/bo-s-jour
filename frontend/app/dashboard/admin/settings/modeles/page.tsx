@@ -14,7 +14,7 @@ const EMAIL_TEMPLATES = [
   { name: 'Annulation de réservation', trigger: 'Envoyé lors de l\'annulation d\'un séjour' },
   { name: 'Lien d\'avis post-séjour', trigger: 'Envoyé après la date de départ' },
   { name: 'Rappel d\'activation (voyageur)', trigger: 'Envoyé si le compte reste inactivé' },
-  { name: 'Rappel d\'intégration (hôte)', trigger: 'Envoyé si l\'inscription hôte reste incomplète' },
+  { name: 'Rappel d\'intégration (partenaire)', trigger: 'Envoyé si l\'inscription partenaire reste incomplète' },
   { name: 'Réinitialisation du mot de passe', trigger: 'Envoyé à la demande de l\'utilisateur' },
 ];
 

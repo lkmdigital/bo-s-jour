@@ -162,7 +162,7 @@ export default function AdminAdvancedSettingsPage() {
               <UserPlus className="w-5 h-5 text-primary" /> Inscription
             </h2>
             <div className="flex items-center justify-between">
-              <span className="text-sm">Inscription hôtes autorisée</span>
+              <span className="text-sm">Inscription partenaires autorisée</span>
               <button
                 type="button"
                 onClick={() => setRegistrationHostsEnabled((v) => !v)}

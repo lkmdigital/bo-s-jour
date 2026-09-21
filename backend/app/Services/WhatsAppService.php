@@ -36,7 +36,7 @@ class WhatsAppService
         "BoSéjour — Nouvelle demande de réservation 📩\n"
         . "Établissement : {etablissement}\n"
         . "Séjour demandé : du {arrivee} au {depart}\n"
-        . "Merci de confirmer la disponibilité avant le {echeance} depuis votre espace hôte, sinon la demande sera annulée automatiquement.";
+        . "Merci de confirmer la disponibilité avant le {echeance} depuis votre espace partenaire, sinon la demande sera annulée automatiquement.";
 
     /**
      * Modèle du message au voyageur une fois l'hôte a confirmé. Espaces

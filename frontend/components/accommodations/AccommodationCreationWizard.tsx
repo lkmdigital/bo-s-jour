@@ -189,7 +189,7 @@ export default function AccommodationCreationWizard({
   const steps = useMemo(() => {
     if (mode === 'admin') {
       return [
-        { id: 1, title: 'Sélection de l\'hôte', key: 'host' },
+        { id: 1, title: 'Sélection du partenaire', key: 'host' },
         ...HOST_STEPS.map(step => ({ ...step, id: step.id + 1 })),
       ];
     }
@@ -201,14 +201,14 @@ export default function AccommodationCreationWizard({
   const totalSteps = steps.length;
   const pageTitle = title ?? (mode === 'admin' ? 'Créer un établissement' : 'Ajouter un hébergement');
   const pageSubtitle = subtitle ?? (mode === 'admin'
-    ? 'Ajoutez un établissement au nom d\'un hôte. Toutes les informations seront soumises à validation.'
+    ? 'Ajoutez un établissement au nom d\'un partenaire. Toutes les informations seront soumises à validation.'
     : 'Remplissez le formulaire ci-dessous pour ajouter votre hébergement. Il sera soumis à validation par l\'administrateur.'
   );
   const successTitle = mode === 'admin'
     ? 'Établissement créé avec succès !'
     : 'Hébergement créé avec succès !';
   const successDescription = mode === 'admin'
-    ? 'L\'établissement a été enregistré pour l\'hôte sélectionné. Redirection en cours...'
+    ? 'L\'établissement a été enregistré pour le partenaire sélectionné. Redirection en cours...'
     : 'Votre hébergement a été enregistré et sera soumis à validation par l\'administrateur. Redirection en cours...';
   const [selectedHostId, setSelectedHostId] = useState<string>('');
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -301,7 +301,7 @@ export default function AccommodationCreationWizard({
   const onSubmit = async (data: AccommodationFormData) => {
     if (loading) return; // Empêcher les soumissions multiples
     if (mode === 'admin' && !selectedHostId) {
-      setError('Veuillez sélectionner un hôte avant de continuer.');
+      setError('Veuillez sélectionner un partenaire avant de continuer.');
       setCurrentStep(getStepNumberByKey('host'));
       return;
     }
@@ -642,7 +642,7 @@ export default function AccommodationCreationWizard({
 
   const nextStep = () => {
     if (mode === 'admin' && hostStepNumber === currentStep && !selectedHostId) {
-      setError('Veuillez sélectionner un hôte avant de continuer.');
+      setError('Veuillez sélectionner un partenaire avant de continuer.');
       return;
     }
     if (currentStep < lastStepId) {
@@ -888,23 +888,23 @@ export default function AccommodationCreationWizard({
           {/* Étape 0 : Sélection de l'hôte (admin) */}
           {mode === 'admin' && hostStepNumber !== null && currentStep === hostStepNumber && (
             <div className="card">
-              <h2 className="text-xl font-semibold mb-4">Sélection de l'hôte propriétaire</h2>
+              <h2 className="text-xl font-semibold mb-4">Sélection du partenaire propriétaire</h2>
               {hosts.length === 0 ? (
                 <p className="text-sm text-red-600 dark:text-red-400">
-                  Aucun hôte n'est disponible pour le moment. Veuillez créer un hôte avant d'ajouter un établissement.
+                  Aucun partenaire n'est disponible pour le moment. Veuillez créer un partenaire avant d'ajouter un établissement.
                 </p>
               ) : (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Choisir un hôte <span className="text-red-500">*</span>
+                      Choisir un partenaire <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={selectedHostId}
                       onChange={(e) => setSelectedHostId(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
                     >
-                      <option value="">Sélectionner un hôte</option>
+                      <option value="">Sélectionner un partenaire</option>
                       {hosts.map((host) => (
                         <option key={host.id} value={host.id}>
                           {host.establishment_name || host.name} ({host.email})
@@ -913,7 +913,7 @@ export default function AccommodationCreationWizard({
                     </select>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    L'établissement sera créé et rattaché à l'hôte sélectionné. Vous pourrez gérer ses informations ultérieurement.
+                    L'établissement sera créé et rattaché au partenaire sélectionné. Vous pourrez gérer ses informations ultérieurement.
                   </p>
                 </div>
               )}

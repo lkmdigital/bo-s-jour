@@ -90,7 +90,7 @@ class HostProfileController extends Controller
             'email_verified_at'    => now(),
         ]);
 
-        Log::info('Adresse e-mail hôte modifiée', ['user_id' => $user->id]);
+        Log::info('Adresse e-mail partenaire modifiée', ['user_id' => $user->id]);
 
         return response()->json(['message' => 'Adresse e-mail mise à jour avec succès.', 'email' => $newEmail]);
     }

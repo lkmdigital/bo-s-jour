@@ -81,7 +81,7 @@ class BookingService
 
         if ($blocked) {
             throw new RoomNotAvailableException(
-                'L\'hôte a bloqué cette période. Veuillez choisir d\'autres dates.'
+                'Le partenaire a bloqué cette période. Veuillez choisir d\'autres dates.'
             );
         }
     }
