@@ -1,5 +1,7 @@
 'use client';
 
+import DateRangeFilter from '@/components/common/DateRangeFilter';
+import { FilterSelect } from '@/components/common/FilterBar';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
@@ -67,6 +69,8 @@ export default function HostReservationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'awaiting_host_confirmation' | 'pending' | 'confirmed' | 'cancelled'>('all');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending' | 'paid' | 'failed'>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, per_page: 10, current_page: 1, last_page: 1 });
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -77,7 +81,7 @@ export default function HostReservationsPage() {
       fetchBookings();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, user, statusFilter, paymentFilter, currentPage]);
+  }, [isAuthenticated, user, statusFilter, paymentFilter, dateFrom, dateTo, currentPage]);
 
   const fetchBookings = async () => {
     try {
@@ -92,6 +96,7 @@ export default function HostReservationsPage() {
       // envoyé au backend désormais (BookingController::index le supporte
       // déjà) comme statusFilter juste au-dessus.
       if (paymentFilter !== 'all') params.append('payment_status', paymentFilter);
+      if (dateFrom && dateTo) { params.append('from_date', dateFrom); params.append('to_date', dateTo); }
 
       const response = await api.get(`/bookings?${params.toString()}`);
       const bookingsData = response.data.data || response.data;
@@ -121,7 +126,7 @@ export default function HostReservationsPage() {
   useEffect(() => {
     if (currentPage !== 1) setCurrentPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, paymentFilter]);
+  }, [statusFilter, paymentFilter, dateFrom, dateTo]);
 
   // Retour client 2026-09-16 : "confirmation hôte avant paiement" — endpoints
   // dédiés approve()/refuse() au lieu du PUT générique (voir requests/page.tsx
@@ -192,44 +197,27 @@ export default function HostReservationsPage() {
         </div>
       )}
 
-      {/* Filtres */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-          <Filter className="w-4 h-4" />
-          <span className="text-sm font-medium">Filtres :</span>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {(['all', 'awaiting_host_confirmation', 'pending', 'confirmed', 'cancelled'] as const).map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                statusFilter === status
-                  ? 'bg-bosejour-red text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              {status === 'all' ? 'Tous' : STATUS_CONFIG[status].label}
-            </button>
+      {/* Filtres — style de référence client (2026-09-18) */}
+      <DateRangeFilter
+        from={dateFrom}
+        to={dateTo}
+        onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }}
+        label="Dates de séjour (arrivée)"
+        onReset={() => { setStatusFilter('all'); setPaymentFilter('all'); setDateFrom(''); setDateTo(''); }}
+      >
+        <FilterSelect value={statusFilter} onChange={(v) => setStatusFilter(v as typeof statusFilter)} ariaLabel="Statut">
+          <option value="all">Tous les statuts</option>
+          {(['awaiting_host_confirmation', 'pending', 'confirmed', 'cancelled'] as const).map((status) => (
+            <option key={status} value={status}>{STATUS_CONFIG[status].label}</option>
           ))}
-        </div>
-        <div className="flex gap-2 flex-wrap lg:ml-auto">
-          {(['all', 'pending', 'paid', 'failed'] as const).map((payment) => (
-            <button
-              key={payment}
-              onClick={() => setPaymentFilter(payment)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-1.5 ${
-                paymentFilter === payment
-                  ? 'bg-bosejour-red text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              {payment === 'all' ? 'Tous' : PAYMENT_CONFIG[payment].label}
-            </button>
+        </FilterSelect>
+        <FilterSelect value={paymentFilter} onChange={(v) => setPaymentFilter(v as typeof paymentFilter)} ariaLabel="Paiement">
+          <option value="all">Tous les paiements</option>
+          {(['pending', 'paid', 'failed'] as const).map((payment) => (
+            <option key={payment} value={payment}>{PAYMENT_CONFIG[payment].label}</option>
           ))}
-        </div>
-      </div>
+        </FilterSelect>
+      </DateRangeFilter>
 
       {loading ? (
         <div className="py-16">

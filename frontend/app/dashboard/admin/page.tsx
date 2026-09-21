@@ -223,9 +223,9 @@ export default function AdminDashboardPage() {
           <KpiCard icon={HandCoins} label="Commissions perçues" value={`${formatPrice(stats.accounting.platform_commissions_paid)} FCFA`} href="/dashboard/admin/comptabilite" />
           <KpiCard icon={Hourglass} label="Commissions en attente" value={`${formatPrice(stats.accounting.platform_commissions_pending)} FCFA`} href="/dashboard/admin/comptabilite" />
           <KpiCard icon={ArrowLeftRight} label="Reversements aux hôtes" value={`${formatPrice(stats.accounting.commissions_reversed)} FCFA`} href="/dashboard/admin/comptabilite" />
-          <KpiCard icon={Sun} label="Revenus du jour (fin de période)" value={`${formatPrice(stats.revenue.today)} FCFA`} href="/dashboard/admin/comptabilite" />
-          <KpiCard icon={CalendarRange} label="Revenus du mois (fin de période)" value={`${formatPrice(stats.revenue.this_month)} FCFA`} href="/dashboard/admin/comptabilite" />
-          <KpiCard icon={CalendarDays} label="Revenus de l'année (fin de période)" value={`${formatPrice(stats.revenue.this_year)} FCFA`} href="/dashboard/admin/comptabilite" />
+          <KpiCard icon={CalendarCheck} label="Réservations confirmées (période)" value={stats.bookings.confirmed.toLocaleString('fr-FR')} href="/dashboard/admin/reservations" />
+          <KpiCard icon={AlertTriangle} label="Réservations annulées (période)" value={stats.bookings.cancelled.toLocaleString('fr-FR')} href="/dashboard/admin/reservations" />
+          <KpiCard icon={Clock} label="Réservations en attente de paiement (période)" value={stats.bookings.pending.toLocaleString('fr-FR')} href="/dashboard/admin/reservations" />
         </div>
       </div>
 

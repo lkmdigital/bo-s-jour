@@ -48,7 +48,7 @@ class AdminDashboardController extends Controller
         $totalUsers = $inPeriod(User::query())->count();
         $activeUsers = $inPeriod(User::where('status', 'active'))->count();
         $blockedUsers = $inPeriod(User::where('status', 'blocked'))->count();
-        $newUsers = User::where('created_at', '>=', $startDate)->count();
+        $newUsers = User::where('created_at', '>=', $startDate)->where('created_at', '<=', $endDate)->count();
 
         // Hôtes
         $totalHosts = $inPeriod(User::where('role', 'host'))->count();
@@ -79,7 +79,7 @@ class AdminDashboardController extends Controller
         $confirmedBookings = $inPeriod(Booking::where('status', 'confirmed'))->count();
         $cancelledBookings = $inPeriod(Booking::where('status', 'cancelled'))->count();
         $pendingBookings = $inPeriod(Booking::where('status', 'pending'))->count();
-        $newBookings = Booking::where('created_at', '>=', $startDate)->count();
+        $newBookings = Booking::where('created_at', '>=', $startDate)->where('created_at', '<=', $endDate)->count();
         // Réservations modifiées (updated_at > created_at avec écart significatif)
         $modifiedBookings = $inPeriod(Booking::whereRaw('updated_at > DATE_ADD(created_at, INTERVAL 1 MINUTE)'))->count();
 

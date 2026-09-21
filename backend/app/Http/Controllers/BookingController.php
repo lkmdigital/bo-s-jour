@@ -55,6 +55,15 @@ class BookingController extends Controller
             $query->where('payment_status', $request->payment_status);
         }
 
+        // Filtre par dates de séjour (retour client 2026-09-18 : filtres de période
+        // sur l'espace partenaire) — arrivée comprise entre from_date et to_date.
+        if ($request->filled('from_date')) {
+            $query->whereDate('check_in', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('check_in', '<=', $request->to_date);
+        }
+
         // Filtre par période (upcoming, past, all)
         if ($request->has('period') && $request->period !== 'all') {
             $now = now();

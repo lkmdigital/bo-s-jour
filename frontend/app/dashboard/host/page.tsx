@@ -28,6 +28,7 @@ import {
   Compass,
   ArrowRight,
   AlertTriangle,
+  Clock,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -46,6 +47,10 @@ import {
 } from 'recharts';
 
 interface HostAnalytics {
+  total_bookings: number;
+  confirmed_bookings: number;
+  pending_bookings: number;
+  total_revenue?: number;
   bookings_today: number;
   bookings_this_month: number;
   occupancy_rate: number;
@@ -274,10 +279,10 @@ export default function HostDashboardPage() {
       <div>
         <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Vue d&apos;ensemble</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={CalendarCheck} label="Réservations du jour (fin de période)" value={String(data.bookings_today)} href="/dashboard/host/reservations" />
-          <KpiCard icon={CalendarRange} label="Réservations du mois (fin de période)" value={String(data.bookings_this_month)} href="/dashboard/host/reservations" />
+          <KpiCard icon={CalendarCheck} label="Réservations (période)" value={String(data.total_bookings ?? 0)} href="/dashboard/host/reservations" />
+          <KpiCard icon={CalendarRange} label="Réservations confirmées (période)" value={String(data.confirmed_bookings ?? 0)} href="/dashboard/host/reservations" />
           <KpiCard icon={Percent} label="Taux d'occupation" value={`${data.occupancy_rate}%`} href="/dashboard/host/stats" />
-          <KpiCard icon={BedDouble} label="Chambres disponibles" value={String(data.available_rooms_now)} href="/dashboard/host/rooms" />
+          <KpiCard icon={BedDouble} label="Chambres disponibles (actuellement)" value={String(data.available_rooms_now)} href="/dashboard/host/rooms" />
 
           <KpiCard
             icon={Coins}
@@ -285,14 +290,19 @@ export default function HostDashboardPage() {
             value={`${formatPrice(data.kpis?.average_price_per_room || 0)} FCFA`}
             href="/dashboard/host/stats"
           />
-          <KpiCard icon={Wallet} label="Revenus du jour (fin de période)" value={`${formatPrice(data.daily_revenue || 0)} FCFA`} href="/dashboard/host/finances" />
+          <KpiCard
+            icon={Wallet}
+            label="Panier moyen (période)"
+            value={`${formatPrice(data.confirmed_bookings > 0 ? Math.round((data.total_revenue ?? 0) / data.confirmed_bookings) : 0)} FCFA`}
+            href="/dashboard/host/finances"
+          />
           <KpiCard
             icon={TrendingUp}
             label="Revenus de la période"
             value={`${formatPrice(data.monthly_revenue_current || 0)} FCFA`}
             href="/dashboard/host/finances"
           />
-          <KpiCard icon={TrendingUp} label="Revenus de l'année (fin de période)" value={`${formatPrice(data.annual_revenue)} FCFA`} href="/dashboard/host/finances" />
+          <KpiCard icon={Clock} label="Réservations en attente (période)" value={String(data.pending_bookings ?? 0)} href="/dashboard/host/reservations" />
 
           <KpiCard
             icon={Star}
@@ -303,7 +313,7 @@ export default function HostDashboardPage() {
           <KpiCard icon={Gauge} label={<>Score <Brand /></>} value={`${data.score_bosejour}%`} href="/dashboard/host/stats" />
           <KpiCard
             icon={HandCoins}
-            label="Commissions reversées"
+            label="Commissions reversées (période)"
             value={`${formatPrice(data.accounting?.commissions_reversed || 0)} FCFA`}
             href="/dashboard/host/finances"
           />
