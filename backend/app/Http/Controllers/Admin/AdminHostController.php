@@ -28,7 +28,8 @@ class AdminHostController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('establishment_name', 'like', "%{$search}%");
+                  ->orWhere('establishment_name', 'like', "%{$search}%")
+                  ->orWhereHas('accommodations', fn ($a) => $a->where('name', 'like', "%{$search}%"));
             });
         }
 

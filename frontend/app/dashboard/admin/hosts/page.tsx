@@ -37,6 +37,7 @@ interface Host {
   email: string;
   phone?: string;
   establishment_name?: string;
+  accommodations?: Array<{ id: number; name: string; status: string }>;
   profile_verified: boolean;
   profile_verified_at?: string;
   compliance_status?: 'conforme' | 'non_conforme';
@@ -348,12 +349,28 @@ export default function AdminHostsPage() {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <div className="flex items-center gap-2">
-                          <Home className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
-                            {host.establishment_name || 'Non renseigné'}
-                          </span>
-                        </div>
+                        {/* Établissements réellement créés par le partenaire ; à défaut, le nom saisi sur son profil. */}
+                        {(host.accommodations?.length ?? 0) > 0 ? (
+                          <div className="flex items-start gap-2">
+                            <Home className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                            <div className="text-sm text-gray-700 dark:text-gray-300">
+                              <p className="font-medium">
+                                {host.accommodations!.length} établissement{host.accommodations!.length > 1 ? 's' : ''}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {host.accommodations!.slice(0, 2).map((a) => a.name).join(', ')}
+                                {host.accommodations!.length > 2 ? ` +${host.accommodations!.length - 2}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Home className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              {host.establishment_name || 'Aucun établissement'}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-4 px-4">
                         {getStatusBadge(host.status)}
