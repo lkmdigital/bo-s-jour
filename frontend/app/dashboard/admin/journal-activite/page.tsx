@@ -1,5 +1,7 @@
 'use client';
 
+import DateRangeFilter from '@/components/common/DateRangeFilter';
+import { FilterSearch, FilterSelect } from '@/components/common/FilterBar';
 import { useEffect, useState } from 'react';
 import { History, Search, User as UserIcon, Building2, ChevronDown, ChevronUp } from 'lucide-react';
 import api from '@/lib/api';
@@ -140,52 +142,33 @@ export default function AdminActivityLogPage() {
         encore tracés ici.
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-          <div className="relative lg:col-span-2">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Rechercher…"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
-            />
-          </div>
-          <select
-            value={source}
-            onChange={(e) => { setSource(e.target.value); setPage(1); }}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
-          >
+      <div className="space-y-3">
+        <FilterSearch
+          value={search}
+          onChange={(v) => { setSearch(v); setPage(1); }}
+          onSubmit={(e) => e.preventDefault()}
+          placeholder="Rechercher…"
+          className="w-full"
+        />
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(1); }}
+          label="Période"
+          onReset={() => { setSearch(''); setSource('all'); setAction(''); setDateFrom(''); setDateTo(''); setPage(1); }}
+        >
+          <FilterSelect value={source} onChange={(v) => { setSource(v); setPage(1); }} ariaLabel="Source">
             <option value="all">Toutes les sources</option>
             <option value="user">Utilisateurs</option>
             <option value="accommodation">Établissements</option>
-          </select>
-          <select
-            value={action}
-            onChange={(e) => { setAction(e.target.value); setPage(1); }}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
-          >
+          </FilterSelect>
+          <FilterSelect value={action} onChange={(v) => { setAction(v); setPage(1); }} ariaLabel="Action">
             <option value="">Toutes les actions</option>
             {actions.map((a) => (
               <option key={a} value={a}>{a}</option>
             ))}
-          </select>
-          <div className="flex gap-2 lg:col-span-2">
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-              className="w-full px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
-            />
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-              className="w-full px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
-            />
-          </div>
-        </div>
+          </FilterSelect>
+        </DateRangeFilter>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">

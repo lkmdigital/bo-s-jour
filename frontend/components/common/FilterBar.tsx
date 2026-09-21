@@ -99,4 +99,31 @@ export function FilterResetButton({ onClick, title = 'Réinitialiser les filtres
   );
 }
 
+export function FilterInput({
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+  className = '',
+  min,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  className?: string;
+  min?: string;
+}) {
+  return (
+    <input
+      type={type}
+      min={min}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`${boxClass} bg-white dark:bg-gray-900 px-3 py-2 w-40 ${className}`}
+    />
+  );
+}
+
 export { boxClass as filterBoxClass };

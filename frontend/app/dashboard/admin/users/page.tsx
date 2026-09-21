@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBar, FilterSearch, FilterSelect, FilterResetButton } from '@/components/common/FilterBar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
@@ -243,56 +244,31 @@ export default function AdminUsersPage() {
           </div>
         )}
 
-        {/* Filtres et recherche */}
-        <div className="card mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Rechercher par nom, email, téléphone..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                />
-              </div>
-            </div>
-            <div>
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              >
+        {/* Filtres et recherche — style de référence client (2026-09-18) */}
+        <div className="mb-6 space-y-3">
+          <FilterSearch
+            value={search}
+            onChange={(v) => { setSearch(v); setCurrentPage(1); }}
+            onSubmit={(e) => e.preventDefault()}
+            placeholder="Rechercher par nom, email, téléphone..."
+            className="w-full"
+          />
+          <FilterBar>
+            <FilterSelect value={statusFilter} onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }} ariaLabel="Statut">
                 <option value="all">Tous les statuts</option>
                 <option value="active">Actifs</option>
                 <option value="inactive">Inactifs</option>
                 <option value="blocked">Bloqués</option>
                 <option value="suspended">Suspendus</option>
-              </select>
-            </div>
-            <div>
-              <select
-                value={roleFilter}
-                onChange={(e) => {
-                  setRoleFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              >
+            </FilterSelect>
+            <FilterSelect value={roleFilter} onChange={(v) => { setRoleFilter(v); setCurrentPage(1); }} ariaLabel="Rôle">
                 <option value="all">Tous les rôles</option>
                 <option value="user">Utilisateur</option>
                 <option value="host">Hôte</option>
                 <option value="admin">Admin</option>
-              </select>
-            </div>
-          </div>
+            </FilterSelect>
+            <FilterResetButton onClick={() => { setSearch(''); setStatusFilter('all'); setRoleFilter('all'); setCurrentPage(1); }} />
+          </FilterBar>
         </div>
 
         {/* Liste des utilisateurs */}

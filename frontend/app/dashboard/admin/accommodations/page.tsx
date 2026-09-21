@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBar, FilterSearch, FilterSelect, FilterInput, FilterResetButton } from '@/components/common/FilterBar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
@@ -270,109 +271,62 @@ export default function AdminAccommodationsPage() {
           </div>
         )}
 
-        {/* Filtres et recherche */}
-        <div className="card mb-6 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Rechercher par nom, adresse, ville, hôte..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-            >
+        {/* Filtres et recherche — style de référence client (2026-09-18) */}
+        <div className="mb-6 space-y-3">
+          <FilterSearch
+            value={search}
+            onChange={(v) => { setSearch(v); setCurrentPage(1); }}
+            onSubmit={(e) => e.preventDefault()}
+            placeholder="Rechercher par nom, adresse, ville, hôte..."
+            className="w-full"
+          />
+          <FilterBar>
+            <FilterSelect value={statusFilter} onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }} ariaLabel="Statut">
               <option value="all">Tous les statuts</option>
               <option value="pending">En attente</option>
               <option value="published">Publiés</option>
               <option value="rejected">Rejetés</option>
               <option value="removed">Retirés</option>
               <option value="disabled">Désactivés</option>
-            </select>
-
-            <select
-              value={typeFilter}
-              onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-            >
+            </FilterSelect>
+            <FilterSelect value={typeFilter} onChange={(v) => { setTypeFilter(v); setCurrentPage(1); }} ariaLabel="Type">
               <option value="all">Tous les types</option>
               <option value="hotel">Hôtel</option>
               <option value="lodge">Lodge</option>
               <option value="guesthouse">Maison d'hôtes</option>
               <option value="apartment">Appartement</option>
-            </select>
-
-            <select
-              value={cityFilter}
-              onChange={(e) => { setCityFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-            >
+            </FilterSelect>
+            <FilterSelect value={cityFilter} onChange={(v) => { setCityFilter(v); setCurrentPage(1); }} ariaLabel="Ville">
               <option value="all">Toutes les villes</option>
               {cities.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
-            </select>
-
-            <select
-              value={minRating}
-              onChange={(e) => { setMinRating(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-            >
+            </FilterSelect>
+            <FilterSelect value={minRating} onChange={(v) => { setMinRating(v); setCurrentPage(1); }} ariaLabel="Note">
               <option value="all">Toutes les notes</option>
               <option value="4.5">4.5 et plus</option>
               <option value="4">4 et plus</option>
               <option value="3">3 et plus</option>
               <option value="2">2 et plus</option>
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <input
-              type="number"
-              min="0"
-              placeholder="Prix min (FCFA)"
-              value={minPrice}
-              onChange={(e) => { setMinPrice(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-            />
-            <input
-              type="number"
-              min="0"
-              placeholder="Prix max (FCFA)"
-              value={maxPrice}
-              onChange={(e) => { setMaxPrice(e.target.value); setCurrentPage(1); }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-            />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-            >
-              <option value="created_at">Trier par date</option>
-              <option value="price_per_night">Trier par prix</option>
-              <option value="name">Trier par nom</option>
-              <option value="rating">Trier par note</option>
-            </select>
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-            >
-              <option value="desc">Décroissant</option>
-              <option value="asc">Croissant</option>
-            </select>
-            <button
-              type="button"
+            </FilterSelect>
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterInput type="number" min="0" placeholder="Prix min (FCFA)" value={minPrice} onChange={(v) => { setMinPrice(v); setCurrentPage(1); }} />
+              <span className="text-sm text-gray-500">à</span>
+              <FilterInput type="number" min="0" placeholder="Prix max (FCFA)" value={maxPrice} onChange={(v) => { setMaxPrice(v); setCurrentPage(1); }} />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterSelect value={sortBy} onChange={setSortBy} ariaLabel="Tri">
+                <option value="created_at">Trier par date</option>
+                <option value="price_per_night">Trier par prix</option>
+                <option value="name">Trier par nom</option>
+                <option value="rating">Trier par note</option>
+              </FilterSelect>
+              <FilterSelect value={sortOrder} onChange={setSortOrder} ariaLabel="Ordre">
+                <option value="desc">Décroissant</option>
+                <option value="asc">Croissant</option>
+              </FilterSelect>
+            </div>
+            <FilterResetButton
               onClick={() => {
                 setSearch('');
                 setStatusFilter('all');
@@ -385,11 +339,8 @@ export default function AdminAccommodationsPage() {
                 setSortOrder('desc');
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium transition-colors"
-            >
-              Réinitialiser
-            </button>
-          </div>
+            />
+          </FilterBar>
         </div>
 
         {/* Liste des établissements */}

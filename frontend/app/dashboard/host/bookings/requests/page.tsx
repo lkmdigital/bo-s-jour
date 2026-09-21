@@ -1,5 +1,7 @@
 'use client';
 
+import DateRangeFilter from '@/components/common/DateRangeFilter';
+import { FilterSelect } from '@/components/common/FilterBar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
@@ -64,6 +66,8 @@ export default function BookingRequestsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'awaiting_host_confirmation' | 'pending' | 'confirmed' | 'cancelled'>('all');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending' | 'paid' | 'failed'>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({
     total: 0,
@@ -84,7 +88,7 @@ export default function BookingRequestsPage() {
     if (isAuthenticated && user?.role === 'host') {
       fetchBookings();
     }
-  }, [isAuthenticated, user, statusFilter, paymentFilter, currentPage]);
+  }, [isAuthenticated, user, statusFilter, paymentFilter, dateFrom, dateTo, currentPage]);
 
   const fetchBookings = async () => {
     try {
@@ -103,6 +107,10 @@ export default function BookingRequestsPage() {
       // déjà) comme statusFilter juste au-dessus.
       if (paymentFilter !== 'all') {
         params.append('payment_status', paymentFilter);
+      }
+      if (dateFrom && dateTo) {
+        params.append('from_date', dateFrom);
+        params.append('to_date', dateTo);
       }
 
       const response = await api.get(`/bookings?${params.toString()}`);
@@ -136,7 +144,7 @@ export default function BookingRequestsPage() {
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
-  }, [statusFilter, paymentFilter]);
+  }, [statusFilter, paymentFilter, dateFrom, dateTo]);
 
   // Retour client 2026-09-16 : "confirmation hôte avant paiement" — l'hôte
   // confirme la disponibilité AVANT tout paiement (approve()), ou refuse la
@@ -311,47 +319,28 @@ export default function BookingRequestsPage() {
           </div>
         )}
 
-        {/* Filtres */}
-        <div className="card mb-6">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <span className="font-medium">Filtres :</span>
-            </div>
-            
-            <div className="flex gap-2 flex-wrap">
-              {(['all', 'awaiting_host_confirmation', 'pending', 'confirmed', 'cancelled'] as const).map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    statusFilter === status
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {status === 'all' ? 'Tous' : getStatusBadge(status).label}
-                </button>
+        {/* Filtres — style de référence client (2026-09-18) */}
+        <div className="mb-6">
+          <DateRangeFilter
+            from={dateFrom}
+            to={dateTo}
+            onRangeChange={(f, t) => { setDateFrom(f); setDateTo(t); }}
+            label="Dates de séjour (arrivée)"
+            onReset={() => { setStatusFilter('all'); setPaymentFilter('all'); setDateFrom(''); setDateTo(''); }}
+          >
+            <FilterSelect value={statusFilter} onChange={(v) => setStatusFilter(v as typeof statusFilter)} ariaLabel="Statut">
+              <option value="all">Tous les statuts</option>
+              {(['awaiting_host_confirmation', 'pending', 'confirmed', 'cancelled'] as const).map((status) => (
+                <option key={status} value={status}>{getStatusBadge(status).label}</option>
               ))}
-            </div>
-
-            <div className="flex gap-2 flex-wrap sm:ml-auto">
-              {(['all', 'pending', 'paid', 'failed'] as const).map((payment) => (
-                <button
-                  key={payment}
-                  onClick={() => setPaymentFilter(payment)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                    paymentFilter === payment
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  <CreditCard className="w-4 h-4" />
-                  {payment === 'all' ? 'Tous' : getPaymentStatusBadge(payment).label}
-                </button>
+            </FilterSelect>
+            <FilterSelect value={paymentFilter} onChange={(v) => setPaymentFilter(v as typeof paymentFilter)} ariaLabel="Paiement">
+              <option value="all">Tous les paiements</option>
+              {(['pending', 'paid', 'failed'] as const).map((payment) => (
+                <option key={payment} value={payment}>{getPaymentStatusBadge(payment).label}</option>
               ))}
-            </div>
-          </div>
+            </FilterSelect>
+          </DateRangeFilter>
         </div>
 
         {/* Liste des réservations */}

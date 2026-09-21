@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBar, FilterSearch, FilterSelect, FilterResetButton } from '@/components/common/FilterBar';
 import { useEffect, useState } from 'react';
 import { Gift, Search, Sparkles, X, Tag } from 'lucide-react';
 import api from '@/lib/api';
@@ -241,30 +242,24 @@ export default function AdminPromotionsPage() {
           non conforme.
         </p>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="relative sm:col-span-2">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher un établissement, un code…"
-                value={promoSearch}
-                onChange={(e) => { setPromoSearch(e.target.value); setPage(1); }}
-                className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
-              />
-            </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
-            >
+        <div className="space-y-3">
+          <FilterSearch
+            value={promoSearch}
+            onChange={(v) => { setPromoSearch(v); setPage(1); }}
+            onSubmit={(e) => e.preventDefault()}
+            placeholder="Rechercher un établissement, un code…"
+            className="w-full"
+          />
+          <FilterBar>
+            <FilterSelect value={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1); }} ariaLabel="Statut">
               <option value="all">Tous les statuts</option>
               <option value="active">Actives</option>
               <option value="upcoming">À venir</option>
               <option value="expired">Expirées</option>
               <option value="disabled">Désactivées</option>
-            </select>
-          </div>
+            </FilterSelect>
+            <FilterResetButton onClick={() => { setPromoSearch(''); setStatusFilter('all'); setPage(1); }} />
+          </FilterBar>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
