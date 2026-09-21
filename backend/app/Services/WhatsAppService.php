@@ -48,6 +48,18 @@ class WhatsAppService
         . "Séjour : du {arrivee} au {depart}\n"
         . "Il ne reste plus qu'à payer pour finaliser votre réservation : {lien}";
 
+    /**
+     * Message au voyageur dès l'envoi de sa demande de réservation (texte
+     * fourni par le client, 2026-09-21).
+     */
+    public const DEFAULT_REQUEST_RECEIVED_TEMPLATE =
+        "Votre demande de réservation a bien été enregistrée !\n\n"
+        . "Merci d’avoir choisi *boséjour*.\n\n"
+        . "Votre demande a été transmise à l’établissement pour confirmation de disponibilité.\n\n"
+        . "Dès validation, vous recevrez votre confirmation de disponibilité ainsi qu’un lien de paiement sécurisé pour finaliser votre réservation.\n\n"
+        . "Encore quelques instants… votre séjour prend déjà forme.\n\n"
+        . "*boséjour — Votre séjour commence ici...*";
+
     public function isConfigured(): bool
     {
         return (bool) Setting::get('whatsapp_enabled', false)
@@ -144,6 +156,19 @@ class WhatsAppService
             '{depart}' => $co,
             '{echeance}' => $deadline,
         ]);
+
+        $this->sendText($phone, $msg);
+    }
+
+    /** Accusé de réception de la demande, envoyé au voyageur. */
+    public function sendRequestReceived(Booking $booking): void
+    {
+        $phone = $booking->user->phone ?? null;
+        if (!$phone) {
+            return;
+        }
+
+        $msg = (string) Setting::get('whatsapp_template_request_received', self::DEFAULT_REQUEST_RECEIVED_TEMPLATE);
 
         $this->sendText($phone, $msg);
     }

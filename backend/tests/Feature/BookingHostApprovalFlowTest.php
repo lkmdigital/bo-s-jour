@@ -71,6 +71,18 @@ class BookingHostApprovalFlowTest extends TestCase
         $this->assertTrue($booking->expires_at->between(now()->addHours(23), now()->addHours(25)));
     }
 
+    public function test_traveler_receives_the_request_received_email_when_sending_a_request(): void
+    {
+        Mail::fake();
+        [$host, $accommodation, $room] = $this->makeRoom();
+        $traveler = User::factory()->create(['email' => 'voyageur@example.com']);
+        Sanctum::actingAs($traveler);
+
+        $this->postJson('/api/bookings', $this->bookingPayload($room))->assertCreated();
+
+        Mail::assertSent(\App\Mail\BookingRequestReceived::class, fn ($m) => $m->hasTo('voyageur@example.com'));
+    }
+
     public function test_corporate_deferred_payment_booking_skips_host_approval_and_has_no_expiry(): void
     {
         [$host, $accommodation, $room] = $this->makeRoom();

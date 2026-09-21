@@ -703,6 +703,27 @@ class BookingController extends Controller
                 NotificationLog::record($booking->id, 'booking_request', 'sms', 'host', $booking->accommodation?->host?->phone, false, $e->getMessage());
             }
 
+            // Accusé de réception au voyageur (texte fourni par le client, 2026-09-21).
+            // Toujours la personne qui a réservé (et paie), pas le voyageur tiers éventuel.
+            $travelerEmail = $booking->user?->email;
+            if ($travelerEmail) {
+                try {
+                    \Illuminate\Support\Facades\Mail::to($travelerEmail)->send(new \App\Mail\BookingRequestReceived($booking));
+                    NotificationLog::record($booking->id, 'booking_request_received', 'email', 'traveler', $travelerEmail, true);
+                } catch (\Throwable $e) {
+                    Log::error('Booking request received email (traveler) failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+                    NotificationLog::record($booking->id, 'booking_request_received', 'email', 'traveler', $travelerEmail, false, $e->getMessage());
+                }
+            }
+
+            try {
+                app(\App\Services\WhatsAppService::class)->sendRequestReceived($booking);
+                NotificationLog::record($booking->id, 'booking_request_received', 'whatsapp', 'traveler', $booking->user?->phone, true);
+            } catch (\Throwable $e) {
+                Log::error('Booking request received WhatsApp (traveler) failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+                NotificationLog::record($booking->id, 'booking_request_received', 'whatsapp', 'traveler', $booking->user?->phone, false, $e->getMessage());
+            }
+
             try {
                 app(\App\Services\WhatsAppService::class)->sendNewRequestNotification($booking);
                 NotificationLog::record($booking->id, 'booking_request', 'whatsapp', 'host', $booking->accommodation?->host?->phone, true);

@@ -688,15 +688,18 @@ export default function BookingDetailPage() {
                 {booking.status === 'awaiting_host_confirmation' && (
                   <div className="card">
                     <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5 text-orange-500" />
-                      Statut de votre demande
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      Votre demande de réservation a bien été enregistrée !
                     </h3>
-                    <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
-                      <p className="text-sm text-orange-800 dark:text-orange-400">
-                        Votre demande est en attente de confirmation par le partenaire. Vous serez invité à payer dès qu'elle sera acceptée.
-                      </p>
+                    <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 space-y-3 text-sm text-orange-900 dark:text-orange-300">
+                      {/* Texte fourni par le client (2026-09-21) */}
+                      <p>Merci d’avoir choisi <strong>boséjour</strong>.</p>
+                      <p>Votre demande a été transmise à l’établissement pour confirmation de disponibilité.</p>
+                      <p>Dès validation, vous recevrez votre confirmation de disponibilité ainsi qu’un lien de paiement sécurisé pour finaliser votre réservation.</p>
+                      <p className="italic">Encore quelques instants… votre séjour prend déjà forme.</p>
+                      <p className="font-semibold">boséjour — Votre séjour commence ici...</p>
                       {booking.expires_at && (
-                        <p className="text-xs text-orange-700 dark:text-orange-500 mt-2">
+                        <p className="text-xs text-orange-700 dark:text-orange-500 pt-1 border-t border-orange-200 dark:border-orange-800">
                           Réponse attendue avant le {format(new Date(booking.expires_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}.
                         </p>
                       )}
