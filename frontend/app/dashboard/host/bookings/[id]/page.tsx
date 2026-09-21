@@ -661,28 +661,36 @@ export default function HostBookingDetailPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Garantie de réservation</span>
-                    <span className="font-medium">{formatPrice(booking.deposit_amount || 0)} FCFA</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Montant payé</span>
-                    <span className="font-medium text-green-600 dark:text-green-400">
-                      {formatPrice(booking.amount_paid || 0)} FCFA
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Reste à payer</span>
-                    <span className={`font-medium ${
-                      (booking.total_price - (booking.amount_paid || 0)) > 0
-                        ? 'text-orange-600 dark:text-orange-400'
-                        : 'text-green-600 dark:text-green-400'
-                    }`}>
-                      {formatPrice(booking.total_price - (booking.amount_paid || 0))} FCFA
-                    </span>
-                  </div>
-                </div>
+                {/* Retour client 2026-09-21 : la réduction de 5 % du paiement en ligne ne
+                    concerne que boséjour et le voyageur — pour un paiement intégral, le
+                    partenaire voit le prix plein de son établissement, réglé en totalité. */}
+                {(() => {
+                  const fullPaid = booking.payment_type === 'full' && booking.payment_status === 'paid';
+                  const paid = fullPaid ? booking.total_price : (booking.amount_paid || 0);
+                  const remaining = Math.max(0, booking.total_price - paid);
+                  return (
+                    <div className="space-y-2">
+                      {booking.payment_type !== 'full' && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Garantie de réservation</span>
+                          <span className="font-medium">{formatPrice(booking.deposit_amount || 0)} FCFA</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Montant payé</span>
+                        <span className="font-medium text-green-600 dark:text-green-400">
+                          {formatPrice(paid)} FCFA
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Reste à payer</span>
+                        <span className={`font-medium ${remaining > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {formatPrice(remaining)} FCFA
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {booking.deposit_paid_at && (
                   <div className="pt-3 border-t border-gray-200 dark:border-gray-700">

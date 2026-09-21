@@ -30,6 +30,8 @@ interface PaymentReceiptProps {
     check_out: string;
     guests: number;
     total_price: number;
+    payment_type?: 'full' | 'guarantee';
+    payment_status?: string;
     accommodation: {
       id: number;
       name: string;
@@ -156,9 +158,19 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
     });
   };
 
+  // Retour client 2026-09-21 : la réduction du paiement en ligne (5 %) ne
+  // concerne que boséjour et le voyageur. Le partenaire voit son établissement
+  // au prix plein et le paiement intégral comme réglé en totalité.
+  const hideOnlineDiscount = userRole === 'host' && booking.payment_type === 'full' && booking.payment_status === 'paid';
+  const rawPaid = payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
+  const shownAmount = (amount: number) =>
+    hideOnlineDiscount && rawPaid > 0 && rawPaid < booking.total_price
+      ? Math.round((amount * booking.total_price) / rawPaid)
+      : amount;
+
   const generateReceiptHTML = () => {
     const completedPayments = payments.filter(p => p.status === 'completed');
-    const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalPaid = completedPayments.reduce((sum, p) => sum + shownAmount(p.amount), 0);
     
     return `
 <!DOCTYPE html>
@@ -303,7 +315,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
     <div class="payment-item">
       <div class="info-row">
         <span class="info-label">Paiement #${index + 1}</span>
-        <span>${formatPrice(payment.amount)} FCFA</span>
+        <span>${formatPrice(shownAmount(payment.amount))} FCFA</span>
       </div>
       <div class="info-row">
         <span class="info-label">Type:</span>
@@ -364,7 +376,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
   };
 
   const completedPayments = payments.filter(p => p.status === 'completed');
-  const totalPaid = completedPayments.reduce((sum, p) => sum + p.amount, 0);
+  const totalPaid = completedPayments.reduce((sum, p) => sum + shownAmount(p.amount), 0);
 
   if (loading) {
     return (
@@ -512,7 +524,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
                     </span>
                   </div>
                   <span className="text-lg font-bold text-primary">
-                    {formatPrice(payment.amount)} FCFA
+                    {formatPrice(shownAmount(payment.amount))} FCFA
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
