@@ -49,7 +49,6 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({
     total: 0,
@@ -79,7 +78,7 @@ export default function AdminUsersPage() {
     if (isAuthenticated && user && isAdmin(user)) {
       fetchUsers();
     }
-  }, [isAuthenticated, user, currentPage, statusFilter, roleFilter, search]);
+  }, [isAuthenticated, user, currentPage, statusFilter, search]);
 
   const fetchUsers = async () => {
     try {
@@ -91,7 +90,11 @@ export default function AdminUsersPage() {
       };
       if (search) params.search = search;
       if (statusFilter !== 'all') params.status = statusFilter;
-      if (roleFilter !== 'all') params.role = roleFilter;
+      // Retour client 2026-09-22 : cette page ("Clients" dans le menu) ne doit
+      // afficher que les voyageurs — les partenaires ont leur propre page
+      // (Gestion des Partenaires) et les comptes admin la leur (Paramètres >
+      // Utilisateurs). Fixé, plus un filtre laissé au choix de l'admin.
+      params.role = 'user';
 
       const response = await api.get('/admin/users', { params });
       setUsers(response.data.data || []);
@@ -261,13 +264,7 @@ export default function AdminUsersPage() {
                 <option value="blocked">Bloqués</option>
                 <option value="suspended">Suspendus</option>
             </FilterSelect>
-            <FilterSelect value={roleFilter} onChange={(v) => { setRoleFilter(v); setCurrentPage(1); }} ariaLabel="Rôle">
-                <option value="all">Tous les rôles</option>
-                <option value="user">Utilisateur</option>
-                <option value="host">Partenaire</option>
-                <option value="admin">Admin</option>
-            </FilterSelect>
-            <FilterResetButton onClick={() => { setSearch(''); setStatusFilter('all'); setRoleFilter('all'); setCurrentPage(1); }} />
+            <FilterResetButton onClick={() => { setSearch(''); setStatusFilter('all'); setCurrentPage(1); }} />
           </FilterBar>
         </div>
 
