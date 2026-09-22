@@ -17,14 +17,17 @@ const COLUMNS = [
     ],
   },
   {
+    // Retour client 2026-09-22 : les liens doivent correspondre aux mêmes
+    // types de propriétés que les onglets de la barre de recherche de
+    // l'accueil (HeroSection.PROPERTY_TYPES) — le footer proposait des
+    // types (Villas, Cabines, Glamping, Dômes) qui n'existent nulle part
+    // ailleurs dans le site (aucun onglet, aucune valeur réelle filtrée).
     title: 'Types de propriétés',
     links: [
-      { label: 'Hôtels', href: '/accommodations?type=hotel' },
-      { label: 'Appartements', href: '/accommodations?type=apartment' },
-      { label: 'Villas', href: '/accommodations?type=villa' },
-      { label: 'Cabines', href: '/accommodations?type=cabine' },
-      { label: 'Glamping', href: '/accommodations?type=glamping' },
-      { label: 'Dômes', href: '/accommodations?type=dome' },
+      { label: 'Hôtel', href: '/accommodations?type=hotel' },
+      { label: 'Écolodge', href: '/accommodations?type=lodge' },
+      { label: "Maison d'hôtes", href: '/accommodations?type=guesthouse' },
+      { label: 'Résidence', href: '/accommodations?type=apartment' },
     ],
   },
   {
