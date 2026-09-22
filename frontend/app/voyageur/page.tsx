@@ -50,8 +50,7 @@ export default function TravelerLandingPage() {
           <p className="font-slogan text-3xl sm:text-4xl text-primary mb-3">Votre prochain séjour commence ici</p>
           <h1 className="text-3xl sm:text-5xl font-bold mb-5">Rejoignez <Brand variant="light" />, la plateforme qui connecte les voyageurs aux meilleurs hébergements</h1>
           <p className="text-gray-300 text-lg mb-8">
-            Trouvez des hébergements vérifiés, réservez en toute confiance et payez en sécurité — où que vous alliez
-            en Côte d&apos;Ivoire.
+            Trouvez des hébergements vérifiés, réservez en toute confiance et payez en sécurité.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/auth/register" className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-base">
