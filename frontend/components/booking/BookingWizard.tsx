@@ -14,6 +14,7 @@ import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { formatPrice, resolveImageUrl, cn, toDateInputValue, getRoomCategoryLabel } from '@/lib/utils';
 import { Input } from '@/components/ui';
 import DateSelector from '@/components/booking/DateSelector';
+import { guestsSummary } from '@/components/common/GuestsPicker';
 import PhoneInput from '@/components/common/PhoneInput';
 import { useUnavailableDates } from '@/hooks/useCalendar';
 
@@ -44,6 +45,7 @@ interface Props {
   initialCheckIn?: string;
   initialCheckOut?: string;
   initialGuests?: number;
+  initialChildren?: number;
   cancellationPolicyHours?: number | null;
   loyaltyProgramJoined?: boolean;
   // Retour client 2026-09-02 (Partie 4.11) : "Autre petit déjeuner" — relié
@@ -112,7 +114,7 @@ function isPastDate(dateStr?: string): boolean {
   return d < today;
 }
 
-function readDraftDates(accommodationId: number, roomId?: number): { checkIn?: string; checkOut?: string; guests?: number } {
+function readDraftDates(accommodationId: number, roomId?: number): { checkIn?: string; checkOut?: string; guests?: number; children?: number } {
   if (typeof window === 'undefined') return {};
   try {
     const raw = sessionStorage.getItem(draftDatesKey(accommodationId, roomId));
@@ -146,6 +148,7 @@ export default function BookingWizard(props: Props) {
   const [checkIn, setCheckIn] = useState(() => initialDates.checkIn || readDraftDates(props.accommodationId, props.roomId).checkIn || '');
   const [checkOut, setCheckOut] = useState(() => initialDates.checkOut || readDraftDates(props.accommodationId, props.roomId).checkOut || '');
   const [guests, setGuests] = useState(() => props.initialGuests || readDraftDates(props.accommodationId, props.roomId).guests || 1);
+  const [children, setChildren] = useState(() => Math.max(0, props.initialChildren ?? readDraftDates(props.accommodationId, props.roomId).children ?? 0));
   const [editingDates, setEditingDates] = useState(() => {
     const draft = readDraftDates(props.accommodationId, props.roomId);
     const hasCheckIn = !!(initialDates.checkIn || draft.checkIn);
@@ -161,13 +164,13 @@ export default function BookingWizard(props: Props) {
     try {
       sessionStorage.setItem(
         draftDatesKey(props.accommodationId, props.roomId),
-        JSON.stringify({ checkIn, checkOut, guests })
+        JSON.stringify({ checkIn, checkOut, guests, children })
       );
     } catch {
       // sessionStorage indisponible (navigation privée stricte…) : dégrade
       // silencieusement, le voyageur devra resélectionner ses dates.
     }
-  }, [checkIn, checkOut, guests, props.accommodationId, props.roomId]);
+  }, [checkIn, checkOut, guests, children, props.accommodationId, props.roomId]);
 
   // 'guest' par défaut (étape "Compte" supprimée du tunnel — voir STEP_SEQUENCE) :
   // "Continuer sans compte" était déjà l'option recommandée/pré-sélectionnée.
@@ -367,6 +370,7 @@ export default function BookingWizard(props: Props) {
         check_in: checkIn,
         check_out: checkOut,
         guests,
+        children: children > 0 ? children : undefined,
         traveler_type: travelerType,
         residence_country: residenceCountry || null,
         residence_city: residenceCity || null,
@@ -452,17 +456,18 @@ export default function BookingWizard(props: Props) {
               {editingDates ? (
                 <>
                   <DateSelector
-                    onDatesSelected={(ci, co, g) => { setCheckIn(toDateInputValue(ci)); setCheckOut(toDateInputValue(co)); setGuests(g); setEditingDates(false); }}
+                    onDatesSelected={(ci, co, g, c) => { setCheckIn(toDateInputValue(ci)); setCheckOut(toDateInputValue(co)); setGuests(g); setChildren(c); setEditingDates(false); }}
                     initialCheckIn={checkIn ? new Date(checkIn) : undefined}
                     initialCheckOut={checkOut ? new Date(checkOut) : undefined}
                     initialGuests={guests}
+                    initialChildren={children}
                     disabledDates={unavailableDates}
                   />
                 </>
               ) : (
                 <div className="flex flex-wrap gap-4">
                   <div className="flex items-center gap-2 text-sm"><Calendar className="w-4 h-4 text-primary" /> {checkIn} → {checkOut}</div>
-                  <div className="flex items-center gap-2 text-sm"><Users className="w-4 h-4 text-primary" /> {guests} voyageur{guests > 1 ? 's' : ''}</div>
+                  <div className="flex items-center gap-2 text-sm"><Users className="w-4 h-4 text-primary" /> {guestsSummary(guests - children, children)}</div>
                   <button onClick={() => setEditingDates(true)} className="text-sm text-primary font-medium hover:underline">Modifier</button>
                 </div>
               )}
@@ -704,7 +709,7 @@ export default function BookingWizard(props: Props) {
                   ...(props.roomCategory ? [['Type de chambre', getRoomCategoryLabel(props.roomCategory)]] : []),
                   ['Dates', `${checkIn} → ${checkOut} (${quote?.nights ?? ''} nuit${(quote?.nights ?? 0) > 1 ? 's' : ''})`],
                   ...(estimatedArrivalTime ? [['Heure d\'arrivée prévisionnelle', estimatedArrivalTime]] : []),
-                  ['Voyageurs', `${guests}`],
+                  ['Voyageurs', guestsSummary(guests - children, children)],
                   ...(canBookMultipleRooms ? [['Nombre de chambres', `${roomsQuantity}`]] : []),
                   ...(extraBreakfast && canOfferExtraBreakfast
                     ? [['Petit-déjeuner supplémentaire', `${extraBreakfastQty} × ${formatPrice(props.breakfastPrice || 0)} FCFA = ${formatPrice(extraBreakfastQty * (props.breakfastPrice || 0))} FCFA`]]

@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Users } from 'lucide-react';
+import GuestsPicker from '@/components/common/GuestsPicker';
 import { differenceInDays } from 'date-fns';
 import BookingStyleDateRange from './BookingStyleDateRange';
 
 interface DateSelectorProps {
-  onDatesSelected: (checkIn: Date, checkOut: Date, guests: number) => void;
+  onDatesSelected: (checkIn: Date, checkOut: Date, guests: number, children: number) => void;
   initialCheckIn?: Date;
   initialCheckOut?: Date;
+  /** Total voyageurs (adultes + enfants). */
   initialGuests?: number;
+  initialChildren?: number;
   minDate?: Date;
   /** Dates indisponibles (YYYY-MM-DD) pour griser dans le calendrier */
   disabledDates?: string[];
@@ -25,12 +27,15 @@ export default function DateSelector({
   initialCheckIn,
   initialCheckOut,
   initialGuests = 1,
+  initialChildren = 0,
   minDate = new Date(),
   disabledDates = [],
 }: DateSelectorProps) {
   const [checkIn, setCheckIn] = useState<Date | null>(initialCheckIn || null);
   const [checkOut, setCheckOut] = useState<Date | null>(initialCheckOut || null);
-  const [guests, setGuests] = useState(initialGuests);
+  const [children, setChildren] = useState(Math.min(initialChildren, Math.max(0, initialGuests - 1)));
+  const [adults, setAdults] = useState(initialGuests - Math.min(initialChildren, Math.max(0, initialGuests - 1)));
+  const guests = adults + children;
   const [errors, setErrors] = useState<{ checkIn?: string; checkOut?: string }>({});
 
   // Mise en ligne horizontale déclenchée par la largeur RÉELLE du conteneur (via
@@ -86,7 +91,7 @@ export default function DateSelector({
 
     setErrors({});
     if (checkIn && checkOut) {
-      onDatesSelected(checkIn, checkOut, guests);
+      onDatesSelected(checkIn, checkOut, guests, children);
     }
   };
 
@@ -125,19 +130,11 @@ export default function DateSelector({
           )}
         </div>
 
-        <div className={`shrink-0 ${isRowLayout ? 'w-32' : ''}`}>
+        <div className={`shrink-0 ${isRowLayout ? 'w-52' : ''}`}>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            <Users className="w-4 h-4 inline mr-1" />
             Voyageurs
           </label>
-          <input
-            type="number"
-            min="1"
-            max="20"
-            value={guests}
-            onChange={(e) => setGuests(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
+          <GuestsPicker adults={adults} children={children} onChange={(a, c) => { setAdults(a); setChildren(c); }} />
         </div>
 
         <div className="shrink-0">

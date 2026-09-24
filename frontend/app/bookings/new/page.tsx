@@ -54,6 +54,7 @@ function NewBookingContent() {
   const initialCheckIn = searchParams?.get('check_in') || session?.checkIn || undefined;
   const initialCheckOut = searchParams?.get('check_out') || session?.checkOut || undefined;
   const initialGuests = searchParams?.get('guests') ? parseInt(searchParams.get('guests')!, 10) : (session?.guests ?? undefined);
+  const initialChildren = searchParams?.get('children') ? parseInt(searchParams.get('children')!, 10) : (session?.children ?? undefined);
   
   const [accommodation, setAccommodation] = useState<Accommodation | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
@@ -155,6 +156,7 @@ function NewBookingContent() {
             initialCheckIn={initialCheckIn}
             initialCheckOut={initialCheckOut}
             initialGuests={initialGuests}
+            initialChildren={initialChildren}
             breakfastIncluded={accommodation.breakfast_included}
             breakfastIncludedPersons={accommodation.breakfast_included_persons}
             breakfastPrice={accommodation.breakfast_price}

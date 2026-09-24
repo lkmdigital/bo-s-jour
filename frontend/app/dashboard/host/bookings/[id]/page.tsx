@@ -38,6 +38,7 @@ import PaymentReceipt from '@/components/payment/PaymentReceipt';
 import ModifyBookingDatesModal from '@/components/booking/ModifyBookingDatesModal';
 import { differenceInDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { guestsSummary } from '@/components/common/GuestsPicker';
 
 interface BookingDetail {
   id: number;
@@ -46,6 +47,7 @@ interface BookingDetail {
   assigned_room_number?: string | null;
   check_out: string;
   guests: number;
+  children?: number;
   rooms_quantity?: number;
   was_modified?: boolean;
   extra_breakfast_quantity?: number;
@@ -470,7 +472,7 @@ export default function HostBookingDetailPage() {
                   <div>
                     <p className="font-semibold">Nombre de voyageurs</p>
                     <p className="text-gray-600 dark:text-gray-400">
-                      {booking.guests} {booking.guests > 1 ? 'voyageurs' : 'voyageur'}
+                      {(booking.children ?? 0) > 0 ? guestsSummary(booking.guests - (booking.children ?? 0), booking.children ?? 0) : `${booking.guests} ${booking.guests > 1 ? 'voyageurs' : 'voyageur'}`}
                     </p>
                   </div>
                 </div>

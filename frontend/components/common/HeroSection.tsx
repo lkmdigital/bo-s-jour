@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Building2, Home, BedDouble, TreePalm, Minus, Plus } from 'lucide-react';
 import SearchInputWithAutocomplete from './SearchInputWithAutocomplete';
+import GuestsPicker from './GuestsPicker';
 import { useSearchStore } from '@/stores/searchStore';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
@@ -13,6 +14,7 @@ interface SearchParams {
   checkIn?: string;
   checkOut?: string;
   guests?: number;
+  children?: number;
   rooms?: number;
   city?: string;
   type?: string;
@@ -69,34 +71,12 @@ function DateField({ label, value, onChange, min, disabled }: {
   );
 }
 
-/** Nombre de voyageurs : champ − / + de la barre de recherche (retour client 2026-09-21). */
-function GuestsField({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+/** Voyageurs (adultes / enfants) : cellule de la barre de recherche (retours client 2026-09-21 et 2026-09-24). */
+function GuestsField({ adults, children, onChange }: { adults: number; children: number; onChange: (a: number, c: number) => void }) {
   return (
     <div className="flex-1 px-5 py-3 lg:border-r border-gray-200">
       <p className="text-[15px] font-semibold text-gray-900 mb-0.5">Voyageurs</p>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          aria-label="Retirer un voyageur"
-          onClick={() => onChange(Math.max(1, value - 1))}
-          disabled={value <= 1}
-          className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center hover:border-gray-900 disabled:opacity-40 disabled:hover:border-gray-300"
-        >
-          <Minus className="w-3.5 h-3.5" />
-        </button>
-        <span className="text-sm text-gray-700 min-w-[5.5rem] text-center">
-          {value} voyageur{value > 1 ? 's' : ''}
-        </span>
-        <button
-          type="button"
-          aria-label="Ajouter un voyageur"
-          onClick={() => onChange(Math.min(20, value + 1))}
-          disabled={value >= 20}
-          className="w-7 h-7 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center hover:border-gray-900 disabled:opacity-40 disabled:hover:border-gray-300"
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      <GuestsPicker variant="bar" adults={adults} children={children} onChange={onChange} />
     </div>
   );
 }
@@ -108,7 +88,10 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
   const [checkIn, setCheckIn] = useState(initialValues?.checkIn || session?.checkIn || '');
   const [checkOut, setCheckOut] = useState(initialValues?.checkOut || session?.checkOut || '');
   const [type, setType] = useState(initialValues?.type || session?.type || 'hotel');
-  const [guests, setGuests] = useState(initialValues?.guests || session?.guests || 1);
+  const initialChildren = initialValues?.children ?? session?.children ?? 0;
+  const initialTotal = initialValues?.guests || session?.guests || 1;
+  const [children, setChildren] = useState(Math.min(initialChildren, initialTotal - 1));
+  const [adults, setAdults] = useState(initialTotal - Math.min(initialChildren, initialTotal - 1));
   const [slide, setSlide] = useState(0);
 
   useEffect(() => {
@@ -123,7 +106,11 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
       setSearch(session.search || '');
       setCity(session.city || '');
       if (session.type) setType(session.type);
-      if (session.guests) setGuests(session.guests);
+      if (session.guests) {
+        const c = Math.min(session.children ?? 0, session.guests - 1);
+        setChildren(c);
+        setAdults(session.guests - c);
+      }
     }
   }, [session]);
 
@@ -137,7 +124,8 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
       city: city.trim() || undefined,
       checkIn: checkIn || undefined,
       checkOut: checkOut || undefined,
-      guests,
+      guests: adults + children,
+      children: children > 0 ? children : undefined,
       type,
     };
     setSearchSession(params);
@@ -233,7 +221,7 @@ export default function HeroSection({ onSearch, initialValues }: HeroSectionProp
               onChange={setCheckOut} />
 
             {/* Voyageurs */}
-            <GuestsField value={guests} onChange={setGuests} />
+            <GuestsField adults={adults} children={children} onChange={(a, c) => { setAdults(a); setChildren(c); }} />
 
             {/* Bouton Rechercher */}
             <div className="p-2 flex">

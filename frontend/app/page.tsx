@@ -84,6 +84,7 @@ export default function Home() {
     checkIn?: string;
     checkOut?: string;
     guests?: number;
+    children?: number;
     rooms?: number;
     city?: string;
     type?: string;

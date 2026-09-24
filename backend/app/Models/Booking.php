@@ -58,6 +58,7 @@ class Booking extends Model
         'check_in',
         'check_out',
         'guests',
+        'children',
         'estimated_arrival_time',
         'extra_breakfast_quantity',
         'extra_breakfast_unit_price',

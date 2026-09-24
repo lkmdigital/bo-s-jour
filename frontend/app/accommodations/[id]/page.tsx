@@ -180,9 +180,11 @@ export default function AccommodationDetailPage() {
   const urlCheckIn = searchParams?.get('check_in');
   const urlCheckOut = searchParams?.get('check_out');
   const urlGuests = searchParams?.get('guests');
+  const urlChildren = searchParams?.get('children');
   const storedOrUrlCheckIn = urlCheckIn || session?.checkIn;
   const storedOrUrlCheckOut = urlCheckOut || session?.checkOut;
   const storedOrUrlGuests = urlGuests ? parseInt(urlGuests, 10) : (session?.guests ?? 1);
+  const storedOrUrlChildren = urlChildren ? parseInt(urlChildren, 10) : (session?.children ?? 0);
 
   // Retour à la recherche : on reconstruit les filtres depuis la session mémorisée
   // (SearchInputWithAutocomplete/HeroSection) pour retomber sur les mêmes résultats.
@@ -193,15 +195,17 @@ export default function AccommodationDetailPage() {
     if (session?.checkIn) qs.set('checkIn', session.checkIn);
     if (session?.checkOut) qs.set('checkOut', session.checkOut);
     if (session?.guests) qs.set('guests', String(session.guests));
+    if (session?.children) qs.set('children', String(session.children));
     if (session?.type) qs.set('type', session.type);
     const query = qs.toString();
     return query ? `/accommodations?${query}` : '/accommodations';
   })();
 
-  const [selectedDates, setSelectedDates] = useState<{ checkIn: Date | null; checkOut: Date | null; guests: number }>({
+  const [selectedDates, setSelectedDates] = useState<{ checkIn: Date | null; checkOut: Date | null; guests: number; children: number }>({
     checkIn: storedOrUrlCheckIn ? new Date(storedOrUrlCheckIn) : null,
     checkOut: storedOrUrlCheckOut ? new Date(storedOrUrlCheckOut) : null,
     guests: Number.isFinite(storedOrUrlGuests) ? storedOrUrlGuests : 1,
+    children: Number.isFinite(storedOrUrlChildren) ? storedOrUrlChildren : 0,
   });
   const [updating, setUpdating] = useState(false);
   const [newStatus, setNewStatus] = useState<'pending' | 'published' | 'rejected' | 'unavailable' | 'renovation' | ''>('');
@@ -242,6 +246,7 @@ export default function AccommodationDetailPage() {
         checkIn: new Date(session.checkIn),
         checkOut: new Date(session.checkOut),
         guests: session.guests ?? 1,
+        children: session.children ?? 0,
       });
     }
   }, [session]);
@@ -301,12 +306,13 @@ export default function AccommodationDetailPage() {
     }
   };
 
-  const handleDatesSelected = async (checkIn: Date, checkOut: Date, guests: number) => {
-    setSelectedDates({ checkIn, checkOut, guests });
+  const handleDatesSelected = async (checkIn: Date, checkOut: Date, guests: number, children: number) => {
+    setSelectedDates({ checkIn, checkOut, guests, children });
     setSearchSession({
       checkIn: toDateInputValue(checkIn),
       checkOut: toDateInputValue(checkOut),
       guests,
+      children,
     });
     await filterRoomsByDates(checkIn, checkOut, guests);
   };

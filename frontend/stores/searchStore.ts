@@ -6,6 +6,8 @@ export interface SearchSession {
   checkIn?: string;
   checkOut?: string;
   guests?: number;
+  /** Part d'enfants dans `guests` (total adultes + enfants). */
+  children?: number;
   rooms?: number;
   city?: string;
   type?: string;
@@ -58,6 +60,7 @@ export const useSearchStore = create<SearchStore>()(
           if (params.checkOut) session.checkOut = params.checkOut;
         }
         if (params.guests != null && params.guests > 0) session.guests = params.guests;
+        if (params.children != null && params.children > 0) session.children = params.children;
         if (params.rooms != null && params.rooms > 0) session.rooms = params.rooms;
         if (params.search) session.search = params.search;
         if (params.city) session.city = params.city;

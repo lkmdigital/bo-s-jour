@@ -15,6 +15,7 @@ import PropertyCard, { PropertyCardData } from '@/components/home/PropertyCard';
 import ResultsMap, { MapItem } from '@/components/accommodations/ResultsMap';
 import { Search, SlidersHorizontal, X, Star, Map, List, Minus, Plus, Users, Gift, LogIn, UserPlus } from 'lucide-react';
 import { cn, toDateInputValue } from '@/lib/utils';
+import { guestsSummary as guestsLabel } from '@/components/common/GuestsPicker';
 
 interface Accommodation {
   id: number;
@@ -118,7 +119,8 @@ function AccommodationsPageContent() {
   const [search, setSearch] = useState(urlParams.get('search') || urlParams.get('city') || '');
   const [checkIn, setCheckIn] = useState(urlParams.get('checkIn') || '');
   const [checkOut, setCheckOut] = useState(urlParams.get('checkOut') || '');
-  const [guests, setGuests] = useState(Number(urlParams.get('guests')) || 1);
+  const [guests, setGuests] = useState(Number(urlParams.get('guests')) || 1); // total adultes + enfants
+  const [children, setChildren] = useState(Math.min(Number(urlParams.get('children')) || 0, Math.max(0, (Number(urlParams.get('guests')) || 1) - 1)));
   const [rooms, setRooms] = useState(Number(urlParams.get('rooms')) || 1);
   const [guestsOpen, setGuestsOpen] = useState(false);
   // Valeurs "appliquées" (déclenchent le fetch) — pour ne chercher qu'au clic
@@ -295,7 +297,7 @@ function AccommodationsPageContent() {
     </div>
   );
 
-  const guestsSummary = `${guests} voyageur${guests > 1 ? 's' : ''} · ${rooms} chambre${rooms > 1 ? 's' : ''}`;
+  const guestsSummary = `${guestsLabel(guests - children, children)} · ${rooms} chambre${rooms > 1 ? 's' : ''}`;
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
@@ -329,7 +331,8 @@ function AccommodationsPageContent() {
                   <div className="fixed inset-0 z-20" onClick={() => setGuestsOpen(false)} />
                   <div className="absolute left-0 top-full mt-2 z-30 w-64 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 p-4">
                     {[
-                      { label: 'Voyageurs', val: guests, set: setGuests, min: 1 },
+                      { label: 'Adultes', val: guests - children, set: (v: number) => setGuests(v + children), min: 1 },
+                      { label: 'Enfants', val: children, set: (v: number) => { setGuests(guests - children + v); setChildren(v); }, min: 0 },
                       { label: 'Chambres', val: rooms, set: setRooms, min: 1 },
                     ].map((row) => (
                       <div key={row.label} className="flex items-center justify-between py-2">

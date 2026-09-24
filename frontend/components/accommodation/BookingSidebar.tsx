@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Calendar, Users, Lock, ShieldCheck, MessageSquare } from 'lucide-react';
 import { formatPrice, toDateInputValue } from '@/lib/utils';
 import DateSelector from '@/components/booking/DateSelector';
+import { guestsSummary } from '@/components/common/GuestsPicker';
 import { useUnavailableDates } from '@/hooks/useCalendar';
 import ComposeMessageModal from '@/components/common/ComposeMessageModal';
 import api from '@/lib/api';
@@ -43,8 +44,8 @@ interface BookingSidebarProps {
   accommodationId: number;
   priceRangeMin: number;
   priceRangeMax: number;
-  selectedDates: { checkIn: Date | null; checkOut: Date | null; guests: number };
-  onDatesSelected: (checkIn: Date, checkOut: Date, guests: number) => void;
+  selectedDates: { checkIn: Date | null; checkOut: Date | null; guests: number; children?: number };
+  onDatesSelected: (checkIn: Date, checkOut: Date, guests: number, children: number) => void;
   priceQuote: PriceQuote | null;
   loadingQuote: boolean;
   // Retour client 2026-09-15 : "ajoute la possibilité qu'un membre écrive à
@@ -88,11 +89,12 @@ export default function BookingSidebar({
     if (selectedDates.checkIn) params.set('check_in', toDateInputValue(selectedDates.checkIn));
     if (selectedDates.checkOut) params.set('check_out', toDateInputValue(selectedDates.checkOut));
     if (selectedDates.guests) params.set('guests', String(selectedDates.guests));
+    if (selectedDates.children) params.set('children', String(selectedDates.children));
     return `/bookings/new?${params.toString()}`;
   })();
 
-  const handleDates = (checkIn: Date, checkOut: Date, guests: number) => {
-    onDatesSelected(checkIn, checkOut, guests);
+  const handleDates = (checkIn: Date, checkOut: Date, guests: number, children: number) => {
+    onDatesSelected(checkIn, checkOut, guests, children);
     setEditingDates(false);
   };
 
@@ -106,6 +108,7 @@ export default function BookingSidebar({
               initialCheckIn={selectedDates.checkIn || undefined}
               initialCheckOut={selectedDates.checkOut || undefined}
               initialGuests={selectedDates.guests}
+              initialChildren={selectedDates.children ?? 0}
               disabledDates={unavailableDates}
             />
             <button
@@ -147,7 +150,7 @@ export default function BookingSidebar({
               <Users className="w-3 h-3" /> Voyageurs
             </p>
             <p className="font-semibold text-gray-900 dark:text-white text-sm mt-0.5">
-              {selectedDates.guests} voyageur{selectedDates.guests > 1 ? 's' : ''}
+              {guestsSummary(selectedDates.guests - (selectedDates.children ?? 0), selectedDates.children ?? 0)}
             </p>
           </button>
         )}

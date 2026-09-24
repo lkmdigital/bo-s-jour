@@ -169,6 +169,8 @@ class BookingController extends Controller
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
             'guests' => 'required|integer|min:1',
+            // Part d'enfants dans `guests` (total) : au moins un adulte doit accompagner.
+            'children' => 'nullable|integer|min:0|lt:guests',
             'estimated_arrival_time' => 'nullable|date_format:H:i',
             // Retour client 2026-09-02 (Partie 4.3) : réservation multi-chambres
             // (plusieurs unités du même type de chambre) — ignoré pour une
@@ -594,6 +596,7 @@ class BookingController extends Controller
                 'check_in' => $request->check_in,
                 'check_out' => $request->check_out,
                 'guests' => $request->guests,
+                'children' => (int) ($request->children ?? 0),
                 'estimated_arrival_time' => $request->estimated_arrival_time,
                 'extra_breakfast_quantity' => $extraBreakfastQuantity,
                 'extra_breakfast_unit_price' => $extraBreakfastUnitPrice,
