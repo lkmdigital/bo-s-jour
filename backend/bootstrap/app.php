@@ -54,6 +54,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'hoststaff' => \App\Http\Middleware\EnsureHostStaffPermission::class,
+            'ops.admin' => \App\Http\Middleware\EnsureOpsAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
