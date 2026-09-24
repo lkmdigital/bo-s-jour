@@ -60,6 +60,7 @@ class SettingsController extends Controller
             'google_maps_api_key' => (string) Setting::get('google_maps_api_key', ''),
             // WhatsApp Business API (Meta) — sensible, jamais exposé publiquement
             'whatsapp_enabled' => (bool) Setting::get('whatsapp_enabled', false),
+            'whatsapp_use_templates' => (bool) Setting::get('whatsapp_use_templates', false),
             'whatsapp_token' => (string) Setting::get('whatsapp_token', ''),
             'whatsapp_phone_id' => (string) Setting::get('whatsapp_phone_id', ''),
             // Module IA (Claude/Anthropic) — sensible, jamais exposé publiquement.
@@ -120,6 +121,7 @@ class SettingsController extends Controller
             'mapbox_token' => 'sometimes|nullable|string|max:255',
             'google_maps_api_key' => 'sometimes|nullable|string|max:255',
             'whatsapp_enabled' => 'sometimes|boolean',
+            'whatsapp_use_templates' => 'sometimes|boolean',
             'whatsapp_token' => 'sometimes|nullable|string|max:1000',
             'whatsapp_phone_id' => 'sometimes|nullable|string|max:100',
             'anthropic_api_key' => 'sometimes|nullable|string|max:255',
@@ -216,6 +218,9 @@ class SettingsController extends Controller
 
         if (array_key_exists('whatsapp_enabled', $data)) {
             Setting::set('whatsapp_enabled', $data['whatsapp_enabled'], 'boolean', 'WhatsApp Business activé');
+        }
+        if (array_key_exists('whatsapp_use_templates', $data)) {
+            Setting::set('whatsapp_use_templates', $data['whatsapp_use_templates'], 'boolean', 'WhatsApp : envoyer via les modèles approuvés Meta');
         }
         if (array_key_exists('whatsapp_token', $data)) {
             Setting::set('whatsapp_token', $data['whatsapp_token'] ?? '', 'string', 'Token WhatsApp Business API');

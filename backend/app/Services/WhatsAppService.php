@@ -15,6 +15,18 @@ use Illuminate\Support\Facades\Log;
 class WhatsAppService
 {
     /**
+     * Noms des modèles approuvés côté Meta (WhatsApp Manager), langue « fr ». Le détail
+     * des textes et de l'ordre des variables est dans modeles-whatsapp-bosejour.md ; toute
+     * modification d'un modèle chez Meta doit être répercutée ici (ordre des variables).
+     */
+    public const TPL_REQUEST_RECEIVED = 'bosejour_demande_recue';
+    public const TPL_NEW_REQUEST = 'bosejour_nouvelle_demande';
+    public const TPL_APPROVED_PLEASE_PAY = 'bosejour_demande_acceptee';
+    public const TPL_CONFIRMATION = 'bosejour_reservation_confirmee';
+    public const TPL_VERIFICATION_CODE = 'bosejour_code_verification';
+    public const TEMPLATE_LANGUAGE = 'fr';
+
+    /**
      * Modèle par défaut du message de confirmation, éditable dans
      * Paramètres > Modèles. Espaces réservés : {etablissement}, {numero},
      * {code}, {arrivee}, {depart}.
@@ -112,6 +124,97 @@ class WhatsAppService
         }
     }
 
+
+    /** Faut-il passer par les modèles approuvés (production) plutôt que le texte libre (tests, fenêtre 24 h) ? */
+    public function usesTemplates(): bool
+    {
+        return (bool) Setting::get('whatsapp_use_templates', false);
+    }
+
+    /**
+     * Envoi d'un modèle approuvé par Meta — seul moyen d'écrire en premier à un client hors
+     * de la fenêtre de 24 h. $bodyParams remplit {{1}}, {{2}}… du corps dans l'ordre ;
+     * $urlButtonParam remplit la variable d'un bouton URL dynamique (index 0).
+     */
+    public function sendTemplate(?string $to, string $template, array $bodyParams = [], ?string $urlButtonParam = null): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+        $to = $this->normalize($to);
+        if (!$to) {
+            return false;
+        }
+
+        $token = (string) Setting::get('whatsapp_token', '');
+        $phoneId = (string) Setting::get('whatsapp_phone_id', '');
+
+        $components = [];
+        if ($bodyParams !== []) {
+            $components[] = [
+                'type' => 'body',
+                'parameters' => array_map(fn ($v) => ['type' => 'text', 'text' => $this->cleanParam($v)], array_values($bodyParams)),
+            ];
+        }
+        if ($urlButtonParam !== null) {
+            $components[] = [
+                'type' => 'button',
+                'sub_type' => 'url',
+                'index' => '0',
+                'parameters' => [['type' => 'text', 'text' => $urlButtonParam]],
+            ];
+        }
+
+        $payload = [
+            'messaging_product' => 'whatsapp',
+            'recipient_type' => 'individual',
+            'to' => $to,
+            'type' => 'template',
+            'template' => [
+                'name' => $template,
+                'language' => ['code' => self::TEMPLATE_LANGUAGE],
+            ],
+        ];
+        if ($components !== []) {
+            $payload['template']['components'] = $components;
+        }
+
+        try {
+            $res = Http::withToken($token)
+                ->acceptJson()
+                ->post("https://graph.facebook.com/v20.0/{$phoneId}/messages", $payload);
+
+            if (!$res->successful()) {
+                Log::warning('WhatsApp template send failed', ['template' => $template, 'status' => $res->status(), 'body' => $res->body(), 'to' => $to]);
+                return false;
+            }
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('WhatsApp template send exception', ['template' => $template, 'error' => $e->getMessage(), 'to' => $to]);
+            return false;
+        }
+    }
+
+    /**
+     * Envoie via le modèle approuvé quand le mode « modèles » est activé, avec repli sur le
+     * texte libre si Meta refuse le modèle (pas encore approuvé, variable invalide…) : le
+     * repli ne marche que dans la fenêtre de 24 h, mais évite de perdre le message en test.
+     */
+    protected function deliver(?string $to, string $template, array $bodyParams, string $fallbackText, ?string $urlButtonParam = null): bool
+    {
+        if ($this->usesTemplates() && $this->sendTemplate($to, $template, $bodyParams, $urlButtonParam)) {
+            return true;
+        }
+        return $this->sendText($to, $fallbackText);
+    }
+
+    /** Meta refuse les retours à la ligne, tabulations et suites de 4 espaces dans une variable. */
+    private function cleanParam(mixed $value): string
+    {
+        $v = trim(preg_replace('/\s+/', ' ', (string) $value));
+        return $v !== '' ? $v : '—';
+    }
+
     /** Confirmation de réservation au voyageur (double canal avec l'e-mail). */
     public function sendBookingConfirmation(Booking $booking): void
     {
@@ -134,7 +237,7 @@ class WhatsAppService
             '{depart}' => $co,
         ]);
 
-        $this->sendText($phone, $msg);
+        $this->deliver($phone, self::TPL_CONFIRMATION, [$acc, $number, $code, $ci, $co], $msg);
     }
 
     /** Nouvelle demande de réservation à confirmer, envoyée à l'hôte. */
@@ -157,7 +260,7 @@ class WhatsAppService
             '{echeance}' => $deadline,
         ]);
 
-        $this->sendText($phone, $msg);
+        $this->deliver($phone, self::TPL_NEW_REQUEST, [$acc, $ci, $co, $deadline], $msg);
     }
 
     /** Accusé de réception de la demande, envoyé au voyageur. */
@@ -170,7 +273,7 @@ class WhatsAppService
 
         $msg = (string) Setting::get('whatsapp_template_request_received', self::DEFAULT_REQUEST_RECEIVED_TEMPLATE);
 
-        $this->sendText($phone, $msg);
+        $this->deliver($phone, self::TPL_REQUEST_RECEIVED, [], $msg);
     }
 
     /** L'hôte a confirmé la disponibilité — invitation à payer, au voyageur. */
@@ -194,6 +297,18 @@ class WhatsAppService
             '{lien}' => $link,
         ]);
 
-        $this->sendText($phone, $msg);
+        // Modèle : le bouton « Payer » pointe vers /paiement/{jeton} (redirection côté site).
+        $this->deliver($phone, self::TPL_APPROVED_PLEASE_PAY, [$acc, $ci, $co], $msg, (string) $booking->access_token);
+    }
+
+    /** Code de vérification du numéro (modèle « Authentication » : le code sert aussi de variable du bouton « Copier »). */
+    public function sendVerificationCode(?string $to, string $code): bool
+    {
+        $text = "BoSéjour — Votre code de vérification : {$code}\nCe code expire dans 10 minutes.";
+
+        if ($this->usesTemplates() && $this->sendTemplate($to, self::TPL_VERIFICATION_CODE, [$code], $code)) {
+            return true;
+        }
+        return $this->sendText($to, $text);
     }
 }

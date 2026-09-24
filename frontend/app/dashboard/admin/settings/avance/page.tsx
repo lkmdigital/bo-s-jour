@@ -23,6 +23,7 @@ export default function AdminAdvancedSettingsPage() {
   const [mapboxToken, setMapboxToken] = useState('');
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [whatsappUseTemplates, setWhatsappUseTemplates] = useState(false);
   const [whatsappToken, setWhatsappToken] = useState('');
   const [whatsappPhoneId, setWhatsappPhoneId] = useState('');
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
@@ -42,6 +43,7 @@ export default function AdminAdvancedSettingsPage() {
         setMapboxToken(s.mapbox_token ?? '');
         setGoogleMapsApiKey(s.google_maps_api_key ?? '');
         setWhatsappEnabled(!!s.whatsapp_enabled);
+        setWhatsappUseTemplates(!!s.whatsapp_use_templates);
         setWhatsappToken(s.whatsapp_token ?? '');
         setWhatsappPhoneId(s.whatsapp_phone_id ?? '');
         setAnthropicApiKey(s.anthropic_api_key ?? '');
@@ -70,6 +72,7 @@ export default function AdminAdvancedSettingsPage() {
         mapbox_token: mapboxToken.trim() || null,
         google_maps_api_key: googleMapsApiKey.trim() || null,
         whatsapp_enabled: whatsappEnabled,
+        whatsapp_use_templates: whatsappUseTemplates,
         whatsapp_token: whatsappToken.trim() || null,
         whatsapp_phone_id: whatsappPhoneId.trim() || null,
         anthropic_api_key: anthropicApiKey.trim() || null,
@@ -232,6 +235,21 @@ export default function AdminAdvancedSettingsPage() {
                   </button>
                 </div>
                 <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <span className="text-sm font-medium">Utiliser les modèles approuvés par Meta</span>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        À activer en production, une fois les 5 modèles approuvés dans WhatsApp Manager. Désactivé : messages texte libres (tests avec le numéro de test, ou réponse dans les 24 h).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setWhatsappUseTemplates((v) => !v)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${whatsappUseTemplates ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}
+                    >
+                      <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${whatsappUseTemplates ? 'translate-x-5' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Token WhatsApp (Meta)</label>
                     <input type="password" value={whatsappToken} onChange={(e) => setWhatsappToken(e.target.value)} placeholder="EAAG..."
