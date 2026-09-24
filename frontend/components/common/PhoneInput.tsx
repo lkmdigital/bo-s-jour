@@ -88,6 +88,27 @@ export function splitPhone(value: string): { dial: string; national: string } {
   return { dial: DEFAULT_DIAL, national: v };
 }
 
+/**
+ * Corrige une saisie qui répète l'indicatif déjà choisi dans la liste : « 225 01 61 13 34 66 » avec
+ * +225 sélectionné donnerait « +225 225… » (numéro invalide, code WhatsApp refusé par Meta).
+ * - saisie commençant par « + » : on reconnaît l'indicatif et on bascule la liste dessus ;
+ * - saisie commençant par les chiffres de l'indicatif choisi et trop longue pour être un numéro
+ *   national : on retire l'indicatif en trop.
+ */
+export function normalizeTyped(raw: string, dial: string): { dial: string; national: string } {
+  const t = raw.trim();
+  if (t.startsWith('+')) {
+    const parsed = splitPhone(t);
+    if (t.replace(/\s+/g, '').startsWith(parsed.dial)) return parsed;
+  }
+  const digits = t.replace(/\D/g, '');
+  const dialDigits = dial.replace(/\D/g, '');
+  if (digits.startsWith(dialDigits) && digits.length >= dialDigits.length + 9) {
+    return { dial, national: digits.slice(dialDigits.length) };
+  }
+  return { dial, national: raw };
+}
+
 interface PhoneInputProps {
   label?: string;
   value: string;
@@ -147,7 +168,10 @@ export default function PhoneInput({ label, value, onChange, required, hint, pla
           autoComplete="tel-national"
           required={required}
           value={national}
-          onChange={(e) => emit(dial, e.target.value)}
+          onChange={(e) => {
+            const fixed = normalizeTyped(e.target.value, dial);
+            emit(fixed.dial, fixed.national);
+          }}
           placeholder={placeholder}
           className={cn(fieldClass, 'flex-1 min-w-0 px-3.5 placeholder:text-gray-400')}
         />
