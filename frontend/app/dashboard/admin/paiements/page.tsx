@@ -12,7 +12,7 @@ import Pagination from '@/components/common/Pagination';
 import DateRangeFilter, { useDefaultDateRange } from '@/components/common/DateRangeFilter';
 import { FilterSearch, FilterSelect } from '@/components/common/FilterBar';
 import { formatPrice } from '@/lib/utils';
-import { CreditCard, Wallet, CheckCircle, XCircle, Clock, User, DollarSign, Gift, Download, Plus, Printer } from 'lucide-react';
+import { CreditCard, Wallet, CheckCircle, XCircle, Clock, User, DollarSign, Gift, Download, Plus, Printer, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -189,6 +189,7 @@ export default function AdminPaiementsPage() {
   useEffect(() => {
     if (isAuthenticated && isAdminOrController(user)) {
       fetchPayments();
+      fetchAwaiting();
     }
   }, [isAuthenticated, user, statusFilter, methodFilter, purposeFilter, dateRange.from, dateRange.to, search, currentPage]);
 
@@ -231,6 +232,18 @@ export default function AdminPaiementsPage() {
     }
   };
 
+  const [reconcilingId, setReconcilingId] = useState<number | null>(null);
+  const [awaiting, setAwaiting] = useState<any[]>([]);
+
+  const fetchAwaiting = async () => {
+    try {
+      const res = await api.get('/admin/payments/stuck', { params: { hours: 0 } });
+      setAwaiting(res.data.data || []);
+    } catch {
+      setAwaiting([]);
+    }
+  };
+
   const fetchPayments = async () => {
     try {
       setLoadingPayments(true);
@@ -248,6 +261,20 @@ export default function AdminPaiementsPage() {
       setPaymentsError(err.response?.data?.message || 'Erreur lors du chargement des transactions');
     } finally {
       setLoadingPayments(false);
+    }
+  };
+
+  const reconcilePayment = async (id: number) => {
+    try {
+      setReconcilingId(id);
+      const res = await api.post(`/admin/payments/${id}/reconcile`);
+      alert(res.data.message);
+      fetchPayments();
+      fetchAwaiting();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Vérification impossible');
+    } finally {
+      setReconcilingId(null);
     }
   };
 
@@ -494,6 +521,33 @@ export default function AdminPaiementsPage() {
                 <Download className="w-4 h-4" /> Exporter (CSV)
               </button>
             </div>
+
+            {awaiting.length > 0 && (
+              <div className="card mb-4 border border-amber-300 dark:border-amber-700">
+                <p className="font-semibold mb-1">Paiements en attente de confirmation ({awaiting.length})</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Tentatives de paiement non confirmées. Si le voyageur a payé, « Vérifier » interroge Malia Pay et confirme automatiquement.
+                </p>
+                <div className="space-y-2">
+                  {awaiting.map((p) => (
+                    <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                      <span>
+                        {format(new Date(p.created_at), 'dd MMM HH:mm', { locale: fr })} — {p.user?.name ?? '—'} — {p.booking?.accommodation?.name ?? '—'} — <strong>{formatPrice(p.amount)} FCFA</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => reconcilePayment(p.id)}
+                        disabled={reconcilingId === p.id}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${reconcilingId === p.id ? 'animate-spin' : ''}`} />
+                        Vérifier auprès de Malia Pay
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {paymentsError && <ErrorDisplay error={paymentsError} onDismiss={() => setPaymentsError(null)} />}
 

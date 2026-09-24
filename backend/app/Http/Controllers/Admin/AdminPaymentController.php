@@ -241,7 +241,7 @@ class AdminPaymentController extends Controller
      */
     public function stuckPending(Request $request)
     {
-        $hours = max(1, (int) $request->get('hours', self::DEFAULT_STUCK_HOURS));
+        $hours = max(0, (int) $request->get('hours', self::DEFAULT_STUCK_HOURS));
 
         $payments = Payment::with([
                 'user:id,name,email',
@@ -314,5 +314,50 @@ class AdminPaymentController extends Controller
                 : 'Paiement confirmé manuellement.',
             'payment' => $result['payment'],
         ]);
+    }
+
+    /**
+     * Vérifie auprès de MaliaPay le statut réel d'un paiement « pending » et le confirme
+     * (ou le marque échoué) selon la réponse — sans que l'admin ait à ressaisir quoi que ce soit.
+     */
+    public function reconcile(Request $request, $paymentId)
+    {
+        $payment = Payment::findOrFail($paymentId);
+
+        if ($payment->status !== 'pending') {
+            return response()->json(['message' => "Ce paiement n'est pas en attente (statut : {$payment->status})."], 400);
+        }
+
+        if (!$payment->transaction_id) {
+            return response()->json(['message' => "Ce paiement n'a pas d'identifiant de transaction : vérifiez-le dans le tableau de bord Malia Pay."], 422);
+        }
+
+        $controller = app(PaymentController::class);
+        $malia = $controller->checkTransactionStatus($payment->transaction_id);
+
+        if ($malia === null) {
+            return response()->json(['message' => 'Malia Pay est injoignable, réessayez dans un instant.'], 502);
+        }
+
+        $status = $malia['status'] ?? null;
+
+        if ($status === 'success') {
+            $controller->confirmPaymentSuccess(
+                $payment->id,
+                $malia['transaction_id'] ?? $payment->transaction_id,
+                isset($malia['montant']) ? (int) round((float) $malia['montant']) : null,
+                $malia,
+                'reconciliation_admin'
+            );
+            return response()->json(['message' => 'Paiement confirmé : Malia Pay indique un succès.', 'status' => 'completed']);
+        }
+
+        if ($status === 'failed' || $status === 'cancelled') {
+            $payment->update(['status' => 'failed']);
+            $payment->booking?->update(['payment_status' => 'failed']);
+            return response()->json(['message' => 'Malia Pay indique que ce paiement a échoué.', 'status' => 'failed']);
+        }
+
+        return response()->json(['message' => "Malia Pay indique un statut « {$status} » : le paiement n'est pas (encore) réussi.", 'status' => $status]);
     }
 }

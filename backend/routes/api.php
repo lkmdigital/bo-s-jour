@@ -667,6 +667,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             // bloqués trop longtemps (probable webhook jamais reçu), et confirmation
             // manuelle après vérification par l'admin dans le dashboard marchand Malia Pay.
             Route::get('/stuck', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'stuckPending']);
+            Route::post('/{paymentId}/reconcile', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'reconcile'])->where('paymentId', '[0-9]+');
             Route::post('/{paymentId}/confirm-manually', [\App\Http\Controllers\Admin\AdminPaymentController::class, 'confirmManually'])->where('paymentId', '[0-9]+');
         });
 
