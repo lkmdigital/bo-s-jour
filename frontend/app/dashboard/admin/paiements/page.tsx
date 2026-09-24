@@ -12,7 +12,7 @@ import Pagination from '@/components/common/Pagination';
 import DateRangeFilter, { useDefaultDateRange } from '@/components/common/DateRangeFilter';
 import { FilterSearch, FilterSelect } from '@/components/common/FilterBar';
 import { formatPrice } from '@/lib/utils';
-import { CreditCard, Wallet, CheckCircle, XCircle, Clock, User, DollarSign, Gift, Download, Plus, Printer, RefreshCw } from 'lucide-react';
+import { CreditCard, Wallet, CheckCircle, XCircle, Clock, User, DollarSign, Gift, Download, Plus, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -231,8 +231,6 @@ export default function AdminPaiementsPage() {
     }
   };
 
-  const [reconcilingId, setReconcilingId] = useState<number | null>(null);
-
   const fetchPayments = async () => {
     try {
       setLoadingPayments(true);
@@ -250,19 +248,6 @@ export default function AdminPaiementsPage() {
       setPaymentsError(err.response?.data?.message || 'Erreur lors du chargement des transactions');
     } finally {
       setLoadingPayments(false);
-    }
-  };
-
-  const reconcilePayment = async (id: number) => {
-    try {
-      setReconcilingId(id);
-      const res = await api.post(`/admin/payments/${id}/reconcile`);
-      alert(res.data.message);
-      fetchPayments();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Vérification impossible');
-    } finally {
-      setReconcilingId(null);
     }
   };
 
@@ -550,17 +535,6 @@ export default function AdminPaiementsPage() {
                             <td className="py-3 px-4 text-right font-semibold">{formatPrice(p.amount)} FCFA</td>
                             <td className="py-3 px-4 text-center">
                               <span className={`px-3 py-1 rounded-full text-xs font-medium ${config.color}`}>{config.label}</span>
-                              {p.status === 'failed' && (
-                                <button
-                                  type="button"
-                                  onClick={() => reconcilePayment(p.id)}
-                                  disabled={reconcilingId === p.id}
-                                  className="mt-1 flex items-center gap-1 mx-auto text-xs font-medium text-primary hover:underline disabled:opacity-50"
-                                >
-                                  <RefreshCw className={`w-3 h-3 ${reconcilingId === p.id ? 'animate-spin' : ''}`} />
-                                  Revérifier
-                                </button>
-                              )}
                             </td>
                             <td className="py-3 px-4 text-right">
                               <button
