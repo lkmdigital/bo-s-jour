@@ -625,7 +625,7 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Paiement non trouvé'], 404);
         }
 
-        if ($status === 'Success' || $status === 'success' || $status === 'completed') {
+        if (in_array(strtolower((string) $status), ['success', 'successful', 'completed', 'paid'], true)) {
             $result = $this->confirmPaymentSuccess($payment->id, $transactionId, $montant, $data, 'webhook');
 
             return response()->json([
@@ -647,6 +647,26 @@ class PaymentController extends Controller
                 'message' => 'Statut intermédiaire pris en compte, en attente de confirmation',
                 'payment' => $payment->load('booking'),
             ]);
+        }
+
+        // Avant de marquer un paiement « échoué » sur la foi d'un webhook, on demande à
+        // MaliaPay son statut réel : un statut inattendu ou un échec suivi d'une nouvelle
+        // tentative réussie ne doit pas laisser un paiement encaissé comme « échoué ».
+        if ($payment->transaction_id || $transactionId) {
+            $malia = $this->checkTransactionStatus($payment->transaction_id ?: $transactionId);
+            if (strtolower((string) ($malia['status'] ?? '')) === 'success') {
+                $result = $this->confirmPaymentSuccess(
+                    $payment->id,
+                    $malia['transaction_id'] ?? $payment->transaction_id ?? $transactionId,
+                    isset($malia['montant']) ? (int) round((float) $malia['montant']) : null,
+                    $malia,
+                    'webhook_verifie'
+                );
+                return response()->json([
+                    'message' => 'Paiement confirmé après vérification',
+                    'payment' => $result['payment'],
+                ]);
+            }
         }
 
         return DB::transaction(function () use ($payment, $status, $data) {

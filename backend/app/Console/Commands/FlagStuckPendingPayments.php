@@ -42,8 +42,12 @@ class FlagStuckPendingPayments extends Command
             : now()->subHours($hours);
 
         $stuckPayments = Payment::with(['booking:id,accommodation_id', 'booking.accommodation:id,name'])
-            ->where('status', 'pending')
-            ->where('created_at', '<', $threshold)
+            ->where(function ($q) use ($threshold) {
+                $q->where(fn ($p) => $p->where('status', 'pending')->where('created_at', '<', $threshold))
+                    // Échecs récents : un paiement marqué « failed » par erreur (webhook au statut
+                    // inattendu, nouvelle tentative réussie) est rattrapé s'il est réussi chez MaliaPay.
+                    ->orWhere(fn ($p) => $p->where('status', 'failed')->where('created_at', '>', now()->subDays(3)));
+            })
             ->orderBy('created_at')
             ->get();
 
@@ -58,6 +62,9 @@ class FlagStuckPendingPayments extends Command
 
         foreach ($stuckPayments as $payment) {
             if (!$payment->transaction_id) {
+                if ($payment->status === 'failed') {
+                    continue;
+                }
                 // Ancienne intégration (avant le 2026-09-01), aucun transaction_id
                 // exploitable pour interroger MaliaPay — vérification manuelle requise.
                 $stillStuck->push($payment);
@@ -67,6 +74,9 @@ class FlagStuckPendingPayments extends Command
             $maliaStatus = $paymentController->checkTransactionStatus($payment->transaction_id);
 
             if ($maliaStatus === null) {
+                if ($payment->status === 'failed') {
+                    continue;
+                }
                 // API indisponible ou erreur réseau — ne rien conclure, on retentera
                 // au prochain passage plutôt que de risquer une fausse conclusion.
                 $stillStuck->push($payment);
@@ -74,6 +84,21 @@ class FlagStuckPendingPayments extends Command
             }
 
             $realStatus = $maliaStatus['status'] ?? null;
+
+            if ($payment->status === 'failed') {
+                // Déjà « échoué » : on ne fait qu'inverser si MaliaPay dit succès, sans bruit sinon.
+                if ($realStatus === 'success') {
+                    $paymentController->confirmPaymentSuccess(
+                        $payment->id,
+                        $maliaStatus['transaction_id'] ?? $payment->transaction_id,
+                        isset($maliaStatus['montant']) ? (int) round((float) $maliaStatus['montant']) : null,
+                        $maliaStatus,
+                        'reconciliation_echec_corrige'
+                    );
+                    $resolvedSuccess++;
+                }
+                continue;
+            }
 
             if ($realStatus === 'success') {
                 $paymentController->confirmPaymentSuccess(

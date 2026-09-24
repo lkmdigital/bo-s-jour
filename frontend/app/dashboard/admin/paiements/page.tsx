@@ -189,7 +189,6 @@ export default function AdminPaiementsPage() {
   useEffect(() => {
     if (isAuthenticated && isAdminOrController(user)) {
       fetchPayments();
-      fetchAwaiting();
     }
   }, [isAuthenticated, user, statusFilter, methodFilter, purposeFilter, dateRange.from, dateRange.to, search, currentPage]);
 
@@ -233,16 +232,6 @@ export default function AdminPaiementsPage() {
   };
 
   const [reconcilingId, setReconcilingId] = useState<number | null>(null);
-  const [awaiting, setAwaiting] = useState<any[]>([]);
-
-  const fetchAwaiting = async () => {
-    try {
-      const res = await api.get('/admin/payments/stuck', { params: { hours: 0 } });
-      setAwaiting(res.data.data || []);
-    } catch {
-      setAwaiting([]);
-    }
-  };
 
   const fetchPayments = async () => {
     try {
@@ -270,7 +259,6 @@ export default function AdminPaiementsPage() {
       const res = await api.post(`/admin/payments/${id}/reconcile`);
       alert(res.data.message);
       fetchPayments();
-      fetchAwaiting();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Vérification impossible');
     } finally {
@@ -522,33 +510,6 @@ export default function AdminPaiementsPage() {
               </button>
             </div>
 
-            {awaiting.length > 0 && (
-              <div className="card mb-4 border border-amber-300 dark:border-amber-700">
-                <p className="font-semibold mb-1">Paiements en attente de confirmation ({awaiting.length})</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  Tentatives de paiement non confirmées. Si le voyageur a payé, « Vérifier » interroge Malia Pay et confirme automatiquement.
-                </p>
-                <div className="space-y-2">
-                  {awaiting.map((p) => (
-                    <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                      <span>
-                        {format(new Date(p.created_at), 'dd MMM HH:mm', { locale: fr })} — {p.user?.name ?? '—'} — {p.booking?.accommodation?.name ?? '—'} — <strong>{formatPrice(p.amount)} FCFA</strong>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => reconcilePayment(p.id)}
-                        disabled={reconcilingId === p.id}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:opacity-50"
-                      >
-                        <RefreshCw className={`w-3 h-3 ${reconcilingId === p.id ? 'animate-spin' : ''}`} />
-                        Vérifier auprès de Malia Pay
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {paymentsError && <ErrorDisplay error={paymentsError} onDismiss={() => setPaymentsError(null)} />}
 
             <div className="card overflow-hidden">
@@ -589,6 +550,17 @@ export default function AdminPaiementsPage() {
                             <td className="py-3 px-4 text-right font-semibold">{formatPrice(p.amount)} FCFA</td>
                             <td className="py-3 px-4 text-center">
                               <span className={`px-3 py-1 rounded-full text-xs font-medium ${config.color}`}>{config.label}</span>
+                              {p.status === 'failed' && (
+                                <button
+                                  type="button"
+                                  onClick={() => reconcilePayment(p.id)}
+                                  disabled={reconcilingId === p.id}
+                                  className="mt-1 flex items-center gap-1 mx-auto text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                                >
+                                  <RefreshCw className={`w-3 h-3 ${reconcilingId === p.id ? 'animate-spin' : ''}`} />
+                                  Revérifier
+                                </button>
+                              )}
                             </td>
                             <td className="py-3 px-4 text-right">
                               <button

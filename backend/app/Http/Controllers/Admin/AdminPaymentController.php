@@ -324,8 +324,8 @@ class AdminPaymentController extends Controller
     {
         $payment = Payment::findOrFail($paymentId);
 
-        if ($payment->status !== 'pending') {
-            return response()->json(['message' => "Ce paiement n'est pas en attente (statut : {$payment->status})."], 400);
+        if (!in_array($payment->status, ['pending', 'failed'], true)) {
+            return response()->json(['message' => "Ce paiement est déjà confirmé (statut : {$payment->status})."], 400);
         }
 
         if (!$payment->transaction_id) {
@@ -341,7 +341,7 @@ class AdminPaymentController extends Controller
 
         $status = $malia['status'] ?? null;
 
-        if ($status === 'success') {
+        if (strtolower((string) $status) === 'success') {
             $controller->confirmPaymentSuccess(
                 $payment->id,
                 $malia['transaction_id'] ?? $payment->transaction_id,
@@ -353,6 +353,9 @@ class AdminPaymentController extends Controller
         }
 
         if ($status === 'failed' || $status === 'cancelled') {
+            if ($payment->status === 'failed') {
+                return response()->json(['message' => 'Malia Pay confirme que ce paiement a bien échoué.', 'status' => 'failed']);
+            }
             $payment->update(['status' => 'failed']);
             $payment->booking?->update(['payment_status' => 'failed']);
             return response()->json(['message' => 'Malia Pay indique que ce paiement a échoué.', 'status' => 'failed']);
