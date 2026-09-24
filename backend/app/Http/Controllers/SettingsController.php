@@ -63,6 +63,8 @@ class SettingsController extends Controller
             'whatsapp_use_templates' => (bool) Setting::get('whatsapp_use_templates', false),
             'whatsapp_token' => (string) Setting::get('whatsapp_token', ''),
             'whatsapp_phone_id' => (string) Setting::get('whatsapp_phone_id', ''),
+            'whatsapp_verify_token' => (string) Setting::get('whatsapp_verify_token', ''),
+            'whatsapp_app_secret' => (string) Setting::get('whatsapp_app_secret', ''),
             // Module IA (Claude/Anthropic) — sensible, jamais exposé publiquement.
             // Fallback .env géré côté AdminAiAssistantService, pas ici.
             'anthropic_api_key' => (string) Setting::get('anthropic_api_key', ''),
@@ -124,6 +126,8 @@ class SettingsController extends Controller
             'whatsapp_use_templates' => 'sometimes|boolean',
             'whatsapp_token' => 'sometimes|nullable|string|max:1000',
             'whatsapp_phone_id' => 'sometimes|nullable|string|max:100',
+            'whatsapp_verify_token' => 'sometimes|nullable|string|max:100',
+            'whatsapp_app_secret' => 'sometimes|nullable|string|max:200',
             'anthropic_api_key' => 'sometimes|nullable|string|max:255',
             'languages_enabled' => ['sometimes', 'array', 'min:1', function ($attribute, $value, $fail) {
                 if (!in_array('fr', $value, true)) {
@@ -224,6 +228,12 @@ class SettingsController extends Controller
         }
         if (array_key_exists('whatsapp_token', $data)) {
             Setting::set('whatsapp_token', $data['whatsapp_token'] ?? '', 'string', 'Token WhatsApp Business API');
+        }
+        if (array_key_exists('whatsapp_verify_token', $data)) {
+            Setting::set('whatsapp_verify_token', $data['whatsapp_verify_token'] ?? '', 'string', 'Jeton de vérification du webhook WhatsApp');
+        }
+        if (array_key_exists('whatsapp_app_secret', $data)) {
+            Setting::set('whatsapp_app_secret', $data['whatsapp_app_secret'] ?? '', 'string', 'Secret de l\'application Meta (signature du webhook WhatsApp)');
         }
         if (array_key_exists('whatsapp_phone_id', $data)) {
             Setting::set('whatsapp_phone_id', $data['whatsapp_phone_id'] ?? '', 'string', 'Phone Number ID WhatsApp');

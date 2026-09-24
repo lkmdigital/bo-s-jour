@@ -26,6 +26,8 @@ export default function AdminAdvancedSettingsPage() {
   const [whatsappUseTemplates, setWhatsappUseTemplates] = useState(false);
   const [whatsappToken, setWhatsappToken] = useState('');
   const [whatsappPhoneId, setWhatsappPhoneId] = useState('');
+  const [whatsappVerifyToken, setWhatsappVerifyToken] = useState('');
+  const [whatsappAppSecret, setWhatsappAppSecret] = useState('');
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
 
   useEffect(() => {
@@ -46,6 +48,8 @@ export default function AdminAdvancedSettingsPage() {
         setWhatsappUseTemplates(!!s.whatsapp_use_templates);
         setWhatsappToken(s.whatsapp_token ?? '');
         setWhatsappPhoneId(s.whatsapp_phone_id ?? '');
+        setWhatsappVerifyToken(s.whatsapp_verify_token ?? '');
+        setWhatsappAppSecret(s.whatsapp_app_secret ?? '');
         setAnthropicApiKey(s.anthropic_api_key ?? '');
       })
       .catch(() => showError('Erreur lors du chargement'))
@@ -75,6 +79,8 @@ export default function AdminAdvancedSettingsPage() {
         whatsapp_use_templates: whatsappUseTemplates,
         whatsapp_token: whatsappToken.trim() || null,
         whatsapp_phone_id: whatsappPhoneId.trim() || null,
+        whatsapp_verify_token: whatsappVerifyToken.trim() || null,
+        whatsapp_app_secret: whatsappAppSecret.trim() || null,
         anthropic_api_key: anthropicApiKey.trim() || null,
       };
       if (maintenanceEnabled) {
@@ -259,6 +265,27 @@ export default function AdminAdvancedSettingsPage() {
                     <label className="block text-sm font-medium mb-1">Phone Number ID</label>
                     <input type="text" value={whatsappPhoneId} onChange={(e) => setWhatsappPhoneId(e.target.value)} placeholder="1234567890"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono" />
+                  </div>
+                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3">
+                    <p className="text-sm font-medium">Suivi de livraison (webhook Meta)</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Facultatif. Permet de voir dans les journaux du site pourquoi un message WhatsApp n&apos;est pas livré. Dans Meta (application → WhatsApp → Configuration → Webhook), renseignez l&apos;URL ci-dessous, le jeton de vérification, et cochez le champ « messages ».
+                    </p>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">URL de rappel (à copier dans Meta)</label>
+                      <input type="text" readOnly value={`${(process.env.NEXT_PUBLIC_API_URL || 'https://api.bosejour.ci/api').replace(/\/$/, '')}/whatsapp/webhook`}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm font-mono" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Jeton de vérification</label>
+                      <input type="text" value={whatsappVerifyToken} onChange={(e) => setWhatsappVerifyToken(e.target.value)} placeholder="Un mot de passe de votre choix, identique dans Meta"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Secret de l&apos;application Meta</label>
+                      <input type="password" value={whatsappAppSecret} onChange={(e) => setWhatsappAppSecret(e.target.value)} placeholder="Paramètres de l'app → Général → Clé secrète"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono" />
+                    </div>
                   </div>
                 </div>
               </div>

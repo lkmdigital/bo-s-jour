@@ -64,6 +64,7 @@ use App\Http\Controllers\Admin\AdminReviewController;
 use App\Http\Controllers\Admin\AdminTestimonialController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TestimonialController;
+use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -103,6 +104,11 @@ Route::get('/payment-methods', [PaymentMethodController::class, 'index']);
 
 // Webhook pour les notifications de paiement (sans authentification)
 Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
+
+// Webhook WhatsApp Business (Meta) : statuts de livraison des messages. Vérification par jeton (GET),
+// événements signés HMAC (POST) — voir WhatsAppWebhookController.
+Route::get('/whatsapp/webhook', [WhatsAppWebhookController::class, 'verify']);
+Route::post('/whatsapp/webhook', [WhatsAppWebhookController::class, 'receive'])->middleware('throttle:600,1,whatsapp-webhook');
 
 // Paramètres publics (thème, maintenance, etc.)
 Route::get('/settings/public', [SettingsController::class, 'publicSettings']);
