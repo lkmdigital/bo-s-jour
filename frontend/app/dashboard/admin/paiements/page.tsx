@@ -231,6 +231,22 @@ export default function AdminPaiementsPage() {
     }
   };
 
+  // Clic sur une carte de synthèse = filtre sur la liste ; un second clic retire le filtre.
+  const applyStatusCard = (status: 'completed' | 'failed') => {
+    setTab('transactions');
+    setStatusFilter((cur) => (cur === status ? 'all' : status));
+    setMethodFilter('all');
+    setCurrentPage(1);
+  };
+  const applyMethodCard = (method: string) => {
+    setTab('transactions');
+    setMethodFilter((cur) => (cur === method ? 'all' : method));
+    setStatusFilter('all');
+    setCurrentPage(1);
+  };
+  const cardCls = (active: boolean) =>
+    `card text-left w-full transition-shadow hover:shadow-md cursor-pointer ${active ? 'ring-2 ring-primary' : ''}`;
+
   const fetchPayments = async () => {
     try {
       setLoadingPayments(true);
@@ -363,7 +379,7 @@ export default function AdminPaiementsPage() {
 
         {summary && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-            <div className="card">
+            <button type="button" onClick={() => applyStatusCard('completed')} className={cardCls(tab === 'transactions' && statusFilter === 'completed')}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Encaissé ({summary.count_completed})</p>
@@ -371,8 +387,8 @@ export default function AdminPaiementsPage() {
                 </div>
                 <DollarSign className="w-9 h-9 text-green-600 dark:text-green-400 opacity-50" />
               </div>
-            </div>
-            <div className="card">
+            </button>
+            <button type="button" onClick={() => applyStatusCard('failed')} className={cardCls(tab === 'transactions' && statusFilter === 'failed')}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Échoués ({summary.count_failed})</p>
@@ -380,26 +396,26 @@ export default function AdminPaiementsPage() {
                 </div>
                 <XCircle className="w-9 h-9 text-red-600 dark:text-red-400 opacity-50" />
               </div>
-            </div>
+            </button>
           </div>
         )}
 
         {summary && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-6">
             {methodCards.map(({ key, label, color }) => (
-              <div key={key} className="card text-center py-4">
+              <button key={key} type="button" onClick={() => applyMethodCard(key)} className={`${cardCls(tab === 'transactions' && methodFilter === key)} text-center py-4`}>
                 <p className={`text-xl font-bold ${color}`} title={`${formatPrice(summary.by_method[key])} FCFA`}>
                   {formatCompactFcfa(summary.by_method[key])}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{label}</p>
-              </div>
+              </button>
             ))}
-            <div className="card text-center py-4">
+            <button type="button" onClick={() => setTab('credits')} className={`${cardCls(tab === 'credits')} text-center py-4`}>
               <p className="text-xl font-bold text-red-600 dark:text-red-400" title={`${formatPrice(summary.total_refunded)} FCFA`}>
                 {formatCompactFcfa(summary.total_refunded)}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Remboursements</p>
-            </div>
+            </button>
           </div>
         )}
 
@@ -466,6 +482,8 @@ export default function AdminPaiementsPage() {
                   <option value="all">Tous les moyens</option>
                   <option value="wave-ci">Wave</option>
                   <option value="orange-ci">Orange Money</option>
+                  <option value="mtn-ci">MTN Money</option>
+                  <option value="moov-ci">Moov Money</option>
                   <option value="djamo">Djamo</option>
                   <option value="visa-mastercard">Visa / Mastercard</option>
                 </FilterSelect>
