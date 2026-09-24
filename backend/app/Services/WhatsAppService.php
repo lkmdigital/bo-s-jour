@@ -117,6 +117,10 @@ class WhatsAppService
                 Log::warning('WhatsApp send failed', ['status' => $res->status(), 'body' => $res->body(), 'to' => $to]);
                 return false;
             }
+            // Meta répond 200 dès qu'il accepte le message ; la livraison réelle (fenêtre de 24 h
+            // dépassée, numéro injoignable…) est confirmée plus tard par webhook, que le site
+            // n'écoute pas. On garde l'identifiant pour pouvoir le retrouver côté Meta.
+            Log::info('WhatsApp message accepté par Meta', ['type' => 'text', 'to' => $to, 'wamid' => $res->json('messages.0.id')]);
             return true;
         } catch (\Throwable $e) {
             Log::warning('WhatsApp send exception', ['error' => $e->getMessage(), 'to' => $to]);
@@ -188,6 +192,7 @@ class WhatsAppService
                 Log::warning('WhatsApp template send failed', ['template' => $template, 'status' => $res->status(), 'body' => $res->body(), 'to' => $to]);
                 return false;
             }
+            Log::info('WhatsApp message accepté par Meta', ['type' => 'template', 'template' => $template, 'to' => $to, 'wamid' => $res->json('messages.0.id')]);
             return true;
         } catch (\Throwable $e) {
             Log::warning('WhatsApp template send exception', ['template' => $template, 'error' => $e->getMessage(), 'to' => $to]);
