@@ -769,6 +769,23 @@ class PaymentController extends Controller
     {
         $payment = Payment::with(['booking.accommodation', 'user'])->findOrFail($paymentId);
 
+        // Retour de la page de paiement : si le webhook n'est pas (encore) arrivé, on
+        // interroge MaliaPay directement plutôt que d'afficher un paiement « en attente »
+        // alors qu'il est réussi.
+        if ($payment->status === 'pending' && $payment->transaction_id) {
+            $malia = $this->checkTransactionStatus($payment->transaction_id);
+            if (($malia['status'] ?? null) === 'success') {
+                $this->confirmPaymentSuccess(
+                    $payment->id,
+                    $malia['transaction_id'] ?? $payment->transaction_id,
+                    isset($malia['montant']) ? (int) round((float) $malia['montant']) : null,
+                    $malia,
+                    'reconciliation_retour'
+                );
+                $payment = Payment::with(['booking.accommodation', 'user'])->findOrFail($paymentId);
+            }
+        }
+
         // Accessible sans authentification (réservations invité) — jamais de documents/
         // coordonnées bancaires dans payment.user quel que soit l'appelant.
         $payment->user?->makeHidden(SensitiveUserFields::DOCUMENTS_AND_FINANCIAL);

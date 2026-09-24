@@ -15,4 +15,7 @@ Artisan::command('inspire', function () {
 // minute (crontab standard Laravel) — à vérifier/ajouter sur le VPS, voir le commentaire
 // de FlagStuckPendingPayments et la doc de déploiement.
 Schedule::command('payments:flag-stuck-pending')->dailyAt('08:00');
+// Réconciliation rapide (sans e-mail) : un paiement réussi chez MaliaPay dont le webhook
+// n'est pas arrivé apparaît dans les tableaux de bord en quelques minutes, pas le lendemain.
+Schedule::command('payments:flag-stuck-pending --minutes=3 --no-digest')->everyFiveMinutes()->withoutOverlapping();
 

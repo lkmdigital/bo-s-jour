@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Mail;
  */
 class FlagStuckPendingPayments extends Command
 {
-    protected $signature = 'payments:flag-stuck-pending {--hours=6 : Ancienneté minimale (heures) pour considérer un paiement "pending" comme bloqué}';
+    protected $signature = 'payments:flag-stuck-pending {--hours=6 : Ancienneté minimale (heures) pour considérer un paiement "pending" comme bloqué} {--minutes= : Ancienneté minimale en minutes (prioritaire sur --hours)} {--no-digest : Réconcilie seulement, sans envoyer le digest e-mail}';
 
     protected $description = "Réconcilie automatiquement les paiements \"pending\" bloqués via l'API MaliaPay (statut réel), et alerte les admins par e-mail pour ceux qui restent à vérifier manuellement.";
 
@@ -37,9 +37,13 @@ class FlagStuckPendingPayments extends Command
     {
         $hours = max(1, (int) $this->option('hours'));
 
+        $threshold = $this->option('minutes') !== null
+            ? now()->subMinutes(max(0, (int) $this->option('minutes')))
+            : now()->subHours($hours);
+
         $stuckPayments = Payment::with(['booking:id,accommodation_id', 'booking.accommodation:id,name'])
             ->where('status', 'pending')
-            ->where('created_at', '<', now()->subHours($hours))
+            ->where('created_at', '<', $threshold)
             ->orderBy('created_at')
             ->get();
 
@@ -118,6 +122,10 @@ class FlagStuckPendingPayments extends Command
 
         if ($stillStuck->isEmpty()) {
             $this->info('Plus aucun paiement à vérifier manuellement après réconciliation automatique.');
+            return self::SUCCESS;
+        }
+
+        if ($this->option('no-digest')) {
             return self::SUCCESS;
         }
 
