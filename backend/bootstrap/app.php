@@ -72,5 +72,23 @@ return Application::configure(basePath: dirname(__DIR__))
                 : 'Trop de tentatives. Merci de réessayer dans quelques instants.';
             return response()->json(['message' => $message], 429, $e->getHeaders());
         });
+
+        // Découvert en vérifiant SecureDocumentController (audit sécurité externe,
+        // 2026-09-27, Phase 4) : sur api/*, un appelant non authentifié SANS l'en-tête
+        // Accept: application/json (curl, navigation directe, tout client non-JS) faisait
+        // planter Illuminate\Auth\Middleware\Authenticate::redirectTo() — il calcule
+        // route('login') pour une redirection éventuelle, et cette route n'existe pas ici
+        // (API pure) : RouteNotFoundException plutôt qu'AuthenticationException, avant même
+        // que ce fichier ait la main. 500 au lieu d'un 401, avec la trace complète exposée
+        // tant qu'APP_DEBUG est actif. N'affecte jamais le site (axios envoie toujours cet
+        // en-tête), mais touchait déjà tous les endpoints protégés (ex. /api/me), pas
+        // seulement le nouveau. La route "login" ci-dessous comble le vide sans jamais être
+        // réellement utilisée en usage normal.
+        $exceptions->render(function (\Symfony\Component\Routing\Exception\RouteNotFoundException $e, \Illuminate\Http\Request $request) {
+            if (!$request->is('api/*') || !str_contains($e->getMessage(), 'Route [login]')) {
+                return null;
+            }
+            return response()->json(['message' => 'Non authentifié.'], 401);
+        });
     })->create();
 

@@ -74,6 +74,12 @@ export function resolveImageUrl(url?: string | null): string {
   if (/^https?:\/\/(?:localhost|127\.0\.0\.1):8000\/storage/.test(url)) {
     return url.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1):8000\/storage/, '/tunnel-storage');
   }
+  // Idem pour SecureDocumentController (url() de Laravel renvoie une URL absolue basée sur
+  // APP_URL, y compris en dev) : passe par /tunnel-api pour rester sur la même origine que
+  // la page (cookie de session Sanctum), au lieu d'un appel direct vers localhost:8000.
+  if (/^https?:\/\/(?:localhost|127\.0\.0\.1):8000\/api\/documents\//.test(url)) {
+    return url.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1):8000\/api/, '/tunnel-api');
+  }
 
   // Autre URL déjà absolue (prod, image externe…) : inchangée.
   if (/^https?:\/\//.test(url)) return url;
@@ -90,6 +96,20 @@ export function resolveImageUrl(url?: string | null): string {
   }
 
   return url;
+}
+
+/**
+ * URL d'un document d'identité/conformité (pièce d'identité, justificatif, RCCM…) —
+ * sert désormais SecureDocumentController (disque privé, authentification requise via
+ * le cookie de session), jamais l'ancienne URL de stockage public (audit de sécurité
+ * externe, 2026-09-27, Phase 6). `field` est le nom de champ du modèle sans le
+ * suffixe "_path" (ex. "id_document_recto") ; converti en "id-document-recto".
+ */
+export function secureDocumentUrl(userId?: number | string | null, field?: string | null): string | null {
+  if (!userId || !field) return null;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bosejour.ci/api';
+  const slug = field.replace(/_path$/, '').replace(/_/g, '-');
+  return `${apiUrl}/documents/${userId}/${slug}`;
 }
 
 /**

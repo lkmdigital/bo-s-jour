@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, secureDocumentUrl } from '@/lib/utils';
 
 interface UserDetail {
   id: number;
@@ -511,13 +511,13 @@ export default function UserDetailPage() {
                       </label>
                       <div className="relative w-full max-w-md h-48 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                         <a
-                          href={getStorageUrl(userDetail.id_document_path)}
+                          href={secureDocumentUrl(userDetail.id, 'id_document_path')!}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="block w-full h-full"
                         >
                           <Image
-                            src={getStorageUrl(userDetail.id_document_path)}
+                            src={secureDocumentUrl(userDetail.id, 'id_document_path')!}
                             alt="Document d'identité"
                             fill
                             className="object-contain cursor-pointer hover:opacity-80 transition-opacity"
@@ -525,7 +525,7 @@ export default function UserDetailPage() {
                         </a>
                       </div>
                       <a
-                        href={getStorageUrl(userDetail.id_document_path)}
+                        href={secureDocumentUrl(userDetail.id, 'id_document_path')!}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2 inline-flex items-center gap-1"
@@ -545,13 +545,13 @@ export default function UserDetailPage() {
                           </label>
                           <div className="relative w-full h-48 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                             <a
-                              href={getStorageUrl(userDetail.id_document_recto_path)}
+                              href={secureDocumentUrl(userDetail.id, 'id_document_recto_path')!}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="block w-full h-full"
                             >
                               <Image
-                                src={getStorageUrl(userDetail.id_document_recto_path)}
+                                src={secureDocumentUrl(userDetail.id, 'id_document_recto_path')!}
                                 alt="Recto du document"
                                 fill
                                 className="object-contain cursor-pointer hover:opacity-80 transition-opacity"
@@ -559,7 +559,7 @@ export default function UserDetailPage() {
                             </a>
                           </div>
                           <a
-                            href={getStorageUrl(userDetail.id_document_recto_path)}
+                            href={secureDocumentUrl(userDetail.id, 'id_document_recto_path')!}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2 inline-flex items-center gap-1"
@@ -577,13 +577,13 @@ export default function UserDetailPage() {
                           </label>
                           <div className="relative w-full h-48 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                             <a
-                              href={getStorageUrl(userDetail.id_document_verso_path)}
+                              href={secureDocumentUrl(userDetail.id, 'id_document_verso_path')!}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="block w-full h-full"
                             >
                               <Image
-                                src={getStorageUrl(userDetail.id_document_verso_path)}
+                                src={secureDocumentUrl(userDetail.id, 'id_document_verso_path')!}
                                 alt="Verso du document"
                                 fill
                                 className="object-contain cursor-pointer hover:opacity-80 transition-opacity"
@@ -591,7 +591,7 @@ export default function UserDetailPage() {
                             </a>
                           </div>
                           <a
-                            href={getStorageUrl(userDetail.id_document_verso_path)}
+                            href={secureDocumentUrl(userDetail.id, 'id_document_verso_path')!}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2 inline-flex items-center gap-1"
@@ -661,16 +661,16 @@ export default function UserDetailPage() {
 
                 <div className="space-y-2">
                   {[
-                    { label: 'Justificatif de domicile', path: userDetail.proof_of_address_path },
-                    { label: "Licence d'exploitation", path: userDetail.business_license_path },
-                    { label: 'Document RCCM', path: userDetail.rccm_document_path },
-                    { label: 'Document contribuable', path: userDetail.tax_document_path },
-                  ].map(({ label, path }) => (
+                    { label: 'Justificatif de domicile', field: 'proof_of_address', path: userDetail.proof_of_address_path },
+                    { label: "Licence d'exploitation", field: 'business_license', path: userDetail.business_license_path },
+                    { label: 'Document RCCM', field: 'rccm_document', path: userDetail.rccm_document_path },
+                    { label: 'Document contribuable', field: 'tax_document', path: userDetail.tax_document_path },
+                  ].map(({ label, field, path }) => (
                     <div key={label} className="flex items-center justify-between gap-3 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
                       <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
                       {path ? (
                         <a
-                          href={getStorageUrl(path)}
+                          href={secureDocumentUrl(userDetail.id, field)!}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"

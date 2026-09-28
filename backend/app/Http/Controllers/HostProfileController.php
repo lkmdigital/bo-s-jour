@@ -209,17 +209,17 @@ class HostProfileController extends Controller
         // Pour Passeport ou Autre : un seul fichier
         if ($request->hasFile('id_document')) {
             if ($user->id_document_path) {
-                Storage::disk('public')->delete($user->id_document_path);
+                Storage::disk('local')->delete($user->id_document_path);
             }
-            $path = $request->file('id_document')->store('host-documents', 'public');
+            $path = $request->file('id_document')->store('host-documents', 'local');
             $user->id_document_path = $path;
             // Nettoyer les fichiers recto/verso si on utilise un document unique
             if ($user->id_document_recto_path) {
-                Storage::disk('public')->delete($user->id_document_recto_path);
+                Storage::disk('local')->delete($user->id_document_recto_path);
                 $user->id_document_recto_path = null;
             }
             if ($user->id_document_verso_path) {
-                Storage::disk('public')->delete($user->id_document_verso_path);
+                Storage::disk('local')->delete($user->id_document_verso_path);
                 $user->id_document_verso_path = null;
             }
         }
@@ -227,59 +227,59 @@ class HostProfileController extends Controller
         // Pour CNI et Permis : recto et verso séparés
         if ($request->hasFile('id_document_recto')) {
             if ($user->id_document_recto_path) {
-                Storage::disk('public')->delete($user->id_document_recto_path);
+                Storage::disk('local')->delete($user->id_document_recto_path);
             }
-            $path = $request->file('id_document_recto')->store('host-documents', 'public');
+            $path = $request->file('id_document_recto')->store('host-documents', 'local');
             $user->id_document_recto_path = $path;
             // Nettoyer le document unique si on utilise recto/verso
             if ($user->id_document_path) {
-                Storage::disk('public')->delete($user->id_document_path);
+                Storage::disk('local')->delete($user->id_document_path);
                 $user->id_document_path = null;
             }
         }
 
         if ($request->hasFile('id_document_verso')) {
             if ($user->id_document_verso_path) {
-                Storage::disk('public')->delete($user->id_document_verso_path);
+                Storage::disk('local')->delete($user->id_document_verso_path);
             }
-            $path = $request->file('id_document_verso')->store('host-documents', 'public');
+            $path = $request->file('id_document_verso')->store('host-documents', 'local');
             $user->id_document_verso_path = $path;
             // Nettoyer le document unique si on utilise recto/verso
             if ($user->id_document_path) {
-                Storage::disk('public')->delete($user->id_document_path);
+                Storage::disk('local')->delete($user->id_document_path);
                 $user->id_document_path = null;
             }
         }
 
         if ($request->hasFile('proof_of_address')) {
             if ($user->proof_of_address_path) {
-                Storage::disk('public')->delete($user->proof_of_address_path);
+                Storage::disk('local')->delete($user->proof_of_address_path);
             }
-            $path = $request->file('proof_of_address')->store('host-documents', 'public');
+            $path = $request->file('proof_of_address')->store('host-documents', 'local');
             $user->proof_of_address_path = $path;
         }
 
         if ($request->hasFile('business_license')) {
             if ($user->business_license_path) {
-                Storage::disk('public')->delete($user->business_license_path);
+                Storage::disk('local')->delete($user->business_license_path);
             }
-            $path = $request->file('business_license')->store('host-documents', 'public');
+            $path = $request->file('business_license')->store('host-documents', 'local');
             $user->business_license_path = $path;
         }
 
         if ($request->hasFile('rccm_document')) {
             if ($user->rccm_document_path) {
-                Storage::disk('public')->delete($user->rccm_document_path);
+                Storage::disk('local')->delete($user->rccm_document_path);
             }
-            $path = $request->file('rccm_document')->store('host-documents', 'public');
+            $path = $request->file('rccm_document')->store('host-documents', 'local');
             $user->rccm_document_path = $path;
         }
 
         if ($request->hasFile('tax_document')) {
             if ($user->tax_document_path) {
-                Storage::disk('public')->delete($user->tax_document_path);
+                Storage::disk('local')->delete($user->tax_document_path);
             }
-            $path = $request->file('tax_document')->store('host-documents', 'public');
+            $path = $request->file('tax_document')->store('host-documents', 'local');
             $user->tax_document_path = $path;
         }
 

@@ -155,21 +155,21 @@ class UserProfileController extends Controller
 
         if ($request->hasFile('id_document_recto')) {
             if ($user->id_document_recto_path) {
-                Storage::disk('public')->delete($user->id_document_recto_path);
+                Storage::disk('local')->delete($user->id_document_recto_path);
             }
-            $user->id_document_recto_path = $request->file('id_document_recto')->store('user-documents', 'public');
+            $user->id_document_recto_path = $request->file('id_document_recto')->store('user-documents', 'local');
         }
 
         if ($request->hasFile('id_document_verso')) {
             if ($user->id_document_verso_path) {
-                Storage::disk('public')->delete($user->id_document_verso_path);
+                Storage::disk('local')->delete($user->id_document_verso_path);
             }
-            $user->id_document_verso_path = $request->file('id_document_verso')->store('user-documents', 'public');
+            $user->id_document_verso_path = $request->file('id_document_verso')->store('user-documents', 'local');
         }
 
         // Passeport = 1 seule face : on retire un éventuel verso précédent.
         if ($request->id_type === 'Passeport' && $user->id_document_verso_path) {
-            Storage::disk('public')->delete($user->id_document_verso_path);
+            Storage::disk('local')->delete($user->id_document_verso_path);
             $user->id_document_verso_path = null;
         }
 
@@ -197,8 +197,10 @@ class UserProfileController extends Controller
         return [
             'id_type'        => $user->id_type,
             'id_number'      => $user->id_number,
-            'recto_url'      => $user->id_document_recto_path ? Storage::disk('public')->url($user->id_document_recto_path) : null,
-            'verso_url'      => $user->id_document_verso_path ? Storage::disk('public')->url($user->id_document_verso_path) : null,
+            // Documents sur le disque privé (audit sécurité externe 2026-09-27, Phase 6) :
+            // URL vers SecureDocumentController, plus une simple URL de fichier public.
+            'recto_url'      => $user->id_document_recto_path ? url("/api/documents/{$user->id}/id-document-recto") : null,
+            'verso_url'      => $user->id_document_verso_path ? url("/api/documents/{$user->id}/id-document-verso") : null,
             'verified'       => !empty($user->id_verified_at),
             'submitted'      => !empty($user->id_document_recto_path),
         ];

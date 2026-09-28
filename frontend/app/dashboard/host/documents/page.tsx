@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
-import { resolveImageUrl } from '@/lib/utils';
+import { secureDocumentUrl } from '@/lib/utils';
 import { CheckCircle2, XCircle, FileText, Upload, Eye, Loader2, CreditCard, Landmark, ShieldCheck } from 'lucide-react';
 
 interface ComplianceRequirement { label: string; ok: boolean }
 
 interface HostProfile {
+  id?: number;
   id_type?: string;
   id_number?: string;
   id_document_path?: string;
@@ -23,15 +24,10 @@ interface HostProfile {
   tax_document_path?: string;
 }
 
-function documentUrl(path?: string | null): string | null {
-  if (!path) return null;
-  return resolveImageUrl(path.startsWith('/storage') ? path : `/storage/${path}`);
-}
-
 function FileRow({
-  label, currentPath, onPick, uploading,
-}: { label: string; currentPath?: string | null; onPick: (f: File) => void; uploading: boolean }) {
-  const url = documentUrl(currentPath);
+  label, currentPath, userId, field, onPick, uploading,
+}: { label: string; currentPath?: string | null; userId?: number; field: string; onPick: (f: File) => void; uploading: boolean }) {
+  const url = currentPath ? secureDocumentUrl(userId, field) : null;
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
       <div className="flex-1 min-w-0">
@@ -240,12 +236,16 @@ export default function HostDocumentsPage() {
               <FileRow
                 label="Document d'identité — Recto"
                 currentPath={profile?.id_document_recto_path}
+                userId={profile?.id}
+                field="id_document_recto"
                 uploading={uploadingField === 'id_document_recto'}
                 onPick={(f) => uploadFile('id_document_recto', f)}
               />
               <FileRow
                 label="Document d'identité — Verso"
                 currentPath={profile?.id_document_verso_path}
+                userId={profile?.id}
+                field="id_document_verso"
                 uploading={uploadingField === 'id_document_verso'}
                 onPick={(f) => uploadFile('id_document_verso', f)}
               />
@@ -254,6 +254,8 @@ export default function HostDocumentsPage() {
             <FileRow
               label="Document d'identité"
               currentPath={profile?.id_document_path}
+              userId={profile?.id}
+              field="id_document"
               uploading={uploadingField === 'id_document'}
               onPick={(f) => uploadFile('id_document', f)}
             />
@@ -270,6 +272,8 @@ export default function HostDocumentsPage() {
         <FileRow
           label="Justificatif de domicile"
           currentPath={profile?.proof_of_address_path}
+          userId={profile?.id}
+          field="proof_of_address"
           uploading={uploadingField === 'proof_of_address'}
           onPick={(f) => uploadFile('proof_of_address', f)}
         />
@@ -292,6 +296,8 @@ export default function HostDocumentsPage() {
         <FileRow
           label="Document RCCM"
           currentPath={profile?.rccm_document_path}
+          userId={profile?.id}
+          field="rccm_document"
           uploading={uploadingField === 'rccm_document'}
           onPick={(f) => uploadFile('rccm_document', f)}
         />
@@ -314,6 +320,8 @@ export default function HostDocumentsPage() {
         <FileRow
           label="Document contribuable (IFU)"
           currentPath={profile?.tax_document_path}
+          userId={profile?.id}
+          field="tax_document"
           uploading={uploadingField === 'tax_document'}
           onPick={(f) => uploadFile('tax_document', f)}
         />
@@ -321,6 +329,8 @@ export default function HostDocumentsPage() {
         <FileRow
           label="Licence d'exploitation (optionnel)"
           currentPath={profile?.business_license_path}
+          userId={profile?.id}
+          field="business_license"
           uploading={uploadingField === 'business_license'}
           onPick={(f) => uploadFile('business_license', f)}
         />

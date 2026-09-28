@@ -519,7 +519,7 @@ class AuthController extends Controller
                     ]);
                 }
 
-                $path = $file->store('user-documents', 'public');
+                $path = $file->store('user-documents', 'local');
                 $user->id_document_recto_path = $path;
             }
 
@@ -540,7 +540,7 @@ class AuthController extends Controller
                     ]);
                 }
 
-                $path = $file->store('user-documents', 'public');
+                $path = $file->store('user-documents', 'local');
                 $user->id_document_verso_path = $path;
             }
 

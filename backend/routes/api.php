@@ -174,6 +174,11 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
 
+        // Documents d'identité/conformité (disque privé) — le propriétaire ou un
+        // admin/contrôleur uniquement, voir SecureDocumentController::authorizeAccess().
+        Route::get('/documents/{userId}/{field}', [\App\Http\Controllers\SecureDocumentController::class, 'show'])
+            ->where(['userId' => '[0-9]+', 'field' => '[a-z-]+']);
+
         // Profil voyageur (mise à jour + mot de passe + pièces d'identité)
         Route::put('/me/profile', [UserProfileController::class, 'update']);
         Route::post('/me/avatar', [UserProfileController::class, 'uploadAvatar'])->middleware('throttle:10,1,me-avatar');

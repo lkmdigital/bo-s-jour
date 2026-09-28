@@ -9,7 +9,7 @@ import { isAdmin } from '@/lib/userUtils';
 import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, secureDocumentUrl } from '@/lib/utils';
 import { accommodationTypeLabel, accommodationSubtypeLabel } from '@/lib/accommodationTypes';
 import {
   ArrowLeft,
@@ -36,18 +36,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-
-const getStorageUrl = (relativePath?: string | null) => {
-  if (!relativePath) return '';
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bosejour.ci/api';
-  try {
-    const url = new URL(apiUrl);
-    url.pathname = url.pathname.replace(/\/api\/?$/, '');
-    return `${url.origin}/storage/${relativePath}`;
-  } catch {
-    return `https://api.bosejour.ci/storage/${relativePath}`;
-  }
-};
 
 interface Room {
   id: number;
@@ -270,11 +258,11 @@ export default function AdminAccommodationDetailPage() {
 
   const documents = host
     ? [
-        { label: "Pièce d'identité (recto)", path: host.id_document_path || host.id_document_recto_path },
-        { label: "Pièce d'identité (verso)", path: host.id_document_verso_path },
-        { label: 'RCCM / Registre de commerce', path: host.rccm_document_path },
-        { label: "Licence d'exploitation", path: host.business_license_path },
-        { label: 'Document fiscal', path: host.tax_document_path },
+        { label: "Pièce d'identité (recto)", field: host.id_document_path ? 'id_document' : 'id_document_recto', path: host.id_document_path || host.id_document_recto_path },
+        { label: "Pièce d'identité (verso)", field: 'id_document_verso', path: host.id_document_verso_path },
+        { label: 'RCCM / Registre de commerce', field: 'rccm_document', path: host.rccm_document_path },
+        { label: "Licence d'exploitation", field: 'business_license', path: host.business_license_path },
+        { label: 'Document fiscal', field: 'tax_document', path: host.tax_document_path },
       ].filter((d) => d.path)
     : [];
 
@@ -569,13 +557,13 @@ export default function AdminAccommodationDetailPage() {
               {documents.map((doc) => (
                 <a
                   key={doc.label}
-                  href={getStorageUrl(doc.path)}
+                  href={secureDocumentUrl(host?.id, doc.field)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group border border-gray-100 dark:border-gray-700 rounded-lg overflow-hidden hover:border-bosejour-red transition-colors"
                 >
                   <div className="relative h-32 bg-gray-50 dark:bg-gray-900">
-                    <Image src={getStorageUrl(doc.path)} alt={doc.label} fill className="object-cover" />
+                    <Image src={secureDocumentUrl(host?.id, doc.field)!} alt={doc.label} fill className="object-cover" />
                   </div>
                   <p className="text-xs font-medium text-gray-700 dark:text-gray-300 p-2 group-hover:text-bosejour-red">{doc.label}</p>
                 </a>
