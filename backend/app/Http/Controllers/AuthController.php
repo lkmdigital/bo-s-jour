@@ -61,6 +61,14 @@ class AuthController extends Controller
         // Cookie de session (Sanctum stateful) pour le frontend web ; le token Bearer reste
         // émis en parallèle, sans effet pour ce frontend mais laissé pour compatibilité.
         Auth::guard('web')->login($user);
+        // Empêche la fixation de session (audit sécurité externe 2026-09-27, Phase 2) :
+        // régénère l'identifiant de session juste après l'authentification, jamais avant.
+        // hasSession() : cette route API n'a une session (cookie Sanctum stateful) que pour
+        // un appelant "frontend" reconnu (voir EnsureFrontendRequestsAreStateful) — un client
+        // Bearer-only (mobile, script) n'en a pas et regenerate() planterait sans ce garde.
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -173,6 +181,14 @@ class AuthController extends Controller
         ]);
 
         Auth::guard('web')->login($user);
+        // Empêche la fixation de session (audit sécurité externe 2026-09-27, Phase 2) :
+        // régénère l'identifiant de session juste après l'authentification, jamais avant.
+        // hasSession() : cette route API n'a une session (cookie Sanctum stateful) que pour
+        // un appelant "frontend" reconnu (voir EnsureFrontendRequestsAreStateful) — un client
+        // Bearer-only (mobile, script) n'en a pas et regenerate() planterait sans ce garde.
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -548,6 +564,14 @@ class AuthController extends Controller
         $user->load('roles');
 
         Auth::guard('web')->login($user);
+        // Empêche la fixation de session (audit sécurité externe 2026-09-27, Phase 2) :
+        // régénère l'identifiant de session juste après l'authentification, jamais avant.
+        // hasSession() : cette route API n'a une session (cookie Sanctum stateful) que pour
+        // un appelant "frontend" reconnu (voir EnsureFrontendRequestsAreStateful) — un client
+        // Bearer-only (mobile, script) n'en a pas et regenerate() planterait sans ce garde.
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
         $token = $user->createToken('auth_token')->plainTextToken;
 
         // Notification de bienvenue OneSignal (asynchrone, ne bloque pas la réponse)
@@ -634,6 +658,14 @@ class AuthController extends Controller
             $user->update(['last_login_at' => now(), 'last_login_ip' => $request->ip(), 'login_count' => ($user->login_count ?? 0) + 1]);
             $user->load('roles');
             Auth::guard('web')->login($user, $request->boolean('remember'));
+            // Empêche la fixation de session (audit sécurité externe 2026-09-27, Phase 2) :
+            // régénère l'identifiant de session juste après l'authentification, jamais avant.
+            // hasSession() : cette route API n'a une session (cookie Sanctum stateful) que pour
+            // un appelant "frontend" reconnu (voir EnsureFrontendRequestsAreStateful) — un client
+            // Bearer-only (mobile, script) n'en a pas et regenerate() planterait sans ce garde.
+            if ($request->hasSession()) {
+                $request->session()->regenerate();
+            }
             $token = $user->createToken('auth_token')->plainTextToken;
             return response()->json(['user' => $user, 'token' => $token]);
         }
@@ -661,6 +693,14 @@ class AuthController extends Controller
             ]);
             $user->load('roles');
             Auth::guard('web')->login($user, $request->boolean('remember'));
+            // Empêche la fixation de session (audit sécurité externe 2026-09-27, Phase 2) :
+            // régénère l'identifiant de session juste après l'authentification, jamais avant.
+            // hasSession() : cette route API n'a une session (cookie Sanctum stateful) que pour
+            // un appelant "frontend" reconnu (voir EnsureFrontendRequestsAreStateful) — un client
+            // Bearer-only (mobile, script) n'en a pas et regenerate() planterait sans ce garde.
+            if ($request->hasSession()) {
+                $request->session()->regenerate();
+            }
             $token = $user->createToken('auth_token')->plainTextToken;
             return response()->json(['user' => $user, 'token' => $token]);
         }
@@ -754,6 +794,14 @@ class AuthController extends Controller
 
         // Créer le token final
         Auth::guard('web')->login($user);
+        // Empêche la fixation de session (audit sécurité externe 2026-09-27, Phase 2) :
+        // régénère l'identifiant de session juste après l'authentification, jamais avant.
+        // hasSession() : cette route API n'a une session (cookie Sanctum stateful) que pour
+        // un appelant "frontend" reconnu (voir EnsureFrontendRequestsAreStateful) — un client
+        // Bearer-only (mobile, script) n'en a pas et regenerate() planterait sans ce garde.
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
         $token = $user->createToken('auth_token')->plainTextToken;
 
         // Enregistrer les informations de connexion
@@ -957,6 +1005,14 @@ class AuthController extends Controller
 
         $user->load('roles');
         Auth::guard('web')->login($user);
+        // Empêche la fixation de session (audit sécurité externe 2026-09-27, Phase 2) :
+        // régénère l'identifiant de session juste après l'authentification, jamais avant.
+        // hasSession() : cette route API n'a une session (cookie Sanctum stateful) que pour
+        // un appelant "frontend" reconnu (voir EnsureFrontendRequestsAreStateful) — un client
+        // Bearer-only (mobile, script) n'en a pas et regenerate() planterait sans ce garde.
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
         $token = $user->createToken('auth_token')->plainTextToken;
 
         try {
