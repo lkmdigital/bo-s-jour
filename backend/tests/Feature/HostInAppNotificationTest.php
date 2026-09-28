@@ -86,6 +86,10 @@ class HostInAppNotificationTest extends TestCase
             'payment_reference' => 'REF-HOSTNOTIF-1',
         ]);
 
+        \Illuminate\Support\Facades\Http::fake([
+            'sandbox.malia.test/api/v1/payments/*' => \Illuminate\Support\Facades\Http::response(['status' => 'success', 'transaction_id' => 'FAKE_TX_HOSTNOTIF', 'montant' => 30000], 200),
+        ]);
+
         $this->postJson('/api/payments/webhook', [
             'reference' => 'REF-HOSTNOTIF-1',
             'status' => 'success',

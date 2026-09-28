@@ -184,6 +184,12 @@ class MaliaPayIntegrationTest extends TestCase
             'payment_reference' => 'REF-SUCCESS-1',
         ]);
 
+        // Le webhook ne confirme plus sur sa seule parole (falsifiable) : il redemande le
+        // statut réel à Malia Pay avant de confirmer — voir confirmSuccessClaimedByWebhook().
+        Http::fake([
+            'business.malia.ci/api/v1/payments/*' => Http::response(['status' => 'success', 'transaction_id' => 'FAKE_TX_2', 'montant' => 50000], 200),
+        ]);
+
         $response = $this->postJson('/api/payments/webhook', [
             'reference' => 'REF-SUCCESS-1',
             'status' => 'success',
@@ -195,7 +201,9 @@ class MaliaPayIntegrationTest extends TestCase
         $payment->refresh();
         $this->assertSame('completed', $payment->status);
         $this->assertSame('FAKE_TX_2', $payment->transaction_id);
-        $this->assertSame('webhook', $payment->payment_data['confirmation_source']);
+        // 'webhook_verifie' : confirmé après vérification indépendante auprès de Malia Pay
+        // (voir confirmSuccessClaimedByWebhook), pas sur la seule foi du corps du webhook.
+        $this->assertSame('webhook_verifie', $payment->payment_data['confirmation_source']);
     }
 
     /**
@@ -242,6 +250,10 @@ class MaliaPayIntegrationTest extends TestCase
             'purpose' => 'full',
             'payment_method' => 'wave-ci',
             'payment_reference' => 'REF-SUCCESS-CONFIRM-1',
+        ]);
+
+        Http::fake([
+            'business.malia.ci/api/v1/payments/*' => Http::response(['status' => 'success', 'transaction_id' => 'FAKE_TX_CONFIRM_1', 'montant' => 40000], 200),
         ]);
 
         $response = $this->postJson('/api/payments/webhook', [

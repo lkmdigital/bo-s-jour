@@ -589,6 +589,70 @@ class PaymentController extends Controller
     }
 
     /**
+     * Interroge le statut réel d'une transaction chez Malia Pay — jamais sur la seule foi
+     * du corps d'un webhook (falsifiable tant que MALIA_PAY_WEBHOOK_SECRET n'est pas
+     * configuré, voir verifyWebhookSignature()), toujours via notre propre X-API-Key.
+     * Préfère le transaction_id que NOUS avons enregistré à la création du paiement (voir
+     * createPaymentLink()) à celui réclamé par l'appelant du webhook : un paiement créé
+     * depuis la migration du 2026-09-01 a systématiquement le sien, ce qui rend le
+     * transaction_id du corps du webhook sans effet — on ne retombe dessus que pour de
+     * très anciens paiements sans transaction_id connu.
+     */
+    private function verifiedMaliaStatus(?string $ourTransactionId, ?string $claimedTransactionId): ?array
+    {
+        $transactionId = $ourTransactionId ?: $claimedTransactionId;
+
+        return $transactionId ? $this->checkTransactionStatus($transactionId) : null;
+    }
+
+    /**
+     * Le webhook prétend qu'un paiement a réussi. Tant que MALIA_PAY_WEBHOOK_SECRET n'est
+     * pas configuré, verifyWebhookSignature() accepte tout appelant (rétrocompat) — sans
+     * ce correctif, n'importe qui connaissant une référence de paiement pouvait se faire
+     * confirmer une réservation gratuitement en simulant ce webhook. On ne confirme donc
+     * JAMAIS sur la seule foi du corps de la requête : on redemande le statut réel à
+     * Malia Pay et on ne confirme, avec le montant qu'IL rapporte, que s'il confirme
+     * lui-même un succès pour ce transaction_id.
+     */
+    private function confirmSuccessClaimedByWebhook(Payment $payment, ?string $claimedTransactionId, array $rawWebhookData)
+    {
+        $malia = $this->verifiedMaliaStatus($payment->transaction_id, $claimedTransactionId);
+
+        if ($malia && strtolower((string) ($malia['status'] ?? '')) === 'success') {
+            $result = $this->confirmPaymentSuccess(
+                $payment->id,
+                $malia['transaction_id'] ?? $payment->transaction_id ?? $claimedTransactionId,
+                isset($malia['montant']) ? (int) round((float) $malia['montant']) : null,
+                $malia,
+                'webhook_verifie'
+            );
+
+            return response()->json([
+                'message' => $result['already_completed'] ? 'Paiement déjà confirmé' : 'Paiement confirmé avec succès',
+                'payment' => $result['payment'],
+            ]);
+        }
+
+        \Log::warning("Webhook malia-pay: succès réclamé mais NON confirmé par l'API Malia Pay — paiement non confirmé (appel forgé ou API indisponible)", [
+            'payment_id' => $payment->id,
+            'reference' => $payment->payment_reference,
+            'claimed_transaction_id' => $claimedTransactionId,
+            'our_transaction_id' => $payment->transaction_id,
+            'malia_status' => $malia['status'] ?? null,
+            'webhook_body' => $rawWebhookData,
+        ]);
+
+        // Réponse 200 (pas d'erreur) pour ne pas déclencher de retentatives agressives côté
+        // Malia Pay sur un appel potentiellement forgé. Le paiement reste "pending" : la
+        // réconciliation automatique (payments:flag-stuck-pending, toutes les 5 min) ou une
+        // vérification manuelle (admin / Ops) le confirmera dès que Malia Pay le confirme
+        // réellement.
+        return response()->json([
+            'message' => "Statut « succès » non confirmé de façon indépendante ; vérification en cours.",
+        ]);
+    }
+
+    /**
      * Webhook pour recevoir les notifications de paiement de malia-pay.com
      */
     public function webhook(Request $request)
@@ -626,12 +690,7 @@ class PaymentController extends Controller
         }
 
         if (in_array(strtolower((string) $status), ['success', 'successful', 'completed', 'paid'], true)) {
-            $result = $this->confirmPaymentSuccess($payment->id, $transactionId, $montant, $data, 'webhook');
-
-            return response()->json([
-                'message' => $result['already_completed'] ? 'Paiement déjà confirmé' : 'Paiement confirmé avec succès',
-                'payment' => $result['payment'],
-            ]);
+            return $this->confirmSuccessClaimedByWebhook($payment, $transactionId, $data);
         }
 
         // États intermédiaires MaliaPay (le client n'a pas fini l'opérateur, ou la
@@ -652,21 +711,19 @@ class PaymentController extends Controller
         // Avant de marquer un paiement « échoué » sur la foi d'un webhook, on demande à
         // MaliaPay son statut réel : un statut inattendu ou un échec suivi d'une nouvelle
         // tentative réussie ne doit pas laisser un paiement encaissé comme « échoué ».
-        if ($payment->transaction_id || $transactionId) {
-            $malia = $this->checkTransactionStatus($payment->transaction_id ?: $transactionId);
-            if (strtolower((string) ($malia['status'] ?? '')) === 'success') {
-                $result = $this->confirmPaymentSuccess(
-                    $payment->id,
-                    $malia['transaction_id'] ?? $payment->transaction_id ?? $transactionId,
-                    isset($malia['montant']) ? (int) round((float) $malia['montant']) : null,
-                    $malia,
-                    'webhook_verifie'
-                );
-                return response()->json([
-                    'message' => 'Paiement confirmé après vérification',
-                    'payment' => $result['payment'],
-                ]);
-            }
+        $malia = $this->verifiedMaliaStatus($payment->transaction_id, $transactionId);
+        if ($malia && strtolower((string) ($malia['status'] ?? '')) === 'success') {
+            $result = $this->confirmPaymentSuccess(
+                $payment->id,
+                $malia['transaction_id'] ?? $payment->transaction_id ?? $transactionId,
+                isset($malia['montant']) ? (int) round((float) $malia['montant']) : null,
+                $malia,
+                'webhook_verifie'
+            );
+            return response()->json([
+                'message' => 'Paiement confirmé après vérification',
+                'payment' => $result['payment'],
+            ]);
         }
 
         return DB::transaction(function () use ($payment, $status, $data) {
@@ -877,7 +934,14 @@ class PaymentController extends Controller
             $this->markConfirmedIfPending($booking);
         }
 
-        if ($payment->purpose === 'full') {
+        // Un paiement "full" ne marque la réservation payée que si le montant réellement
+        // encaissé (voir confirmSuccessClaimedByWebhook — toujours celui rapporté par Malia
+        // Pay, jamais celui réclamé par l'appelant) couvre effectivement le prix total.
+        // Avant ce correctif, purpose === 'full' suffisait à lui seul, quel que soit le
+        // montant réellement crédité — un paiement partiel (ou une transaction Malia Pay
+        // réelle mais pour un montant sans rapport) aurait pu confirmer une réservation
+        // sans qu'elle ait été intégralement réglée.
+        if ($payment->purpose === 'full' && $booking->amount_paid >= $booking->total_price) {
             $booking->payment_status = 'paid';
             $booking->expires_at = null;
             $this->markConfirmedIfPending($booking);

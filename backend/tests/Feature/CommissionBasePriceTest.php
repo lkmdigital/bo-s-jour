@@ -7,6 +7,7 @@ use App\Models\Commission;
 use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
@@ -52,6 +53,10 @@ class CommissionBasePriceTest extends TestCase
             'payment_reference' => 'REF-BASEPRICE-1',
         ]);
 
+        Http::fake([
+            'sandbox.malia.test/api/v1/payments/*' => Http::response(['status' => 'success', 'transaction_id' => 'FAKE_TX_BASEPRICE', 'montant' => 25000], 200),
+        ]);
+
         $this->postJson('/api/payments/webhook', [
             'reference' => 'REF-BASEPRICE-1',
             'status' => 'success',
@@ -84,6 +89,10 @@ class CommissionBasePriceTest extends TestCase
             'purpose' => 'full',
             'payment_method' => 'wave-ci',
             'payment_reference' => 'REF-LEGACY-1',
+        ]);
+
+        Http::fake([
+            'sandbox.malia.test/api/v1/payments/*' => Http::response(['status' => 'success', 'transaction_id' => 'FAKE_TX_LEGACY', 'montant' => 40000], 200),
         ]);
 
         $this->postJson('/api/payments/webhook', [
