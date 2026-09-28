@@ -19,3 +19,11 @@ Schedule::command('payments:flag-stuck-pending')->dailyAt('08:00');
 // n'est pas arrivé apparaît dans les tableaux de bord en quelques minutes, pas le lendemain.
 Schedule::command('payments:flag-stuck-pending --minutes=3 --no-digest')->everyFiveMinutes()->withoutOverlapping();
 
+// Sauvegarde quotidienne de la base de données (audit de sécurité externe, 2026-09-27,
+// Phase 6) : jusqu'ici, seuls des instantanés des fichiers applicatifs existaient avant
+// chaque déploiement (voir deploy.sh), jamais la base elle-même. Nécessite mysqldump sur
+// le serveur (paquet mysql-client / mariadb-client) ; échoue silencieusement (au sens : ne
+// bloque rien d'autre) si absent, voir les logs. Écrit dans storage/app/backups/database,
+// jamais sur le disque public.
+Schedule::command('backup:database')->dailyAt('03:00')->withoutOverlapping();
+
