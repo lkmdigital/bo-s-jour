@@ -645,7 +645,11 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::prefix('inspections')->group(function () {
             Route::get('/', [InspectionController::class, 'index'])->middleware('permission:inspections.read');
             Route::post('/', [InspectionController::class, 'store'])->middleware('permission:inspections.create');
-            Route::get('/accommodations', [InspectionController::class, 'accommodations'])->middleware('auth:sanctum');
+            // Durci suite à l'audit de sécurité externe (2026-09-27, Phase 8) : n'exigeait que
+            // d'être connecté, la restriction réelle (admin/contrôleur) n'était vérifiée qu'à
+            // l'intérieur du contrôleur — jamais exploitable en pratique, mais fragile en cas de
+            // modification future du contrôleur. Alignée sur ses routes voisines.
+            Route::get('/accommodations', [InspectionController::class, 'accommodations'])->middleware('permission:inspections.read');
             Route::get('/{id}', [InspectionController::class, 'show'])->middleware('permission:inspections.read');
             Route::get('/{id}/checklist', [InspectionController::class, 'generateChecklist'])->middleware('permission:inspections.read');
             Route::post('/{id}/start', [InspectionController::class, 'start'])->middleware('permission:inspections.update');
