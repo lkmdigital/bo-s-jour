@@ -1171,6 +1171,11 @@ class BookingController extends Controller
             // Le jeton aléatoire est le secret : il suffit, connecté ou non.
             $canView = true;
             $booking->makeVisible('access_token');
+        } elseif (!$user) {
+            // Anonyme et pas de jeton (id numérique brut) : jamais de droit d'accès — avant
+            // ce correctif, les branches suivantes appelaient une méthode sur $user === null
+            // et provoquaient une erreur 500 au lieu d'un simple refus (audit sécurité externe
+            // 2026-09-27, Phase 4 — divulgation d'informations via une erreur non maîtrisée).
         } elseif ($user->isAdmin()) {
             $canView = true;
         } elseif ($user->isUser() && $booking->user_id === $user->id) {

@@ -155,7 +155,10 @@ Route::get('/auth/guest-prefill', [AuthController::class, 'guestPrefill'])->midd
 Route::post('/auth/send-otp', [AuthController::class, 'sendEmailOtp'])->middleware('throttle:6,1,auth-send-otp'); // laisse renvoyer le code 2-3 fois (mail en retard) sans se bloquer
 Route::post('/auth/verify-otp', [AuthController::class, 'verifyEmailOtp'])->middleware('throttle:10,1,auth-verify-otp');
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:6,1,auth-forgot-password');
-Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+// Défense en profondeur (audit sécurité externe 2026-09-27, Phase 2) : le jeton de 64
+// caractères rend un brute-force déjà irréaliste, mais rien n'empêchait jusqu'ici un
+// nombre illimité de tentatives, contrairement à ses voisins forgot-password/verify-otp.
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:10,1,auth-reset-password');
 
 // OAuth routes
 Route::get('/auth/{provider}/redirect', [OAuthController::class, 'redirect'])->where('provider', 'google|microsoft');
