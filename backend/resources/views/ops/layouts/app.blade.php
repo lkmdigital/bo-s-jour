@@ -25,10 +25,9 @@
                     <span>Réservations &amp; litiges</span>
                     <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-gray-400">Bientôt</span>
                 </span>
-                <span class="ops-nav-link opacity-50 cursor-not-allowed" title="À venir">
-                    <span>Technique (logs, jobs)</span>
-                    <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide text-gray-400">Bientôt</span>
-                </span>
+                <a href="{{ route('ops.logs.index') }}" class="ops-nav-link {{ request()->routeIs('ops.logs.*') ? 'is-active' : '' }}">
+                    <span>Flux de logs</span>
+                </a>
             </nav>
             <div class="p-3 border-t border-gray-200">
                 <form method="POST" action="{{ route('ops.logout') }}">

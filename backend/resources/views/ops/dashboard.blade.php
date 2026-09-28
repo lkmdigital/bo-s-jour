@@ -15,10 +15,10 @@
             <p class="text-3xl font-bold text-gray-300">—</p>
             <p class="text-xs text-gray-400 mt-1">Module à venir</p>
         </div>
-        <div class="ops-card p-5 opacity-50">
-            <p class="text-sm text-gray-500 mb-1">Technique</p>
-            <p class="text-3xl font-bold text-gray-300">—</p>
-            <p class="text-xs text-gray-400 mt-1">Module à venir</p>
-        </div>
+        <a href="{{ route('ops.logs.index') }}" class="ops-card p-5 hover:shadow-md transition-shadow">
+            <p class="text-sm text-gray-500 mb-1">Flux de logs</p>
+            <p class="text-3xl font-bold text-gray-900">→</p>
+            <p class="text-xs text-gray-400 mt-1">Application &amp; sécurité, en direct</p>
+        </a>
     </div>
 @endsection

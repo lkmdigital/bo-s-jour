@@ -21,4 +21,53 @@
   .ops-nav-link.is-active {
     @apply bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary;
   }
+
+  /* Page "Flux de logs" — classes de couleur nommées (jamais construites dynamiquement
+     avec des utilitaires Tailwind bruts : elles seraient purgées, n'apparaissant nulle
+     part dans les fichiers scannés par Tailwind puisque JS les assemble à l'exécution). */
+  .ops-log-row {
+    @apply flex gap-3 px-4 py-3 border-b border-gray-100 last:border-0 text-sm;
+  }
+  .ops-log-row.is-new {
+    animation: ops-log-enter 400ms ease-out;
+  }
+  @keyframes ops-log-enter {
+    from { opacity: 0; transform: translateY(-6px); background-color: rgb(255 247 237); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .ops-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide shrink-0;
+  }
+  .ops-badge-red { @apply bg-red-100 text-red-700; }
+  .ops-badge-amber { @apply bg-amber-100 text-amber-700; }
+  .ops-badge-blue { @apply bg-blue-100 text-blue-700; }
+  .ops-badge-gray { @apply bg-gray-100 text-gray-600; }
+  .ops-badge-emerald { @apply bg-emerald-100 text-emerald-700; }
+  .ops-badge-teal { @apply bg-teal-100 text-teal-700; }
+  .ops-badge-indigo { @apply bg-indigo-100 text-indigo-700; }
+  .ops-badge-sky { @apply bg-sky-100 text-sky-700; }
+  .ops-badge-rose { @apply bg-rose-100 text-rose-700; }
+  .ops-dot { @apply inline-block w-2 h-2 rounded-full shrink-0 mt-1.5; }
+  .ops-dot-red { @apply bg-red-500; }
+  .ops-dot-amber { @apply bg-amber-500; }
+  .ops-dot-blue { @apply bg-blue-400; }
+  .ops-dot-gray { @apply bg-gray-400; }
+
+  .ops-log-tab {
+    @apply text-gray-600 hover:bg-gray-100 transition-colors;
+  }
+  .ops-log-tab.is-active {
+    @apply bg-primary text-white hover:bg-primary;
+  }
+
+  /* Contenu de chaque ligne, injecté en JS (voir ops.js appendEntry()) — des utilitaires
+     Tailwind bruts écrits seulement là-dedans seraient purgés : `content` ne scanne que
+     les fichiers .blade.php, jamais les gabarits assemblés côté client. */
+  .ops-log-head { @apply flex items-center gap-2 flex-wrap mb-0.5; }
+  .ops-log-time { @apply text-xs text-gray-400 font-mono; }
+  .ops-log-body { @apply flex-1 min-w-0; }
+  .ops-log-title { @apply text-gray-800 break-words; }
+  .ops-log-expand { @apply text-primary text-xs font-semibold hover:underline ml-1; }
+  .ops-log-context { @apply flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-gray-500; }
+  .ops-log-context-label { @apply font-medium text-gray-600; }
 }

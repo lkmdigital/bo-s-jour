@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Ops\AuthController as OpsAuthController;
 use App\Http\Controllers\Ops\DashboardController as OpsDashboardController;
+use App\Http\Controllers\Ops\LogsController as OpsLogsController;
 use App\Http\Controllers\Ops\PaymentsController as OpsPaymentsController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +26,11 @@ Route::prefix('ops')->name('ops.')->group(function () {
         Route::prefix('payments')->name('payments.')->group(function () {
             Route::get('/', [OpsPaymentsController::class, 'index'])->name('index');
             Route::post('/{payment}/reconcile', [OpsPaymentsController::class, 'reconcile'])->name('reconcile');
+        });
+
+        Route::prefix('logs')->name('logs.')->group(function () {
+            Route::get('/', [OpsLogsController::class, 'index'])->name('index');
+            Route::get('/tail', [OpsLogsController::class, 'tail'])->name('tail');
         });
     });
 });
