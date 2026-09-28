@@ -325,7 +325,10 @@ class MaliaPayIntegrationTest extends TestCase
             'status' => 'failed',
         ]);
 
-        $response->assertStatus(400);
+        // MaliaPay attend un HTTP 200 dès que la notification est reçue et traitée (leur
+        // documentation officielle) — un statut "failed" est une information normale, pas
+        // une erreur de notre côté ; un 400 aurait pu déclencher des relances inutiles.
+        $response->assertOk();
         $payment->refresh();
         $this->assertSame('failed', $payment->status);
     }

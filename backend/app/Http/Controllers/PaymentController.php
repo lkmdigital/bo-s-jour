@@ -765,10 +765,15 @@ class PaymentController extends Controller
                 'status' => $status
             ]);
 
+            // MaliaPay attend un HTTP 200 dès que la notification est reçue et traitée
+            // (voir leur documentation officielle) — un statut « failed » n'est pas une
+            // erreur de notre côté, c'est une information normale qu'on vient d'enregistrer.
+            // Un 400 ici aurait pu laisser MaliaPay croire que la notification n'est jamais
+            // arrivée et la renvoyer indéfiniment.
             return response()->json([
                 'message' => 'Paiement échoué',
                 'payment' => $payment->load('booking')
-            ], 400);
+            ]);
         });
     }
 
