@@ -53,8 +53,17 @@ function NewBookingContent() {
   const roomId = searchParams?.get('room');
   const initialCheckIn = searchParams?.get('check_in') || session?.checkIn || undefined;
   const initialCheckOut = searchParams?.get('check_out') || session?.checkOut || undefined;
-  const initialGuests = searchParams?.get('guests') ? parseInt(searchParams.get('guests')!, 10) : (session?.guests ?? undefined);
-  const initialChildren = searchParams?.get('children') ? parseInt(searchParams.get('children')!, 10) : (session?.children ?? undefined);
+  const urlGuests = searchParams?.get('guests');
+  const urlChildren = searchParams?.get('children');
+  const initialGuests = urlGuests ? parseInt(urlGuests, 10) : (session?.guests ?? undefined);
+  // `children` ne doit venir de la session mémorisée QUE si `guests` en vient aussi — sinon
+  // un lien qui fixe `guests` sans `children` (ex. page chambre, liste des chambres)
+  // hériterait d'un nombre d'enfants périmé d'une recherche précédente sans rapport avec
+  // le nombre de voyageurs affiché. Bug réel (2026-10-01) : "Le champ children doit être
+  // inférieur à 1" à la réservation alors que l'écran affichait "1 adulte".
+  const initialChildren = urlGuests
+    ? (urlChildren ? parseInt(urlChildren, 10) : 0)
+    : (urlChildren ? parseInt(urlChildren, 10) : (session?.children ?? undefined));
   
   const [accommodation, setAccommodation] = useState<Accommodation | null>(null);
   const [room, setRoom] = useState<Room | null>(null);

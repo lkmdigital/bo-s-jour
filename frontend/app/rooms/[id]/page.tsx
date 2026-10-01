@@ -89,7 +89,16 @@ function RoomDetailContent() {
   
   const checkIn = searchParams?.get('check_in') || session?.checkIn || undefined;
   const checkOut = searchParams?.get('check_out') || session?.checkOut || undefined;
-  const guests = searchParams?.get('guests') || (session?.guests ? String(session.guests) : undefined);
+  const urlGuests = searchParams?.get('guests');
+  const guests = urlGuests || (session?.guests ? String(session.guests) : undefined);
+  // `children` ne doit venir de la session mémorisée QUE si `guests` en vient aussi —
+  // sinon un lien qui fixe `guests` sans `children` (ex. liste des chambres) hériterait
+  // d'un nombre d'enfants périmé d'une recherche précédente, sans rapport avec le
+  // nombre de voyageurs réellement affiché (bug réel : "children doit être inférieur à 1").
+  const childrenParam = searchParams?.get('children');
+  const children = urlGuests
+    ? (childrenParam || undefined)
+    : (childrenParam || (session?.children ? String(session.children) : undefined));
   
   // Vérifier si l'utilisateur est le propriétaire de l'établissement
   const isHost = isAuthenticated && user?.role === 'host' && room?.accommodation?.host_id === user?.id;
@@ -429,6 +438,7 @@ function RoomDetailContent() {
                       if (checkIn) params.set('check_in', checkIn);
                       if (checkOut) params.set('check_out', checkOut);
                       if (guests) params.set('guests', guests);
+                      if (children) params.set('children', children);
                       return `/bookings/new?${params.toString()}`;
                     })()}
                     className="btn-primary w-full flex items-center justify-center gap-2"

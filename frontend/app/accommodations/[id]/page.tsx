@@ -853,11 +853,12 @@ export default function AccommodationDetailPage() {
               
               {!loadingRooms && rooms.length > 0 && (
                 <div className="card">
-                  <RoomsList 
+                  <RoomsList
                     rooms={rooms}
                     checkIn={selectedDates.checkIn}
                     checkOut={selectedDates.checkOut}
                     guests={selectedDates.guests}
+                    children={selectedDates.children}
                   />
                 </div>
               )}

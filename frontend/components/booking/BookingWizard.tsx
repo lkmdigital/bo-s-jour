@@ -148,7 +148,14 @@ export default function BookingWizard(props: Props) {
   const [checkIn, setCheckIn] = useState(() => initialDates.checkIn || readDraftDates(props.accommodationId, props.roomId).checkIn || '');
   const [checkOut, setCheckOut] = useState(() => initialDates.checkOut || readDraftDates(props.accommodationId, props.roomId).checkOut || '');
   const [guests, setGuests] = useState(() => props.initialGuests || readDraftDates(props.accommodationId, props.roomId).guests || 1);
-  const [children, setChildren] = useState(() => Math.max(0, props.initialChildren ?? readDraftDates(props.accommodationId, props.roomId).children ?? 0));
+  // Plafonné à guests - 1 par sécurité : une source d'enfants obsolète (session de
+  // recherche, brouillon d'une autre page) ne doit jamais produire children >= guests,
+  // ce que le backend rejette avec "Le champ children doit être inférieur à 1" sans
+  // qu'aucune étape du tunnel n'ait affiché d'incohérence à l'utilisateur.
+  const [children, setChildren] = useState(() => Math.max(0, Math.min(
+    props.initialChildren ?? readDraftDates(props.accommodationId, props.roomId).children ?? 0,
+    guests - 1
+  )));
   const [editingDates, setEditingDates] = useState(() => {
     const draft = readDraftDates(props.accommodationId, props.roomId);
     const hasCheckIn = !!(initialDates.checkIn || draft.checkIn);

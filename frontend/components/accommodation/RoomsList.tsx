@@ -47,6 +47,7 @@ interface RoomsListProps {
   checkIn?: Date | null;
   checkOut?: Date | null;
   guests?: number;
+  children?: number;
 }
 
 const AMENITY_ICON: Record<string, typeof Wifi> = {
@@ -55,7 +56,7 @@ const AMENITY_ICON: Record<string, typeof Wifi> = {
   breakfast: Coffee, 'petit-déjeuner': Coffee, 'petit déjeuner': Coffee,
 };
 
-export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, checkOut: propCheckOut, guests }: RoomsListProps) {
+export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, checkOut: propCheckOut, guests, children: childrenCount }: RoomsListProps) {
   const searchParams = useSearchParams();
   const urlCheckIn = searchParams?.get('check_in');
   const urlCheckOut = searchParams?.get('check_out');
@@ -88,6 +89,7 @@ export default function RoomsList({ rooms, onSelectRoom, checkIn: propCheckIn, c
       if (checkInStr) params.set('check_in', checkInStr);
       if (checkOutStr) params.set('check_out', checkOutStr);
       if (guests != null && guests > 0) params.set('guests', String(guests));
+      if (childrenCount != null && childrenCount > 0) params.set('children', String(childrenCount));
       const queryString = params.toString();
       window.location.href = `/rooms/${room.id}${queryString ? `?${queryString}` : ''}`;
     }
