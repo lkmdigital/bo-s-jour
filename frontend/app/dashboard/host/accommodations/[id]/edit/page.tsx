@@ -13,7 +13,7 @@ import Brand from '@/components/common/Brand';
 import { ArrowLeft, MapPin, Trash2, Star, Tag, Bed, Clock, MessageCircle, ShieldCheck, Rocket, CheckCircle2, Circle, Loader2, Award, Coffee } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { compressImages } from '@/lib/utils';
+import { compressImages, imageFailuresMessage } from '@/lib/utils';
 import IcalSyncPanel from '@/components/accommodations/IcalSyncPanel';
 import LongStayDiscountTiers, { DEFAULT_LONG_STAY_TIERS, LongStayTier } from '@/components/accommodations/LongStayDiscountTiers';
 
@@ -385,16 +385,19 @@ export default function EditAccommodationPage() {
 
     try {
       // Compresser les images
+      const failedImages: string[] = [];
       const compressedFiles = await compressImages(limited, {
         maxWidth: 1920,
         maxHeight: 1920,
         quality: 0.75,
-        maxSizeInMB: 2
+        maxSizeInMB: 2,
+        onFileError: (file) => failedImages.push(file.name),
       });
 
       setMediaFiles(compressedFiles);
       setPreviews(compressedFiles.map(file => URL.createObjectURL(file)));
-      setError(null); // Réinitialiser l'erreur si des fichiers valides sont sélectionnés
+      // Les photos réussies sont conservées ; celles en échec sont nommées
+      setError(failedImages.length > 0 ? imageFailuresMessage(failedImages) : null);
     } catch (compressionError) {
       setError('Erreur lors de la compression des images. Veuillez réessayer.');
     }

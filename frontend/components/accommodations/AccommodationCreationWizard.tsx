@@ -11,7 +11,7 @@ import { ArrowLeft, MapPin, Upload, ChevronRight, ChevronLeft, Check, Award } fr
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/stores/authStore';
-import { compressImages } from '@/lib/utils';
+import { compressImages, imageFailuresMessage } from '@/lib/utils';
 import LongStayDiscountTiers, { DEFAULT_LONG_STAY_TIERS, LongStayTier } from '@/components/accommodations/LongStayDiscountTiers';
 
 interface AccommodationFormData {
@@ -525,10 +525,17 @@ export default function AccommodationCreationWizard({
         const imageFiles = filesToAdd.filter(f => f.type.startsWith('image/'));
         const videoFiles = filesToAdd.filter(f => f.type.startsWith('video/'));
 
-        // Compresser uniquement les images
+        // Compresser uniquement les images (une par une : une photo en échec n'annule plus les autres)
+        const failedImages: string[] = [];
         const compressedImages = imageFiles.length > 0
-          ? await compressImages(imageFiles, { maxWidth: 1920, maxHeight: 1920, quality: 0.75, maxSizeInMB: 2 })
+          ? await compressImages(imageFiles, {
+              maxWidth: 1920, maxHeight: 1920, quality: 0.75, maxSizeInMB: 2,
+              onFileError: (file) => failedImages.push(file.name),
+            })
           : [];
+        if (failedImages.length > 0) {
+          errors.push(imageFailuresMessage(failedImages));
+        }
 
         // Combiner les images compressées et les vidéos (non compressées)
         const processedFiles = [...compressedImages, ...videoFiles];
@@ -537,6 +544,9 @@ export default function AccommodationCreationWizard({
         const newPreviews = [...previews, ...processedFiles.map(file => URL.createObjectURL(file))];
         setMediaFiles(newFiles);
         setPreviews(newPreviews);
+        if (failedImages.length > 0) {
+          setError(errors.join('\n'));
+        }
       } catch (compressionError) {
         setError('Erreur lors de la compression des images. Veuillez réessayer.');
       }

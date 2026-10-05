@@ -164,6 +164,49 @@ interface CompressImageOptions {
   maxHeight?: number;
   quality?: number;
   maxSizeInMB?: number;
+  /**
+   * Appelé pour chaque image qui n'a pas pu être traitée (illisible, corrompue, trop lourde
+   * pour la mémoire du navigateur…). Si fourni, `compressImages` n'échoue pas : il renvoie
+   * les images réussies et laisse l'appelant informer l'utilisateur, fichier par fichier.
+   */
+  onFileError?: (file: File, error: Error) => void;
+}
+
+type DecodedImage = ImageBitmap | HTMLImageElement;
+
+const widthOf = (img: DecodedImage) => ('naturalWidth' in img ? img.naturalWidth : img.width);
+const heightOf = (img: DecodedImage) => ('naturalHeight' in img ? img.naturalHeight : img.height);
+
+function loadImageElement(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Image illisible ou corrompue'));
+    };
+    img.src = url;
+  });
+}
+
+/** Décode l'image (createImageBitmap : moins de mémoire qu'un <img>, avec repli sur <img>). */
+async function decodeImage(file: File): Promise<DecodedImage> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      return await createImageBitmap(file);
+    } catch {
+      // format non géré par createImageBitmap : on retente avec <img>
+    }
+  }
+  return loadImageElement(file);
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 }
 
 /**
@@ -184,98 +227,59 @@ export async function compressImage(
     maxSizeInMB = 2,        // Taille max 2 Mo
   } = options;
 
-  // Si ce n'est pas une image ou si elle est déjà petite, la retourner telle quelle
+  // Si ce n'est pas une image, la retourner telle quelle
   if (!file.type.startsWith('image/')) {
     return file;
   }
 
-  // Si l'image est déjà plus petite que la taille max, la retourner
-  if (file.size <= maxSizeInMB * 1024 * 1024) {
-    // On pourrait quand même redimensionner si trop grande en dimensions
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(img.src);
+  const img = await decodeImage(file);
+  try {
+    const srcW = widthOf(img);
+    const srcH = heightOf(img);
 
-        // Si les dimensions sont acceptables, retourner le fichier original
-        if (img.width <= maxWidth && img.height <= maxHeight) {
-          resolve(file);
-          return;
-        }
+    // Déjà légère et aux bonnes dimensions : rien à faire
+    if (file.size <= maxSizeInMB * 1024 * 1024 && srcW <= maxWidth && srcH <= maxHeight) {
+      return file;
+    }
 
-        // Sinon, redimensionner
-        compressImageWithCanvas(img, file, maxWidth, maxHeight, quality, resolve, reject);
-      };
-      img.onerror = () => reject(new Error('Erreur lors du chargement de l\'image'));
-    });
-  }
+    // Les PNG sont convertis en JPEG (beaucoup plus légers pour des photos)
+    const outputType = file.type === 'image/webp' ? 'image/webp' : 'image/jpeg';
 
-  // Compression nécessaire
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(img.src);
-      compressImageWithCanvas(img, file, maxWidth, maxHeight, quality, resolve, reject);
-    };
-    img.onerror = () => reject(new Error('Erreur lors du chargement de l\'image'));
-  });
-}
-
-/**
- * Compresse une image en utilisant un canvas
- */
-function compressImageWithCanvas(
-  img: HTMLImageElement,
-  originalFile: File,
-  maxWidth: number,
-  maxHeight: number,
-  quality: number,
-  resolve: (file: File) => void,
-  reject: (error: Error) => void
-): void {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
-  if (!ctx) {
-    reject(new Error('Impossible de créer le contexte canvas'));
-    return;
-  }
-
-  // Calculer les nouvelles dimensions en conservant le ratio
-  let { width, height } = calculateDimensions(img.width, img.height, maxWidth, maxHeight);
-
-  canvas.width = width;
-  canvas.height = height;
-
-  // Dessiner l'image redimensionnée
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, width, height);
-  ctx.drawImage(img, 0, 0, width, height);
-
-  // Convertir en blob avec la qualité souhaitée
-  const outputType = originalFile.type === 'image/png' ? 'image/jpeg' : originalFile.type;
-
-  canvas.toBlob(
-    (blob) => {
+    // Sur un appareil à court de mémoire, le canvas peut refuser de se créer : on retente
+    // avec des dimensions réduites plutôt que d'abandonner.
+    let scale = 1;
+    for (let attempt = 0; attempt < 3; attempt++, scale *= 0.7) {
+      const { width, height } = calculateDimensions(srcW, srcH, Math.round(maxWidth * scale), Math.round(maxHeight * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        continue;
+      }
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      const blob = await canvasToBlob(canvas, outputType, quality);
+      canvas.width = canvas.height = 0; // libère la mémoire du canvas
       if (!blob) {
-        reject(new Error('Erreur lors de la compression de l\'image'));
-        return;
+        continue;
       }
 
-      // Créer un nouveau fichier avec le même nom mais compressé
-      const compressedFile = new File(
-        [blob],
-        originalFile.name,
-        { type: outputType, lastModified: originalFile.lastModified }
-      );
+      // Une photo déjà bien compressée peut grossir : on garde alors l'original
+      if (blob.size >= file.size && width === srcW && height === srcH && file.type === outputType) {
+        return file;
+      }
 
-      resolve(compressedFile);
-    },
-    outputType,
-    quality
-  );
+      const name = outputType !== file.type ? file.name.replace(/\.[^./\\]+$/, '') + '.jpg' : file.name;
+      return new File([blob], name, { type: outputType, lastModified: file.lastModified });
+    }
+    throw new Error('Image trop volumineuse pour être traitée par ce navigateur');
+  } finally {
+    if ('close' in img) {
+      img.close();
+    }
+  }
 }
 
 /**
@@ -306,15 +310,35 @@ function calculateDimensions(
 }
 
 /**
- * Compresse plusieurs images en parallèle
- * @param files - Tableau de fichiers à compresser
- * @param options - Options de compression
- * @returns Promise<File[]> - Tableau de fichiers compressés
+ * Compresse plusieurs images, UNE À LA FOIS : décoder 10 photos de 12 à 50 mégapixels en
+ * parallèle épuise la mémoire d'un PC modeste, et une seule image en échec annulait tout le lot.
+ *
+ * - avec `options.onFileError` : renvoie les images réussies et signale chaque échec ;
+ * - sans : lève une erreur qui nomme la première image en échec.
  */
 export async function compressImages(
   files: File[],
   options: CompressImageOptions = {}
 ): Promise<File[]> {
-  const promises = files.map(file => compressImage(file, options));
-  return Promise.all(promises);
+  const { onFileError, ...compressOptions } = options;
+  const results: File[] = [];
+  for (const file of files) {
+    try {
+      results.push(await compressImage(file, compressOptions));
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error('Compression impossible');
+      if (!onFileError) {
+        throw new Error(`${file.name} : ${error.message}`);
+      }
+      onFileError(file, error);
+    }
+  }
+  return results;
+}
+
+/** Message affiché quand certaines photos n'ont pas pu être traitées (les autres sont conservées). */
+export function imageFailuresMessage(names: string[]): string {
+  const list = names.length > 3 ? `${names.slice(0, 3).join(', ')} et ${names.length - 3} autre(s)` : names.join(', ');
+  return `${names.length > 1 ? 'Ces photos n’ont pas pu être ajoutées' : 'Cette photo n’a pas pu être ajoutée'} : ${list}. `
+    + 'Le fichier est peut-être abîmé ou trop lourd : enregistrez-le à nouveau en JPEG, ou choisissez-en une autre.';
 }

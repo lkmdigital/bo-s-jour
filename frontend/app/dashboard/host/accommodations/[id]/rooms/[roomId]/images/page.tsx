@@ -10,7 +10,7 @@ import api from '@/lib/api';
 import Link from 'next/link';
 import { Upload, Trash2, Star, MoveUp, MoveDown, Check } from 'lucide-react';
 import Image from 'next/image';
-import { compressImages } from '@/lib/utils';
+import { compressImages, imageFailuresMessage } from '@/lib/utils';
 
 interface RoomImage {
   id: number;
@@ -61,11 +61,13 @@ export default function RoomImagesPage() {
     try {
       // Compresser les images avant l'upload
       const imageFiles = Array.from(files);
+      const failedImages: string[] = [];
       const compressedImages = await compressImages(imageFiles, {
         maxWidth: 1920,
         maxHeight: 1920,
         quality: 0.75,
-        maxSizeInMB: 2
+        maxSizeInMB: 2,
+        onFileError: (file) => failedImages.push(file.name),
       });
 
       for (const file of compressedImages) {
@@ -81,6 +83,9 @@ export default function RoomImagesPage() {
 
       await fetchRoom();
       e.target.value = ''; // Reset input
+      if (failedImages.length > 0) {
+        setError(imageFailuresMessage(failedImages));
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors de l\'upload');
     } finally {
