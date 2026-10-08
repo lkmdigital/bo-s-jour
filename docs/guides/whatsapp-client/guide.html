@@ -1,0 +1,371 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>BoSéjour — Guide WhatsApp (v2)</title><style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;0,800;1,700&display=swap');
+@page { size: A4; margin: 16mm 15mm 18mm; @bottom-left { content: "BoSéjour · Guide WhatsApp · v2"; font: 8pt 'DM Sans', sans-serif; color: #999; }
+        @bottom-right { content: counter(page) " / " counter(pages); font: 8pt 'DM Sans', sans-serif; color: #999; } }
+@page :first { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+:root { --red:#FF0000; --ink:#111; --gray:#4B5F5A; --beige:#F7E8C6; --line:#e7e2d8; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif; color: var(--ink); font-size: 10.2pt; line-height: 1.45; margin: 0; }
+h1,h2,h3 { margin: 0; line-height: 1.12; letter-spacing: -0.01em; }
+h2 { font-size: 19pt; font-weight: 800; }
+h3 { font-size: 11.5pt; font-weight: 700; margin-bottom: 4px; }
+p { margin: 0 0 8px; }
+.page { page-break-after: always; break-after: page; }
+.page.model { zoom: .95; }
+table.plain td .copy { white-space: nowrap; font-size: 8.2pt; word-break: normal; }
+.preview { break-inside: avoid; }
+.page:last-child { page-break-after: auto; break-after: auto; }
+small { display: block; font-size: 8pt; color: #777; font-weight: 400; }
+.muted { color: #888; font-weight: 400; }
+u { text-decoration-color: var(--red); text-underline-offset: 2px; }
+
+/* Couverture */
+.cover { height: 297mm; background: linear-gradient(135deg, #000 42%, #4a0000 72%, #ff0000 100%); color: #fff; padding: 22mm 20mm; position: relative; page-break-after: always; break-after: page; }
+.cover .logo { background:#fff; border-radius: 14px; padding: 10px 16px; display:inline-block; }
+.cover .logo img { height: 34px; display:block; }
+.cover h1 { font-size: 36pt; font-weight: 800; margin-top: 62mm; max-width: 150mm; }
+.cover h1 em { font-style: normal; color: #ff6a6a; }
+.cover .sub { font-size: 14pt; margin-top: 8mm; max-width: 140mm; opacity: .92; }
+.cover .meta { position:absolute; left: 20mm; bottom: 22mm; font-size: 10pt; opacity: .85; line-height: 1.6; }
+.cover .pill { display:inline-block; border:1.5px solid rgba(255,255,255,.55); border-radius: 99px; padding: 3px 12px; margin: 14mm 6px 0 0; font-size: 10pt; }
+
+/* En-tête de section */
+.kicker { color: var(--red); font-weight: 800; letter-spacing: .14em; font-size: 8.5pt; text-transform: uppercase; margin-bottom: 4px; }
+.lead { font-size: 11.5pt; color: #333; margin: 6px 0 12px; }
+
+/* Cartes & encadrés */
+.grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid3 { display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.card { border:1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; background:#fff; }
+.card.hl { border-color: var(--red); background: #fff6f6; }
+.card .big { font-size: 22pt; font-weight: 800; color: var(--red); line-height: 1; margin-bottom: 4px; }
+.callout { border-radius: 10px; padding: 9px 12px; margin: 10px 0; font-size: 9.6pt; }
+.callout.info { background: #eef4f2; border-left: 4px solid var(--gray); }
+.callout.warn { background: #fff4e0; border-left: 4px solid #e69500; }
+.callout.bad { background: #fdeaea; border-left: 4px solid var(--red); }
+.callout.ok { background: #e9f6ec; border-left: 4px solid #1a9a4a; }
+
+/* Étapes */
+.steps { list-style: none; counter-reset: s; padding: 0; margin: 8px 0; }
+.steps li { counter-increment: s; position: relative; padding: 4px 0 8px 36px; }
+.steps li::before { content: counter(s); position:absolute; left:0; top:2px; width: 24px; height:24px; border-radius: 50%; background: var(--red); color:#fff; font-weight:800; font-size: 10pt; display:flex; align-items:center; justify-content:center; }
+.chk { list-style:none; padding:0; margin: 6px 0; }
+.chk li { padding: 3px 0 3px 26px; position:relative; }
+.chk li::before { content:""; position:absolute; left:0; top:5px; width:14px; height:14px; border:2px solid var(--gray); border-radius: 4px; }
+
+/* Tables génériques */
+table { border-collapse: collapse; width: 100%; }
+table.plain th { text-align:left; background: var(--beige); font-size: 9pt; padding: 6px 9px; }
+table.plain td { padding: 6px 9px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 9.6pt; }
+code, .copy { font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 9pt; background: #f3f1ec; padding: 1px 5px; border-radius: 4px; word-break: break-all; }
+.copy { font-weight: 600; background: #fff0f0; color: #a00000; }
+
+/* Fiche modèle */
+.model-head { display:flex; align-items:center; gap: 12px; margin-bottom: 10px; }
+.model-head .num { width: 40px; height: 40px; flex: none; border-radius: 12px; background:#000; color:#fff; font-weight:800; font-size: 18pt; display:flex; align-items:center; justify-content:center; }
+.model-head h2 { font-size: 15pt; font-family: 'SF Mono', Menlo, monospace; letter-spacing: 0; }
+.model-head p { margin: 2px 0 0; color: #555; font-size: 9.4pt; }
+.tag { margin-left:auto; flex:none; background: var(--beige); border-radius: 99px; padding: 3px 12px; font-weight: 700; font-size: 9pt; }
+.tag-auth { background: #dfe9f7; }
+table.form { border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+table.form td { padding: 8px 11px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.form tr:last-child td { border-bottom: 0; }
+table.form td.lbl { width: 31%; background: #faf8f3; font-weight: 700; font-size: 9.4pt; }
+table.form td.lbl small { font-weight: 400; }
+.note { margin-top: 3px; }
+.msg { background: #f7f6f2; border: 1px dashed #cfc8b8; border-radius: 8px; padding: 9px 11px; font-size: 9.6pt; line-height: 1.5; }
+.var { background: #fff1b8; border-radius: 4px; padding: 0 3px; font-family: 'SF Mono', Menlo, monospace; font-weight: 600; }
+table.mini { margin-top: 2px; }
+table.mini th { text-align:left; font-size: 8pt; color:#888; font-weight:600; padding: 2px 6px 3px 0; }
+table.mini td { padding: 2px 8px 2px 0; font-size: 9.4pt; border: 0; }
+.tips { margin: 6px 0 0; padding-left: 16px; font-size: 9pt; color: #444; }
+
+/* Aperçu WhatsApp */
+.preview { display:grid; grid-template-columns: 1fr 250px; gap: 14px; align-items:start; margin-top: 12px; }
+.preview-txt p { color:#555; font-size: 9.4pt; }
+.wa { background: #e6ddd4; border-radius: 14px; padding: 12px; }
+.wa-bubble { background:#fff; border-radius: 10px 10px 10px 2px; padding: 8px 10px 4px; font-size: 8.6pt; line-height: 1.4; box-shadow: 0 1px 1px rgba(0,0,0,.12); }
+.wa-foot { color: #8a8a8a; font-size: 7.4pt; margin-top: 5px; }
+.wa-time { text-align:right; font-size: 6.8pt; color:#9a9a9a; margin-top: 1px; }
+.wa-btn { margin-top: 4px; background:#fff; border-radius: 10px; text-align:center; padding: 6px; color: #027eb5; font-weight: 600; font-size: 8.6pt; box-shadow: 0 1px 1px rgba(0,0,0,.12); }
+
+/* Schéma d'écran */
+.screen { border: 1.5px solid #cfc8b8; border-radius: 12px; background:#faf9f6; padding: 14px; display:grid; grid-template-columns: 1fr 120px; gap: 12px; margin: 10px 0 6px; }
+.field { background:#fff; border:1px solid #d8d3c6; border-radius: 8px; padding: 6px 10px 6px 34px; margin-bottom: 7px; position:relative; font-size: 9pt; min-height: 30px; }
+.field b { display:block; font-size: 7.6pt; color:#888; font-weight:600; }
+.field .pin { position:absolute; left: 7px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border-radius:50%; background: var(--red); color:#fff; font-size: 8.6pt; font-weight:800; display:flex; align-items:center; justify-content:center; }
+.field.tall { min-height: 66px; }
+.screen .side { background:#e6ddd4; border-radius: 10px; padding: 8px; font-size: 7.6pt; color:#555; text-align:center; }
+
+.err td:first-child { font-weight: 700; }
+.sig { margin-top: 10px; }
+.status { display:inline-block; border-radius: 99px; padding: 1px 10px; font-weight: 700; font-size: 8.8pt; }
+.s-ok { background:#dff3e5; color:#157a3b; } .s-wait { background:#fff1c9; color:#8a6100; } .s-no { background:#fddede; color:#b00000; } .s-pause{ background:#e8e8e8; color:#555; }
+</style></head><body>
+
+<!-- ─── Couverture ─── -->
+<section class="cover">
+  <span class="logo"><img src="data:image/png;base64,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" alt="bo séjour"></span>
+  <h1>Créer les modèles de message <em>WhatsApp</em></h1>
+  <p class="sub">Guide pas à pas, avec les textes à copier et les erreurs à éviter.</p>
+  <span class="pill">5 modèles</span><span class="pill">≈ 45 minutes</span><span class="pill">Version 2 · 2 octobre 2026</span>
+  <div class="meta">À l’attention de HCS Consulting<br>Plateforme BoSéjour · bosejour.ci</div>
+</section>
+
+<!-- ─── 1. L’essentiel ─── -->
+<section class="page">
+  <div class="kicker">Avant de commencer</div>
+  <h2>L’essentiel en une page</h2>
+  <p class="lead">BoSéjour envoie des messages WhatsApp à vos voyageurs et à vos partenaires. Pour <b>écrire en premier</b>, WhatsApp impose des messages-types validés à l’avance par Meta : les <b>modèles</b>. Ce guide vous montre comment les créer.</p>
+
+  <div class="grid3">
+    <div class="card"><div class="big">1</div><b>Préparer</b><br>Compte Meta vérifié, numéro dédié, moyen de paiement.</div>
+    <div class="card"><div class="big">2</div><b>Créer 5 modèles</b><br>On recopie les textes fournis. Un par un, une fiche par modèle.</div>
+    <div class="card"><div class="big">3</div><b>Nous transmettre 4 éléments</b><br>Identifiants et confirmation « Approuvé ».</div>
+  </div>
+
+  <h3 style="margin-top:16px">Deux façons de procéder</h3>
+  <div class="grid2">
+    <div class="card hl">
+      <b>A — Vous nous donnez l’accès (recommandé)</b>
+      <p style="margin-top:4px">Vous ajoutez notre développeur comme administrateur : <b>il crée les 5 modèles et la clé d’accès à votre place</b>. Il vous reste seulement à valider le numéro et le moyen de paiement. Environ 10 minutes pour vous.</p>
+      <p class="muted" style="margin:0">→ Voir « Option A » et « Ce qu’il faut nous transmettre ».</p>
+    </div>
+    <div class="card">
+      <b>B — Vous créez les modèles vous-même</b>
+      <p style="margin-top:4px">Suivez « Option B » : une fiche par modèle, avec chaque champ à remplir. Prévoyez environ 45 minutes, plus le délai de validation de Meta (de quelques minutes à 24 h).</p>
+      <p class="muted" style="margin:0">→ Voir « Option B ».</p>
+    </div>
+  </div>
+
+  <div class="callout warn"><b>Si vous bloquez, ne perdez pas de temps :</b> passez à l’option A. Les deux étapes qui bloquent le plus souvent sont la vérification de l’entreprise par Meta et la création de la clé d’accès permanente (elle demande une « application » Meta).</div>
+
+  <h3 style="margin-top:12px">Les 5 modèles à créer</h3>
+  <table class="plain"><tr><th style="width:4%">#</th><th style="width:37%">Nom (à recopier exactement)</th><th style="width:15%">Catégorie</th><th>Quand il est envoyé</th></tr><tr><td><b>1</b></td><td><span class="copy">bosejour_demande_recue</span></td><td>Utilitaire</td><td>Au voyageur, dès qu’il envoie sa demande de réservation</td></tr><tr><td><b>2</b></td><td><span class="copy">bosejour_nouvelle_demande</span></td><td>Utilitaire</td><td>Au partenaire (hébergeur), quand une demande est à confirmer</td></tr><tr><td><b>3</b></td><td><span class="copy">bosejour_demande_acceptee</span></td><td>Utilitaire</td><td>Au voyageur, quand le partenaire a confirmé la disponibilité (lien de paiement)</td></tr><tr><td><b>4</b></td><td><span class="copy">bosejour_reservation_confirmee</span></td><td>Utilitaire</td><td>Au voyageur, une fois le paiement reçu</td></tr><tr><td><b>5</b></td><td><span class="copy">bosejour_code_verification</span></td><td>Authentification</td><td>Au voyageur, pour vérifier son numéro de téléphone</td></tr></table>
+</section>
+
+<!-- ─── 2. Préparer ─── -->
+<section class="page">
+  <div class="kicker">Étape 1</div>
+  <h2>Préparer le terrain</h2>
+  <p class="lead">Ces trois éléments sont indispensables, et le premier prend le plus de temps : <b>lancez-le aujourd’hui</b>.</p>
+  <table class="plain">
+    <tr><th style="width:30%">Il vous faut</th><th>Détails</th></tr>
+    <tr><td><b>1. Un compte Meta Business vérifié</b></td><td>Au nom de HCS Consulting, sur <b>business.facebook.com</b>. La vérification demande les documents de l’entreprise et peut prendre <b>plusieurs jours</b>. Tant qu’elle n’est pas terminée, certaines fonctions restent limitées.</td></tr>
+    <tr><td><b>2. Un numéro dédié à BoSéjour</b></td><td>Un numéro qui n’est <b>pas déjà utilisé</b> sur l’application WhatsApp ou WhatsApp Business (sinon il faut d’abord le désinscrire). Il doit pouvoir recevoir un <b>SMS ou un appel</b> pour être validé.</td></tr>
+    <tr><td><b>3. Un moyen de paiement</b></td><td>Enregistré dans Meta Business (<i>Paramètres → Facturation</i>). Meta facture directement les messages envoyés aux clients.</td></tr>
+  </table>
+  <div class="callout info"><b>Bon à savoir :</b> les messages « Utilitaire » (confirmation, lien de paiement…) coûtent moins cher que les messages « Marketing ». C’est pourquoi les textes de ce guide ne contiennent aucune promotion : n’en ajoutez pas.</div>
+
+  <h3 style="margin-top:14px">Comment ouvrir l’outil des modèles</h3>
+  <ol class="steps">
+    <li>Connectez-vous à <b>business.facebook.com</b> avec un compte administrateur.</li>
+    <li>Ouvrez le <b>Gestionnaire WhatsApp</b> <span class="muted">(WhatsApp Manager)</span>. Vous ne le trouvez pas ? Utilisez la barre de recherche de Meta Business Suite et tapez « WhatsApp ».</li>
+    <li>Dans le menu de gauche, cliquez sur <b>Modèles de messages</b> <span class="muted">(Message templates)</span>, puis sur le bouton <b>Créer un modèle</b> <span class="muted">(Create template)</span>.</li>
+  </ol>
+  <div class="callout info">Meta change régulièrement le nom de certains boutons et la langue de l’interface suit celle de votre compte. Nous indiquons donc le libellé français <b>et</b> l’anglais entre parenthèses.</div>
+</section>
+
+<!-- ─── 3. Option A ─── -->
+<section class="page">
+  <div class="kicker">Option A · la plus simple</div>
+  <h2>Nous donner l’accès</h2>
+  <p class="lead">Vous ne créez rien : notre développeur s’occupe de toute la partie technique. Vous gardez le contrôle et pouvez retirer son accès à tout moment.</p>
+  <ol class="steps">
+    <li>Ouvrez <b>business.facebook.com</b> → <b>Paramètres de l’entreprise</b> <span class="muted">(Business settings)</span> → <b>Utilisateurs → Personnes</b> <span class="muted">(Users → People)</span>.</li>
+    <li>Cliquez sur <b>Ajouter</b>, saisissez l’<b>adresse e-mail que nous vous communiquons</b> et donnez l’accès <b>Administrateur</b>.</li>
+    <li>Toujours dans les paramètres : <b>Comptes → Comptes WhatsApp</b> <span class="muted">(Accounts → WhatsApp accounts)</span>. Sélectionnez votre compte, cliquez sur <b>Ajouter des personnes</b>, choisissez notre développeur et activez le <b>contrôle total</b>.</li>
+    <li>Validez votre <b>numéro dédié</b> (Meta envoie un code par SMS ou par appel) et vérifiez que votre <b>moyen de paiement</b> est enregistré.</li>
+    <li>Prévenez-nous : nous créons les 5 modèles, vous n’avez plus qu’à contrôler qu’ils sont « Approuvés ».</li>
+  </ol>
+  <div class="callout ok"><b>Ce que nous ne pouvons pas faire à votre place :</b> la vérification de l’entreprise, la validation du numéro par SMS et l’enregistrement du moyen de paiement. Ces trois actions doivent venir de vous.</div>
+  <div class="callout info">Vous préférez créer les modèles vous-même ? Continuez avec la section suivante, « Option B ».</div>
+</section>
+
+<!-- ─── 4. Règles + schéma ─── -->
+<section class="page">
+  <div class="kicker">Option B · créer les modèles vous-même</div>
+  <h2>Les règles à respecter</h2>
+  <p class="lead">La grande majorité des refus viennent d’une de ces six règles.</p>
+  <table class="plain err">
+    <tr><th style="width:5%"></th><th style="width:46%">À faire</th><th>À éviter</th></tr>
+    <tr><td>1</td><td><b>Langue :</b> choisir <b>Français</b> (code « fr ») pour chaque modèle.</td><td>Une autre variante du français : le site cherche le modèle en « fr » et ne le trouverait pas.</td></tr>
+    <tr><td>2</td><td><b>Nom :</b> recopier le nom indiqué, en minuscules avec des tirets bas.</td><td>Majuscules, espaces, accents. Le nom ne peut plus être modifié.</td></tr>
+    <tr><td>3</td><td><b>Catégorie :</b> « Utilitaire » pour les modèles 1 à 4, « Authentification » pour le 5.</td><td>Ajouter une phrase commerciale (« profitez de… ») : Meta classerait le modèle en « Marketing ».</td></tr>
+    <tr><td>4</td><td><b>Textes :</b> recopier à l’identique, apostrophes ’ et emojis compris. Le plus sûr : <b>copier depuis le fichier texte</b> fourni avec ce guide.</td><td>Retaper le texte à la main, ou le copier depuis le PDF (les emojis et les sauts de ligne se perdent).</td></tr>
+    <tr><td>5</td><td><b>Variables :</b> &#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;… recopiées telles quelles, <b>avec un exemple pour chacune</b>.</td><td>Oublier un exemple, changer l’ordre des numéros, ou placer une variable tout au début ou à la toute fin du texte.</td></tr>
+    <tr><td>6</td><td><b>Un modèle mal rempli ?</b> Cliquez sur « Modifier » et corrigez-le.</td><td><b>Ne le supprimez pas pour le recréer :</b> Meta bloque le même nom pendant environ 30 jours.</td></tr>
+  </table>
+
+  <h3 style="margin-top:14px">À quoi ressemble le formulaire de Meta</h3>
+  <p style="color:#555;margin-bottom:4px">Schéma simplifié : l’écran réel peut différer légèrement, mais les champs sont les mêmes et dans cet ordre. Les fiches suivantes reprennent ces numéros.</p>
+  <div class="screen">
+    <div>
+      <div class="field"><span class="pin">1</span><b>Nom · Catégorie · Langue</b>bosejour_… · Utilitaire · Français</div>
+      <div class="field"><span class="pin">2</span><b>En-tête (facultatif)</b>laisser vide</div>
+      <div class="field tall"><span class="pin">3</span><b>Corps du message</b>Le texte, avec les variables &#123;&#123;1&#125;&#125; &#123;&#123;2&#125;&#125;…<br>(bouton « Ajouter une variable »)</div>
+      <div class="field"><span class="pin">4</span><b>Exemples des variables</b>un exemple par variable, obligatoire</div>
+      <div class="field"><span class="pin">5</span><b>Pied de page (facultatif)</b>courte ligne grise</div>
+      <div class="field"><span class="pin">6</span><b>Boutons</b>Appel à l’action → Visiter le site</div>
+    </div>
+    <div class="side">Aperçu en direct<br>du message<br><br>💬<br><br>vérifiez-le avant d’envoyer</div>
+  </div>
+  <p class="muted" style="margin-top:6px">Quand tout est rempli : bouton <b>Envoyer</b> <span class="muted">(Submit)</span> en bas de page.</p>
+</section>
+
+
+<section class="page model">
+  <div class="model-head">
+    <span class="num">1</span>
+    <div><h2>bosejour_demande_recue</h2><p>Au voyageur, dès qu’il envoie sa demande de réservation</p></div>
+    <span class="tag ">Utilitaire</span>
+  </div>
+  <table class="form"><tr><td class="lbl">Nom du modèle<small>Name</small></td><td><b class="copy">bosejour_demande_recue</b><small class="note">minuscules et tirets bas, exactement comme ci-contre — impossible à changer ensuite</small></td></tr><tr><td class="lbl">Catégorie<small>Category</small></td><td><b>Utilitaire</b> <span class="muted">(Utility)</span></td></tr><tr><td class="lbl">Langue<small>Language</small></td><td><b>Français (code « fr »)</b></td></tr><tr><td class="lbl">En-tête<small>Header</small></td><td><span class="muted">Aucun — laissez vide</span></td></tr><tr><td class="lbl">Corps du message<small>Body</small></td><td><div class="msg">Votre demande de réservation a bien été enregistrée !<br><br>Merci d’avoir choisi *boséjour*.<br><br>Votre demande a été transmise à l’établissement pour confirmation de disponibilité.<br><br>Dès validation, vous recevrez votre confirmation de disponibilité ainsi qu’un lien de paiement sécurisé pour finaliser votre réservation.<br><br>Encore quelques instants… votre séjour prend déjà forme.</div></td></tr><tr><td class="lbl">Exemples des variables<small>Samples</small></td><td><span class="muted">Aucune variable dans ce modèle : rien à saisir.</span></td></tr><tr><td class="lbl">Pied de page<small>Footer</small></td><td><b class="copy">boséjour — Votre séjour commence ici...</b></td></tr><tr><td class="lbl">Boutons<small>Buttons</small></td><td><span class="muted">Aucun — laissez vide</span></td></tr></table>
+  <div class="preview">
+    <div class="preview-txt"><h3>Ce que recevra le destinataire</h3>
+      <p>Aperçu avec les exemples ci-dessus. Si l’aperçu de Meta ressemble à ceci, le modèle est bon.</p><ul class="tips"><li>Les astérisques autour de *boséjour* mettent le mot en gras : recopiez-les.</li></ul></div>
+    <div class="wa"><div class="wa-bubble">Votre demande de réservation a bien été enregistrée !<br><br>Merci d’avoir choisi <b>boséjour</b>.<br><br>Votre demande a été transmise à l’établissement pour confirmation de disponibilité.<br><br>Dès validation, vous recevrez votre confirmation de disponibilité ainsi qu’un lien de paiement sécurisé pour finaliser votre réservation.<br><br>Encore quelques instants… votre séjour prend déjà forme.<div class="wa-foot">boséjour — Votre séjour commence ici...</div><div class="wa-time">10:42</div></div></div>
+  </div>
+</section>
+<section class="page model">
+  <div class="model-head">
+    <span class="num">2</span>
+    <div><h2>bosejour_nouvelle_demande</h2><p>Au partenaire (hébergeur), quand une demande est à confirmer</p></div>
+    <span class="tag ">Utilitaire</span>
+  </div>
+  <table class="form"><tr><td class="lbl">Nom du modèle<small>Name</small></td><td><b class="copy">bosejour_nouvelle_demande</b><small class="note">minuscules et tirets bas, exactement comme ci-contre — impossible à changer ensuite</small></td></tr><tr><td class="lbl">Catégorie<small>Category</small></td><td><b>Utilitaire</b> <span class="muted">(Utility)</span></td></tr><tr><td class="lbl">Langue<small>Language</small></td><td><b>Français (code « fr »)</b></td></tr><tr><td class="lbl">En-tête<small>Header</small></td><td><span class="muted">Aucun — laissez vide</span></td></tr><tr><td class="lbl">Corps du message<small>Body</small></td><td><div class="msg">Nouvelle demande de réservation 📩<br><br>Établissement : <span class="var">{{1}}</span><br>Séjour demandé : du <span class="var">{{2}}</span> au <span class="var">{{3}}</span><br><br>Merci de confirmer la disponibilité avant le <span class="var">{{4}}</span> depuis votre espace partenaire, sinon la demande sera annulée automatiquement.</div></td></tr><tr><td class="lbl">Exemples des variables<small>Samples / Content examples</small></td><td><table class="mini"><tr><th>Variable</th><th>À saisir comme exemple</th></tr><tr><td><span class="var">{{1}}</span></td><td>Résidence Le Balafon</td></tr><tr><td><span class="var">{{2}}</span></td><td>12/10/2026</td></tr><tr><td><span class="var">{{3}}</span></td><td>15/10/2026</td></tr><tr><td><span class="var">{{4}}</span></td><td>25/09/2026 à 18:30</td></tr></table><small class="note">Meta refuse le modèle si un exemple manque.</small></td></tr><tr><td class="lbl">Pied de page<small>Footer</small></td><td><b class="copy">boséjour — Espace partenaire</b></td></tr><tr><td class="lbl">Boutons<small>Buttons</small></td><td><b>Appel à l’action → Visiter le site</b> <span class="muted">(Call to action → Visit website)</span><br>Texte du bouton : <b class="copy">Répondre à la demande</b><br>Type d’URL : <b>Statique</b> <span class="muted">(Static)</span><br>URL du site : <b class="copy">https://bosejour.ci/dashboard/host/bookings/requests</b></td></tr></table>
+  <div class="preview">
+    <div class="preview-txt"><h3>Ce que recevra le destinataire</h3>
+      <p>Aperçu avec les exemples ci-dessus. Si l’aperçu de Meta ressemble à ceci, le modèle est bon.</p><ul class="tips"><li>L’emoji 📩 (enveloppe avec flèche) se trouve dans le sélecteur d’emojis de Meta, ou se copie depuis le fichier texte.</li></ul></div>
+    <div class="wa"><div class="wa-bubble">Nouvelle demande de réservation 📩<br><br>Établissement : Résidence Le Balafon<br>Séjour demandé : du 12/10/2026 au 15/10/2026<br><br>Merci de confirmer la disponibilité avant le 25/09/2026 à 18:30 depuis votre espace partenaire, sinon la demande sera annulée automatiquement.<div class="wa-foot">boséjour — Espace partenaire</div><div class="wa-time">10:42</div></div><div class="wa-btn">↗ Répondre à la demande</div></div>
+  </div>
+</section>
+<section class="page model">
+  <div class="model-head">
+    <span class="num">3</span>
+    <div><h2>bosejour_demande_acceptee</h2><p>Au voyageur, quand le partenaire a confirmé la disponibilité (lien de paiement)</p></div>
+    <span class="tag ">Utilitaire</span>
+  </div>
+  <table class="form"><tr><td class="lbl">Nom du modèle<small>Name</small></td><td><b class="copy">bosejour_demande_acceptee</b><small class="note">minuscules et tirets bas, exactement comme ci-contre — impossible à changer ensuite</small></td></tr><tr><td class="lbl">Catégorie<small>Category</small></td><td><b>Utilitaire</b> <span class="muted">(Utility)</span></td></tr><tr><td class="lbl">Langue<small>Language</small></td><td><b>Français (code « fr »)</b></td></tr><tr><td class="lbl">En-tête<small>Header</small></td><td><span class="muted">Aucun — laissez vide</span></td></tr><tr><td class="lbl">Corps du message<small>Body</small></td><td><div class="msg">Votre demande est acceptée ✅<br><br>Établissement : <span class="var">{{1}}</span><br>Séjour : du <span class="var">{{2}}</span> au <span class="var">{{3}}</span><br><br>Il ne reste plus qu’à régler votre séjour pour finaliser votre réservation. Utilisez le bouton ci-dessous pour payer en toute sécurité.</div></td></tr><tr><td class="lbl">Exemples des variables<small>Samples / Content examples</small></td><td><table class="mini"><tr><th>Variable</th><th>À saisir comme exemple</th></tr><tr><td><span class="var">{{1}}</span></td><td>Résidence Le Balafon</td></tr><tr><td><span class="var">{{2}}</span></td><td>12/10/2026</td></tr><tr><td><span class="var">{{3}}</span></td><td>15/10/2026</td></tr></table><small class="note">Meta refuse le modèle si un exemple manque.</small></td></tr><tr><td class="lbl">Pied de page<small>Footer</small></td><td><b class="copy">boséjour — Votre séjour commence ici...</b></td></tr><tr><td class="lbl">Boutons<small>Buttons</small></td><td><b>Appel à l’action → Visiter le site</b> <span class="muted">(Call to action → Visit website)</span><br>Texte du bouton : <b class="copy">Payer ma réservation</b><br>Type d’URL : <b>Dynamique</b> <span class="muted">(Dynamic)</span><br>URL du site : <b class="copy">https://bosejour.ci/paiement/<span class=var>{{1}}</span></b><br>Exemple d’URL : <b class="copy">https://bosejour.ci/paiement/k3Jd9xQ2LmA7</b><small class="note">Meta demande une adresse <u>complète</u>, pas seulement la fin. Si votre écran ne propose qu’un champ pour la variable, saisissez <b>k3Jd9xQ2LmA7</b>.</small></td></tr></table>
+  <div class="preview">
+    <div class="preview-txt"><h3>Ce que recevra le destinataire</h3>
+      <p>Aperçu avec les exemples ci-dessus. Si l’aperçu de Meta ressemble à ceci, le modèle est bon.</p><ul class="tips"><li>C’est le seul modèle avec un bouton à lien <b>dynamique</b> : le site ajoute lui-même, à la fin du lien, le code propre à chaque réservation.</li></ul></div>
+    <div class="wa"><div class="wa-bubble">Votre demande est acceptée ✅<br><br>Établissement : Résidence Le Balafon<br>Séjour : du 12/10/2026 au 15/10/2026<br><br>Il ne reste plus qu’à régler votre séjour pour finaliser votre réservation. Utilisez le bouton ci-dessous pour payer en toute sécurité.<div class="wa-foot">boséjour — Votre séjour commence ici...</div><div class="wa-time">10:42</div></div><div class="wa-btn">↗ Payer ma réservation</div></div>
+  </div>
+</section>
+<section class="page model">
+  <div class="model-head">
+    <span class="num">4</span>
+    <div><h2>bosejour_reservation_confirmee</h2><p>Au voyageur, une fois le paiement reçu</p></div>
+    <span class="tag ">Utilitaire</span>
+  </div>
+  <table class="form"><tr><td class="lbl">Nom du modèle<small>Name</small></td><td><b class="copy">bosejour_reservation_confirmee</b><small class="note">minuscules et tirets bas, exactement comme ci-contre — impossible à changer ensuite</small></td></tr><tr><td class="lbl">Catégorie<small>Category</small></td><td><b>Utilitaire</b> <span class="muted">(Utility)</span></td></tr><tr><td class="lbl">Langue<small>Language</small></td><td><b>Français (code « fr »)</b></td></tr><tr><td class="lbl">En-tête<small>Header</small></td><td><span class="muted">Aucun — laissez vide</span></td></tr><tr><td class="lbl">Corps du message<small>Body</small></td><td><div class="msg">Réservation confirmée ✅<br><br>Établissement : <span class="var">{{1}}</span><br>N° de réservation : <span class="var">{{2}}</span><br>Code de confirmation, à présenter à l’arrivée : <span class="var">{{3}}</span><br>Séjour : du <span class="var">{{4}}</span> au <span class="var">{{5}}</span><br><br>Merci et bon séjour !</div></td></tr><tr><td class="lbl">Exemples des variables<small>Samples / Content examples</small></td><td><table class="mini"><tr><th>Variable</th><th>À saisir comme exemple</th></tr><tr><td><span class="var">{{1}}</span></td><td>Résidence Le Balafon</td></tr><tr><td><span class="var">{{2}}</span></td><td>BS-2026-000115</td></tr><tr><td><span class="var">{{3}}</span></td><td>7F3A9C21</td></tr><tr><td><span class="var">{{4}}</span></td><td>12/10/2026</td></tr><tr><td><span class="var">{{5}}</span></td><td>15/10/2026</td></tr></table><small class="note">Meta refuse le modèle si un exemple manque.</small></td></tr><tr><td class="lbl">Pied de page<small>Footer</small></td><td><b class="copy">boséjour — Votre séjour commence ici...</b></td></tr><tr><td class="lbl">Boutons<small>Buttons</small></td><td><b>Appel à l’action → Visiter le site</b> <span class="muted">(Call to action → Visit website)</span><br>Texte du bouton : <b class="copy">Voir ma réservation</b><br>Type d’URL : <b>Statique</b> <span class="muted">(Static)</span><br>URL du site : <b class="copy">https://bosejour.ci/retrouver-reservation</b></td></tr></table>
+  <div class="preview">
+    <div class="preview-txt"><h3>Ce que recevra le destinataire</h3>
+      <p>Aperçu avec les exemples ci-dessus. Si l’aperçu de Meta ressemble à ceci, le modèle est bon.</p></div>
+    <div class="wa"><div class="wa-bubble">Réservation confirmée ✅<br><br>Établissement : Résidence Le Balafon<br>N° de réservation : BS-2026-000115<br>Code de confirmation, à présenter à l’arrivée : 7F3A9C21<br>Séjour : du 12/10/2026 au 15/10/2026<br><br>Merci et bon séjour !<div class="wa-foot">boséjour — Votre séjour commence ici...</div><div class="wa-time">10:42</div></div><div class="wa-btn">↗ Voir ma réservation</div></div>
+  </div>
+</section>
+<section class="page model">
+  <div class="model-head">
+    <span class="num">5</span>
+    <div><h2>bosejour_code_verification</h2><p>Au voyageur, pour vérifier son numéro de téléphone</p></div>
+    <span class="tag tag-auth">Authentification</span>
+  </div>
+  <div class="callout info"><b>Celui-ci est le plus simple :</b> Meta impose le texte. Vous ne rédigez rien, vous cochez des options.</div>
+  <table class="form">
+    <tr><td class="lbl">Nom du modèle<small>Name</small></td><td><b class="copy">bosejour_code_verification</b></td></tr>
+    <tr><td class="lbl">Catégorie<small>Category</small></td><td><b>Authentification</b> <span class="muted">(Authentication)</span></td></tr>
+    <tr><td class="lbl">Langue<small>Language</small></td><td><b>Français (code « fr »)</b></td></tr>
+    <tr><td class="lbl">Type de code<small>Code delivery setup</small></td><td><b>Copier le code</b> <span class="muted">(Copy code)</span><small class="note">le bouton qui copie le code en un clic. Ne choisissez pas « saisie automatique » (réservée à Android).</small></td></tr>
+    <tr><td class="lbl">Durée d’expiration du code<small>Code expiration time</small></td><td><b>Cochez l’option</b> et indiquez <b>10 minutes</b></td></tr>
+    <tr><td class="lbl">Recommandation de sécurité<small>Security recommendation</small></td><td><span class="muted">Au choix.</span> Décochée, le message est plus court.</td></tr>
+  </table>
+  <div class="preview">
+    <div class="preview-txt"><h3>Ce que recevra le voyageur</h3>
+      <p>Meta génère ce message automatiquement. Il n’y a rien d’autre à écrire.</p></div>
+    <div class="wa"><div class="wa-bubble"><b>482 916</b> est votre code de vérification.<div class="wa-foot">Ce code expire dans 10 minutes.</div><div class="wa-time">10:42</div></div><div class="wa-btn">⧉ Copier le code</div></div>
+  </div>
+</section>
+
+<!-- ─── Après l’envoi ─── -->
+<section class="page">
+  <div class="kicker">Étape 3</div>
+  <h2>Après l’envoi : que se passe-t-il ?</h2>
+  <p class="lead">Meta examine chaque modèle, en général de quelques minutes à 24 heures. Le statut s’affiche dans la liste des modèles.</p>
+  <table class="plain">
+    <tr><th style="width:24%">Statut</th><th>Ce que ça veut dire</th><th style="width:34%">Que faire ?</th></tr>
+    <tr><td><span class="status s-wait">En cours d’examen</span><small>In review</small></td><td>Meta vérifie le modèle.</td><td>Attendre.</td></tr>
+    <tr><td><span class="status s-ok">Approuvé</span><small>Approved</small></td><td>Le modèle est utilisable.</td><td>Rien. Quand les 5 le sont, prévenez-nous.</td></tr>
+    <tr><td><span class="status s-no">Refusé</span><small>Rejected</small></td><td>Meta a un reproche : le motif est indiqué.</td><td>Cliquez sur « Modifier », corrigez, renvoyez. Envoyez-nous le motif si besoin.</td></tr>
+    <tr><td><span class="status s-pause">En pause / désactivé</span><small>Paused / Disabled</small></td><td>Trop de signalements par les destinataires.</td><td>Nous prévenir.</td></tr>
+  </table>
+
+  <h3 style="margin-top:14px">Les erreurs les plus fréquentes</h3>
+  <table class="plain err">
+    <tr><th style="width:36%">Message ou symptôme <span class="muted">(formulation approximative)</span></th><th style="width:30%">Cause probable</th><th>Solution</th></tr>
+    <tr><td>« Exemple manquant » / « Missing sample »</td><td>Une variable n’a pas d’exemple.</td><td>Renseignez un exemple pour <u>chaque</u> variable (voir la fiche).</td></tr>
+    <tr><td>« Les variables ne peuvent pas être au début ou à la fin »</td><td>Le texte commence ou finit par &#123;&#123;1&#125;&#125;.</td><td>Recopiez le texte exact, sans retirer la ponctuation ni les mots autour.</td></tr>
+    <tr><td>Le modèle 3 est refusé à cause du bouton</td><td>L’exemple d’URL est incomplet.</td><td>Saisissez l’adresse <b>complète</b> : https://bosejour.ci/paiement/k3Jd9xQ2LmA7</td></tr>
+    <tr><td>Meta a changé la catégorie en « Marketing »</td><td>Le texte ressemble à une promotion.</td><td>Vérifiez que vous avez recopié le texte fourni, sans ajout. Sinon, contestez avec « Demander un examen ».</td></tr>
+    <tr><td>« Ce nom existe déjà » / nom impossible à réutiliser</td><td>Un modèle de ce nom a existé (ou a été supprimé il y a moins de 30 jours).</td><td>Modifiez le modèle existant. Si le nom est bloqué, contactez-nous : nous adapterons le nom côté site.</td></tr>
+    <tr><td>Le numéro n’est pas accepté</td><td>Il est déjà utilisé sur WhatsApp ou WhatsApp Business.</td><td>Désinscrivez-le d’abord dans l’application, ou choisissez un autre numéro.</td></tr>
+  </table>
+</section>
+
+<!-- ─── Clé d’accès ─── -->
+<section class="page">
+  <div class="kicker">Étape 4</div>
+  <h2>Numéro et clé d’accès permanente</h2>
+  <p class="lead">Le site a besoin d’une clé d’accès qui <b>n’expire pas</b>. Celle que Meta propose par défaut disparaît au bout de 24 heures et ne convient pas.</p>
+  <div class="callout warn"><b>Cette étape est la plus technique.</b> Elle demande une « application » Meta rattachée à votre compte WhatsApp. Si aucune application n’apparaît dans la liste, <b>ne cherchez pas plus loin</b> : choisissez l’option A (« Nous donner l’accès »), nous nous en chargeons.</div>
+
+  <h3>Valider le numéro</h3>
+  <p>Gestionnaire WhatsApp → <b>Numéros de téléphone</b> → ajoutez votre numéro dédié. Meta envoie un code par SMS ou par appel : saisissez-le pour valider.</p>
+
+  <h3 style="margin-top:10px">Créer la clé permanente</h3>
+  <ol class="steps">
+    <li><b>Paramètres de l’entreprise → Utilisateurs → Utilisateurs système</b> <span class="muted">(System users)</span> → <b>Ajouter</b>. Rôle : <b>Administrateur</b>.</li>
+    <li>Cliquez sur <b>Ajouter des actifs</b> <span class="muted">(Add assets)</span>, choisissez votre <b>compte WhatsApp</b> et donnez le <b>contrôle total</b>.</li>
+    <li>Cliquez sur <b>Générer un jeton</b> <span class="muted">(Generate token)</span>. Choisissez l’<b>application</b>, la durée <b>« Jamais »</b> <span class="muted">(Never)</span> et cochez <span class="copy">whatsapp_business_messaging</span> et <span class="copy">whatsapp_business_management</span>.</li>
+    <li><b>Copiez le jeton tout de suite</b> : Meta ne l’affiche qu’une seule fois.</li>
+  </ol>
+
+  <div class="callout bad"><b>Sécurité :</b> ce jeton permet d’envoyer des messages <b>en votre nom</b>. Ne l’envoyez ni par e-mail, ni par SMS, ni par WhatsApp. Utilisez un gestionnaire de mots de passe partagé, ou donnez-le de vive voix ou par un canal chiffré. Il est ensuite enregistré uniquement dans l’espace administrateur de la plateforme.</div>
+</section>
+
+<!-- ─── Ce qu’il faut nous transmettre ─── -->
+<section class="page">
+  <div class="kicker">Étape 5 · la dernière</div>
+  <h2>Ce qu’il faut nous transmettre</h2>
+  <table class="plain">
+    <tr><th style="width:34%">Élément</th><th>Où le trouver</th></tr>
+    <tr><td><b>Identifiant du numéro</b><small>Phone Number ID</small></td><td>Gestionnaire WhatsApp → Numéros de téléphone, juste sous votre numéro.</td></tr>
+    <tr><td><b>Identifiant du compte WhatsApp Business</b><small>WhatsApp Business Account ID</small></td><td>Gestionnaire WhatsApp, en haut de la page ou dans les paramètres du compte.</td></tr>
+    <tr><td><b>Jeton d’accès permanent</b></td><td>Créé à l’étape précédente. À transmettre avec les précautions de sécurité ci-dessus.</td></tr>
+    <tr><td><b>Confirmation « Approuvé » pour les 5 modèles</b></td><td>Gestionnaire WhatsApp → Modèles de messages. Une <b>capture d’écran de la liste</b> suffit.</td></tr>
+  </table>
+  <div class="callout ok">Si vous avez choisi l’option A, c’est nous qui récupérons ces éléments : il vous reste seulement à valider le numéro et le moyen de paiement.</div>
+
+  <h3 style="margin-top:14px">Votre liste de contrôle</h3>
+  <div class="grid2">
+    <ul class="chk">
+      <li>Compte Meta Business vérifié</li>
+      <li>Numéro dédié ajouté et validé par SMS</li>
+      <li>Moyen de paiement enregistré</li>
+      <li>Modèle 1 · <span class="copy">bosejour_demande_recue</span> approuvé</li>
+      <li>Modèle 2 · <span class="copy">bosejour_nouvelle_demande</span> approuvé</li>
+    </ul>
+    <ul class="chk">
+      <li>Modèle 3 · <span class="copy">bosejour_demande_acceptee</span> approuvé</li>
+      <li>Modèle 4 · <span class="copy">bosejour_reservation_confirmee</span> approuvé</li>
+      <li>Modèle 5 · <span class="copy">bosejour_code_verification</span> approuvé</li>
+      <li>Identifiants et jeton transmis en toute sécurité</li>
+      <li>Capture d’écran de la liste envoyée</li>
+    </ul>
+  </div>
+  <div class="callout info" style="margin-top:14px"><b>Et ensuite ?</b> Nous enregistrons les identifiants dans l’espace administrateur de BoSéjour, activons l’envoi par modèles, puis testons chaque message avec un numéro de test. Vous serez prévenus dès que tout fonctionne.</div>
+</section>
+
+</body></html>
