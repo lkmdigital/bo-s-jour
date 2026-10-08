@@ -1,0 +1,74 @@
+{
+  "_note": "Source unique du film de présentation : texte de la voix off (sous-titres compris) et calage de chaque scène sur la musique « Island of Happiness » (2:32). Après toute modification d'un texte, régénérer la voix : python3 scripts/generate-film-voice.py",
+  "voice": "Thomas",
+  "rate": 172,
+  "duration": 151.8,
+  "scenes": [
+    {
+      "id": "intro",
+      "start": 0,
+      "voiceAt": 3.2,
+      "text": "bo séjour. Votre séjour commence ici."
+    },
+    {
+      "id": "promesse",
+      "start": 10,
+      "voiceAt": 10.8,
+      "text": "Hôtels, résidences, écolodges, maisons d'hôtes… bo séjour réunit les plus beaux hébergements de Côte d'Ivoire, tous vérifiés avant d'être publiés."
+    },
+    {
+      "id": "recherche",
+      "start": 24,
+      "voiceAt": 24.8,
+      "text": "Tout commence par une recherche. Une destination, vos dates, le nombre de voyageurs. Assinie, trois nuits, deux adultes."
+    },
+    {
+      "id": "resultats",
+      "start": 40,
+      "voiceAt": 40.6,
+      "text": "En un instant, comparez les établissements : les photos, le prix par nuit, les notes des voyageurs. Filtrez par type, par budget ou par équipement."
+    },
+    {
+      "id": "fiche",
+      "start": 54,
+      "voiceAt": 54.6,
+      "text": "Sur la fiche, tout est clair : la galerie, les équipements, les avis authentiques, et la politique d'annulation, affichée avant de réserver."
+    },
+    {
+      "id": "chambre",
+      "start": 70,
+      "voiceAt": 70.6,
+      "text": "Choisissez votre chambre, ajoutez le petit-déjeuner, réservez même plusieurs chambres d'un coup. Le prix total s'affiche aussitôt. Aucune surprise."
+    },
+    {
+      "id": "mobile",
+      "start": 88,
+      "voiceAt": 88.4,
+      "text": "En déplacement ? Tout fonctionne aussi sur mobile : récapitulatif, voyageur, à titre personnel ou pour votre entreprise, coordonnées, vérification. Votre demande part alors au partenaire, qui confirme la disponibilité."
+    },
+    {
+      "id": "paiement",
+      "start": 106,
+      "voiceAt": 106.3,
+      "text": "Une fois confirmée, payez comme vous voulez : la totalité, avec une réduction, ou seulement la garantie demandée par l'établissement. Wave, Orange Money, MTN, Djamo, Visa ou Mastercard, en toute sécurité."
+    },
+    {
+      "id": "confirmation",
+      "start": 122,
+      "voiceAt": 122.4,
+      "text": "Réservation confirmée ! Votre code arrive aussitôt, par e-mail et sur WhatsApp."
+    },
+    {
+      "id": "apres",
+      "start": 131,
+      "voiceAt": 131.4,
+      "text": "Ensuite, échangez avec votre hôte, laissez votre avis, et cumulez des avantages grâce au programme de fidélité."
+    },
+    {
+      "id": "outro",
+      "start": 141,
+      "voiceAt": 142,
+      "text": "bo séjour. Votre séjour commence ici."
+    }
+  ]
+}

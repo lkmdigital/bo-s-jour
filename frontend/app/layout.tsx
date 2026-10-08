@@ -7,6 +7,8 @@ import ServiceWorkerRegistration from '@/components/pwa/ServiceWorkerRegistratio
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import PagePadding from '@/components/common/PagePadding';
 import MobileBottomBar from '@/components/common/MobileBottomBar';
+import BrandIntro from '@/components/intro/BrandIntro';
+import FilmLauncher from '@/components/film/FilmLauncher';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -29,6 +31,23 @@ const dancingScript = Dancing_Script({
   variable: '--font-dancing',
   display: 'swap',
 });
+
+// Animation d'ouverture (components/intro/BrandIntro) : décidée AVANT le premier
+// rendu pour que le calque soit là dès la première image, sans flash du site.
+// Une fois par session, uniquement sur les pages publiques d'entrée — jamais au
+// retour d'un paiement, dans un tableau de bord ou un lien reçu par e-mail
+// (auth, avis, réservation). Version « fondu » si les animations sont réduites
+// (préférence système ou réglage Apparence du site, clé `reduce_motion`).
+const INTRO_SCRIPT = `(function(){try{
+var p=location.pathname;
+if(!/^\\/(?:accommodations(?:\\/.*)?|rooms\\/.+|avis-clients|faq|help|contact|voyageur|partenaire)?\\/?$/.test(p))return;
+if(navigator.webdriver||sessionStorage.getItem('bs-intro'))return;
+sessionStorage.setItem('bs-intro','1');
+var d=document.documentElement;
+var r=matchMedia('(prefers-reduced-motion: reduce)').matches||localStorage.getItem('reduce_motion')==='1';
+d.setAttribute('data-intro',r?'reduced':'full');
+if(localStorage.getItem('locale')==='en')d.setAttribute('data-intro-lang','en');
+}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: 'BoSéjour - Votre séjour commence ici...',
@@ -77,11 +96,14 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="BoSéjour" />
+        <script dangerouslySetInnerHTML={{ __html: INTRO_SCRIPT }} />
       </head>
       <body className={`${dmSans.variable} ${baloo.variable} ${dancingScript.variable}`}>
+        <BrandIntro />
         <Providers>
           <PagePadding>{children}</PagePadding>
           <MobileBottomBar />
+          <FilmLauncher />
           <ServiceWorkerRegistration />
           <PWAInstallPrompt />
         </Providers>
