@@ -306,28 +306,28 @@ export default function BookingsPage() {
                           
                           return (
                             <div className="space-y-2 text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
-                              {/* Acompte payé - Toujours afficher si un acompte est configuré */}
+                              {/* Garantie payée - Toujours afficher si une garantie est configurée */}
                               {depositAmount > 0 && (
                                 <div className="flex items-center justify-end gap-2 mb-2">
                                   {hasPaidDeposit ? (
                                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                                       <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
                                       <span className="font-semibold text-green-700 dark:text-green-300">
-                                        Acompte payé: {formatPrice(depositAmount)} FCFA
+                                        Garantie payée : {formatPrice(depositAmount)} FCFA
                                       </span>
                                     </div>
                                   ) : depositPaidAmount > 0 ? (
                                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                                       <Wallet className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                                       <span className="font-medium text-yellow-700 dark:text-yellow-300">
-                                        Acompte partiel: {formatPrice(depositPaidAmount)} / {formatPrice(depositAmount)} FCFA
+                                        Garantie partielle : {formatPrice(depositPaidAmount)} / {formatPrice(depositAmount)} FCFA
                                       </span>
                                     </div>
                                   ) : (
                                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
                                       <Wallet className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                                       <span className="font-medium text-orange-700 dark:text-orange-300">
-                                        Acompte à payer: {formatPrice(depositAmount)} FCFA
+                                        Garantie à payer : {formatPrice(depositAmount)} FCFA
                                       </span>
                                     </div>
                                   )}

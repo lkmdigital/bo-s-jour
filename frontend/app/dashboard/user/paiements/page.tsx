@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { GUARANTEE_LABEL, PAYMENT_PURPOSE_LABELS } from '@/lib/guarantee';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -35,7 +36,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   refunded: { label: 'Remboursé', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' },
 };
 const PURPOSE: Record<string, string> = {
-  full: 'Paiement intégral', guarantee: '1ère nuitée garantie', deposit: 'Acompte',
+  ...PAYMENT_PURPOSE_LABELS,
 };
 
 function fmtDate(d?: string | null) {

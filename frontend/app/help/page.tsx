@@ -7,7 +7,7 @@ export const metadata = { title: "Centre d'aide — boséjour" };
 
 const TOPICS = [
   { slug: 'reserver', title: 'Réserver', desc: 'Envoyer une demande, la validation du partenaire, réserver pour un proche.', icon: CalendarCheck },
-  { slug: 'payer', title: 'Payer', desc: 'Moyens de paiement, réduction du paiement en ligne, garantie de la première nuitée.', icon: CreditCard },
+  { slug: 'payer', title: 'Payer', desc: 'Moyens de paiement, réduction du paiement en ligne, garantie de réservation.', icon: CreditCard },
   { slug: 'annuler', title: 'Modifier ou annuler', desc: 'Annuler avec ou sans compte, refus du partenaire, conditions d’annulation.', icon: XCircle },
   { slug: 'reservation', title: 'Ma réservation et mon reçu', desc: 'Retrouver, consulter et imprimer votre réservation et votre reçu.', icon: FileText },
   { slug: 'partenaires', title: 'Partenaires', desc: 'Publier votre établissement et répondre aux demandes.', icon: Building2 },

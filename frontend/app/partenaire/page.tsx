@@ -15,7 +15,7 @@ const BENEFITS = [
   { icon: CalendarCheck, title: 'Plus de réservations', desc: "Recevez davantage de demandes, confirmées automatiquement." },
   { icon: Settings2, title: 'Gestion simplifiée', desc: 'Un seul espace pour gérer chambres, tarifs, calendrier et paiements.' },
   { icon: MessageCircle, title: 'Double confirmation E-mail + WhatsApp', desc: "Vos clients reçoivent leur code de réservation instantanément — moins d'annulations de dernière minute." },
-  { icon: CreditCard, title: 'Paiement en ligne flexible', desc: 'Acompte (dès 1 nuitée) ou paiement intégral — Visa, Mastercard, Djamo, Mobile Money.' },
+  { icon: CreditCard, title: 'Paiement en ligne flexible', desc: 'Garantie de réservation (1re nuit, pourcentage ou montant fixe, à votre choix) ou paiement intégral — Visa, Mastercard, Djamo, Mobile Money.' },
   { icon: ShieldCheck, title: 'Annulations maîtrisées', desc: "Politique Flexible, Modérée ou Stricte, affichée clairement au voyageur." },
   { icon: Tag, title: 'Promotions & offres', desc: 'Créez vos campagnes pour attirer davantage de clients.' },
   { icon: HeartHandshake, title: <>Accompagnement <Brand /></>, desc: 'Notre équipe vous accompagne à chaque étape.' },

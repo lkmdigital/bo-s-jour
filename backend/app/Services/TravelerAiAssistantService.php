@@ -284,8 +284,8 @@ PROMPT;
             'rating' => $a->rating,
             'total_reviews' => $a->total_reviews,
             'cancellation_policy_hours' => $a->cancellation_policy_hours,
-            'deposit_required' => (bool) $a->deposit_required,
-            'deposit_amount_fcfa' => $a->deposit_required ? (float) $a->deposit_amount : null,
+            // Garantie de réservation paramétrée par l'établissement (libellé prêt à citer)
+            'guarantee' => \App\Services\PaymentOptionsService::describeGuarantee($a)['description'],
             'breakfast_included' => (bool) $a->breakfast_included,
             'check_in_time' => $a->check_in_time,
             'check_out_time' => $a->check_out_time,

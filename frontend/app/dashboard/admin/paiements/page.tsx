@@ -103,8 +103,8 @@ const paymentStatusConfig: Record<string, { label: string; color: string }> = {
 
 const purposeLabels: Record<string, string> = {
   full: 'Paiement intégral',
-  deposit: 'Acompte',
-  guarantee: 'Garantie',
+  deposit: 'Garantie de réservation',
+  guarantee: 'Garantie de réservation',
 };
 
 /** Format compact type "38,2 M" pour les cartes de résumé. */
@@ -490,8 +490,7 @@ export default function AdminPaiementsPage() {
                 <FilterSelect value={purposeFilter} onChange={(v) => { setPurposeFilter(v); setCurrentPage(1); }} ariaLabel="Type de paiement">
                   <option value="all">Tous les types</option>
                   <option value="full">Paiement intégral</option>
-                  <option value="deposit">Acompte</option>
-                  <option value="guarantee">Garantie</option>
+                  <option value="guarantee">Garantie de réservation</option>
                 </FilterSelect>
               </DateRangeFilter>
             </div>

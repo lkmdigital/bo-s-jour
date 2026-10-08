@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
+import { GUARANTEE_LABEL, PAYMENT_PURPOSE_LABELS } from '@/lib/guarantee';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
@@ -172,7 +173,7 @@ function BookingSuccessContent() {
                   </div>
                   {booking.payment_type === 'guarantee' && (
                     <div className="sm:col-span-2">
-                      <p className="text-gray-400">Solde à régler à l&apos;arrivée</p>
+                      <p className="text-gray-400">{GUARANTEE_LABEL} payée — solde à régler à l&apos;établissement, à l&apos;arrivée</p>
                       <p className="font-medium text-orange-600 dark:text-orange-400">
                         {formatPrice((booking.total_price ?? 0) - (booking.amount_paid ?? 0))} FCFA
                       </p>

@@ -19,6 +19,8 @@ export interface PaymentOptionItem {
   description?: string;
   percent_of_total?: number;
   balance_at_hotel?: number;
+  /** Garantie : « 1re nuit », « 30 % du séjour » ou « 50 000 FCFA » (paramétrage de l'établissement) */
+  summary?: string;
 }
 
 export interface PaymentOptionsData {
@@ -185,7 +187,8 @@ export default function BookingSidebar({
                     <Lock className="w-3 h-3 text-primary flex-shrink-0" /> En ligne : {formatPrice(guaranteeOpt.amount)} FCFA
                   </p>
                   <p className="text-[11px] text-gray-600 dark:text-gray-400">
-                    1ère nuitée garantie — solde {formatPrice(guaranteeOpt.balance_at_hotel)} FCFA à l&apos;arrivée.
+                    {guaranteeOpt.label}{guaranteeOpt.summary ? ` (${guaranteeOpt.summary})` : ''} — solde{' '}
+                    {formatPrice(guaranteeOpt.balance_at_hotel)} FCFA à l&apos;établissement, à l&apos;arrivée.
                   </p>
                 </>
               ) : fullOpt ? (

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { GUARANTEE_LABEL, PAYMENT_PURPOSE_LABELS } from '@/lib/guarantee';
 import { Download, Printer, FileText, CheckCircle, Calendar, CreditCard, User, Building2, MapPin, Share2, Copy, ArrowLeft } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -326,7 +327,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
       </div>
       <div class="info-row">
         <span class="info-label">Type:</span>
-        <span>${payment.purpose === 'deposit' ? 'Acompte' : 'Solde'}</span>
+        <span>${PAYMENT_PURPOSE_LABELS[payment.purpose] ?? 'Paiement'}</span>
       </div>
       <div class="info-row">
         <span class="info-label">Méthode:</span>
@@ -531,7 +532,7 @@ export default function PaymentReceipt({ bookingId, booking, userRole, payments:
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
                     <span className="font-semibold">
-                      Paiement #{index + 1} - {payment.purpose === 'deposit' ? 'Acompte' : 'Solde'}
+                      Paiement #{index + 1} - {PAYMENT_PURPOSE_LABELS[payment.purpose] ?? 'Paiement'}
                     </span>
                   </div>
                   <span className="text-lg font-bold text-primary">

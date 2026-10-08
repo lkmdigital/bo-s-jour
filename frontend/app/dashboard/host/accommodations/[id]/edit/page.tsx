@@ -15,6 +15,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { compressImages, imageFailuresMessage } from '@/lib/utils';
 import IcalSyncPanel from '@/components/accommodations/IcalSyncPanel';
+import GuaranteeSettings from '@/components/accommodations/GuaranteeSettings';
+import { DEFAULT_GUARANTEE_FORM, guaranteeFormFromAccommodation, guaranteeFormToPayload, validateGuaranteeForm, type GuaranteeFormState } from '@/lib/guarantee';
 import LongStayDiscountTiers, { DEFAULT_LONG_STAY_TIERS, LongStayTier } from '@/components/accommodations/LongStayDiscountTiers';
 
 interface AccommodationFormData {
@@ -152,6 +154,9 @@ export default function EditAccommodationPage() {
   // réservation). Les deux moitiés (inclus gratuit / supplémentaire payant)
   // étaient déjà dans le formulaire de CRÉATION, mais réparties sur deux
   // étapes distinctes et jamais éditables après coup.
+  // Garantie de réservation paramétrée par l'établissement (décision BoSéjour 2026-10-08)
+  const [guarantee, setGuarantee] = useState<GuaranteeFormState>(DEFAULT_GUARANTEE_FORM);
+  const [guaranteeError, setGuaranteeError] = useState<string | null>(null);
   const [breakfast, setBreakfast] = useState({
     included: false,
     includedPersons: 1,
@@ -245,6 +250,7 @@ export default function EditAccommodationPage() {
           : DEFAULT_LONG_STAY_TIERS
       );
       setLoyaltyProgramJoined(!!acc.loyalty_program_joined_at);
+      setGuarantee(guaranteeFormFromAccommodation(acc));
       setBreakfast({
         included: acc.breakfast_included ?? false,
         includedPersons: acc.breakfast_included_persons || 1,
@@ -314,6 +320,12 @@ export default function EditAccommodationPage() {
   };
 
   const onSubmit = async (data: AccommodationFormData) => {
+    const invalidGuarantee = validateGuaranteeForm(guarantee);
+    setGuaranteeError(invalidGuarantee);
+    if (invalidGuarantee) {
+      setError(invalidGuarantee);
+      return;
+    }
     try {
       setSaving(true);
       setError(null);
@@ -349,6 +361,7 @@ export default function EditAccommodationPage() {
         breakfast_included_persons: breakfast.included ? breakfast.includedPersons : 0,
         breakfast_price: breakfast.price === '' ? null : breakfast.price,
         breakfast_menu_items: breakfastMenuItems,
+        ...guaranteeFormToPayload(guarantee),
       };
 
       await api.put(`/accommodations/${params.id}`, formData);
@@ -1043,6 +1056,18 @@ export default function EditAccommodationPage() {
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
                 />
               </div>
+            </div>
+
+            <div>
+              <p className="block text-sm font-medium mb-2 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-primary" /> Garantie de réservation
+              </p>
+              <GuaranteeSettings
+                value={guarantee}
+                onChange={(next) => { setGuarantee(next); setGuaranteeError(null); }}
+                pricePerNight={Number(watch('price_per_night')) || null}
+                error={guaranteeError}
+              />
             </div>
 
             <div>

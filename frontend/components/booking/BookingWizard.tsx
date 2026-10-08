@@ -18,7 +18,7 @@ import { guestsSummary } from '@/components/common/GuestsPicker';
 import PhoneInput from '@/components/common/PhoneInput';
 import { useUnavailableDates } from '@/hooks/useCalendar';
 
-interface PaymentOptionItem { label: string; amount: number; balance_at_hotel?: number; description?: string; discount_percent?: number; }
+interface PaymentOptionItem { label: string; amount: number; balance_at_hotel?: number; description?: string; discount_percent?: number; summary?: string; }
 interface LongStayDiscountInfo {
   subtotal: number;
   discount_percent: number;
@@ -310,7 +310,7 @@ export default function BookingWizard(props: Props) {
 
   const hasDates = !!(checkIn && checkOut);
 
-  // Devis tarifaire (récap 1ère nuitée)
+  // Devis tarifaire (récapitulatif : total, paiement intégral, garantie de réservation)
   useEffect(() => {
     if (!hasDates) { setQuote(null); return; }
     const roomsParam = canBookMultipleRooms ? `&rooms_quantity=${roomsQuantity}` : '';
@@ -318,10 +318,13 @@ export default function BookingWizard(props: Props) {
     // tarif de l'établissement (ex. 30 000 F) au lieu de celui de la chambre
     // choisie (ex. 1 000 F) — le vrai montant n'apparaissait qu'au paiement.
     const roomParam = props.roomId ? `&room_id=${props.roomId}` : '';
-    api.get(`/accommodations/${props.accommodationId}/price-preview?check_in=${checkIn}&check_out=${checkOut}${roomParam}${roomsParam}`)
+    // Les petits-déjeuners supplémentaires entrent dans le total de la réservation : le serveur
+    // calcule donc la garantie dessus, pour que ce récapitulatif annonce le montant du paiement.
+    const breakfastParam = extraBreakfast && canOfferExtraBreakfast ? `&extra_breakfast_quantity=${extraBreakfastQty}` : '';
+    api.get(`/accommodations/${props.accommodationId}/price-preview?check_in=${checkIn}&check_out=${checkOut}${roomParam}${roomsParam}${breakfastParam}`)
       .then((r) => setQuote(r.data))
       .catch(() => setQuote(null));
-  }, [checkIn, checkOut, props.accommodationId, props.roomId, hasDates, canBookMultipleRooms, roomsQuantity]);
+  }, [checkIn, checkOut, props.accommodationId, props.roomId, hasDates, canBookMultipleRooms, roomsQuantity, extraBreakfast, extraBreakfastQty, canOfferExtraBreakfast]);
 
   const guarantee = quote?.payment_options?.options?.guarantee;
   const full = quote?.payment_options?.options?.full;
@@ -563,8 +566,11 @@ export default function BookingWizard(props: Props) {
               <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 text-sm text-gray-700 dark:text-gray-300">
                 {guarantee ? (
                   <>
-                    <p className="font-semibold text-gray-900 dark:text-white mb-1">Garantie de la première nuitée</p>
-                    Conformément à la politique de l'établissement, le paiement de la première nuitée est requis pour garantir votre réservation.
+                    <p className="font-semibold text-gray-900 dark:text-white mb-1">{guarantee.label}</p>
+                    Vous pourrez payer uniquement la garantie demandée par l'établissement
+                    {guarantee.summary ? ` (${guarantee.summary})` : ''} : <strong>{formatPrice(guarantee.amount)} FCFA</strong> en ligne,
+                    puis régler le solde{balance != null ? ` de ${formatPrice(balance)} FCFA` : ''} directement à l'établissement à votre arrivée.
+                    {full ? ` Ou payer la totalité maintenant${full.discount_percent ? ` et bénéficier de ${full.discount_percent} % de réduction` : ''}.` : ''}
                   </>
                 ) : (
                   <>
@@ -821,7 +827,7 @@ export default function BookingWizard(props: Props) {
                   </Link>
                   {' '}(ouvre dans un nouvel onglet — votre saisie est conservée ici). Conformément à la politique de l'établissement,{' '}
                   {guarantee
-                    ? 'la première nuitée est garantie par le paiement en ligne.'
+                    ? `vous pourrez régler en ligne la garantie de réservation${guarantee.summary ? ` (${guarantee.summary})` : ''} ou la totalité du séjour.`
                     : `le paiement intégral est requis en ligne pour confirmer votre réservation${quote?.payment_options?.reason ? ` (${quote.payment_options.reason})` : ''}.`}
                 </span>
               </label>
@@ -910,7 +916,11 @@ export default function BookingWizard(props: Props) {
                           paiement en ligne, pas un prix contradictoire. */}
                       {!guarantee && full?.discount_percent ? ` (-${full.discount_percent}%)` : ''}
                     </p>
-                    {balance != null && <p className="text-[11px] text-gray-600 dark:text-gray-400">1ère nuitée garantie — solde {formatPrice(balance)} FCFA à l'arrivée.</p>}
+                    {guarantee && balance != null && (
+                      <p className="text-[11px] text-gray-600 dark:text-gray-400">
+                        {guarantee.label}{guarantee.summary ? ` (${guarantee.summary})` : ''} — solde {formatPrice(balance)} FCFA à l'établissement, à l'arrivée.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

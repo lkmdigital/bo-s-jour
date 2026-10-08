@@ -61,7 +61,7 @@
       @forelse($payments as $i => $p)
       <tr class="line">
         <td>
-          Paiement {{ $i + 1 }} — {{ $p->purpose === 'balance' ? 'Solde' : ($booking->payment_type === 'full' ? 'Paiement intégral' : 'Acompte / garantie') }}<br>
+          Paiement {{ $i + 1 }} — {{ $p->purpose === 'balance' ? 'Solde' : ($booking->payment_type === 'full' ? 'Paiement intégral' : 'Garantie de réservation') }}<br>
           <span class="muted">{{ $p->payment_method }}@if($p->paid_at) · {{ $p->paid_at->format('d/m/Y H:i') }}@endif @if($p->transaction_id) · {{ $p->transaction_id }}@endif</span>
         </td>
         <td class="r green">{{ number_format((float) $p->amount, 0, ',', ' ') }} FCFA</td>

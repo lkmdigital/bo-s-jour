@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { GUARANTEE_LABEL, PAYMENT_PURPOSE_LABELS } from '@/lib/guarantee';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -550,7 +551,7 @@ export default function HostBookingDetailPage() {
                     <p className="font-semibold">Type de paiement</p>
                     <p className="text-gray-600 dark:text-gray-400">
                       {booking.payment_type === 'guarantee'
-                        ? `Garantie (acompte de ${formatPrice(booking.deposit_amount || 0)} FCFA, solde à régler à l'hôtel)`
+                        ? `${GUARANTEE_LABEL} (${formatPrice(booking.deposit_amount || 0)} FCFA en ligne, solde à régler à l'établissement à l'arrivée)`
                         : 'Paiement intégral'}
                     </p>
                   </div>

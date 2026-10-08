@@ -11,7 +11,7 @@ import {
 
 const BENEFITS = [
   { icon: Search, title: 'Des séjours vérifiés', desc: "Hôtels, résidences, villas et maisons d'hôtes partout en Côte d'Ivoire, contrôlés avant publication." },
-  { icon: CreditCard, title: 'Paiement flexible et sécurisé', desc: 'Acompte ou paiement intégral — Visa, Mastercard, Djamo, Mobile Money.' },
+  { icon: CreditCard, title: 'Paiement flexible et sécurisé', desc: 'Garantie de réservation ou paiement intégral — Visa, Mastercard, Djamo, Mobile Money.' },
   { icon: MessageCircle, title: 'Confirmation E-mail + WhatsApp', desc: 'Votre code de réservation vous parvient instantanément, sur les deux canaux.' },
   { icon: ShieldCheck, title: 'Annulations claires', desc: 'Politique Flexible, Modérée ou Stricte affichée avant de réserver — aucune mauvaise surprise.' },
   { icon: Gift, title: 'Programme de fidélité', desc: <>Cumulez des avantages à chaque séjour réservé sur <Brand />.</> },

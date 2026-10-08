@@ -20,33 +20,9 @@ import {
   FileText,
 } from 'lucide-react';
 import Image from 'next/image';
+import { FULL_PAYMENT_LABEL, type PaymentOptions } from '@/lib/guarantee';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-
-interface PaymentOptionFull {
-  label: string;
-  amount: number;
-  original_amount: number;
-  discount_percent: number;
-  description: string;
-}
-
-interface PaymentOptionGuarantee {
-  label: string;
-  amount: number;
-  percent_of_total?: number;
-  description: string;
-  balance_at_hotel: number;
-}
-
-interface PaymentOptions {
-  full_only: boolean;
-  reason?: string;
-  options: {
-    full: PaymentOptionFull;
-    guarantee?: PaymentOptionGuarantee;
-  };
-}
 
 interface Booking {
   id: number;
@@ -242,48 +218,21 @@ export default function BookingPaymentPage() {
       (1000 * 60 * 60 * 24)
   );
 
-  const fallbackPaymentOpts: PaymentOptions = (() => {
-    const safeNights = Math.max(1, nights);
-    const checkInDate = new Date(booking.check_in);
-    const hoursUntilCheckIn = (checkInDate.getTime() - Date.now()) / (1000 * 60 * 60);
-    const total = booking.total_price || 0;
-    const firstNight = total / safeNights;
-    const isNonRefundable = booking.cancellation_policy?.is_non_refundable ?? false;
-    const isLastMinute = hoursUntilCheckIn < 48;
-    const isLongStay = safeNights >= 7;
-    const fullOnly = isNonRefundable || isLastMinute || isLongStay;
-    const reason = isLastMinute
-      ? "réservation à moins de 48h de l'arrivée"
-      : isLongStay
-      ? `séjour long (${safeNights} nuits)`
-      : isNonRefundable
-      ? 'réservation non remboursable'
-      : undefined;
-
-    return {
-      full_only: fullOnly,
-      reason,
-      options: {
-        full: {
-          label: 'Paiement intégral',
-          amount: total,
-          original_amount: total,
-          discount_percent: 0,
-          description: 'Payez la totalité maintenant : réservation confirmée immédiatement.',
-        },
-        guarantee: fullOnly
-          ? undefined
-          : {
-              label: '1ère nuitée garantie',
-              amount: Math.round(firstNight),
-              percent_of_total: total > 0 ? Math.round((firstNight / total) * 100) : 0,
-              description:
-                "Payez la première nuitée en ligne. Le solde se règle à l'établissement à l'arrivée.",
-              balance_at_hotel: Math.max(0, Math.round(total - firstNight)),
-            },
+  // Les options (montants et libellés) viennent toujours du serveur, qui applique le paramétrage
+  // de l'établissement. Si elles manquent, on ne propose que le paiement intégral : recalculer une
+  // garantie ici pourrait annoncer un montant différent de celui qui serait prélevé.
+  const fallbackPaymentOpts: PaymentOptions = {
+    full_only: true,
+    options: {
+      full: {
+        label: FULL_PAYMENT_LABEL,
+        amount: booking.total_price || 0,
+        original_amount: booking.total_price || 0,
+        discount_percent: 0,
+        description: 'Payez la totalité maintenant.',
       },
-    };
-  })();
+    },
+  };
 
   const paymentOpts = booking.payment_options ?? fallbackPaymentOpts;
 
@@ -366,7 +315,7 @@ export default function BookingPaymentPage() {
                   </p>
                 </button>
 
-                {/* Garantie 1ère nuitée */}
+                {/* Garantie de réservation (montant défini par l'établissement) */}
                 {!paymentOpts.full_only && paymentOpts.options.guarantee && (
                   <button
                     type="button"
@@ -385,14 +334,17 @@ export default function BookingPaymentPage() {
                     </div>
                     <p className="text-base font-bold text-gray-900 dark:text-white mt-1">
                       {formatPrice(paymentOpts.options.guarantee.amount)} FCFA
-                      {paymentOpts.options.guarantee.percent_of_total ? (
+                      {paymentOpts.options.guarantee.summary ? (
                         <span className="text-xs font-medium text-gray-500 ml-1">
-                          ({paymentOpts.options.guarantee.percent_of_total}%)
+                          ({paymentOpts.options.guarantee.summary})
                         </span>
                       ) : null}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {paymentOpts.options.guarantee.description}
+                    </p>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-1">
+                      Solde à l&apos;arrivée : {formatPrice(paymentOpts.options.guarantee.balance_at_hotel)} FCFA
                     </p>
                   </button>
                 )}
@@ -521,7 +473,9 @@ export default function BookingPaymentPage() {
                   ) : null}
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm font-medium">
-                      {paymentType === 'guarantee' ? '1ère nuitée garantie' : 'Paiement intégral'}
+                      {paymentType === 'guarantee' && paymentOpts.options.guarantee
+                        ? paymentOpts.options.guarantee.label
+                        : paymentOpts.options.full.label}
                     </span>
                     <span className="text-lg font-bold text-primary text-right whitespace-nowrap">
                       {formatPrice(amountToPay)} FCFA
@@ -537,7 +491,7 @@ export default function BookingPaymentPage() {
               </div>
             </div>
 
-            {/* 1ère nuitée garantie */}
+            {/* Réservation protégée */}
             <div className="card bg-bosejour-grayGreen/5 border border-bosejour-grayGreen/20">
               <div className="flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-bosejour-grayGreen mt-0.5 flex-shrink-0" />

@@ -156,6 +156,15 @@ class PaymentController extends Controller
                 }
                 $amountToPay = (float) ($guaranteeOpt['amount'] ?? $guaranteeOpt);
                 $paymentPurpose = 'guarantee';
+                // Point laissé ouvert par BoSéjour (2026-10-08) : aucun plancher n'est appliqué, le
+                // voyageur paie exactement la garantie annoncée. On trace le cas pour le suivre.
+                if (!PaymentOptionsService::guaranteeCoversCommission($amountToPay, (float) $booking->total_price)) {
+                    \Log::warning('Garantie inférieure à la commission plateforme', [
+                        'booking_id' => $booking->id,
+                        'guarantee' => $amountToPay,
+                        'total_price' => (float) $booking->total_price,
+                    ]);
+                }
             } else {
                 return response()->json(['message' => 'Type de paiement invalide'], 400);
             }

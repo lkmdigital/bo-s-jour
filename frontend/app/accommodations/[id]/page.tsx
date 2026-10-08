@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { FULL_PAYMENT_LABEL, GUARANTEE_LABEL, type GuaranteeConfig } from '@/lib/guarantee';
 import { useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import api from '@/lib/api';
@@ -119,9 +120,8 @@ interface Accommodation {
   is_featured?: boolean;
   // Politiques & paiement (brief voyageur)
   cancellation_policy_hours?: number | null;
-  deposit_required?: boolean;
-  deposit_amount?: 'first_night' | 'percentage' | 'fixed' | null;
-  deposit_percentage?: number | null;
+  // Garantie de réservation paramétrée par l'établissement, prête à afficher
+  guarantee?: GuaranteeConfig | null;
   check_in_time?: string | null;
   check_out_time?: string | null;
   smoking_area?: boolean | null;
@@ -142,20 +142,21 @@ function cancellationPolicy(hours?: number | null) {
   const h = typeof hours === 'number' ? hours : 48;
   if (h === 0) return { label: 'Stricte', color: 'text-[#EE233C]', bg: 'bg-red-50 dark:bg-red-900/20', desc: "Réservation non remboursable. Aucune annulation gratuite." };
   if (h <= 24) return { label: 'Modérée', color: 'text-amber-700', bg: 'bg-amber-50 dark:bg-amber-900/20', desc: `Annulation gratuite jusqu'à ${h}h avant l'arrivée. Passé ce délai : 50 % conservé, 50 % en avoir.` };
-  return { label: 'Flexible', color: 'text-green-700', bg: 'bg-green-50 dark:bg-green-900/20', desc: `Annulation gratuite jusqu'à ${h}h avant l'arrivée. Ensuite, l'acompte est transformé en avoir.` };
+  return { label: 'Flexible', color: 'text-green-700', bg: 'bg-green-50 dark:bg-green-900/20', desc: `Annulation gratuite jusqu'à ${h}h avant l'arrivée. Ensuite, la garantie est transformée en avoir.` };
 }
 function paymentMode(acc: Accommodation) {
-  if (acc.deposit_required === false) {
-    return { title: 'Paiement intégral', desc: 'Le montant total du séjour est réglé en ligne au moment de la réservation.' };
+  // Le libellé vient du paramétrage de l'établissement, tel que le serveur l'appliquera au
+  // paiement (champ `guarantee`) : la fiche ne peut pas annoncer autre chose que ce qui sera prélevé.
+  const g = acc.guarantee;
+  const strict = acc.cancellation_policy_hours === 0;
+  if (!g || !g.enabled || strict) {
+    return { title: FULL_PAYMENT_LABEL, desc: 'Le montant total du séjour est réglé en ligne au moment de la réservation.', note: null };
   }
-  const amt = acc.deposit_amount;
-  const desc =
-    amt === 'percentage'
-      ? `Un acompte de ${acc.deposit_percentage ?? ''} % est réglé en ligne ; le solde directement à l'établissement.`
-      : amt === 'fixed'
-      ? "Un acompte fixe est réglé en ligne ; le solde directement à l'établissement."
-      : "Un acompte correspondant à la première nuitée est réglé en ligne ; le solde à l'arrivée.";
-  return { title: 'Réservation garantie par acompte', desc };
+  return {
+    title: `${GUARANTEE_LABEL} ou paiement intégral`,
+    desc: g.description ?? `${GUARANTEE_LABEL} : ${g.summary}.`,
+    note: 'Vous pouvez aussi payer la totalité en ligne. Le paiement intégral est demandé si l\'arrivée a lieu dans moins de 48 h ou si le séjour dure 7 nuits ou plus.',
+  };
 }
 
 export default function AccommodationDetailPage() {
@@ -721,6 +722,7 @@ export default function AccommodationDetailPage() {
                   </div>
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{m.title}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{m.desc}</p>
+                  {m.note && <p className="text-xs text-gray-500 mt-1">{m.note}</p>}
                   <p className="text-xs text-gray-500 mt-2">Visa · Mastercard · Djamo · Wave · Orange Money · MTN · Moov</p>
                 </div>
               ); })()}

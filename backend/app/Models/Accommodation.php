@@ -73,6 +73,9 @@ class Accommodation extends Model
         'other_amenities',
         'deposit_required',
         'deposit_amount',
+        // Valeur de la garantie selon son type (décision BoSéjour 2026-10-08)
+        'deposit_percentage',
+        'deposit_fixed_amount',
         'cancellation_policy_hours',
         'payment_methods',
         'special_conditions',
@@ -104,6 +107,24 @@ class Accommodation extends Model
         'info_update_reminder_sent_at',
     ];
 
+    /**
+     * Garantie de réservation telle que paramétrée par l'établissement, prête à afficher
+     * (fiche publique, récapitulatif, paiement, confirmation) : une seule source, pour que
+     * le libellé annoncé corresponde toujours au montant calculé.
+     */
+    protected $appends = ['guarantee'];
+
+    public function getGuaranteeAttribute(): ?array
+    {
+        // Requête partielle (ex. accommodation:id,name) : le paramétrage n'est pas chargé,
+        // on ne renvoie rien plutôt qu'une valeur par défaut trompeuse.
+        if (!array_key_exists('deposit_required', $this->attributes)) {
+            return null;
+        }
+
+        return \App\Services\PaymentOptionsService::describeGuarantee($this);
+    }
+
     protected function casts(): array
     {
         return [
@@ -128,6 +149,8 @@ class Accommodation extends Model
             'smoking_area' => 'boolean',
             'pets_allowed' => 'boolean',
             'deposit_required' => 'boolean',
+            'deposit_percentage' => 'decimal:2',
+            'deposit_fixed_amount' => 'decimal:2',
             'breakfast_included' => 'boolean',
             'pricing_auto_enabled' => 'boolean',
             'pricing_non_refundable_enabled' => 'boolean',

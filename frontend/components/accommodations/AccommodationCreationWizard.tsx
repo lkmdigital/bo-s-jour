@@ -12,6 +12,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/stores/authStore';
 import { compressImages, imageFailuresMessage } from '@/lib/utils';
+import GuaranteeSettings from '@/components/accommodations/GuaranteeSettings';
+import { DEFAULT_GUARANTEE_FORM, guaranteeFormToPayload, validateGuaranteeForm, type GuaranteeFormState } from '@/lib/guarantee';
 import LongStayDiscountTiers, { DEFAULT_LONG_STAY_TIERS, LongStayTier } from '@/components/accommodations/LongStayDiscountTiers';
 
 interface AccommodationFormData {
@@ -50,6 +52,8 @@ interface AccommodationFormData {
   other_amenities?: string;
   deposit_required?: boolean;
   deposit_amount?: 'first_night' | 'percentage' | 'fixed';
+  deposit_percentage?: number | null;
+  deposit_fixed_amount?: number | null;
   cancellation_policy_hours?: number;
   payment_methods?: string[];
   special_conditions?: string;
@@ -222,6 +226,9 @@ export default function AccommodationCreationWizard({
   // Remises long séjour à 3 paliers, proposées dès l'inscription (retour
   // client 2026-09-02, Partie 3) — désactivées par défaut.
   const [longStayEnabled, setLongStayEnabled] = useState(false);
+  // Garantie de réservation paramétrée par l'établissement (décision BoSéjour 2026-10-08)
+  const [guarantee, setGuarantee] = useState<GuaranteeFormState>(DEFAULT_GUARANTEE_FORM);
+  const [guaranteeError, setGuaranteeError] = useState<string | null>(null);
   const [longStayTiers, setLongStayTiers] = useState<LongStayTier[]>(DEFAULT_LONG_STAY_TIERS);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -303,6 +310,14 @@ export default function AccommodationCreationWizard({
     if (mode === 'admin' && !selectedHostId) {
       setError('Veuillez sélectionner un partenaire avant de continuer.');
       setCurrentStep(getStepNumberByKey('host'));
+      return;
+    }
+
+    const invalidGuarantee = validateGuaranteeForm(guarantee);
+    if (invalidGuarantee) {
+      setGuaranteeError(invalidGuarantee);
+      setError(invalidGuarantee);
+      setCurrentStep(getStepNumberByKey('policy'));
       return;
     }
 
@@ -407,6 +422,7 @@ export default function AccommodationCreationWizard({
         room_type_pricing: formattedRoomPricing,
         pricing_long_stay_enabled: longStayEnabled,
         pricing_long_stay_tiers: longStayEnabled ? longStayTiers : null,
+        ...guaranteeFormToPayload(guarantee),
       };
       if (mode === 'admin') {
         (formData as any).host_id = Number(selectedHostId);
@@ -654,6 +670,11 @@ export default function AccommodationCreationWizard({
     if (mode === 'admin' && hostStepNumber === currentStep && !selectedHostId) {
       setError('Veuillez sélectionner un partenaire avant de continuer.');
       return;
+    }
+    if (currentStep === getStepNumberByKey('policy')) {
+      const invalid = validateGuaranteeForm(guarantee);
+      setGuaranteeError(invalid);
+      if (invalid) return;
     }
     if (currentStep < lastStepId) {
       setCurrentStep(currentStep + 1);
@@ -1707,13 +1728,12 @@ export default function AccommodationCreationWizard({
               {/* Garantie de réservation */}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Garantie de réservation</h3>
-                <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/30">
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Les modalités de garantie sont gérées par l'équipe <Brand /> selon le type d'hébergement et
-                    s'affichent automatiquement aux voyageurs. Aucun paramétrage n'est requis dans ce formulaire.
-                    Contactez le support si vous avez besoin d'une configuration spécifique.
-                  </p>
-                </div>
+                <GuaranteeSettings
+                  value={guarantee}
+                  onChange={(next) => { setGuarantee(next); setGuaranteeError(null); }}
+                  pricePerNight={Number(basePriceValue) || null}
+                  error={guaranteeError}
+                />
               </div>
 
               {/* Politique d'annulation */}

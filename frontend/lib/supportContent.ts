@@ -58,7 +58,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: 'Puis-je garantir ma réservation sans tout payer ?',
-        a: "Selon la politique de l'établissement, vous pouvez garantir votre réservation en payant la première nuitée en ligne ; le solde se règle directement à l'établissement à votre arrivée.",
+        a: "Oui, lorsque la réservation y est éligible. Vous payez en ligne uniquement la garantie demandée par l'établissement (la première nuit, un pourcentage du séjour ou un montant fixe, indiqué sur sa fiche) ; le solde se règle directement à l'établissement à votre arrivée. Le paiement intégral est demandé si l'arrivée a lieu dans moins de 48 h, si le séjour dure 7 nuits ou plus, ou si la réservation est non remboursable.",
       },
       {
         q: 'Quand reçois-je ma confirmation ?',

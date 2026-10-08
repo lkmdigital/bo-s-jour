@@ -359,6 +359,10 @@ class AccommodationController extends Controller
             // — le devis affiché au voyageur doit refléter le nombre d'unités
             // choisi, pas seulement le tarif d'une chambre.
             'rooms_quantity' => 'nullable|integer|min:1|max:20',
+            // Petits-déjeuners supplémentaires choisis dans le récapitulatif : ils entrent dans
+            // le total de la réservation, donc dans le calcul de la garantie (décision BoSéjour
+            // 2026-10-08 — le récapitulatif doit annoncer le montant de la page de paiement).
+            'extra_breakfast_quantity' => 'nullable|integer|min:0|max:20',
         ], [
             'check_in.after_or_equal' => "La date d'arrivée doit être aujourd'hui ou dans le futur.",
             'check_out.after' => "La date de départ doit être postérieure à la date d'arrivée.",
@@ -420,8 +424,14 @@ class AccommodationController extends Controller
 
         $total = round($effectivePricePerNight * $nights * $roomsQuantity, 2);
         $variants = RoomPricingService::getPriceVariants((float) $basePricePerNight, $accommodation);
+        // Même total que celui que BookingController enregistrera (petits-déjeuners compris)
+        $extraBreakfastTotal = 0.0;
+        $extraBreakfastQuantity = (int) ($request->input('extra_breakfast_quantity') ?? 0);
+        if ($extraBreakfastQuantity > 0 && (float) $accommodation->breakfast_price > 0) {
+            $extraBreakfastTotal = $extraBreakfastQuantity * (float) $accommodation->breakfast_price;
+        }
         $paymentOptions = \App\Services\PaymentOptionsService::previewPaymentOptions(
-            $total, $checkIn, $checkOut, (int) $cancellationHours
+            $total + $extraBreakfastTotal, $checkIn, $checkOut, (int) $cancellationHours, $accommodation
         );
 
         // Détail de la remise long séjour appliquée (retour client 2026-09-02,
@@ -449,6 +459,7 @@ class AccommodationController extends Controller
             'effective_price_per_night' => $effectivePricePerNight,
             'nights' => $nights,
             'total' => $total,
+            'extra_breakfast_total' => $extraBreakfastTotal,
             'rate_type' => $rateType,
             'long_stay_discount' => $longStayDiscount,
             'cancellation_policy_hours' => $cancellationHours,
@@ -867,6 +878,9 @@ class AccommodationController extends Controller
             'other_amenities' => 'nullable|string|max:1000',
             'deposit_required' => 'nullable|boolean',
             'deposit_amount' => 'nullable|string|in:first_night,percentage,fixed',
+            // Valeur de la garantie selon son type (décision BoSéjour 2026-10-08)
+            'deposit_percentage' => 'nullable|numeric|min:1|max:99|required_if:deposit_amount,percentage',
+            'deposit_fixed_amount' => 'nullable|numeric|min:1|required_if:deposit_amount,fixed',
             'cancellation_policy_hours' => 'nullable|integer|min:0',
             'payment_methods' => 'nullable|array',
             'special_conditions' => 'nullable|string|max:2000',
@@ -959,6 +973,8 @@ class AccommodationController extends Controller
             'other_amenities' => $request->other_amenities,
             'deposit_required' => $request->boolean('deposit_required', true),
             'deposit_amount' => $request->deposit_amount ?? 'first_night',
+            'deposit_percentage' => $request->deposit_amount === 'percentage' ? $request->deposit_percentage : null,
+            'deposit_fixed_amount' => $request->deposit_amount === 'fixed' ? $request->deposit_fixed_amount : null,
             'cancellation_policy_hours' => $request->cancellation_policy_hours ?? 48,
             'payment_methods' => $request->payment_methods ?? [],
             'special_conditions' => $request->special_conditions,
@@ -1038,6 +1054,9 @@ class AccommodationController extends Controller
             'other_amenities' => 'nullable|string|max:1000',
             'deposit_required' => 'nullable|boolean',
             'deposit_amount' => 'nullable|string|in:first_night,percentage,fixed',
+            // Valeur de la garantie selon son type (décision BoSéjour 2026-10-08)
+            'deposit_percentage' => 'nullable|numeric|min:1|max:99|required_if:deposit_amount,percentage',
+            'deposit_fixed_amount' => 'nullable|numeric|min:1|required_if:deposit_amount,fixed',
             'cancellation_policy_hours' => 'nullable|integer|min:0',
             'payment_methods' => 'nullable|array',
             'special_conditions' => 'nullable|string|max:2000',
@@ -1079,6 +1098,7 @@ class AccommodationController extends Controller
             'shuttle_service', 'laundry', 'breakfast_price', 'breakfast_menu_items',
             'reception_24h', 'smoking_area', 'pets_allowed',
             'other_amenities', 'deposit_required', 'deposit_amount',
+            'deposit_percentage', 'deposit_fixed_amount',
             'cancellation_policy_hours', 'payment_methods',
             'special_conditions', 'breakfast_included',
             'breakfast_included_persons', 'check_in_time',
@@ -1116,6 +1136,14 @@ class AccommodationController extends Controller
         }
         if ($request->has('deposit_required')) {
             $updateData['deposit_required'] = $request->boolean('deposit_required');
+        }
+        // Un seul type de garantie à la fois : la valeur de l'autre type est effacée, pour
+        // qu'un ancien pourcentage ne ressorte pas si l'établissement repasse en montant fixe.
+        if ($request->has('deposit_amount')) {
+            $type = $request->input('deposit_amount') ?: 'first_night';
+            $updateData['deposit_amount'] = $type;
+            $updateData['deposit_percentage'] = $type === 'percentage' ? $request->input('deposit_percentage') : null;
+            $updateData['deposit_fixed_amount'] = $type === 'fixed' ? $request->input('deposit_fixed_amount') : null;
         }
         if ($request->has('breakfast_included')) {
             $updateData['breakfast_included'] = $request->boolean('breakfast_included');

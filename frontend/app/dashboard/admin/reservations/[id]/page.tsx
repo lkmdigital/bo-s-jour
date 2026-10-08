@@ -482,7 +482,7 @@ export default function AdminReservationDetailPage() {
                 <dd className="font-bold text-bosejour-red">{formatPrice(booking.total_price)} FCFA</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-400">Acompte requis</dt>
+                <dt className="text-gray-400">Garantie de réservation</dt>
                 <dd className="text-gray-800 dark:text-gray-200">{formatPrice(booking.deposit_amount || 0)} FCFA</dd>
               </div>
               <div className="flex justify-between">

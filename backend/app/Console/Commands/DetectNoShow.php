@@ -10,7 +10,7 @@ class DetectNoShow extends Command
 {
     protected $signature = 'bookings:detect-no-show';
 
-    protected $description = 'Détecte les No Show (réservations confirmées sans check-in après la date d\'arrivée) et applique la politique (l\'établissement conserve l\'acompte).';
+    protected $description = 'Détecte les No Show (réservations confirmées sans check-in après la date d\'arrivée) et applique la politique (l\'établissement conserve la garantie).';
 
     public function handle(BookingService $bookingService): int
     {

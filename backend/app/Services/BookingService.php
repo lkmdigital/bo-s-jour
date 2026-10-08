@@ -449,7 +449,7 @@ class BookingService
 
     /**
      * Marquer une réservation comme No Show (absence de check-in).
-     * L'établissement conserve l'acompte : aucun remboursement ni avoir.
+     * L'établissement conserve la garantie : aucun remboursement ni avoir.
      */
     public function markNoShow(Booking $booking, ?int $actorId = null): Booking
     {
@@ -458,7 +458,7 @@ class BookingService
             'refund_amount' => 0,
             'credit_amount' => 0,
         ]);
-        $this->logHistory($booking, $booking->status, $booking->status, 'no_show', $actorId, 'Absence de check-in détectée — acompte conservé');
+        $this->logHistory($booking, $booking->status, $booking->status, 'no_show', $actorId, 'Absence de check-in détectée — garantie conservée');
 
         return $booking->fresh();
     }
@@ -523,7 +523,7 @@ class BookingService
             // quel, seul le nombre de nuits change. Le petit-déjeuner
             // supplémentaire est un montant forfaitaire (quantité choisie par
             // le voyageur), pas proportionnel aux nuits : laissé inchangé.
-            // acompte/montant déjà payé (deposit_amount/amount_paid) ne sont
+            // garantie/montant déjà payé (deposit_amount/amount_paid) ne sont
             // jamais retouchés ici — seul le nouveau solde dû s'ajuste
             // (total_price - amount_paid), sans prélèvement ni remboursement
             // automatique.

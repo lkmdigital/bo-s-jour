@@ -7,8 +7,8 @@ import { MessageCircle, Mail, Phone, ChevronDown, ShieldCheck } from 'lucide-rea
 
 const FAQ = [
   {
-    q: 'Comment fonctionne la garantie de la première nuitée ?',
-    a: "Pour confirmer votre réservation, le paiement de la première nuitée (ou du montant intégral selon l'établissement) est requis en ligne. Le solde éventuel se règle directement à l'établissement à votre arrivée.",
+    q: 'Comment fonctionne la garantie de réservation ?',
+    a: "Pour confirmer votre réservation, vous payez en ligne soit la totalité du séjour, soit uniquement la garantie demandée par l'établissement (première nuit, pourcentage du séjour ou montant fixe, selon son choix). Dans ce second cas, le solde se règle directement à l'établissement à votre arrivée.",
   },
   {
     q: "Suis-je protégé si l'établissement refuse ma demande ?",
