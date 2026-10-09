@@ -1,4 +1,4 @@
-/* Animation d'ouverture bo séjour — voir BrandIntro.tsx pour le déroulé.
+/* Animation d'ouverture boséjour — voir BrandIntro.tsx pour le déroulé.
    Le calque n'existe visuellement que lorsque le script inline du layout a posé
    <html data-intro="full|reduced">. Toutes les animations utilisent un
    remplissage `both` : l'état initial est tenu pendant le délai, l'état final

@@ -302,12 +302,12 @@ const pieceStyle = (t: number, at: number, kind: 'pop' | 'rise' | 'drop' | 'fade
   }
 };
 
-/** Logo bo séjour (tracés officiels de la charte), assemblé à partir de `at` */
+/** Logo boséjour (tracés officiels de la charte), assemblé à partir de `at` */
 export function AnimatedLogo({ t, at = 0, className, style }: { t: number; at?: number; className?: string; style?: CSSProperties }) {
   const word: Array<keyof typeof LOGO_PATHS> = ['s', 'e', 'j', 'o2', 'u', 'r'];
   const dotsFrom = SLOGAN_USES.length - 3;
   return (
-    <svg viewBox={LOGO_VIEWBOX} className={className} style={{ overflow: 'visible', ...style }} aria-label="bo séjour">
+    <svg viewBox={LOGO_VIEWBOX} className={className} style={{ overflow: 'visible', ...style }} aria-label="boséjour">
       <defs>
         {Object.entries(SLOGAN_GLYPHS).map(([id, d]) => (
           <path key={id} id={`film-${id}`} d={d} />

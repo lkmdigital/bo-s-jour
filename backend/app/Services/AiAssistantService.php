@@ -4,7 +4,6 @@ namespace App\Services;
 
 use Anthropic\Client;
 use Anthropic\Messages\ToolUseBlock;
-use App\Models\Setting;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -51,7 +50,7 @@ abstract class AiAssistantService
         }
         $this->clientResolved = true;
 
-        $apiKey = (string) Setting::get('anthropic_api_key', '') ?: config('services.anthropic.api_key', '');
+        $apiKey = AiModule::apiKey();
         if ($apiKey) {
             $this->client = new Client(apiKey: $apiKey);
         }
@@ -64,68 +63,96 @@ abstract class AiAssistantService
         return $this->getClient() !== null;
     }
 
+    /** Nombre maximal de messages d'historique repris d'une conversation en cours. */
+    public const MAX_HISTORY_MESSAGES = 10;
+
     /**
+     * Jetons de sortie par appel. Sur les modèles récents la réflexion est toujours active
+     * et compte dans ce plafond : une valeur trop basse couperait la réponse avant le texte.
+     */
+    private const MAX_TOKENS = 16000;
+
+    /**
+     * @param array<int, array{role: string, content: string}> $history échanges précédents de la
+     *        même conversation (texte seul, déjà validé par l'appelant), du plus ancien au plus récent
+     *
      * @throws \RuntimeException si le module n'est pas configuré (clé API absente)
      */
-    public function ask(string $question): string
+    public function ask(string $question, array $history = []): string
     {
         $client = $this->getClient();
         if (!$client) {
             throw new \RuntimeException("Le module IA n'est pas configuré (clé API manquante).");
         }
 
-        $model = config('services.anthropic.model', 'claude-opus-5');
+        $model = AiModule::model();
         $tools = $this->toolDefinitions();
 
-        $messages = [
-            ['role' => 'user', 'content' => $question],
-        ];
-
-        $response = $client->messages->create(
-            model: $model,
-            maxTokens: 2000,
-            system: $this->systemPrompt(),
-            tools: $tools,
-            messages: $messages,
-        );
-
-        // Boucle d'outils bornée (6 itérations max) — évite un enchaînement
-        // incontrôlé et coûteux si le modèle boucle sur un appel d'outil.
-        $iterations = 0;
-        while ($response->stopReason === 'tool_use' && $iterations < 6) {
-            $iterations++;
-            $toolResults = [];
-
-            foreach ($response->content as $block) {
-                if ($block instanceof ToolUseBlock) {
-                    $result = $this->safeExecuteTool($block->name, $block->input);
-                    $toolResults[] = [
-                        'type' => 'tool_result',
-                        'toolUseID' => $block->id,
-                        'content' => $result,
-                    ];
-                }
+        $messages = [];
+        foreach (array_slice($history, -self::MAX_HISTORY_MESSAGES) as $turn) {
+            $role = ($turn['role'] ?? '') === 'assistant' ? 'assistant' : 'user';
+            $text = trim((string) ($turn['content'] ?? ''));
+            // La conversation doit commencer par un message de l'utilisateur.
+            if ($text === '' || ($messages === [] && $role !== 'user')) {
+                continue;
             }
+            $messages[] = ['role' => $role, 'content' => $text];
+        }
+        $messages[] = ['role' => 'user', 'content' => $question];
 
-            $messages[] = ['role' => 'assistant', 'content' => $response->content];
-            $messages[] = ['role' => 'user', 'content' => $toolResults];
-
-            $response = $client->messages->create(
+        // $messages est capturé par référence : chaque appel envoie l'historique à jour.
+        $create = function () use ($client, $model, $tools, &$messages) {
+            return $client->messages->create(
                 model: $model,
-                maxTokens: 2000,
+                maxTokens: self::MAX_TOKENS,
                 system: $this->systemPrompt(),
                 tools: $tools,
                 messages: $messages,
             );
+        };
+
+        $response = $create();
+
+        // Boucle bornée (6 itérations max) — évite un enchaînement incontrôlé et coûteux.
+        // « tool_use » : nos outils à exécuter. « pause_turn » : un outil serveur d'Anthropic
+        // (recherche web) n'a pas fini ; on renvoie le tour tel quel pour qu'il reprenne.
+        $iterations = 0;
+        while (in_array($response->stopReason, ['tool_use', 'pause_turn'], true) && $iterations < 6) {
+            $iterations++;
+            // Le contenu est renvoyé intact (blocs de réflexion compris), comme l'exige l'API.
+            $messages[] = ['role' => 'assistant', 'content' => $response->content];
+
+            if ($response->stopReason === 'tool_use') {
+                $toolResults = [];
+                foreach ($response->content as $block) {
+                    if ($block instanceof ToolUseBlock) {
+                        $toolResults[] = [
+                            'type' => 'tool_result',
+                            'toolUseID' => $block->id,
+                            'content' => $this->safeExecuteTool($block->name, $block->input),
+                        ];
+                    }
+                }
+                $messages[] = ['role' => 'user', 'content' => $toolResults];
+            }
+
+            $response = $create();
         }
 
+        if ($response->stopReason === 'refusal') {
+            Log::warning("Refus du modèle {$this->logContext()}", ['category' => $response->stopDetails?->category]);
+
+            return "Je ne peux pas répondre à cette demande. Reformulez votre question, ou contactez le support boséjour.";
+        }
+
+        $text = '';
         foreach ($response->content as $block) {
             if ($block->type === 'text') {
-                return $block->text;
+                $text .= $block->text;
             }
         }
 
-        return "Je n'ai pas pu formuler de réponse à cette question.";
+        return trim($text) !== '' ? trim($text) : "Je n'ai pas pu formuler de réponse à cette question.";
     }
 
     private function safeExecuteTool(string $name, array $input): string
@@ -154,8 +181,10 @@ abstract class AiAssistantService
         }
 
         $response = $client->messages->create(
-            model: config('services.anthropic.model', 'claude-opus-5'),
-            maxTokens: $maxTokens,
+            model: AiModule::model(),
+            // La réflexion (toujours active sur les modèles récents) compte dans ce plafond :
+            // on garde une marge au-dessus de la longueur de texte attendue.
+            maxTokens: max($maxTokens, 8000),
             system: $systemPrompt,
             messages: [['role' => 'user', 'content' => $userPrompt]],
         );

@@ -154,7 +154,7 @@ export default function EditAccommodationPage() {
   // réservation). Les deux moitiés (inclus gratuit / supplémentaire payant)
   // étaient déjà dans le formulaire de CRÉATION, mais réparties sur deux
   // étapes distinctes et jamais éditables après coup.
-  // Garantie de réservation paramétrée par l'établissement (décision BoSéjour 2026-10-08)
+  // Garantie de réservation paramétrée par l'établissement (décision boséjour 2026-10-08)
   const [guarantee, setGuarantee] = useState<GuaranteeFormState>(DEFAULT_GUARANTEE_FORM);
   const [guaranteeError, setGuaranteeError] = useState<string | null>(null);
   const [breakfast, setBreakfast] = useState({

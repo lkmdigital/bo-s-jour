@@ -13,6 +13,7 @@ import api from '@/lib/api';
 import DestinationCard, { DestinationCardData } from './DestinationCard';
 import { cn, resolveImageUrl } from '@/lib/utils';
 import Brand from '@/components/common/Brand';
+import FilmButton from '@/components/film/FilmButton';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/components/common/ToastContext';
 
@@ -502,7 +503,11 @@ export function VideoShowcase({ photos = [] }: { photos?: string[] }) {
             <div className="relative z-10 p-8 md:p-12 max-w-lg text-white h-full flex flex-col justify-center">
               <h3 className="text-3xl md:text-4xl font-bold">{text.title}</h3>
               <p className="mt-3 text-white/90">{text.description}</p>
-              <Link href="/accommodations" className="btn-primary mt-6 w-fit">Explorer toutes les vidéos</Link>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Link href="/accommodations" className="btn-primary w-fit">Explorer toutes les vidéos</Link>
+                {/* Film de présentation de la plateforme (remplace l'ancien bouton flottant) */}
+                <FilmButton />
+              </div>
             </div>
           </div>
           {videos === null ? (

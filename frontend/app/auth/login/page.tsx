@@ -35,7 +35,7 @@ function LoginContent() {
     defaultValues: { email: getRememberedEmail(), remember: true },
   });
 
-  const STAFF_MSG = "Ce portail est réservé aux voyageurs et aux partenaires. Le personnel BoSéjour se connecte via le portail administrateur dédié.";
+  const STAFF_MSG = "Ce portail est réservé aux voyageurs et aux partenaires. Le personnel boséjour se connecte via le portail administrateur dédié.";
 
   // Affiche le message si un compte staff a tenté de se connecter par ce portail
   useEffect(() => {
@@ -75,7 +75,7 @@ function LoginContent() {
       const currentUser = useAuthStore.getState().user;
 
       // Portail public réservé aux voyageurs et partenaires :
-      // le personnel bo séjour (admin / contrôleur) doit passer par le portail dédié.
+      // le personnel boséjour (admin / contrôleur) doit passer par le portail dédié.
       if (isAdmin(currentUser) || isController(currentUser)) {
         // Invalidation de la session (cookie httpOnly — voir authService.logout())
         useAuthStore.getState().setUser(null);

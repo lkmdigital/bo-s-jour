@@ -32,7 +32,7 @@ class WhatsAppService
      * {code}, {arrivee}, {depart}.
      */
     public const DEFAULT_CONFIRMATION_TEMPLATE =
-        "BoSéjour — Réservation confirmée ✅\n"
+        "boséjour — Réservation confirmée ✅\n"
         . "Établissement : {etablissement}\n"
         . "N° de réservation : {numero}\n"
         . "Code de confirmation (à présenter à l'arrivée) : {code}\n"
@@ -45,7 +45,7 @@ class WhatsAppService
      * {etablissement}, {arrivee}, {depart}, {echeance}.
      */
     public const DEFAULT_NEW_REQUEST_TEMPLATE =
-        "BoSéjour — Nouvelle demande de réservation 📩\n"
+        "boséjour — Nouvelle demande de réservation 📩\n"
         . "Établissement : {etablissement}\n"
         . "Séjour demandé : du {arrivee} au {depart}\n"
         . "Merci de confirmer la disponibilité avant le {echeance} depuis votre espace partenaire, sinon la demande sera annulée automatiquement.";
@@ -55,7 +55,7 @@ class WhatsAppService
      * réservés : {etablissement}, {arrivee}, {depart}, {lien}.
      */
     public const DEFAULT_APPROVED_PLEASE_PAY_TEMPLATE =
-        "BoSéjour — Votre demande est acceptée ✅\n"
+        "boséjour — Votre demande est acceptée ✅\n"
         . "Établissement : {etablissement}\n"
         . "Séjour : du {arrivee} au {depart}\n"
         . "Il ne reste plus qu'à payer pour finaliser votre réservation : {lien}";
@@ -309,7 +309,7 @@ class WhatsAppService
     /** Code de vérification du numéro (modèle « Authentication » : le code sert aussi de variable du bouton « Copier »). */
     public function sendVerificationCode(?string $to, string $code): bool
     {
-        $text = "BoSéjour — Votre code de vérification : {$code}\nCe code expire dans 10 minutes.";
+        $text = "boséjour — Votre code de vérification : {$code}\nCe code expire dans 10 minutes.";
 
         if ($this->usesTemplates() && $this->sendTemplate($to, self::TPL_VERIFICATION_CODE, [$code], $code)) {
             return true;

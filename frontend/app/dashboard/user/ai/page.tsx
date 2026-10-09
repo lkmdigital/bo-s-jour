@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import MemberAside from '@/components/dashboard/user/MemberAside';
 import api from '@/lib/api';
+import AiModuleGate from '@/components/ai/AiModuleGate';
 import { Sparkles, Send, Loader2 } from 'lucide-react';
 
 const EXAMPLE_QUESTIONS = [
@@ -21,18 +22,17 @@ interface Exchange {
   isError?: boolean;
 }
 
-// Module IA — masqué le 2026-08-27 en attendant un échange avec le client sur la
-// confidentialité documentaire (Vague 7 du plan Module IA). Code d'origine conservé
-// ci-dessous (non exporté) pour réactivation rapide une fois validé.
+// Module IA : la page ne s'affiche que si l'assistant IA est activé par l'admin
+// (Paramètres > Réglages avancés) et qu'une clé API est renseignée.
 export default function TravelerAiAssistantPage() {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center text-gray-500 dark:text-gray-400">
-      <p className="text-sm">Cette fonctionnalité est temporairement indisponible.</p>
-    </div>
+    <AiModuleGate>
+      <TravelerAiAssistantPageContent />
+    </AiModuleGate>
   );
 }
 
-function TravelerAiAssistantPageOriginal() {
+function TravelerAiAssistantPageContent() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuthStore();
   const [question, setQuestion] = useState('');

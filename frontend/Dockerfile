@@ -1,4 +1,4 @@
-# Frontend Next.js (bo séjour) — build "standalone" (déjà configuré dans
+# Frontend Next.js (boséjour) — build "standalone" (déjà configuré dans
 # next.config.js : output: 'standalone' en production), image finale minimale
 # ne contenant que le serveur Node compilé + les assets statiques nécessaires.
 

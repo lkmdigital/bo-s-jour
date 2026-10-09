@@ -156,7 +156,7 @@ class PaymentController extends Controller
                 }
                 $amountToPay = (float) ($guaranteeOpt['amount'] ?? $guaranteeOpt);
                 $paymentPurpose = 'guarantee';
-                // Point laissé ouvert par BoSéjour (2026-10-08) : aucun plancher n'est appliqué, le
+                // Point laissé ouvert par boséjour (2026-10-08) : aucun plancher n'est appliqué, le
                 // voyageur paie exactement la garantie annoncée. On trace le cas pour le suivre.
                 if (!PaymentOptionsService::guaranteeCoversCommission($amountToPay, (float) $booking->total_price)) {
                     \Log::warning('Garantie inférieure à la commission plateforme', [
@@ -1039,7 +1039,7 @@ class PaymentController extends Controller
 
             // Recalculer la commission basée sur le montant total de la réservation
             // Base du calcul : le tarif plein de l'hôte (base_price), jamais réduit par
-        // une promo/bon de fidélité voyageur — BoSéjour finance cette différence
+        // une promo/bon de fidélité voyageur — boséjour finance cette différence
         // (retour client 2026-09-02, Partie 2 ; confirmé avec l'utilisateur).
         // Repli sur total_price pour les réservations créées avant ce champ, afin
         // de ne pas recalculer rétroactivement des commissions déjà en attente.
@@ -1071,7 +1071,7 @@ class PaymentController extends Controller
         $commissionRate = self::getCommissionRateClamped();
 
         // Base du calcul : le tarif plein de l'hôte (base_price), jamais réduit par
-        // une promo/bon de fidélité voyageur — BoSéjour finance cette différence
+        // une promo/bon de fidélité voyageur — boséjour finance cette différence
         // (retour client 2026-09-02, Partie 2 ; confirmé avec l'utilisateur).
         // Repli sur total_price pour les réservations créées avant ce champ, afin
         // de ne pas recalculer rétroactivement des commissions déjà en attente.

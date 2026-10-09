@@ -11,7 +11,7 @@ use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /**
- * Décisions BoSéjour du 2026-10-08 sur la « Garantie de réservation » :
+ * Décisions boséjour du 2026-10-08 sur la « Garantie de réservation » :
  * le montant suit le paramétrage de l'établissement (1re nuit, pourcentage ou
  * montant fixe) et le MÊME paramétrage alimente la fiche publique, l'aperçu de
  * prix (récapitulatif) et la page de paiement. Avant ce correctif, un pourcentage

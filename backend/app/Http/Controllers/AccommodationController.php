@@ -360,7 +360,7 @@ class AccommodationController extends Controller
             // choisi, pas seulement le tarif d'une chambre.
             'rooms_quantity' => 'nullable|integer|min:1|max:20',
             // Petits-déjeuners supplémentaires choisis dans le récapitulatif : ils entrent dans
-            // le total de la réservation, donc dans le calcul de la garantie (décision BoSéjour
+            // le total de la réservation, donc dans le calcul de la garantie (décision boséjour
             // 2026-10-08 — le récapitulatif doit annoncer le montant de la page de paiement).
             'extra_breakfast_quantity' => 'nullable|integer|min:0|max:20',
         ], [
@@ -368,104 +368,14 @@ class AccommodationController extends Controller
             'check_out.after' => "La date de départ doit être postérieure à la date d'arrivée.",
         ]);
 
-        $checkIn = $request->check_in;
-        $checkOut = $request->check_out;
-        $roomId = $request->room_id;
-        $roomsQuantity = max(1, (int) ($request->input('rooms_quantity') ?? 1));
-
-        $nights = \Carbon\Carbon::parse($checkIn)->diffInDays(\Carbon\Carbon::parse($checkOut));
-        $cancellationHours = $accommodation->cancellation_policy_hours ?? 48;
-
-        $basePricePerNight = $accommodation->price_per_night;
-        $room = null;
-
-        if ($roomId) {
-            $room = Room::where('accommodation_id', $id)->where('is_active', true)->find($roomId);
-            if ($room) {
-                // Tarification par période : prix moyen par nuit selon les périodes
-                // tarifaires programmées par l'hôte (sinon tarif de base)
-                $basePricePerNight = RoomPricingService::getAverageBasePricePerNight(
-                    $room,
-                    $checkIn,
-                    $checkOut
-                );
-            }
-        }
-
-        $effectivePricePerNight = RoomPricingService::getEffectivePricePerNight(
-            (float) $basePricePerNight,
-            (int) $cancellationHours,
-            $nights,
+        return response()->json(\App\Services\StayQuoteService::quote(
             $accommodation,
-            $checkIn
-        );
-
-        // Déterminer le type de tarif appliqué (selon les plans activés par l'hôte)
-        $rateType = 'base';
-        $matchedLongStayTier = null;
-        $hoursUntilCheckIn = now()->diffInHours(\Carbon\Carbon::parse($checkIn), false);
-        $longStayTiers = is_array($accommodation->pricing_long_stay_tiers ?? null) ? $accommodation->pricing_long_stay_tiers : null;
-        if ($accommodation->pricing_long_stay_enabled && $longStayTiers) {
-            $matchedLongStayTier = RoomPricingService::resolveLongStayTier($longStayTiers, $nights);
-            if ($matchedLongStayTier) {
-                $rateType = 'long_stay';
-            }
-        } elseif ($accommodation->pricing_long_stay_enabled) {
-            $longStayNights = (int) ($accommodation->pricing_long_stay_nights ?? config('room-pricing.long_stay_nights_threshold', 7));
-            if ($nights >= $longStayNights) {
-                $rateType = 'long_stay';
-            }
-        }
-        if ($rateType === 'base' && $accommodation->pricing_non_refundable_enabled && $cancellationHours === 0) {
-            $rateType = 'non_refundable';
-        } elseif ($rateType === 'base' && $accommodation->pricing_modifiable_enabled && $cancellationHours > 0 && $hoursUntilCheckIn >= $cancellationHours) {
-            $rateType = 'modifiable';
-        }
-
-        $total = round($effectivePricePerNight * $nights * $roomsQuantity, 2);
-        $variants = RoomPricingService::getPriceVariants((float) $basePricePerNight, $accommodation);
-        // Même total que celui que BookingController enregistrera (petits-déjeuners compris)
-        $extraBreakfastTotal = 0.0;
-        $extraBreakfastQuantity = (int) ($request->input('extra_breakfast_quantity') ?? 0);
-        if ($extraBreakfastQuantity > 0 && (float) $accommodation->breakfast_price > 0) {
-            $extraBreakfastTotal = $extraBreakfastQuantity * (float) $accommodation->breakfast_price;
-        }
-        $paymentOptions = \App\Services\PaymentOptionsService::previewPaymentOptions(
-            $total + $extraBreakfastTotal, $checkIn, $checkOut, (int) $cancellationHours, $accommodation
-        );
-
-        // Détail de la remise long séjour appliquée (retour client 2026-09-02,
-        // Partie 3.3 : "3 nuitées x 26 000 FCFA : 78 000 FCFA / Remise séjour
-        // longue durée (3-5 nuits 5%): -3 900 FCFA / TOTAL À PAYER : 74 100 FCFA").
-        $longStayDiscount = null;
-        if ($rateType === 'long_stay' && $matchedLongStayTier) {
-            $subtotal = round((float) $basePricePerNight * $nights * $roomsQuantity, 2);
-            $discountPercent = (float) $matchedLongStayTier['discount_percent'];
-            $discountAmount = round($subtotal - $total, 2);
-            $min = (int) ($matchedLongStayTier['min_nights'] ?? 0);
-            $max = isset($matchedLongStayTier['max_nights']) && $matchedLongStayTier['max_nights'] !== null
-                ? (int) $matchedLongStayTier['max_nights'] : null;
-            $rangeLabel = $max ? "{$min}-{$max} nuits" : "{$min}+ nuits";
-            $longStayDiscount = [
-                'subtotal' => $subtotal,
-                'discount_percent' => $discountPercent,
-                'discount_amount' => $discountAmount,
-                'label' => "Remise séjour longue durée ({$rangeLabel} {$discountPercent}%)",
-            ];
-        }
-
-        return response()->json([
-            'base_price_per_night' => (float) $basePricePerNight,
-            'effective_price_per_night' => $effectivePricePerNight,
-            'nights' => $nights,
-            'total' => $total,
-            'extra_breakfast_total' => $extraBreakfastTotal,
-            'rate_type' => $rateType,
-            'long_stay_discount' => $longStayDiscount,
-            'cancellation_policy_hours' => $cancellationHours,
-            'variants' => $variants,
-            'payment_options' => $paymentOptions,
-        ]);
+            $request->filled('room_id') ? (int) $request->room_id : null,
+            $request->check_in,
+            $request->check_out,
+            (int) ($request->input('rooms_quantity') ?? 1),
+            (int) ($request->input('extra_breakfast_quantity') ?? 0)
+        ));
     }
 
     /**
@@ -878,7 +788,7 @@ class AccommodationController extends Controller
             'other_amenities' => 'nullable|string|max:1000',
             'deposit_required' => 'nullable|boolean',
             'deposit_amount' => 'nullable|string|in:first_night,percentage,fixed',
-            // Valeur de la garantie selon son type (décision BoSéjour 2026-10-08)
+            // Valeur de la garantie selon son type (décision boséjour 2026-10-08)
             'deposit_percentage' => 'nullable|numeric|min:1|max:99|required_if:deposit_amount,percentage',
             'deposit_fixed_amount' => 'nullable|numeric|min:1|required_if:deposit_amount,fixed',
             'cancellation_policy_hours' => 'nullable|integer|min:0',
@@ -1054,7 +964,7 @@ class AccommodationController extends Controller
             'other_amenities' => 'nullable|string|max:1000',
             'deposit_required' => 'nullable|boolean',
             'deposit_amount' => 'nullable|string|in:first_night,percentage,fixed',
-            // Valeur de la garantie selon son type (décision BoSéjour 2026-10-08)
+            // Valeur de la garantie selon son type (décision boséjour 2026-10-08)
             'deposit_percentage' => 'nullable|numeric|min:1|max:99|required_if:deposit_amount,percentage',
             'deposit_fixed_amount' => 'nullable|numeric|min:1|required_if:deposit_amount,fixed',
             'cancellation_policy_hours' => 'nullable|integer|min:0',

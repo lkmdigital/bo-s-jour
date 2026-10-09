@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 /**
  * Retour client 2026-09-02 (Partie 2) : "Conserver systématiquement le prix
- * d'origine fixé par l'hôtelier" — la commission BoSéjour et le montant net
+ * d'origine fixé par l'hôtelier" — la commission boséjour et le montant net
  * reversé à l'hôte doivent être calculés sur le tarif plein (base_price),
  * jamais réduits par une promo/bon de fidélité voyageur. Confirmé avec
  * l'utilisateur : uniquement pour les nouvelles réservations, pas de

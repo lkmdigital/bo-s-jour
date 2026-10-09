@@ -449,7 +449,7 @@ class AnalyticsController extends Controller
         $activeRoomsNow = is_array($roomStats) ? ($roomStats['active_rooms'] ?? $totalRooms) : $totalRooms;
         $availableRoomsNow = max(0, $activeRoomsNow - $occupiedRoomsNow);
 
-        // Score Bosejour — v1 heuristique (note/occupation/annulation). À valider avec le client.
+        // Score boséjour — v1 heuristique (note/occupation/annulation). À valider avec le client.
         $cancelledBookingsHost = $byPeriod(Booking::whereHas('accommodation', function($q) use ($hostId) {
             $q->where('host_id', $hostId);
         })->where('status', 'cancelled'))->count();

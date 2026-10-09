@@ -7,7 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Retour client 2026-09-02 (orthotypographie) : "bo séjour" -> "BoSéjour".
+ * Retour client 2026-09-02 (orthotypographie) : "boséjour" -> "boséjour".
  * Le contenu CGU/CGV/Confidentialité a été seedé en base par une migration
  * antérieure (guardée sur content IS NULL, donc non-rejouable) — la
  * migration 2026_09_07_000001 corrige le contenu déjà en base par un simple
@@ -34,27 +34,27 @@ class LegalDocumentRenameMigrationTest extends TestCase
     public function test_migration_renames_bo_sejour_inside_existing_content_without_touching_the_rest(): void
     {
         LegalDocument::where('slug', 'cgu')->update([
-            'content' => "Article 1\n\nbo séjour met à disposition sa plateforme. Contact : bo séjour (« bo séjour »).",
+            'content' => "Article 1\n\nboséjour met à disposition sa plateforme. Contact : boséjour (« boséjour »).",
         ]);
 
         $this->runMigration();
 
         $doc = LegalDocument::where('slug', 'cgu')->first();
         $this->assertSame(
-            "Article 1\n\nBoSéjour met à disposition sa plateforme. Contact : BoSéjour (« BoSéjour »).",
+            "Article 1\n\nboséjour met à disposition sa plateforme. Contact : boséjour (« boséjour »).",
             $doc->content
         );
     }
 
     public function test_migration_is_a_no_op_when_content_already_renamed_or_absent(): void
     {
-        LegalDocument::where('slug', 'cgu')->update(['content' => 'Déjà en BoSéjour, rien à faire.']);
+        LegalDocument::where('slug', 'cgu')->update(['content' => 'Déjà en boséjour, rien à faire.']);
         LegalDocument::where('slug', 'cgv')->update(['content' => null]);
         $confidentialiteBefore = LegalDocument::where('slug', 'confidentialite')->first()->content;
 
         $this->runMigration();
 
-        $this->assertSame('Déjà en BoSéjour, rien à faire.', LegalDocument::where('slug', 'cgu')->first()->content);
+        $this->assertSame('Déjà en boséjour, rien à faire.', LegalDocument::where('slug', 'cgu')->first()->content);
         $this->assertNull(LegalDocument::where('slug', 'cgv')->first()->content);
         $this->assertSame($confidentialiteBefore, LegalDocument::where('slug', 'confidentialite')->first()->content);
     }

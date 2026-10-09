@@ -65,7 +65,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>Bosejour</h1>
+        <h1>boséjour</h1>
         <p class="slogan">Votre séjour commence ici...</p>
     </div>
 
@@ -107,9 +107,9 @@
     <p>Merci pour votre confiance. Nous vous souhaitons un excellent séjour !</p>
 
     <div class="footer">
-        <p><strong>Bosejour</strong> - <span style="font-family: 'Brush Script MT', cursive; font-style: italic;">Votre séjour commence ici...</span></p>
+        <p><strong>boséjour</strong> - <span style="font-family: 'Brush Script MT', cursive; font-style: italic;">Votre séjour commence ici...</span></p>
         <p>Plateforme de réservation d'hébergements en Côte d'Ivoire</p>
-        <p>© {{ date('Y') }} Bosejour. Tous droits réservés.</p>
+        <p>© {{ date('Y') }} boséjour. Tous droits réservés.</p>
     </div>
 </body>
 </html>

@@ -41,7 +41,7 @@ class HostAiContentController extends Controller
     {
         if (!$service->isConfigured()) {
             return response()->json([
-                'message' => "Le module IA n'est pas encore configuré. Contactez l'équipe BoSéjour.",
+                'message' => "Le module IA n'est pas encore configuré. Contactez l'équipe boséjour.",
             ], 503);
         }
 

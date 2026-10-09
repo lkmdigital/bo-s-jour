@@ -1,4 +1,4 @@
-// Pièces vectorielles du logo officiel bo séjour, extraites telles quelles de la
+// Pièces vectorielles du logo officiel boséjour, extraites telles quelles de la
 // charte graphique (page 16, « Logo de la marque ») : aucune retouche de tracé ni
 // de typographie. Repère d'origine de la page PDF : le logo occupe la boîte
 // x 470 → 1152, y 312 → 542 (voir LOGO_VIEWBOX).

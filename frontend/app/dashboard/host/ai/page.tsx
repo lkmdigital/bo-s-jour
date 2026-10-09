@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Sparkles, Send, Loader2, PenLine, Languages, Search, Copy, Check } from 'lucide-react';
 import api from '@/lib/api';
+import AiModuleGate from '@/components/ai/AiModuleGate';
 
 const EXAMPLE_QUESTIONS = [
   "Quel est mon taux d'occupation ?",
@@ -45,18 +46,17 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-// Module IA — masqué le 2026-08-27 en attendant un échange avec le client sur la
-// confidentialité documentaire (Vague 7 du plan Module IA). Code d'origine conservé
-// ci-dessous (non exporté) pour réactivation rapide une fois validé.
+// Module IA : la page ne s'affiche que si l'assistant IA est activé par l'admin
+// (Paramètres > Réglages avancés) et qu'une clé API est renseignée.
 export default function HostAiAssistantPage() {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center text-gray-500 dark:text-gray-400">
-      <p className="text-sm">Cette fonctionnalité est temporairement indisponible.</p>
-    </div>
+    <AiModuleGate>
+      <HostAiAssistantPageContent />
+    </AiModuleGate>
   );
 }
 
-function HostAiAssistantPageOriginal() {
+function HostAiAssistantPageContent() {
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [exchanges, setExchanges] = useState<Exchange[]>([]);

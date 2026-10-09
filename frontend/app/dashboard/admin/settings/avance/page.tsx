@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { SlidersHorizontal, ShieldCheck, Sparkles, Calendar, UserPlus, Bell, KeyRound, Map, BrainCircuit } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/common/ToastContext';
@@ -29,6 +30,12 @@ export default function AdminAdvancedSettingsPage() {
   const [whatsappVerifyToken, setWhatsappVerifyToken] = useState('');
   const [whatsappAppSecret, setWhatsappAppSecret] = useState('');
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
+  // Module IA : interrupteur général, modèle, ouverture aux visiteurs non connectés
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiModel, setAiModel] = useState('');
+  const [aiModelDefault, setAiModelDefault] = useState('claude-opus-5-5');
+  const [aiGuestEnabled, setAiGuestEnabled] = useState(true);
+  const [aiGuestDailyLimit, setAiGuestDailyLimit] = useState('300');
 
   useEffect(() => {
     api.get('/settings/admin')
@@ -51,6 +58,11 @@ export default function AdminAdvancedSettingsPage() {
         setWhatsappVerifyToken(s.whatsapp_verify_token ?? '');
         setWhatsappAppSecret(s.whatsapp_app_secret ?? '');
         setAnthropicApiKey(s.anthropic_api_key ?? '');
+        setAiEnabled(!!s.ai_enabled);
+        setAiModel(s.anthropic_model ?? '');
+        setAiModelDefault(s.anthropic_model_default || 'claude-opus-5-5');
+        setAiGuestEnabled(s.ai_guest_enabled !== false);
+        setAiGuestDailyLimit(String(s.ai_guest_daily_limit ?? 300));
       })
       .catch(() => showError('Erreur lors du chargement'))
       .finally(() => setLoading(false));
@@ -82,6 +94,10 @@ export default function AdminAdvancedSettingsPage() {
         whatsapp_verify_token: whatsappVerifyToken.trim() || null,
         whatsapp_app_secret: whatsappAppSecret.trim() || null,
         anthropic_api_key: anthropicApiKey.trim() || null,
+        ai_enabled: aiEnabled,
+        anthropic_model: aiModel || null,
+        ai_guest_enabled: aiGuestEnabled,
+        ai_guest_daily_limit: Math.max(0, parseInt(aiGuestDailyLimit, 10) || 0),
       };
       if (maintenanceEnabled) {
         payload.maintenance_message = maintenanceMessage.trim()
@@ -91,6 +107,8 @@ export default function AdminAdvancedSettingsPage() {
       if (!Number.isNaN(maxN)) payload.booking_max_nights = maxN;
 
       await api.put('/settings/admin', payload);
+      // Les menus et l'assistant flottant suivent l'interrupteur IA sans recharger la page.
+      await useAppSettingsStore.getState().fetchSettings();
       showSuccess('Réglages avancés enregistrés');
     } catch (err: any) {
       showError(err.response?.data?.message || 'Erreur lors de l\'enregistrement');
@@ -289,23 +307,87 @@ export default function AdminAdvancedSettingsPage() {
                   </div>
                 </div>
               </div>
-              {/* Module IA masqué le 2026-08-27 en attendant un échange avec le client sur la
-              confidentialité documentaire — les routes /ai/* sont désactivées côté backend,
-              ce champ n'aurait donc aucun effet tant qu'elles ne sont pas réactivées.
+              {/* Module IA — un seul interrupteur : désactivé, tout ce qui touche à l'IA disparaît du site */}
               <div className="pt-4 mt-2 border-t border-gray-200 dark:border-gray-700">
-                <span className="text-sm font-medium flex items-center gap-1.5 mb-3">
-                  <BrainCircuit className="w-4 h-4" /> Module IA (Renseignement IA — Claude / Anthropic)
-                </span>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Clé API Anthropic</label>
-                  <input type="password" value={anthropicApiKey} onChange={(e) => setAnthropicApiKey(e.target.value)} placeholder="sk-ant-..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono" />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Tant qu'elle est vide, l'assistant IA administrateur reste indisponible.
-                  </p>
+                <div className="flex items-center justify-between gap-4 mb-1">
+                  <span className="text-sm font-medium flex items-center gap-1.5">
+                    <BrainCircuit className="w-4 h-4" /> Assistant IA (Claude / Anthropic)
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={aiEnabled}
+                    aria-label="Activer l'assistant IA"
+                    onClick={() => setAiEnabled((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${aiEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}
+                  >
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${aiEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  Active l&apos;assistant voyageur (bulle en bas à droite du site), l&apos;assistant partenaire et le
+                  « Renseignement IA » de l&apos;administration. Désactivé, tous ces éléments disparaissent du site.
+                </p>
+                <p className={`text-xs font-medium mb-3 ${!aiEnabled ? 'text-gray-500' : anthropicApiKey.trim() ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                  {!aiEnabled
+                    ? 'État : désactivé.'
+                    : anthropicApiKey.trim()
+                    ? 'État : activé. Enregistrez pour appliquer.'
+                    : 'État : activé, mais sans clé API — les assistants restent masqués tant que la clé n’est pas renseignée.'}
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label htmlFor="anthropic-key" className="block text-sm font-medium mb-1">Clé API Anthropic</label>
+                    <input id="anthropic-key" type="password" value={anthropicApiKey} onChange={(e) => setAnthropicApiKey(e.target.value)} placeholder="sk-ant-..."
+                      autoComplete="off"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm font-mono" />
+                    <p className="text-xs text-gray-500 mt-1">
+                      À créer sur console.anthropic.com. Chaque question posée aux assistants est facturée sur ce compte.
+                    </p>
+                  </div>
+                  <div>
+                    <label htmlFor="anthropic-model" className="block text-sm font-medium mb-1">Modèle</label>
+                    <select id="anthropic-model" value={aiModel} onChange={(e) => setAiModel(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm">
+                      <option value="">Par défaut ({aiModelDefault})</option>
+                      <option value="claude-opus-5-5">Claude Opus 5.5 — le plus capable (4 $ / 20 $ par million de jetons)</option>
+                      <option value="claude-sonnet-5-5">Claude Sonnet 5.5 — équilibré (2 $ / 10 $)</option>
+                      <option value="claude-haiku-5-5">Claude Haiku 5.5 — le plus économique (0,10 $ / 0,50 $)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Tarifs indicatifs (entrée / sortie), à vérifier sur le site d&apos;Anthropic.</p>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/60">
+                    <div>
+                      <span className="text-sm font-medium">Ouvrir l&apos;assistant voyageur aux visiteurs non connectés</span>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Ils peuvent chercher et comparer des hébergements, sans accès à aucun compte. Désactivé : la bulle
+                        invite à se connecter.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={aiGuestEnabled}
+                      aria-label="Ouvrir l'assistant aux visiteurs non connectés"
+                      onClick={() => setAiGuestEnabled((v) => !v)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ${aiGuestEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}
+                    >
+                      <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${aiGuestEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  {aiGuestEnabled && (
+                    <div>
+                      <label htmlFor="ai-guest-limit" className="block text-sm font-medium mb-1">Plafond quotidien des visiteurs non connectés</label>
+                      <input id="ai-guest-limit" type="number" min={0} value={aiGuestDailyLimit} onChange={(e) => setAiGuestDailyLimit(e.target.value)}
+                        className="w-40 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm" />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Nombre total de questions par jour, tous visiteurs non connectés confondus (chacun est aussi limité à
+                        20 par jour). Au-delà, la bulle invite à se connecter. Sert à maîtriser le coût.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-              */}
             </div>
           </section>
 

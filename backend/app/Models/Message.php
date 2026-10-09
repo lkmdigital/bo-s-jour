@@ -170,7 +170,7 @@ class Message extends Model
             'sender_id' => null,
             'is_from_platform' => true,
             'subject' => 'Établissement approuvé',
-            'body' => "Bonne nouvelle : votre établissement « " . $accommodation->name . " » a été approuvé par l'équipe BoSéjour et est désormais visible et réservable sur la plateforme.",
+            'body' => "Bonne nouvelle : votre établissement « " . $accommodation->name . " » a été approuvé par l'équipe boséjour et est désormais visible et réservable sur la plateforme.",
         ]);
     }
 

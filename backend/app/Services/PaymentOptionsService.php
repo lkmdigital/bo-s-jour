@@ -12,7 +12,7 @@ use Carbon\Carbon;
  * paramétrage établissement → fiche publique → récapitulatif → page de paiement →
  * confirmation. Le libellé annoncé et le montant prélevé sortent du même calcul.
  *
- * Décisions BoSéjour du 2026-10-08 :
+ * Décisions boséjour du 2026-10-08 :
  * - « Paiement intégral » : 100 % en ligne, avec réduction (5 % par défaut).
  * - « Garantie de réservation » : montant défini par l'établissement — 1re nuit,
  *   pourcentage du séjour ou montant fixe — le solde se règle à l'établissement,
@@ -27,7 +27,7 @@ use Carbon\Carbon;
  * - l'établissement ne propose pas de garantie (deposit_required = false) ;
  * - la garantie paramétrée atteint ou dépasse le total du séjour.
  *
- * Point laissé ouvert par BoSéjour : garantie inférieure à la commission. Aucun
+ * Point laissé ouvert par boséjour : garantie inférieure à la commission. Aucun
  * plancher n'est appliqué ici, pour que le montant annoncé soit exactement le
  * montant prélevé ; guaranteeCoversCommission() permet de repérer ces cas.
  */
@@ -126,7 +126,7 @@ class PaymentOptionsService
         };
     }
 
-    /** La garantie couvre-t-elle la commission de la plateforme ? (point ouvert côté BoSéjour) */
+    /** La garantie couvre-t-elle la commission de la plateforme ? (point ouvert côté boséjour) */
     public static function guaranteeCoversCommission(float $guaranteeAmount, float $totalPrice): bool
     {
         $rate = max(8.0, min(10.0, (float) Setting::get('commission_rate', 10.00)));

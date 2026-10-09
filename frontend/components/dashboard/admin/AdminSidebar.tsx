@@ -30,6 +30,7 @@ import {
   Compass,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import api from '@/lib/api';
 import Logo from '@/components/common/Logo';
 
@@ -38,6 +39,8 @@ interface NavItem {
   label: string;
   icon: any;
   badgeKey?: keyof Counts;
+  /** Entrée du module IA : masquée tant que l'assistant IA n'est pas activé */
+  requiresAi?: boolean;
 }
 
 interface NavGroup {
@@ -111,8 +114,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: 'Données',
     items: [
       { href: '/dashboard/admin/base-touristique', label: 'Base touristique', icon: Map },
-      // Module IA masqué le 2026-08-27 en attendant un échange avec le client (voir page.tsx correspondante)
-      // { href: '/dashboard/admin/renseignement-ia', label: 'Renseignement IA', icon: BrainCircuit },
+      { href: '/dashboard/admin/renseignement-ia', label: 'Renseignement IA', icon: BrainCircuit, requiresAi: true },
     ],
   },
   {
@@ -126,6 +128,8 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  // Module IA : visible seulement si l'admin l'a activé et qu'une clé est renseignée
+  const aiEnabled = useAppSettingsStore((s) => s.aiEnabled);
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
@@ -176,7 +180,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <div key={group.title}>
             <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">{group.title}</p>
             <div className="space-y-0.5">
-              {group.items.map(({ href, label, icon: Icon, badgeKey }) => {
+              {group.items.filter((item) => !item.requiresAi || aiEnabled).map(({ href, label, icon: Icon, badgeKey }) => {
                 const active = isActive(href);
                 const badgeValue = badgeKey ? counts[badgeKey] : undefined;
                 return (

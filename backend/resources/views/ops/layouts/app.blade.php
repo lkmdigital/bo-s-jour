@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Ops') — BoSéjour</title>
+    <title>@yield('title', 'Ops') — boséjour</title>
     @vite(['resources/css/ops.css', 'resources/js/ops.js'])
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">

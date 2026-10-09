@@ -46,7 +46,7 @@ class HostStaffController extends Controller
     }
 
     /**
-     * Inviter un collaborateur. S'il possède déjà un compte voyageur bo séjour, il est
+     * Inviter un collaborateur. S'il possède déjà un compte voyageur boséjour, il est
      * immédiatement lié et activé (converti en compte host rattaché) ; sinon un lien
      * d'activation sécurisé lui est envoyé par e-mail.
      */
@@ -122,12 +122,12 @@ class HostStaffController extends Controller
             try {
                 Mail::raw(
                     "Bonjour {$data['name']},\n\n"
-                    . "{$ownerLabel} vous invite à rejoindre son espace BoSéjour en tant que "
+                    . "{$ownerLabel} vous invite à rejoindre son espace boséjour en tant que "
                     . (HostStaff::ROLE_LABELS[$data['role']] ?? $data['role']) . ".\n\n"
                     . "Activez votre accès en définissant votre mot de passe : {$activationUrl}\n\n"
-                    . "Ce lien est personnel, ne le partagez pas.\n\nÀ bientôt,\nL'équipe BoSéjour",
+                    . "Ce lien est personnel, ne le partagez pas.\n\nÀ bientôt,\nL'équipe boséjour",
                     function ($message) use ($data) {
-                        $message->to($data['email'])->subject('Invitation à rejoindre un espace BoSéjour');
+                        $message->to($data['email'])->subject('Invitation à rejoindre un espace boséjour');
                     }
                 );
             } catch (\Throwable $e) {

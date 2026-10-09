@@ -33,7 +33,7 @@ class StuckPaymentsDigest extends Mailable
     {
         $count = $this->payments->count();
 
-        return $this->subject("{$count} paiement(s) en attente à vérifier — BoSéjour")
+        return $this->subject("{$count} paiement(s) en attente à vérifier — boséjour")
             ->view('emails.stuck-payments-digest', [
                 'payments' => $this->payments,
                 'thresholdHours' => $this->thresholdHours,

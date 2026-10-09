@@ -18,7 +18,7 @@ export interface MapAccommodation {
   is_featured: boolean;
 }
 
-// Repère rond aux couleurs bo séjour (rouge charte), en DivIcon pour éviter le
+// Repère rond aux couleurs boséjour (rouge charte), en DivIcon pour éviter le
 // souci classique des icônes par défaut Leaflet cassées par le bundler Next.js —
 // et rester cohérent avec l'identité de marque plutôt que le marqueur bleu par défaut.
 function brandIcon(featured: boolean) {

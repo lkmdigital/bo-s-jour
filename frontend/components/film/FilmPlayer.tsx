@@ -35,7 +35,7 @@ const COMPONENTS: Record<string, ComponentType<SceneProps>> = {
 };
 
 const CHAPTERS: Record<string, string> = {
-  intro: 'bo séjour',
+  intro: 'boséjour',
   promesse: 'La promesse',
   recherche: 'Recherche',
   resultats: 'Comparaison',
@@ -45,7 +45,7 @@ const CHAPTERS: Record<string, string> = {
   paiement: 'Paiement',
   confirmation: 'Confirmation',
   apres: 'Après la réservation',
-  outro: 'bo séjour',
+  outro: 'boséjour',
 };
 
 const DURATION = narration.duration;
@@ -300,7 +300,7 @@ export default function FilmPlayer({ music, voice, onClose }: FilmPlayerProps) {
       ref={rootRef}
       role="dialog"
       aria-modal="true"
-      aria-label="Présentation de bo séjour"
+      aria-label="Présentation de boséjour"
       tabIndex={-1}
       onKeyDown={onKey}
       onPointerMove={wake}

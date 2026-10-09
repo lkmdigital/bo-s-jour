@@ -87,6 +87,33 @@ class BookingService
     }
 
     /**
+     * Nombre d'unités de cette chambre encore libres sur la période — lecture seule, sans
+     * verrou : sert à AFFICHER une disponibilité (assistant IA voyageur), jamais à réserver.
+     * Mêmes règles que assertAvailable() ci-dessus, qui reste le seul contrôle faisant foi
+     * au moment de la réservation : unités occupées par les réservations confirmées, et
+     * 0 si l'hébergeur a bloqué au moins une nuit de la période.
+     */
+    public function availableUnits(Room $room, Carbon $checkIn, Carbon $checkOut): int
+    {
+        $blocked = RoomAvailability::where('room_id', $room->id)
+            ->where('status', 'blocked')
+            ->where('date', '>=', $checkIn->toDateString())
+            ->where('date', '<', $checkOut->toDateString())
+            ->exists();
+        if ($blocked) {
+            return 0;
+        }
+
+        $occupiedUnits = (int) Booking::where('room_id', $room->id)
+            ->whereIn('status', BookingStatus::occupying())
+            ->where('check_in', '<', $checkOut)
+            ->where('check_out', '>', $checkIn)
+            ->sum('rooms_quantity');
+
+        return max(0, max(1, (int) ($room->quantity ?? 1)) - $occupiedUnits);
+    }
+
+    /**
      * Bloquer les dates dans room_availabilities après création d'une réservation.
      * Utilise upsert pour gérer les éventuelles lignes existantes.
      */

@@ -101,7 +101,7 @@
     "pages": {
       "dashboard": {
         "greeting": "Bonjour {name} 👋",
-        "subtitle": "Bienvenue dans votre espace membre BoSéjour."
+        "subtitle": "Bienvenue dans votre espace membre boséjour."
       },
       "reservations": {
         "title": "Mes réservations",

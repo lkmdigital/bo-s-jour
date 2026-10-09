@@ -12,7 +12,7 @@ import {
 } from './brandIntroLogo';
 
 /**
- * Animation d'ouverture bo séjour (≈ 4 s, une fois par session).
+ * Animation d'ouverture boséjour (≈ 4 s, une fois par session).
  *
  * Toute la chorégraphie est en CSS : le calque est rendu côté serveur et ne
  * s'affiche que si le script inline de `app/layout.tsx` a posé

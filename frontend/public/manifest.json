@@ -1,6 +1,6 @@
 {
-  "name": "BoSéjour - Votre séjour commence ici...",
-  "short_name": "BoSéjour",
+  "name": "boséjour - Votre séjour commence ici...",
+  "short_name": "boséjour",
   "description": "Trouvez et réservez votre hébergement idéal en Côte d'Ivoire",
   "start_url": "/",
   "display": "standalone",

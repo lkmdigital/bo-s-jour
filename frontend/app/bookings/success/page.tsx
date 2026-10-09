@@ -44,9 +44,9 @@ function googleCalendarUrl(b: SuccessBooking, bookingId?: string | null): string
   if (!b.check_in || !b.check_out) return null;
   // Format Google Agenda journée entière : YYYYMMDD (on garde la partie date de l'ISO).
   const d = (s: string) => s.slice(0, 10).replace(/-/g, '');
-  const text = encodeURIComponent(`Séjour — ${b.accommodation?.name ?? 'BoSéjour'}`);
+  const text = encodeURIComponent(`Séjour — ${b.accommodation?.name ?? 'boséjour'}`);
   const details = encodeURIComponent(
-    `Réservation BoSéjour${bookingId ? ` #${bookingId}` : ''}${b.confirmation_code ? ` · Code : ${b.confirmation_code}` : ''}`
+    `Réservation boséjour${bookingId ? ` #${bookingId}` : ''}${b.confirmation_code ? ` · Code : ${b.confirmation_code}` : ''}`
   );
   const location = encodeURIComponent(b.accommodation?.city ?? '');
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${d(b.check_in)}/${d(b.check_out)}&details=${details}&location=${location}`;

@@ -21,7 +21,7 @@ class OtpMail extends Mailable
 
     public function build()
     {
-        return $this->subject('Votre code de vérification Bosejour')
+        return $this->subject('Votre code de vérification boséjour')
                     ->view('emails.otp')
                     ->with([
                         'userName' => $this->userName,

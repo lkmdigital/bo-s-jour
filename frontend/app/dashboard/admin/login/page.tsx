@@ -34,7 +34,7 @@ export default function AdminLoginPage() {
       const currentUser = useAuthStore.getState().user;
       if (!isAdminOrController(currentUser)) {
         await useAuthStore.getState().logout();
-        setError("Accès réservé au personnel BoSéjour. Utilisez le portail voyageurs/partenaires.");
+        setError("Accès réservé au personnel boséjour. Utilisez le portail voyageurs/partenaires.");
         setLoading(false);
         return;
       }

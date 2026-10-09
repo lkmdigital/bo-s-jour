@@ -25,6 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { useRouter } from 'next/navigation';
 
 const NAV_ITEMS = [
@@ -43,8 +44,8 @@ const NAV_ITEMS = [
   { href: '/dashboard/host/staff', label: 'Utilisateurs', icon: UserCog },
   { href: '/dashboard/host/stats', label: 'Statistiques', icon: BarChart3 },
   { href: '/dashboard/host/programme', label: 'Programme fidélité', icon: Award },
-  // Module IA masqué le 2026-08-27 en attendant un échange avec le client (voir page.tsx correspondante)
-  // { href: '/dashboard/host/ai', label: 'Assistant IA', icon: Sparkles },
+  // Module IA : affiché seulement si l'assistant IA est activé (voir AI_HREF plus bas)
+  { href: '/dashboard/host/ai', label: 'Assistant IA', icon: Sparkles },
 ];
 
 // Clé de permission (host_staff.permissions / users.staff_permissions, choisie
@@ -64,10 +65,14 @@ const NAV_ITEM_PERMISSION: Record<string, string> = {
   '/dashboard/host/staff': 'staff',
   '/dashboard/host/stats': 'stats',
   '/dashboard/host/programme': 'stats',
-  // '/dashboard/host/ai': 'ai',
+  '/dashboard/host/ai': 'ai',
 };
 
+const AI_HREF = '/dashboard/host/ai';
+
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  // Module IA : visible seulement si l'admin l'a activé et qu'une clé est renseignée
+  const aiEnabled = useAppSettingsStore((s) => s.aiEnabled);
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user } = useAuthStore();
@@ -89,12 +94,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const staffPermissions = isStaffMember
     ? user?.staff_permissions ?? (user?.staff_role === 'administrateur' ? Object.values(NAV_ITEM_PERMISSION) : [])
     : null;
-  const visibleItems = staffPermissions
+  const permittedItems = staffPermissions
     ? NAV_ITEMS.filter((item) => {
         const perm = NAV_ITEM_PERMISSION[item.href];
         return !perm || staffPermissions.includes(perm);
       })
     : NAV_ITEMS;
+  const visibleItems = permittedItems.filter((item) => item.href !== AI_HREF || aiEnabled);
 
   return (
     <>

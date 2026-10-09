@@ -1,4 +1,4 @@
-// Service Worker pour Bosejour PWA
+// Service Worker pour boséjour PWA
 const CACHE_NAME = 'bosejour-v1';
 const RUNTIME_CACHE = 'bosejour-runtime-v1';
 
@@ -127,7 +127,7 @@ self.addEventListener('message', (event) => {
 // Notification push (pour futures fonctionnalités)
 self.addEventListener('push', (event) => {
   const data = event.data?.json() || {};
-  const title = data.title || 'Bosejour';
+  const title = data.title || 'boséjour';
   const options = {
     body: data.body || 'Nouvelle notification',
     icon: '/images/payment-methods/logo/logo.png',

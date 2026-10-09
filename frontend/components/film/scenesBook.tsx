@@ -486,7 +486,7 @@ function WhatsAppBanner({ t, at, text, top = 6 }: { t: number; at: number; text:
       at={at}
       top={top}
       icon={<img src="/images/payment-methods/whatsapp.png" alt="" className="h-8 w-8" />}
-      app="WhatsApp · bo séjour"
+      app="WhatsApp · boséjour"
       text={text}
     />
   );
@@ -719,7 +719,7 @@ export function SceneConfirmation({ t, portrait }: SceneProps) {
                   <div className="flex justify-between"><span className="text-gray-500">Solde à régler à l&apos;arrivée</span><b>{fcfa(BALANCE)}</b></div>
                 </div>
               </div>
-              <Notification t={t} at={3.5} top={6} icon={<span className="flex h-full w-full items-center justify-center bg-black text-white"><MailIcon className="h-4 w-4" /></span>} app="E-mail · bo séjour" text={`Réservation ${BOOKING_NUMBER} confirmée · Code ${CODE}`} />
+              <Notification t={t} at={3.5} top={6} icon={<span className="flex h-full w-full items-center justify-center bg-black text-white"><MailIcon className="h-4 w-4" /></span>} app="E-mail · boséjour" text={`Réservation ${BOOKING_NUMBER} confirmée · Code ${CODE}`} />
               <WhatsAppBanner t={t} at={4.2} top={74} text={`Réservation confirmée ✅ Code : ${CODE}. À très bientôt !`} />
             </div>
           </PhoneFrame>

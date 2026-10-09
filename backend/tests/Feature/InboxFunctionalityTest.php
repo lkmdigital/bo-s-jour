@@ -111,7 +111,7 @@ class InboxFunctionalityTest extends TestCase
         $host = User::factory()->create(['role' => 'host']);
         $message = Message::create([
             'recipient_id' => $host->id, 'sender_id' => null, 'is_from_platform' => true,
-            'subject' => 'Bienvenue', 'body' => 'Bienvenue sur BoSéjour.',
+            'subject' => 'Bienvenue', 'body' => 'Bienvenue sur boséjour.',
         ]);
 
         Sanctum::actingAs($host);

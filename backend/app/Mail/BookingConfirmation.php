@@ -33,7 +33,7 @@ class BookingConfirmation extends Mailable
         $frontend = rtrim(config('services.frontend_url', 'https://bosejour.ci'), '/');
         $bookingUrl = "{$frontend}/bookings/{$this->booking->access_token}";
 
-        $mail = $this->subject('Votre réservation Bosejour est confirmée — ' . $reference)
+        $mail = $this->subject('Votre réservation boséjour est confirmée — ' . $reference)
                     ->view('emails.booking-confirmation')
                     ->with([
                         'booking'       => $this->booking,

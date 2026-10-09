@@ -8,13 +8,13 @@
       "id": "intro",
       "start": 0,
       "voiceAt": 3.2,
-      "text": "bo séjour. Votre séjour commence ici."
+      "text": "boséjour. Votre séjour commence ici."
     },
     {
       "id": "promesse",
       "start": 10,
       "voiceAt": 10.8,
-      "text": "Hôtels, résidences, écolodges, maisons d'hôtes… bo séjour réunit les plus beaux hébergements de Côte d'Ivoire, tous vérifiés avant d'être publiés."
+      "text": "Hôtels, résidences, écolodges, maisons d'hôtes… boséjour réunit les plus beaux hébergements de Côte d'Ivoire, tous vérifiés avant d'être publiés."
     },
     {
       "id": "recherche",
@@ -68,7 +68,7 @@
       "id": "outro",
       "start": 141,
       "voiceAt": 142,
-      "text": "bo séjour. Votre séjour commence ici."
+      "text": "boséjour. Votre séjour commence ici."
     }
   ]
 }

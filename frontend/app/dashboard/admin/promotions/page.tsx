@@ -150,7 +150,7 @@ export default function AdminPromotionsPage() {
         </p>
       </div>
 
-      {/* Section 1 : Mises en avant BoSéjour */}
+      {/* Section 1 : Mises en avant boséjour */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
           <Sparkles className="w-4 h-4 text-primary" /> Mises en avant <Brand />

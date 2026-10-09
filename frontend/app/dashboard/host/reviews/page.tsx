@@ -1,6 +1,7 @@
 'use client';
 
 import { FilterBar, FilterSearch, FilterSelect, FilterResetButton } from '@/components/common/FilterBar';
+import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
@@ -27,6 +28,8 @@ interface Review {
 interface AccommodationOption { id: number; name: string }
 
 export default function HostReviewsPage() {
+  // Module IA : visible seulement si l'admin l'a activé et qu'une clé est renseignée
+  const aiEnabled = useAppSettingsStore((s) => s.aiEnabled);
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -253,7 +256,8 @@ export default function HostReviewsPage() {
                         <div className="mt-4">
                           <div className="flex items-center justify-between mb-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Votre réponse</label>
-                            {/* Bouton "Générer avec l'IA" masqué le 2026-08-27 en attendant un échange avec le client
+                            {/* Bouton « Générer avec l'IA » : seulement si le module IA est activé */}
+                            {aiEnabled && (
                             <button
                               type="button"
                               onClick={() => generateReply(review.id)}
@@ -263,7 +267,7 @@ export default function HostReviewsPage() {
                               {generatingId === review.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                               {generatingId === review.id ? 'Génération…' : 'Générer avec l’IA'}
                             </button>
-                            */}
+                            )}
                           </div>
                           <textarea
                             value={replyText}

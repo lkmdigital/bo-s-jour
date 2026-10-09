@@ -13,7 +13,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Même rouge que la marque BoSéjour côté frontend (frontend/tailwind.config.ts).
+        // Même rouge que la marque boséjour côté frontend (frontend/tailwind.config.ts).
         primary: {
           DEFAULT: '#FF0000',
           dark: '#CC0000',

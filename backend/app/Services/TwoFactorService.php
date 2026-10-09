@@ -34,7 +34,7 @@ class TwoFactorService
      */
     public function getQRCodeUrl(User $user, string $secret): string
     {
-        $companyName = config('app.name', 'Bosejour');
+        $companyName = config('app.name', 'boséjour');
         $companyEmail = $user->email;
         
         return $this->google2fa->getQRCodeUrl(

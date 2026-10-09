@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion — Ops BoSéjour</title>
+    <title>Connexion — Ops boséjour</title>
     @vite(['resources/css/ops.css', 'resources/js/ops.js'])
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased min-h-screen flex items-center justify-center px-4">
@@ -38,7 +38,7 @@
             </form>
         </div>
 
-        <p class="text-center text-xs text-gray-400 mt-4">Réservé aux comptes administrateur BoSéjour.</p>
+        <p class="text-center text-xs text-gray-400 mt-4">Réservé aux comptes administrateur boséjour.</p>
     </div>
 </body>
 </html>

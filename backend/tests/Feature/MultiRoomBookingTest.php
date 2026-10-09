@@ -153,7 +153,7 @@ class MultiRoomBookingTest extends TestCase
 
         $booking = Booking::findOrFail($response->json('id'));
         // base_price doit refléter les 3 chambres, pas le tarif d'une seule
-        // (la commission BoSéjour et le net hôtelier en dépendent).
+        // (la commission boséjour et le net hôtelier en dépendent).
         $this->assertSame('120000.00', $booking->base_price);
     }
 }

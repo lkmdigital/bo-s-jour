@@ -64,7 +64,7 @@ interface AccommodationFormData {
   invoice_paid_before_hours?: number;
   room_type_pricing?: RoomTypePricingEntry[];
   // Retour client 2026-09-15 : participation volontaire au programme
-  // fidélité BoSéjour, jusqu'ici proposable seulement après coup sur la
+  // fidélité boséjour, jusqu'ici proposable seulement après coup sur la
   // fiche d'édition (cf. loyalty_program_joined_at côté Accommodation).
   loyalty_program_joined?: boolean;
 }
@@ -226,7 +226,7 @@ export default function AccommodationCreationWizard({
   // Remises long séjour à 3 paliers, proposées dès l'inscription (retour
   // client 2026-09-02, Partie 3) — désactivées par défaut.
   const [longStayEnabled, setLongStayEnabled] = useState(false);
-  // Garantie de réservation paramétrée par l'établissement (décision BoSéjour 2026-10-08)
+  // Garantie de réservation paramétrée par l'établissement (décision boséjour 2026-10-08)
   const [guarantee, setGuarantee] = useState<GuaranteeFormState>(DEFAULT_GUARANTEE_FORM);
   const [guaranteeError, setGuaranteeError] = useState<string | null>(null);
   const [longStayTiers, setLongStayTiers] = useState<LongStayTier[]>(DEFAULT_LONG_STAY_TIERS);

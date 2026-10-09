@@ -2,7 +2,7 @@
  * Garantie de réservation — types et libellés partagés par tout le parcours
  * (paramétrage établissement → fiche publique → récapitulatif → paiement → confirmation).
  *
- * Décisions BoSéjour du 2026-10-08 : le terme est « Garantie » (jamais « Acompte »),
+ * Décisions boséjour du 2026-10-08 : le terme est « Garantie » (jamais « Acompte »),
  * et son montant suit le paramétrage de l'établissement. Les montants et les libellés
  * viennent TOUJOURS de l'API (PaymentOptionsService) : rien n'est recalculé ici, pour
  * qu'un écran ne puisse pas annoncer autre chose que ce qui sera prélevé.

@@ -73,7 +73,7 @@ class Accommodation extends Model
         'other_amenities',
         'deposit_required',
         'deposit_amount',
-        // Valeur de la garantie selon son type (décision BoSéjour 2026-10-08)
+        // Valeur de la garantie selon son type (décision boséjour 2026-10-08)
         'deposit_percentage',
         'deposit_fixed_amount',
         'cancellation_policy_hours',

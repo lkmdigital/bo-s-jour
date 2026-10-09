@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import Brand from '@/components/common/Brand';
+import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { ArrowRight, Bell, Sparkles, CheckCircle2, XCircle, Clock, Mail, Award } from 'lucide-react';
 
 interface Notif {
@@ -38,6 +39,8 @@ function timeAgo(d: string) {
 // Colonne droite persistante de l'espace membre : Programme Membre (à venir),
 // Notifications (vraies données via /me/notifications), Assistant IA (à venir).
 export default function MemberAside() {
+  // Module IA : visible seulement si l'admin l'a activé et qu'une clé est renseignée
+  const aiEnabled = useAppSettingsStore((s) => s.aiEnabled);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [unread, setUnread] = useState(0);
   const [loaded, setLoaded] = useState(false);
@@ -112,7 +115,8 @@ export default function MemberAside() {
         )}
       </div>
 
-      {/* Assistant IA — masqué le 2026-08-27 en attendant un échange avec le client (voir page.tsx correspondante)
+      {/* Assistant IA — affiché seulement si le module est activé par l'admin */}
+      {aiEnabled && (
       <Link href="/dashboard/user/ai" className="block bg-white dark:bg-gray-800 rounded-2xl border border-primary/20 p-5 hover:border-primary/40 transition-colors">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -127,7 +131,7 @@ export default function MemberAside() {
           Ouvrir l&apos;assistant <ArrowRight className="w-4 h-4" />
         </span>
       </Link>
-      */}
+      )}
     </aside>
   );
 }

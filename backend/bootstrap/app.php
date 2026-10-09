@@ -55,6 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'hoststaff' => \App\Http\Middleware\EnsureHostStaffPermission::class,
             'ops.admin' => \App\Http\Middleware\EnsureOpsAdmin::class,
+            'ai.enabled' => \App\Http\Middleware\EnsureAiModuleEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

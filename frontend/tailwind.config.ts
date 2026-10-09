@@ -11,7 +11,7 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#FF0000', // rouge principal — charte bo séjour
+          DEFAULT: '#FF0000', // rouge principal — charte boséjour
           dark: '#CC0000',
           light: '#FF4D4D',
         },
@@ -21,7 +21,7 @@ const config: Config = {
           light: '#1A1A1A',
         },
         secondary: {
-          DEFAULT: '#4B5F5A', // gris-vert — couleur secondaire charte bo séjour
+          DEFAULT: '#4B5F5A', // gris-vert — couleur secondaire charte boséjour
           dark: '#3A4A46',
           light: '#6B7F7A',
         },

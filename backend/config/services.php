@@ -86,7 +86,9 @@ return [
     // répond avec un message d'indisponibilité plutôt que d'échouer en 500.
     'anthropic' => [
         'api_key' => env('ANTHROPIC_API_KEY', ''),
-        'model'   => env('ANTHROPIC_MODEL', 'claude-opus-5'),
+        // Valeur par défaut ; l'admin peut choisir un autre modèle sans redéployer
+        // (réglage `anthropic_model`, Paramètres > Réglages avancés).
+        'model'   => env('ANTHROPIC_MODEL', 'claude-opus-5-5'),
     ],
 
 ];

@@ -19,7 +19,7 @@ class SettingsController extends Controller
                 "La plateforme est momentanément en maintenance. Merci de revenir plus tard."
             ),
             'theme_mode' => (string) Setting::get('app_theme_mode', 'default'),
-            'app_name' => (string) Setting::get('app_name', 'Bosejour'),
+            'app_name' => (string) Setting::get('app_name', 'boséjour'),
             'app_support_email' => (string) Setting::get('app_support_email', ''),
             'app_support_phone' => (string) Setting::get('app_support_phone', ''),
             'app_currency' => (string) Setting::get('app_currency', 'XOF'),
@@ -30,6 +30,10 @@ class SettingsController extends Controller
             // Juste le drapeau : jamais le token/phone_id (voir whatsapp_enabled côté admin).
             'whatsapp_verification_enabled' => (bool) Setting::get('whatsapp_enabled', false),
             'languages_enabled' => (array) Setting::get('languages_enabled', ['fr', 'en']),
+            // Module IA : seulement des drapeaux, jamais la clé. `ai_enabled` vaut vrai si l'admin a
+            // activé le module ET qu'une clé est renseignée — le site masque tout le reste du temps.
+            'ai_enabled' => \App\Services\AiModule::available(),
+            'ai_guest_enabled' => \App\Services\AiModule::available() && \App\Services\AiModule::guestsAllowed(),
         ]);
     }
 
@@ -47,7 +51,7 @@ class SettingsController extends Controller
             'maintenance_message' => (string) Setting::get('app_maintenance_message', ''),
             'theme_mode' => (string) Setting::get('app_theme_mode', 'default'),
             'notifications_grouped' => (bool) Setting::get('app_notifications_grouped', true),
-            'app_name' => (string) Setting::get('app_name', 'Bosejour'),
+            'app_name' => (string) Setting::get('app_name', 'boséjour'),
             'app_support_email' => (string) Setting::get('app_support_email', ''),
             'app_support_phone' => (string) Setting::get('app_support_phone', ''),
             'app_currency' => (string) Setting::get('app_currency', 'XOF'),
@@ -68,6 +72,13 @@ class SettingsController extends Controller
             // Module IA (Claude/Anthropic) — sensible, jamais exposé publiquement.
             // Fallback .env géré côté AdminAiAssistantService, pas ici.
             'anthropic_api_key' => (string) Setting::get('anthropic_api_key', ''),
+            // Module IA : interrupteur général, modèle, ouverture aux visiteurs non connectés
+            'ai_enabled' => \App\Services\AiModule::enabled(),
+            'ai_configured' => \App\Services\AiModule::configured(),
+            'anthropic_model' => (string) Setting::get('anthropic_model', ''),
+            'anthropic_model_default' => (string) config('services.anthropic.model'),
+            'ai_guest_enabled' => \App\Services\AiModule::guestsAllowed(),
+            'ai_guest_daily_limit' => \App\Services\AiModule::guestDailyLimit(),
             // Paramètres > Langues
             'languages_enabled' => (array) Setting::get('languages_enabled', ['fr', 'en']),
             // Paramètres > Taxes de séjour
@@ -129,6 +140,10 @@ class SettingsController extends Controller
             'whatsapp_verify_token' => 'sometimes|nullable|string|max:100',
             'whatsapp_app_secret' => 'sometimes|nullable|string|max:200',
             'anthropic_api_key' => 'sometimes|nullable|string|max:255',
+            'ai_enabled' => 'sometimes|boolean',
+            'anthropic_model' => ['sometimes', 'nullable', 'string', 'max:80', 'regex:/^claude-[a-z0-9.-]+$/'],
+            'ai_guest_enabled' => 'sometimes|boolean',
+            'ai_guest_daily_limit' => 'sometimes|integer|min:0|max:100000',
             'languages_enabled' => ['sometimes', 'array', 'min:1', function ($attribute, $value, $fail) {
                 if (!in_array('fr', $value, true)) {
                     $fail('Le français ne peut pas être désactivé (langue de base de la plateforme).');
@@ -240,6 +255,18 @@ class SettingsController extends Controller
         }
         if (array_key_exists('anthropic_api_key', $data)) {
             Setting::set('anthropic_api_key', $data['anthropic_api_key'] ?? '', 'string', 'Clé API Anthropic (Module IA)');
+        }
+        if (array_key_exists('ai_enabled', $data)) {
+            Setting::set('ai_enabled', $data['ai_enabled'], 'boolean', 'Module IA : interrupteur général (assistants admin, partenaire et voyageur)');
+        }
+        if (array_key_exists('anthropic_model', $data)) {
+            Setting::set('anthropic_model', $data['anthropic_model'] ?? '', 'string', 'Module IA : modèle Claude utilisé (vide = valeur par défaut)');
+        }
+        if (array_key_exists('ai_guest_enabled', $data)) {
+            Setting::set('ai_guest_enabled', $data['ai_guest_enabled'], 'boolean', 'Module IA : assistant voyageur ouvert aux visiteurs non connectés');
+        }
+        if (array_key_exists('ai_guest_daily_limit', $data)) {
+            Setting::set('ai_guest_daily_limit', $data['ai_guest_daily_limit'], 'integer', 'Module IA : plafond quotidien de questions des visiteurs non connectés');
         }
 
         if (array_key_exists('languages_enabled', $data)) {

@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import Logo from '@/components/common/Logo';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useAppSettingsStore } from '@/stores/appSettingsStore';
 import { resolveImageUrl } from '@/lib/utils';
 import {
   Home, Search, Calendar, Heart, Zap, CreditCard, MessageSquare, MessagesSquare,
@@ -20,6 +21,8 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   corporateOnly?: boolean;
+  /** Entrée du module IA : masquée tant que l'assistant IA n'est pas activé */
+  requiresAi?: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -28,8 +31,7 @@ const NAV: NavItem[] = [
   { labelKey: 'reservations', href: '/dashboard/user/reservations', icon: Calendar },
   { labelKey: 'favorites', href: '/favorites', icon: Heart },
   { labelKey: 'loyaltyProgram', href: '/dashboard/user/programme', icon: Zap },
-  // Module IA masqué le 2026-08-27 en attendant un échange avec le client (voir page.tsx correspondante)
-  // { labelKey: 'aiAssistant', href: '/dashboard/user/ai', icon: Sparkles },
+  { labelKey: 'aiAssistant', href: '/dashboard/user/ai', icon: Sparkles, requiresAi: true },
   { labelKey: 'payments', href: '/dashboard/user/paiements', icon: CreditCard },
   { labelKey: 'credits', href: '/dashboard/user/avoirs', icon: Wallet },
   { labelKey: 'company', href: '/dashboard/user/entreprise', icon: Building2, corporateOnly: true },
@@ -57,6 +59,8 @@ function initials(name?: string) {
 // 13 pages concernées l'ont toutes. Toute NOUVELLE page affichant des données de compte doit
 // reproduire cette garde individuellement, ce layout ne la fournit pas automatiquement.
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
+  // Module IA : visible seulement si l'admin l'a activé et qu'une clé est renseignée
+  const aiEnabled = useAppSettingsStore((s) => s.aiEnabled);
   const pathname = usePathname();
   const router = useRouter();
   const tNav = useTranslations('member.nav');
@@ -100,7 +104,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
 
   const SidebarNav = () => (
     <nav className="flex flex-col gap-1 p-3">
-      {NAV.filter((item) => !item.corporateOnly || isCorporate).map(({ labelKey, href, icon: Icon }) => {
+      {NAV.filter((item) => (!item.corporateOnly || isCorporate) && (!item.requiresAi || aiEnabled)).map(({ labelKey, href, icon: Icon }) => {
         const active = isActive(href);
         return (
           <Link

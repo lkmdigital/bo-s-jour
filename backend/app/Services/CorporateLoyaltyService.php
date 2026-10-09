@@ -11,7 +11,7 @@ use App\Notifications\CorporateAnnualRewardNotification;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Logique du Programme Corporate BoSéjour (doc client §9-13) : chiffre
+ * Logique du Programme Corporate boséjour (doc client §9-13) : chiffre
  * d'affaires annuel d'une entreprise et récompense de palier associée.
  * Distinct de LoyaltyService (Programme Membre), qui porte sur les points
  * individuels du voyageur.
@@ -105,7 +105,7 @@ class CorporateLoyaltyService
                 $message = $reward->reward_label
                     ? "Votre bilan Corporate {$reward->year} est prêt : {$reward->reward_label}."
                     : "Votre bilan Corporate {$reward->year} est prêt.";
-                app(WhatsAppService::class)->sendText($owner->whatsapp ?: $owner->phone, "BoSéjour — {$message}");
+                app(WhatsAppService::class)->sendText($owner->whatsapp ?: $owner->phone, "boséjour — {$message}");
             } catch (\Throwable $e) {
                 \Log::warning('Échec notification WhatsApp bilan Corporate', [
                     'owner_id' => $owner->id,

@@ -9,6 +9,7 @@ import PagePadding from '@/components/common/PagePadding';
 import MobileBottomBar from '@/components/common/MobileBottomBar';
 import BrandIntro from '@/components/intro/BrandIntro';
 import FilmLauncher from '@/components/film/FilmLauncher';
+import TravelerAssistant from '@/components/ai/TravelerAssistant';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -16,7 +17,7 @@ const dmSans = DM_Sans({
   display: 'swap',
 });
 
-// Police du logo (charte bo séjour)
+// Police du logo (charte boséjour)
 const baloo = Baloo_2({
   subsets: ['latin'],
   weight: ['500', '600', '700', '800'],
@@ -24,7 +25,7 @@ const baloo = Baloo_2({
   display: 'swap',
 });
 
-// Police du slogan / des accroches (charte bo séjour)
+// Police du slogan / des accroches (charte boséjour)
 const dancingScript = Dancing_Script({
   subsets: ['latin'],
   weight: ['500', '600', '700'],
@@ -50,13 +51,13 @@ if(localStorage.getItem('locale')==='en')d.setAttribute('data-intro-lang','en');
 }catch(e){}})();`;
 
 export const metadata: Metadata = {
-  title: 'BoSéjour - Votre séjour commence ici...',
-  description: 'BoSéjour : trouvez et réservez votre hébergement idéal en Côte d\'Ivoire. Votre séjour commence ici.',
+  title: 'boséjour - Votre séjour commence ici...',
+  description: 'boséjour : trouvez et réservez votre hébergement idéal en Côte d\'Ivoire. Votre séjour commence ici.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'BoSéjour',
+    title: 'boséjour',
   },
   icons: {
     icon: [
@@ -95,7 +96,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#FF0000" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="BoSéjour" />
+        <meta name="apple-mobile-web-app-title" content="boséjour" />
         <script dangerouslySetInnerHTML={{ __html: INTRO_SCRIPT }} />
       </head>
       <body className={`${dmSans.variable} ${baloo.variable} ${dancingScript.variable}`}>
@@ -104,6 +105,7 @@ export default function RootLayout({
           <PagePadding>{children}</PagePadding>
           <MobileBottomBar />
           <FilmLauncher />
+          <TravelerAssistant />
           <ServiceWorkerRegistration />
           <PWAInstallPrompt />
         </Providers>

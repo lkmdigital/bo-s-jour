@@ -508,7 +508,7 @@ class AdminAccommodationController extends Controller
 
     /**
      * Mettre en avant / retirer un établissement des offres promotionnelles
-     * Bosejour (module Promotions). Distinct des offres créées par les hôtes
+     * boséjour (module Promotions). Distinct des offres créées par les hôtes
      * (Promotion) : ceci est une mise en avant pilotée par la plateforme,
      * jamais par le propriétaire de l'établissement lui-même.
      */

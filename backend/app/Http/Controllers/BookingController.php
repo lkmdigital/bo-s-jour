@@ -493,7 +493,7 @@ class BookingController extends Controller
         // au tarif intégral de l'hôte — ajoutés APRÈS le calcul de la remise
         // promo/bon de fidélité (qui ne porte que sur le prix de la chambre) et
         // AVANT le stockage de base_price/total_price, pour que la commission
-        // BoSéjour et le net hôtelier (calculés sur base_price) couvrent aussi
+        // boséjour et le net hôtelier (calculés sur base_price) couvrent aussi
         // cette prestation réelle de l'hôte, jamais rabotée par une remise
         // financée par la plateforme.
         //
@@ -604,7 +604,7 @@ class BookingController extends Controller
                 'breakfast_menu_selection' => $breakfastMenuSelection ?: null,
                 'total_price' => $totalPrice,
                 // Tarif plein de l'hôte, AVANT promo/bon de fidélité — conservé pour que
-                // la commission BoSéjour et le montant reversé à l'hôte restent basés sur
+                // la commission boséjour et le montant reversé à l'hôte restent basés sur
                 // son tarif d'origine (retour client 2026-09-02, Partie 2) et ne soient
                 // jamais réduits par une remise voyageur financée par la plateforme.
                 'base_price' => $basePrice,

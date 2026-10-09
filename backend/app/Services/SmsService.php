@@ -76,7 +76,7 @@ class SmsService
      */
     public function sendOtp(string $to, string $code): bool
     {
-        $message = "Bosejour : votre code de verification est {$code}. Il expire dans 10 minutes. Ne le partagez avec personne.";
+        $message = "bosejour : votre code de verification est {$code}. Il expire dans 10 minutes. Ne le partagez avec personne.";
 
         return $this->send($to, $message);
     }
@@ -96,7 +96,7 @@ class SmsService
         $checkOut = $booking->check_out ? \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') : '';
         $code     = $booking->confirmation_code ?? '';
 
-        $message = "Bosejour : reservation confirmee pour {$place} du {$checkIn} au {$checkOut}."
+        $message = "bosejour : reservation confirmee pour {$place} du {$checkIn} au {$checkOut}."
             . ($code !== '' ? " Code : {$code}." : '')
             . " Merci de votre confiance.";
 
@@ -117,7 +117,7 @@ class SmsService
         $checkIn  = $booking->check_in ? \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') : '';
         $checkOut = $booking->check_out ? \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') : '';
 
-        $message = "Bosejour : nouvelle reservation pour {$place} du {$checkIn} au {$checkOut}."
+        $message = "bosejour : nouvelle reservation pour {$place} du {$checkIn} au {$checkOut}."
             . " Connectez-vous a votre espace hote pour les details.";
 
         return $this->send($phone, $message);
@@ -138,7 +138,7 @@ class SmsService
         $checkIn  = $booking->check_in ? \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') : '';
         $checkOut = $booking->check_out ? \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') : '';
 
-        $message = "Bosejour : nouvelle demande de reservation pour {$place} du {$checkIn} au {$checkOut}."
+        $message = "bosejour : nouvelle demande de reservation pour {$place} du {$checkIn} au {$checkOut}."
             . " Merci de confirmer la disponibilite depuis votre espace hote.";
 
         return $this->send($phone, $message);
@@ -158,7 +158,7 @@ class SmsService
         $checkIn  = $booking->check_in ? \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') : '';
         $checkOut = $booking->check_out ? \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') : '';
 
-        $message = "Bosejour : votre demande pour {$place} du {$checkIn} au {$checkOut} est acceptee !"
+        $message = "bosejour : votre demande pour {$place} du {$checkIn} au {$checkOut} est acceptee !"
             . " Payez maintenant pour finaliser votre reservation.";
 
         return $this->send($phone, $message);

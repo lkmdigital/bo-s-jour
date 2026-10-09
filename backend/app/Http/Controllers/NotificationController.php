@@ -159,7 +159,7 @@ class NotificationController extends Controller
                 'app_id'                        => $appId,
                 'channel_for_external_user_ids' => 'push',
                 'include_external_user_ids'     => [(string) $user->id],
-                'headings'                      => ['fr' => 'Bienvenue sur Bosejour !', 'en' => 'Welcome to Bosejour!'],
+                'headings'                      => ['fr' => 'Bienvenue sur boséjour !', 'en' => 'Welcome to boséjour!'],
                 'contents'                      => [
                     'fr' => 'Votre compte a été créé avec succès. Explorez les meilleurs hébergements en Côte d\'Ivoire.',
                     'en' => 'Your account has been created. Explore the best accommodations in Côte d\'Ivoire.',

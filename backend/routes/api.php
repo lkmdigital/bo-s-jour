@@ -113,6 +113,12 @@ Route::post('/whatsapp/webhook', [WhatsAppWebhookController::class, 'receive'])-
 // Paramètres publics (thème, maintenance, etc.)
 Route::get('/settings/public', [SettingsController::class, 'publicSettings']);
 
+// Assistant IA voyageur des pages publiques (bulle flottante). Ouvert aux visiteurs non
+// connectés si l'admin l'autorise : ils n'ont alors accès qu'aux données publiques, avec un
+// plafond par adresse IP et un plafond quotidien global (voir TravelerAiController::askPublic).
+Route::post('/assistant/ask', [TravelerAiController::class, 'askPublic'])
+    ->middleware(['ai.enabled', 'throttle:8,1,assistant-ask']);
+
 // Documents juridiques publiés (CGV, CGU, politique de confidentialité)
 Route::get('/legal/{slug}', [AdminLegalDocumentController::class, 'publicShow']);
 
@@ -192,9 +198,9 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::post('/me/notifications/read-all', [MemberNotificationController::class, 'markAllAsRead']);
 
         // Module IA — Assistant conversationnel voyageur (doc "MODULE IA BOSÉJOUR" §3)
-        // Désactivé le 2026-08-27 en attendant un échange avec le client sur la confidentialité
-        // documentaire (Vague 7 du plan Module IA) — à réactiver après validation.
-        // Route::post('/me/ai/ask', [TravelerAiController::class, 'ask'])->middleware('throttle:15,1,traveler-ai-ask');
+        // Réactivé le 2026-10-09 derrière l'interrupteur admin `ai_enabled` (middleware ai.enabled).
+        // Throttle serré : chaque appel facture l'API Claude.
+        Route::post('/me/ai/ask', [TravelerAiController::class, 'ask'])->middleware(['ai.enabled', 'throttle:15,1,traveler-ai-ask']);
 
         // Programme de fidélité (voyageur)
         Route::get('/me/loyalty', [LoyaltyController::class, 'show']);
@@ -328,16 +334,16 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
             // Module IA — Assistant conversationnel partenaire (doc "MODULE IA BOSÉJOUR" §2.1)
             // Module IA — Génération de contenu partenaire (doc "MODULE IA BOSÉJOUR" §2.2-2.4, §2.10 partiel)
-            // Désactivés le 2026-08-27 en attendant un échange avec le client sur la confidentialité
-            // documentaire (Vague 7 du plan Module IA) — à réactiver après validation.
-            // Route::post('/host/ai/ask', [HostAiController::class, 'ask'])->middleware('throttle:15,1,host-ai-ask');
-            // Route::prefix('host/ai/content')->middleware('throttle:15,1,host-ai-content')->group(function () {
-            //     Route::post('/accommodation-description', [HostAiContentController::class, 'accommodationDescription']);
-            //     Route::post('/room-description', [HostAiContentController::class, 'roomDescription']);
-            //     Route::post('/translate', [HostAiContentController::class, 'translate']);
-            //     Route::post('/seo-suggestions', [HostAiContentController::class, 'seoSuggestions']);
-            //     Route::post('/review-reply', [HostAiContentController::class, 'reviewReply']);
-            // });
+            // Réactivés le 2026-10-09 derrière l'interrupteur admin `ai_enabled` (middleware ai.enabled).
+            // Throttle serré : chaque appel facture l'API Claude.
+            Route::post('/host/ai/ask', [HostAiController::class, 'ask'])->middleware(['ai.enabled', 'throttle:15,1,host-ai-ask']);
+            Route::prefix('host/ai/content')->middleware(['ai.enabled', 'throttle:15,1,host-ai-content'])->group(function () {
+                Route::post('/accommodation-description', [HostAiContentController::class, 'accommodationDescription']);
+                Route::post('/room-description', [HostAiContentController::class, 'roomDescription']);
+                Route::post('/translate', [HostAiContentController::class, 'translate']);
+                Route::post('/seo-suggestions', [HostAiContentController::class, 'seoSuggestions']);
+                Route::post('/review-reply', [HostAiContentController::class, 'reviewReply']);
+            });
 
             // Boîte de réception (messages plateforme et voyageurs) — aucune permission dédiée
             // dans HostStaff::PERMISSIONS ni dans HostSidebar.tsx : accessible à tout collaborateur,
@@ -559,10 +565,10 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         });
 
         // Module IA — Assistant conversationnel admin (doc "MODULE IA BOSÉJOUR" §1.1)
-        // Désactivé le 2026-08-27 en attendant un échange avec le client sur la confidentialité
-        // documentaire (Vague 7 du plan Module IA) — à réactiver après validation.
-        // Route::post('/ai/ask', [AdminAiController::class, 'ask'])
-        //     ->middleware(['role:admin', 'throttle:15,1,admin-ai-ask']);
+        // Réactivé le 2026-10-09 derrière l'interrupteur admin `ai_enabled` (middleware ai.enabled).
+        // Throttle serré : chaque appel facture l'API Claude.
+        Route::post('/ai/ask', [AdminAiController::class, 'ask'])
+            ->middleware(['ai.enabled', 'role:admin', 'throttle:15,1,admin-ai-ask']);
 
         // Dashboard & Analytics
         Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats'])

@@ -10,6 +10,10 @@ interface AppSettingsStore {
   appName: string;
   currency: string;
   whatsappVerificationEnabled: boolean;
+  /** Module IA activé par l'admin ET clé API renseignée : condition d'affichage de tout ce qui touche à l'IA */
+  aiEnabled: boolean;
+  /** L'assistant voyageur répond aussi aux visiteurs non connectés */
+  aiGuestEnabled: boolean;
   loaded: boolean;
   fetchSettings: () => Promise<void>;
 }
@@ -20,9 +24,11 @@ export const useAppSettingsStore = create<AppSettingsStore>((set) => ({
   maintenanceEnabled: false,
   maintenanceMessage: '',
   eventTheme: 'default',
-  appName: 'Bosejour',
+  appName: 'boséjour',
   currency: 'XOF',
   whatsappVerificationEnabled: false,
+  aiEnabled: false,
+  aiGuestEnabled: false,
   loaded: false,
 
   fetchSettings: async () => {
@@ -33,9 +39,11 @@ export const useAppSettingsStore = create<AppSettingsStore>((set) => ({
         maintenanceEnabled: !!d.maintenance_enabled,
         maintenanceMessage: d.maintenance_message || '',
         eventTheme: VALID_THEMES.includes(d.theme_mode) ? d.theme_mode : 'default',
-        appName: d.app_name || 'Bosejour',
+        appName: d.app_name || 'boséjour',
         currency: d.app_currency || 'XOF',
         whatsappVerificationEnabled: !!d.whatsapp_verification_enabled,
+        aiEnabled: !!d.ai_enabled,
+        aiGuestEnabled: !!d.ai_guest_enabled,
         loaded: true,
       });
     } catch {

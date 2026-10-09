@@ -81,7 +81,7 @@ class CorporateController extends Controller
     }
 
     /**
-     * Inviter un collaborateur par e-mail. S'il possède déjà un compte bo séjour, il est
+     * Inviter un collaborateur par e-mail. S'il possède déjà un compte boséjour, il est
      * immédiatement lié et actif ; sinon une invitation lui est envoyée par e-mail et le
      * lien se fera automatiquement à son inscription (voir AuthController::register).
      */
@@ -123,15 +123,15 @@ class CorporateController extends Controller
         try {
             Mail::raw(
                 "Bonjour,\n\n"
-                . ($owner->company_name ?: $owner->name) . " vous a ajouté(e) comme collaborateur sur BoSéjour, "
+                . ($owner->company_name ?: $owner->name) . " vous a ajouté(e) comme collaborateur sur boséjour, "
                 . "pour réserver des hébergements au nom de l'entreprise.\n\n"
                 . ($existingUser
-                    ? "Connectez-vous à votre espace BoSéjour habituel : vos futures réservations en tant que voyageur d'entreprise seront rattachées à ce compte."
-                    : "Créez votre compte BoSéjour avec cette adresse e-mail (" . $data['email'] . ") pour être automatiquement rattaché(e) à l'entreprise : "
+                    ? "Connectez-vous à votre espace boséjour habituel : vos futures réservations en tant que voyageur d'entreprise seront rattachées à ce compte."
+                    : "Créez votre compte boséjour avec cette adresse e-mail (" . $data['email'] . ") pour être automatiquement rattaché(e) à l'entreprise : "
                         . rtrim(config('services.frontend_url'), '/') . '/auth/register')
-                . "\n\nÀ bientôt,\nL'équipe BoSéjour",
+                . "\n\nÀ bientôt,\nL'équipe boséjour",
                 function ($message) use ($data) {
-                    $message->to($data['email'])->subject('Invitation à rejoindre une entreprise sur BoSéjour');
+                    $message->to($data['email'])->subject('Invitation à rejoindre une entreprise sur boséjour');
                 }
             );
         } catch (\Throwable $e) {
