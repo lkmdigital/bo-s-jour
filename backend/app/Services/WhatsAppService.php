@@ -22,7 +22,7 @@ class WhatsAppService
     public const TPL_REQUEST_RECEIVED = 'bosejour_demande_recue';
     public const TPL_NEW_REQUEST = 'bosejour_nouvelle_demande';
     public const TPL_APPROVED_PLEASE_PAY = 'bosejour_demande_acceptee';
-    public const TPL_CONFIRMATION = 'bosejour_reservation_confirmee';
+    public const TPL_CONFIRMATION = 'bosejour_reservation_confirmee_v2';
     public const TPL_VERIFICATION_CODE = 'bosejour_code_verification';
     public const TEMPLATE_LANGUAGE = 'fr';
 
@@ -242,7 +242,9 @@ class WhatsAppService
             '{depart}' => $co,
         ]);
 
-        $this->deliver($phone, self::TPL_CONFIRMATION, [$acc, $number, $code, $ci, $co], $msg);
+        // Le modèle v2 n'a plus la variable du code de confirmation (Meta le classait en « Authentification ») :
+        // établissement, n° de réservation, arrivée, départ. Le code reste dans le texte libre de secours.
+        $this->deliver($phone, self::TPL_CONFIRMATION, [$acc, $number, $ci, $co], $msg);
     }
 
     /** Nouvelle demande de réservation à confirmer, envoyée à l'hôte. */
