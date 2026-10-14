@@ -162,6 +162,8 @@ Règles :
   dates que tu as retenues.
 PROMPT
             . "\n\nDate du jour : " . now()->translatedFormat('l j F Y') . ' (' . now()->toDateString() . ').'
+            . " Quand tu écris une date au voyageur, utilise toujours le format français lisible (« 3 novembre 2026 »),"
+            . " jamais le format technique AAAA-MM-JJ, que tu réserves aux appels d'outils."
             . ($this->isGuest() ? self::GUEST_NOTICE : '');
     }
 
