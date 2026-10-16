@@ -25,6 +25,8 @@ class WhatsAppService
     public const TPL_CONFIRMATION = 'bosejour_reservation_confirmee_v2';
     public const TPL_VERIFICATION_CODE = 'bosejour_code_verification';
     public const TEMPLATE_LANGUAGE = 'fr';
+    /** Indicatif ajouté aux numéros saisis sans indicatif (Côte d'Ivoire). */
+    public const DEFAULT_COUNTRY_CODE = '225';
 
     /**
      * Modèle par défaut du message de confirmation, éditable dans
@@ -79,10 +81,27 @@ class WhatsAppService
             && (string) Setting::get('whatsapp_phone_id', '') !== '';
     }
 
+    /**
+     * Numéro au format international sans « + » (« 2250709779922 »), comme l'attend Meta.
+     * Les numéros saisis en local (profil partenaire : « 0709779922 ») n'ont pas d'indicatif ;
+     * envoyés tels quels, Meta les interprète de travers (le « 07 » initial est perdu et le
+     * message part vers un autre numéro). On complète donc avec l'indicatif de la Côte d'Ivoire.
+     */
     protected function normalize(?string $phone): ?string
     {
         $p = preg_replace('/[^0-9]/', '', (string) $phone);
-        return $p !== '' ? $p : null;
+        if ($p === '') {
+            return null;
+        }
+        if (str_starts_with($p, '00')) {
+            return substr($p, 2); // 00225… → 225…
+        }
+        $cc = self::DEFAULT_COUNTRY_CODE;
+        // Format local ivoirien : 10 chiffres commençant par 0 (depuis 2021), ou 8 chiffres (ancien).
+        if ((strlen($p) === 10 && $p[0] === '0') || strlen($p) === 8) {
+            return $cc . $p;
+        }
+        return $p;
     }
 
     /**
