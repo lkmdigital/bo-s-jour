@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Setting;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -14,6 +15,12 @@ use Illuminate\Support\Facades\Cache;
  */
 class BookingWhatsappOtpController extends Controller
 {
+    /** WhatsApp configuré ET vérification du numéro explicitement activée par l'admin. */
+    private function enabled(): bool
+    {
+        return app(WhatsAppService::class)->isConfigured() && (bool) Setting::get('whatsapp_otp_enabled', false);
+    }
+
     private function normalize(string $phone): string
     {
         return preg_replace('/[^0-9]/', '', $phone) ?: '';
@@ -36,7 +43,7 @@ class BookingWhatsappOtpController extends Controller
     public function status()
     {
         return response()->json([
-            'available' => app(WhatsAppService::class)->isConfigured(),
+            'available' => $this->enabled(),
         ]);
     }
 
@@ -45,7 +52,7 @@ class BookingWhatsappOtpController extends Controller
         $data = $request->validate(['phone' => 'required|string|max:20']);
         $wa = app(WhatsAppService::class);
 
-        if (!$wa->isConfigured()) {
+        if (!$this->enabled()) {
             return response()->json(['message' => "Vérification WhatsApp indisponible pour le moment.", 'available' => false], 422);
         }
 

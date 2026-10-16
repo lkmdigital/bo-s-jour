@@ -28,7 +28,10 @@ class SettingsController extends Controller
             'mapbox_token' => (string) Setting::get('mapbox_token', ''),
             'google_maps_api_key' => (string) Setting::get('google_maps_api_key', ''),
             // Juste le drapeau : jamais le token/phone_id (voir whatsapp_enabled côté admin).
-            'whatsapp_verification_enabled' => (bool) Setting::get('whatsapp_enabled', false),
+            // La vérification du numéro à la réservation exige un réglage à part (modèle Meta
+            // « Authentification » approuvé) : activer WhatsApp ne doit pas la rendre obligatoire.
+            'whatsapp_verification_enabled' => (bool) Setting::get('whatsapp_enabled', false)
+                && (bool) Setting::get('whatsapp_otp_enabled', false),
             'languages_enabled' => (array) Setting::get('languages_enabled', ['fr', 'en']),
             // Module IA : seulement des drapeaux, jamais la clé. `ai_enabled` vaut vrai si l'admin a
             // activé le module ET qu'une clé est renseignée — le site masque tout le reste du temps.
@@ -65,6 +68,7 @@ class SettingsController extends Controller
             // WhatsApp Business API (Meta) — sensible, jamais exposé publiquement
             'whatsapp_enabled' => (bool) Setting::get('whatsapp_enabled', false),
             'whatsapp_use_templates' => (bool) Setting::get('whatsapp_use_templates', false),
+            'whatsapp_otp_enabled' => (bool) Setting::get('whatsapp_otp_enabled', false),
             'whatsapp_token' => (string) Setting::get('whatsapp_token', ''),
             'whatsapp_phone_id' => (string) Setting::get('whatsapp_phone_id', ''),
             'whatsapp_verify_token' => (string) Setting::get('whatsapp_verify_token', ''),
@@ -135,6 +139,7 @@ class SettingsController extends Controller
             'google_maps_api_key' => 'sometimes|nullable|string|max:255',
             'whatsapp_enabled' => 'sometimes|boolean',
             'whatsapp_use_templates' => 'sometimes|boolean',
+            'whatsapp_otp_enabled' => 'sometimes|boolean',
             'whatsapp_token' => 'sometimes|nullable|string|max:1000',
             'whatsapp_phone_id' => 'sometimes|nullable|string|max:100',
             'whatsapp_verify_token' => 'sometimes|nullable|string|max:100',
@@ -240,6 +245,9 @@ class SettingsController extends Controller
         }
         if (array_key_exists('whatsapp_use_templates', $data)) {
             Setting::set('whatsapp_use_templates', $data['whatsapp_use_templates'], 'boolean', 'WhatsApp : envoyer via les modèles approuvés Meta');
+        }
+        if (array_key_exists('whatsapp_otp_enabled', $data)) {
+            Setting::set('whatsapp_otp_enabled', $data['whatsapp_otp_enabled'], 'boolean', 'Vérification du numéro du voyageur par code WhatsApp (réservation)');
         }
         if (array_key_exists('whatsapp_token', $data)) {
             Setting::set('whatsapp_token', $data['whatsapp_token'] ?? '', 'string', 'Token WhatsApp Business API');
