@@ -86,7 +86,7 @@ class SmsService
      */
     public function sendBookingConfirmationToClient($booking): bool
     {
-        $phone = $booking->user?->phone;
+        $phone = $booking->traveler_phone ?: $booking->user?->phone;
         if (empty($phone)) {
             return false;
         }
@@ -149,7 +149,7 @@ class SmsService
      */
     public function sendApprovedPleasePayToClient($booking): bool
     {
-        $phone = $booking->user?->phone;
+        $phone = $booking->traveler_phone ?: $booking->user?->phone;
         if (empty($phone)) {
             return false;
         }

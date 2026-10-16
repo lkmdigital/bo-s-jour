@@ -194,6 +194,9 @@ class BookingController extends Controller
             'promo_code' => 'nullable|string|max:100',
             'special_requests' => 'nullable|string|max:1000',
             'booked_for_third_party' => 'nullable|boolean',
+            // Numéro saisi à la réservation (voyageur connecté ou non) : c'est lui qui reçoit les messages
+            // WhatsApp/SMS de cette réservation, et non plus seulement celui du profil du compte.
+            'phone' => 'nullable|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/',
             'traveler_name' => 'nullable|string|max:255|required_if:booked_for_third_party,true',
             'traveler_phone' => 'nullable|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/|required_if:booked_for_third_party,true',
             'traveler_email' => 'nullable|string|email|max:255',
@@ -617,7 +620,9 @@ class BookingController extends Controller
                 'special_requests' => $request->special_requests,
                 'booked_for_third_party' => $bookedForThirdParty,
                 'traveler_name' => $bookedForThirdParty ? $request->traveler_name : null,
-                'traveler_phone' => $bookedForThirdParty ? $request->traveler_phone : null,
+                // Réservation pour un tiers : son numéro. Sinon : le numéro saisi dans le formulaire (qui peut
+                // différer de celui du profil) ; vide = repli sur le téléphone du compte à l'envoi.
+                'traveler_phone' => $bookedForThirdParty ? $request->traveler_phone : ($request->phone ?: null),
                 'traveler_email' => $bookedForThirdParty ? $request->traveler_email : null,
                 // Type de voyageur + stats
                 'traveler_type' => $request->input('traveler_type', 'individual'),

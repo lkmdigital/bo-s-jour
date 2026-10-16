@@ -292,7 +292,7 @@ class WhatsAppService
     /** Accusé de réception de la demande, envoyé au voyageur. */
     public function sendRequestReceived(Booking $booking): void
     {
-        $phone = $booking->user->phone ?? null;
+        $phone = $booking->traveler_phone ?: ($booking->user->phone ?? null);
         if (!$phone) {
             return;
         }

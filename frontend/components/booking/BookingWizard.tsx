@@ -393,10 +393,11 @@ export default function BookingWizard(props: Props) {
         special_requests: specialRequests.trim() || undefined,
         booked_for_third_party: bookedForThirdParty,
       };
+      // Le numéro saisi est envoyé aussi au voyageur connecté : il reçoit les messages de cette réservation.
+      payload.phone = phone;
       if (!isAuthenticated) {
         payload.name = `${firstName} ${lastName}`.trim();
         payload.email = email;
-        payload.phone = phone;
       }
       if (bookedForThirdParty) {
         payload.traveler_name = `${travelerFirstName} ${travelerLastName}`.trim();
