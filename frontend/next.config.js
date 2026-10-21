@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Identifiant propre à chaque build : l'adresse d'enregistrement du service worker en dépend
+  // (sw.js?v=…), donc chaque déploiement installe un nouveau service worker et vide les caches.
+  env: { NEXT_PUBLIC_BUILD_ID: String(Date.now()) },
   eslint: {
     ignoreDuringBuilds: true,
   },

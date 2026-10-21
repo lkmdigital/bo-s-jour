@@ -1,130 +1,91 @@
-// Service Worker pour boséjour PWA
-const CACHE_NAME = 'bosejour-v1';
-const RUNTIME_CACHE = 'bosejour-runtime-v1';
+// Service Worker boséjour (PWA).
+//
+// Règle d'or : on ne met en cache QUE ce qui ne change jamais pour une adresse donnée (fichiers
+// compilés /_next/static/ au nom haché, icônes, images du site). Les pages, les données internes de
+// Next.js (requêtes RSC « ?_rsc= ») et l'API passent TOUJOURS par le réseau. Mettre ces données en
+// cache servait, après un déploiement, des réponses de l'ancienne version mélangées au nouveau code :
+// l'écran « Un problème est survenu » apparaissait au lancement d'une recherche (2026-10-21).
+//
+// La version vient de l'adresse d'enregistrement (/sw.js?v=<build>) : chaque déploiement installe
+// un nouveau service worker, qui supprime les anciens caches à l'activation.
 
-// Fichiers à mettre en cache lors de l'installation (uniquement des URLs qui existent)
-const STATIC_CACHE_URLS = [
-  '/',
-  '/manifest.json',
-  '/images/payment-methods/logo/logo.png',
-];
+const VERSION = new URL(self.location.href).searchParams.get('v') || 'dev';
+const STATIC_CACHE = `bosejour-static-${VERSION}`;
+const OFFLINE_URL = '/';
 
-// Installer le Service Worker
+// Installation : prise en charge immédiate, sans attendre la fermeture des onglets.
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installing...');
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_CACHE_URLS))
+    caches.open(STATIC_CACHE)
+      .then((cache) => cache.add(OFFLINE_URL).catch(() => undefined))
       .then(() => self.skipWaiting())
-      .catch((err) => {
-        console.warn('[Service Worker] Precache failed (continuing):', err);
-        return self.skipWaiting();
-      })
   );
 });
 
-// Activer le Service Worker
+// Activation : on supprime tous les caches des versions précédentes puis on prend le contrôle.
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activating...');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((cacheName) => {
-            return cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE;
-          })
-          .map((cacheName) => {
-            console.log('[Service Worker] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          })
-      );
-    })
-    .then(() => self.clients.claim())
+    caches.keys()
+      .then((names) => Promise.all(names.filter((n) => n !== STATIC_CACHE).map((n) => caches.delete(n))))
+      .then(() => self.clients.claim())
   );
 });
 
-// Stratégie de cache : Network First, puis Cache
+// Fichiers sûrs à garder en cache : au nom haché (immuables) ou rarement modifiés.
+function isCacheableAsset(url) {
+  return (
+    url.pathname.startsWith('/_next/static/') ||
+    url.pathname.startsWith('/icons/') ||
+    url.pathname.startsWith('/images/')
+  );
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
+  // Autres domaines (API, images distantes, OneSignal…) : on ne s'en mêle pas.
+  if (url.origin !== self.location.origin) return;
+  // Données Next.js et API : toujours le réseau, jamais de cache.
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/data/') || url.searchParams.has('_rsc')) return;
+  const accept = request.headers.get('accept') || '';
+  if (request.headers.get('rsc') || accept.includes('text/x-component')) return;
+  // Médias (film de présentation) : requêtes partielles, on laisse le navigateur faire.
+  if (request.headers.has('range') || request.destination === 'audio' || request.destination === 'video') return;
 
-  // Ignorer les requêtes non-GET
-  if (request.method !== 'GET') {
-    return;
-  }
-
-  // Ignorer les requêtes API (toujours aller au réseau)
-  if (url.pathname.startsWith('/api/')) {
-    return;
-  }
-
-  // Stratégie Network First pour les pages HTML
-  if (request.headers.get('accept')?.includes('text/html')) {
+  // Pages : réseau d'abord ; hors ligne seulement, on affiche la page d'accueil en cache.
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Mettre en cache la réponse si valide
-          if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(RUNTIME_CACHE).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          // Si le réseau échoue, utiliser le cache
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Si pas de cache, retourner la page d'accueil
-            return caches.match('/');
-          });
-        })
+      fetch(request).catch(() => caches.match(OFFLINE_URL).then((r) => r || Response.error()))
     );
     return;
   }
 
-  // Stratégie Cache First pour les assets statiques
-  event.respondWith(
-    caches.match(request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-
+  // Fichiers statiques : cache d'abord (ils ne changent pas), sinon réseau puis mise en cache.
+  if (isCacheableAsset(url)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
         return fetch(request).then((response) => {
-          // Ne mettre en cache que les réponses valides
           if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(RUNTIME_CACHE).then((cache) => {
-              cache.put(request, responseClone);
-            });
+            const copy = response.clone();
+            caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy));
           }
           return response;
         });
       })
-      .catch(() => {
-        // En cas d'erreur, retourner une réponse par défaut si disponible
-        if (request.destination === 'image') {
-          return new Response('Image non disponible', {
-            status: 404,
-            headers: { 'Content-Type': 'text/plain' },
-          });
-        }
-      })
-  );
-});
-
-// Gérer les messages depuis l'application
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+    );
   }
+  // Tout le reste : comportement normal du navigateur.
 });
 
-// Notification push (pour futures fonctionnalités)
+// Permet à la page de demander une mise à jour immédiate.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+// Notifications push
 self.addEventListener('push', (event) => {
   const data = event.data?.json() || {};
   const title = data.title || 'boséjour';
@@ -134,19 +95,11 @@ self.addEventListener('push', (event) => {
     badge: '/images/payment-methods/logo/logo.png',
     data: data.url || '/',
   };
-
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Gérer les clics sur les notifications
+// Clic sur une notification
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(
-    clients.openWindow(event.notification.data || '/')
-  );
+  event.waitUntil(clients.openWindow(event.notification.data || '/'));
 });
-
-
-

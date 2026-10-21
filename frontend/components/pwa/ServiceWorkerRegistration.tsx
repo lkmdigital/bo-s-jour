@@ -18,32 +18,27 @@ export default function ServiceWorkerRegistration() {
         return;
       }
 
-      // Enregistrer le Service Worker
+      // Enregistrer le Service Worker. L'identifiant de build dans l'adresse fait que chaque
+      // déploiement installe un nouveau service worker (qui vide les anciens caches).
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloaded = false;
+      // Quand une nouvelle version prend le relais, on recharge UNE fois (sans question posée au
+      // visiteur) : l'ancienne page ne doit pas tourner avec des fichiers d'une autre version.
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController || reloaded) return;
+        reloaded = true;
+        window.location.reload();
+      });
+
       navigator.serviceWorker
-        .register('/sw.js')
+        .register(`/sw.js?v=${process.env.NEXT_PUBLIC_BUILD_ID ?? 'prod'}`, { updateViaCache: 'none' })
         .then((registration) => {
-          console.log('[Service Worker] Registered successfully:', registration.scope);
-
-          // Vérifier les mises à jour périodiquement
-          setInterval(() => {
-            registration.update();
-          }, 60 * 60 * 1000); // Toutes les heures
-
-          // Écouter les mises à jour du Service Worker
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // Nouveau Service Worker disponible
-                  console.log('[Service Worker] New version available');
-                  // Optionnel : Afficher une notification pour recharger
-                  if (confirm('Une nouvelle version est disponible. Recharger la page ?')) {
-                    window.location.reload();
-                  }
-                }
-              });
-            }
+          registration.update().catch(() => undefined);
+          // Vérifier les mises à jour toutes les 30 minutes, et au retour sur l'application
+          // (PWA installée : on la rouvre souvent sans jamais recharger la page).
+          setInterval(() => registration.update().catch(() => undefined), 30 * 60 * 1000);
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') registration.update().catch(() => undefined);
           });
         })
         .catch((error) => {

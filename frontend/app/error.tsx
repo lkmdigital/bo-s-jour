@@ -23,6 +23,31 @@ export default function Error({
     // Le digest (hash stable de l'erreur, généré par Next.js) permet de retrouver
     // l'incident correspondant côté serveur sans exposer le message technique au client.
     console.error('Erreur applicative :', error, error.digest ? `(digest: ${error.digest})` : '');
+
+    // Auto-réparation (PWA / mobile) : une erreur de rendu juste après un déploiement vient souvent
+    // de fichiers ou de données d'une ancienne version restés en cache sur l'appareil. On vide le
+    // cache et le service worker, puis on recharge UNE fois (au plus toutes les 5 minutes) : le
+    // visiteur retrouve la page sans avoir vu l'erreur. Si elle revient, l'écran d'erreur reste.
+    try {
+      const key = 'bosejour:autoheal';
+      const last = Number(sessionStorage.getItem(key) || 0);
+      if (Date.now() - last > 5 * 60 * 1000) {
+        sessionStorage.setItem(key, String(Date.now()));
+        const clean = async () => {
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map((r) => r.unregister()));
+          }
+          if (window.caches) {
+            const names = await caches.keys();
+            await Promise.all(names.map((n) => caches.delete(n)));
+          }
+        };
+        clean().catch(() => undefined).finally(() => window.location.reload());
+      }
+    } catch {
+      // stockage indisponible (navigation privée…) : on laisse l'écran d'erreur
+    }
   }, [error]);
 
   return (
