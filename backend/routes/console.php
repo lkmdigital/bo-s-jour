@@ -57,8 +57,12 @@ Schedule::command('queue:work --queue=notifications,default --stop-when-empty --
 // expirées (demandes d'hôte sans réponse, impayés après 48 h) et purge des jetons expirés.
 Schedule::command('bookings:cancel-expired')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
+// Étape 2 (lot A, sans risque : aperçu en production le 2026-10-26 = 5 notifications de points, 3 e-mails partenaires) :
+Schedule::command('loyalty:award-birthday-bonus')->dailyAt('08:30');
+Schedule::command('accommodations:remind-info-update')->dailyAt('08:15');
+Schedule::command('loyalty:award-points')->dailyAt('09:30');
+Schedule::command('loyalty:notify-expiring-vouchers')->dailyAt('09:45');
 // À activer aux étapes suivantes (relances et envois aux clients) :
-//   bookings:remind-cancel-unpaid (horaire), reviews:send-post-stay-links (09:00), loyalty:award-points (09:30),
-//   loyalty:award-birthday-bonus (08:30), loyalty:notify-expiring-vouchers (09:45), bookings:detect-no-show (11:00),
-//   users:remind-guest-activation (horaire), hosts:remind-onboarding (horaire), compliance:remind-hosts (08:00),
-//   accommodations:remind-info-update (08:15), corporate:compute-annual-rewards (2 janvier 02:00).
+//   bookings:remind-cancel-unpaid (horaire), reviews:send-post-stay-links (09:00),
+//   bookings:detect-no-show (11:00), users:remind-guest-activation (horaire), hosts:remind-onboarding (horaire),
+//   compliance:remind-hosts (08:00), corporate:compute-annual-rewards (2 janvier 02:00).
