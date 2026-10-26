@@ -10,6 +10,7 @@ import MobileBottomBar from '@/components/common/MobileBottomBar';
 import BrandIntro from '@/components/intro/BrandIntro';
 import FilmLauncher from '@/components/film/FilmLauncher';
 import TravelerAssistant from '@/components/ai/TravelerAssistant';
+import VisitTracker from '@/components/analytics/VisitTracker';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -110,6 +111,7 @@ export default function RootLayout({
           <TravelerAssistant />
           <ServiceWorkerRegistration />
           <PWAInstallPrompt />
+          <VisitTracker />
         </Providers>
         <Script
           src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"

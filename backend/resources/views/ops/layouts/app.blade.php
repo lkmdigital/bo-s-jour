@@ -19,6 +19,9 @@
                 <a href="{{ route('ops.dashboard') }}" class="ops-nav-link {{ request()->routeIs('ops.dashboard') ? 'is-active' : '' }}">
                     <span>Vue d'ensemble</span>
                 </a>
+                <a href="{{ route('ops.audience.index') }}" class="ops-nav-link {{ request()->routeIs('ops.audience.*') ? 'is-active' : '' }}">
+                    <span>Audience</span>
+                </a>
                 <a href="{{ route('ops.monitoring.index') }}" class="ops-nav-link {{ request()->routeIs('ops.monitoring.index') ? 'is-active' : '' }}">
                     <span>Supervision</span>
                 </a>

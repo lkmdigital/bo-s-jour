@@ -5,6 +5,11 @@
 
 @section('content')
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <a href="{{ route('ops.audience.index') }}" class="ops-card p-5 hover:shadow-md transition-shadow sm:col-span-3">
+            <p class="text-sm text-gray-500 mb-1">Audience du site</p>
+            <p class="text-xl font-bold">{{ $audience['today'] }} visiteur(s) aujourd'hui <span class="text-sm font-normal text-gray-400">· {{ $audience['live'] }} en ce moment</span></p>
+            <p class="text-xs text-gray-400 mt-1">Pages vues, sources, appareils, évolution jour par jour.</p>
+        </a>
         <a href="{{ route('ops.monitoring.index') }}" class="ops-card p-5 hover:shadow-md transition-shadow sm:col-span-3">
             <p class="text-sm text-gray-500 mb-1">Supervision</p>
             @if ($supervision['stale'])

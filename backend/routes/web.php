@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Ops\AudienceController as OpsAudienceController;
 use App\Http\Controllers\Ops\AuthController as OpsAuthController;
 use App\Http\Controllers\Ops\DashboardController as OpsDashboardController;
 use App\Http\Controllers\Ops\LogsController as OpsLogsController;
@@ -26,6 +27,8 @@ Route::prefix('ops')->name('ops.')->group(function () {
 
     Route::middleware('ops.admin')->group(function () {
         Route::get('/', [OpsDashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/audience', [OpsAudienceController::class, 'index'])->name('audience.index');
 
         Route::prefix('supervision')->name('monitoring.')->group(function () {
             Route::get('/', [OpsMonitoringController::class, 'index'])->name('index');

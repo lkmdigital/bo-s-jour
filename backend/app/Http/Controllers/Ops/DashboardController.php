@@ -23,6 +23,11 @@ class DashboardController extends Controller
             'stale' => !$lastRun || now()->timestamp - $lastRun > 300,
         ];
 
-        return view('ops.dashboard', compact('stuckPaymentsCount', 'supervision'));
+        $audience = [
+            'today' => (int) \Illuminate\Support\Facades\DB::table('ops_visits')->where('day', now()->toDateString())->distinct()->count('visitor'),
+            'live' => (int) \Illuminate\Support\Facades\DB::table('ops_visits')->where('visited_at', '>=', now()->subMinutes(5))->distinct()->count('visitor'),
+        ];
+
+        return view('ops.dashboard', compact('stuckPaymentsCount', 'supervision', 'audience'));
     }
 }

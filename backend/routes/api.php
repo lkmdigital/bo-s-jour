@@ -112,6 +112,8 @@ Route::post('/whatsapp/webhook', [WhatsAppWebhookController::class, 'receive'])-
 
 // Paramètres publics (thème, maintenance, etc.)
 Route::get('/settings/public', [SettingsController::class, 'publicSettings']);
+// Fréquentation du site (suivi interne sans cookie, voir VisitRecorder) : public, sans authentification.
+Route::post('/track', [\App\Http\Controllers\TrackController::class, 'store'])->middleware('throttle:90,1,track');
 
 // Assistant IA voyageur des pages publiques (bulle flottante). Ouvert aux visiteurs non
 // connectés si l'admin l'autorise : ils n'ont alors accès qu'aux données publiques, avec un
