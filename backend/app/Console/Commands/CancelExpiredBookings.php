@@ -41,8 +41,10 @@ class CancelExpiredBookings extends Command
 
             DB::transaction(function () use ($booking, &$cancelled) {
                 $booking->update([
+                    // payment_status n'est volontairement pas modifié : « cancelled » n'est pas une valeur
+                    // valide de la colonne (enum pending/paid/failed/refunded/guarantee_paid) et faisait planter
+                    // la commande dès la première réservation (jamais vu : tâche non planifiée jusqu'au 2026-10-26).
                     'status' => 'cancelled',
-                    'payment_status' => 'cancelled',
                 ]);
 
                 CancellationPolicyService::onBookingCancelled($booking);
