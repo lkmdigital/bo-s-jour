@@ -26,6 +26,8 @@ const baloo = Baloo_2({
 });
 
 // Police du slogan / des accroches (charte boséjour)
+const GA_MEASUREMENT_ID = 'G-PPCR3WRQN3';
+
 const dancingScript = Dancing_Script({
   subsets: ['latin'],
   weight: ['500', '600', '700'],
@@ -123,6 +125,20 @@ export default function RootLayout({
             });
           `}
         </Script>
+        {/* Google Analytics (compte boséjour) : uniquement en production, pour ne pas fausser les statistiques en développement. */}
+        {process.env.NODE_ENV === 'production' && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} strategy="afterInteractive" />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}');
+              `}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );

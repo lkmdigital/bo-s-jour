@@ -20,7 +20,7 @@ const nextConfig = {
   async headers() {
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.onesignal.com https://unpkg.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.onesignal.com https://unpkg.com https://www.googletagmanager.com",
       "style-src 'self' 'unsafe-inline' https://unpkg.com",
       "img-src 'self' data: https:",
       "font-src 'self' data:",
