@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Ops') — boséjour</title>
     @vite(['resources/css/ops.css', 'resources/js/ops.js'])
+    @stack('head')
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">
     <div class="flex min-h-screen">
@@ -17,6 +18,18 @@
             <nav class="flex-1 px-3 py-4 space-y-1">
                 <a href="{{ route('ops.dashboard') }}" class="ops-nav-link {{ request()->routeIs('ops.dashboard') ? 'is-active' : '' }}">
                     <span>Vue d'ensemble</span>
+                </a>
+                <a href="{{ route('ops.monitoring.index') }}" class="ops-nav-link {{ request()->routeIs('ops.monitoring.index') ? 'is-active' : '' }}">
+                    <span>Supervision</span>
+                </a>
+                <a href="{{ route('ops.monitoring.incidents') }}" class="ops-nav-link {{ request()->routeIs('ops.monitoring.incidents') ? 'is-active' : '' }}">
+                    <span>Incidents</span>
+                </a>
+                <a href="{{ route('ops.monitoring.errors') }}" class="ops-nav-link {{ request()->routeIs('ops.monitoring.errors') ? 'is-active' : '' }}">
+                    <span>Erreurs regroupées</span>
+                </a>
+                <a href="{{ route('ops.monitoring.settings') }}" class="ops-nav-link {{ request()->routeIs('ops.monitoring.settings') ? 'is-active' : '' }}">
+                    <span>Alertes</span>
                 </a>
                 <a href="{{ route('ops.payments.index') }}" class="ops-nav-link {{ request()->routeIs('ops.payments.*') ? 'is-active' : '' }}">
                     <span>Paiements</span>

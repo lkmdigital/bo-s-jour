@@ -49,6 +49,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'throttle:240,1,global-api',
         ]);
 
+        // Supervision : reconnaît les requêtes du moniteur (en-tête secret) pour rendre visible l'établissement de test.
+        $middleware->api(prepend: [
+            \App\Http\Middleware\MarkMonitorRequests::class,
+        ]);
+
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,

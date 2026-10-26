@@ -7,6 +7,29 @@ use Illuminate\Database\Eloquent\Model;
 
 class Accommodation extends Model
 {
+    /** Vrai dès qu'on a constaté la colonne is_synthetic (jamais mémorisé tant qu'elle manque : fenêtre de déploiement). */
+    private static bool $syntheticColumnKnown = false;
+
+    /**
+     * Les établissements « synthétiques » (test de la supervision) sont invisibles partout, sauf pour les requêtes
+     * du moniteur (en-tête secret, voir MarkMonitorRequests) et quand on retire explicitement la portée.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('hide_synthetic', function (\Illuminate\Database\Eloquent\Builder $query) {
+            if (app()->bound('ops.monitor')) {
+                return;
+            }
+            if (!self::$syntheticColumnKnown) {
+                if (!\Illuminate\Support\Facades\Schema::hasColumn('accommodations', 'is_synthetic')) {
+                    return; // migration pas encore passée (déploiement en cours)
+                }
+                self::$syntheticColumnKnown = true;
+            }
+            $query->where($query->getModel()->getTable() . '.is_synthetic', false);
+        });
+    }
+
     use HasFactory;
 
     /** Code pays utilisé pour l'identifiant unique d'établissement (plateforme Côte d'Ivoire uniquement). */

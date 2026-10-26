@@ -87,6 +87,12 @@ class WhatsAppService
      * envoyés tels quels, Meta les interprète de travers (le « 07 » initial est perdu et le
      * message part vers un autre numéro). On complète donc avec l'indicatif de la Côte d'Ivoire.
      */
+    /** Numéros factices des comptes de test de la supervision (préfixe 2250000…) : aucun envoi réel. */
+    protected function isSyntheticNumber(string $normalized): bool
+    {
+        return str_starts_with($normalized, (string) config('ops.synthetic_phone_prefix', '2250000'));
+    }
+
     protected function normalize(?string $phone): ?string
     {
         $p = preg_replace('/[^0-9]/', '', (string) $phone);
@@ -116,6 +122,9 @@ class WhatsAppService
         $to = $this->normalize($to);
         if (!$to) {
             return false;
+        }
+        if ($this->isSyntheticNumber($to)) {
+            return true; // compte de test de la supervision : jamais de vrai message
         }
 
         $token = (string) Setting::get('whatsapp_token', '');
@@ -167,6 +176,9 @@ class WhatsAppService
         $to = $this->normalize($to);
         if (!$to) {
             return false;
+        }
+        if ($this->isSyntheticNumber($to)) {
+            return true; // compte de test de la supervision : jamais de vrai message
         }
 
         $token = (string) Setting::get('whatsapp_token', '');

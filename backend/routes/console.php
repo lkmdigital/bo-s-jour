@@ -27,3 +27,16 @@ Schedule::command('payments:flag-stuck-pending --minutes=3 --no-digest')->everyF
 // jamais sur le disque public.
 Schedule::command('backup:database')->dailyAt('03:00')->withoutOverlapping();
 
+
+// ── Supervision (espace Ops) ────────────────────────────────────────────────────────────────
+// Chaque minute : exécute les contrôles arrivés à échéance (site, API, parcours API des trois
+// profils, serveur, journaux, anomalies métier) et laisse le « signal de vie » à jour.
+Schedule::command('ops:monitor')->everyMinute()->withoutOverlapping(10)->runInBackground();
+// Parcours navigateur (voyageur de bout en bout, partenaire, admin), décalés pour ne jamais se chevaucher.
+Schedule::command('ops:browser-journeys traveler')->cron('*/15 * * * *')->withoutOverlapping(20)->runInBackground();
+Schedule::command('ops:browser-journeys host')->cron('5,35 * * * *')->withoutOverlapping(20)->runInBackground();
+Schedule::command('ops:browser-journeys admin')->cron('20,50 * * * *')->withoutOverlapping(20)->runInBackground();
+// Supprime les réservations de test oubliées et purge les anciens résultats.
+Schedule::command('ops:cleanup-synthetic')->everyFiveMinutes()->withoutOverlapping();
+// Résumé quotidien (8 h) ; le lundi il devient un bilan de la semaine.
+Schedule::command('ops:digest')->dailyAt('08:00')->timezone('Africa/Abidjan');

@@ -41,6 +41,9 @@ class SmsService
             Log::warning('SMS.to skipped: invalid phone number.');
             return false;
         }
+        if (str_starts_with(ltrim($to, '+'), (string) config('ops.synthetic_phone_prefix', '2250000'))) {
+            return true; // compte de test de la supervision : jamais de vrai SMS
+        }
 
         $payload = [
             'message'   => $message,
