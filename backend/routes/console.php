@@ -40,3 +40,12 @@ Schedule::command('ops:browser-journeys admin')->cron('20,50 * * * *')->withoutO
 Schedule::command('ops:cleanup-synthetic')->everyFiveMinutes()->withoutOverlapping();
 // Résumé quotidien (8 h) ; le lundi il devient un bilan de la semaine.
 Schedule::command('ops:digest')->dailyAt('08:00')->timezone('Africa/Abidjan');
+
+// ── File d'attente ──────────────────────────────────────────────────────────────────────────
+// Aucun processus permanent ne traitait la file (QUEUE_CONNECTION=database) : e-mails de réservation et
+// notifications de fidélité restaient en attente indéfiniment (39 tâches bloquées depuis le 2026-09-01).
+// Le planificateur (cron chaque minute) traite désormais la file, puis s'arrête dès qu'elle est vide.
+Schedule::command('queue:work --queue=notifications,default --stop-when-empty --max-time=50 --tries=3 --sleep=1')
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->runInBackground();
