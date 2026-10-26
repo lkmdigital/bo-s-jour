@@ -15,14 +15,19 @@ class SendPostStayReviewLinks extends Command
 
     protected $description = 'Envoie un lien de retour client (avis) aux voyageurs dont le séjour est terminé (check_out + 1 jour)';
 
+    /** Un séjour plus ancien que ça ne reçoit plus de demande d'avis. */
+    public const MAX_AGE_DAYS = 14;
+
     public function handle(): int
     {
         $dryRun = $this->option('dry-run');
         $baseUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'https://monbeaupays.loyerpay.ci')), '/');
 
-        // Séjours terminés depuis au moins 1 jour, confirmés, lien pas encore envoyé
+        // Séjours terminés depuis au moins 1 jour (et au plus 14 jours : la tâche n'a pas tourné pendant des mois,
+        // on n'envoie pas de demande d'avis pour un séjour de l'été), confirmés, lien pas encore envoyé
         $bookings = Booking::where('status', 'confirmed')
             ->where('check_out', '<=', now()->subDay())
+            ->where('check_out', '>=', now()->subDays(self::MAX_AGE_DAYS))
             ->whereNull('review_link_sent_at')
             ->with(['user', 'accommodation'])
             ->get();

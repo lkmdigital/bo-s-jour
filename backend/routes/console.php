@@ -62,7 +62,13 @@ Schedule::command('loyalty:award-birthday-bonus')->dailyAt('08:30');
 Schedule::command('accommodations:remind-info-update')->dailyAt('08:15');
 Schedule::command('loyalty:award-points')->dailyAt('09:30');
 Schedule::command('loyalty:notify-expiring-vouchers')->dailyAt('09:45');
+// Étape 3 (lots B et C) : liens d'avis (séjours des 14 derniers jours seulement) et relances par étapes. Les compteurs
+// des comptes existants ont été alignés en silence avant cette activation (php artisan reminders:fast-forward),
+// sinon chacun aurait reçu sa dernière relance d'un coup.
+Schedule::command('compliance:remind-hosts')->dailyAt('08:00');
+Schedule::command('reviews:send-post-stay-links')->dailyAt('09:00');
+Schedule::command('users:remind-guest-activation')->hourly()->withoutOverlapping();
+Schedule::command('hosts:remind-onboarding')->hourly()->withoutOverlapping();
 // À activer aux étapes suivantes (relances et envois aux clients) :
-//   bookings:remind-cancel-unpaid (horaire), reviews:send-post-stay-links (09:00),
-//   bookings:detect-no-show (11:00), users:remind-guest-activation (horaire), hosts:remind-onboarding (horaire),
-//   compliance:remind-hosts (08:00), corporate:compute-annual-rewards (2 janvier 02:00).
+//   bookings:remind-cancel-unpaid (horaire, après correction de la relance répétée), bookings:detect-no-show (11:00,
+//   après décision du client sur le check-in), corporate:compute-annual-rewards (2 janvier 02:00).
