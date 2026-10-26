@@ -1,0 +1,37 @@
+name: Appli mobile (Flutter)
+
+# Contrôle automatique à chaque modification de l'appli : analyse du code et tests.
+on:
+  push:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+  pull_request:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.44.6'
+          cache: true
+
+      - name: Dépendances
+        run: flutter pub get
+
+      - name: Textes traduits à jour
+        run: |
+          flutter gen-l10n
+          git diff --exit-code -- lib/l10n || (echo "Les fichiers lib/l10n générés ne sont pas à jour : lancez flutter gen-l10n et commitez." && exit 1)
+
+      - name: Analyse du code
+        run: flutter analyze --fatal-infos
+
+      - name: Tests
+        run: flutter test

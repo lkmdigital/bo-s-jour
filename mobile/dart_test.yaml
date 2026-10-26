@@ -1,0 +1,5 @@
+tags:
+  screenshots:
+    # Captures d'écran de contrôle visuel : ignorées par défaut (et donc en intégration continue).
+    # Pour les générer : flutter test --tags screenshots --run-skipped --update-goldens test/screenshots
+    skip: "captures de contrôle, à lancer à la demande"

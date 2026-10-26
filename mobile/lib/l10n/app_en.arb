@@ -1,0 +1,95 @@
+{
+  "@@locale": "en",
+  "appName": "boséjour",
+  "slogan": "Your stay starts here…",
+  "navHome": "Home",
+  "navExplore": "Explore",
+  "navBookings": "Bookings",
+  "navAccount": "Account",
+  "homeGreeting": "Where to?",
+  "homeSearchHint": "Search a stay, a city…",
+  "homeDestinations": "Popular destinations",
+  "homeDiscover": "Stays to discover",
+  "homeFromPrice": "from {price} FCFA",
+  "@homeFromPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "homeAccommodationsCount": "{count, plural, =0{No stays} =1{1 stay} other{{count} stays}}",
+  "@homeAccommodationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exploreTitle": "Explore",
+  "exploreEmpty": "No stay matches your search.",
+  "explorePerNight": "{price} FCFA / night",
+  "@explorePerNight": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreReviews": "{count, plural, =1{1 review} other{{count} reviews}}",
+  "@exploreReviews": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookingsTitle": "My bookings",
+  "bookingsLoginPrompt": "Sign in to find your bookings.",
+  "bookingsComingSoon": "Booking tracking is coming soon to the app. Meanwhile, find them on the website.",
+  "bookingsOpenSite": "Open on the website",
+  "accountTitle": "My account",
+  "accountLogout": "Sign out",
+  "accountHelp": "Help center",
+  "accountTerms": "Terms and conditions",
+  "accountPrivacy": "Privacy policy",
+  "accountVersion": "Version {version}",
+  "@accountVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "roleTraveler": "Traveler",
+  "roleHost": "Host",
+  "roleAdmin": "Administrator",
+  "loginTitle": "Access my space",
+  "loginSubtitle": "Sign in to book and follow your stays.",
+  "loginEmail": "Email",
+  "loginEmailHint": "you@email.com",
+  "loginPassword": "Password",
+  "loginShowPassword": "Show password",
+  "loginHidePassword": "Hide password",
+  "loginSubmit": "Access my space",
+  "loginForgot": "Forgot your password?",
+  "loginNoAccount": "No account yet?",
+  "loginCreate": "Create my space",
+  "loginEmailRequired": "Enter your email.",
+  "loginEmailInvalid": "This email address is not valid.",
+  "loginPasswordRequired": "Enter your password.",
+  "loginNeedsOtp": "This account requires a verification code sent by email. This step is not available in the app yet: sign in once from the website.",
+  "loginNeedsTwoFactor": "This account's two-factor authentication is not supported in the app yet. Sign in from the website.",
+  "retry": "Try again",
+  "errorGeneric": "Something went wrong. Please try again in a moment.",
+  "errorNetwork": "Unable to reach boséjour. Check your internet connection.",
+  "errorSession": "Your session has expired. Please sign in again.",
+  "errorServer": "Something went wrong on our side. It's not your fault: please try again in a moment.",
+  "errorTooMany": "Too many attempts. Please wait a moment before trying again.",
+  "typeHotel": "Hotel",
+  "typeLodge": "Eco-lodge",
+  "typeGuesthouse": "Guesthouse",
+  "typeApartment": "Residence",
+  "typeOther": "Stay",
+  "newBadge": "New"
+}
