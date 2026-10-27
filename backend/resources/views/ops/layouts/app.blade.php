@@ -8,6 +8,7 @@
     @stack('head')
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">
+    @include('ops.mega-bo._orb-defs')
     <div class="flex min-h-screen">
         {{-- Barre latérale --}}
         <aside class="w-64 shrink-0 bg-white border-r border-gray-200 flex flex-col">
@@ -81,5 +82,10 @@
             </main>
         </div>
     </div>
+
+    {{-- Mega Bo, flottant sur toutes les pages (la page « Mega Bo » a déjà sa propre conversation) --}}
+    @unless (request()->routeIs('ops.megabo.index'))
+        @include('ops.mega-bo._widget')
+    @endunless
 </body>
 </html>

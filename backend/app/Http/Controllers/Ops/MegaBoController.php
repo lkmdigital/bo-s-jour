@@ -23,6 +23,12 @@ class MegaBoController extends Controller
         'Quelles actions me conseilles-tu cette semaine ?',
     ];
 
+    /** Page d'Ops où se trouve la personne : indiquée à Mega Bo pour qu'il comprenne « ici », « cette page ». */
+    private const CONTEXTS = [
+        'audience' => "l'Audience", 'supervision' => 'la Supervision', 'incidents' => 'les Incidents', 'errors' => 'les Erreurs regroupées',
+        'alerts' => 'les Alertes', 'payments' => 'les Paiements', 'logs' => 'le Flux de logs', 'dashboard' => "la Vue d'ensemble",
+    ];
+
     public function index()
     {
         return view('ops.mega-bo.index', [
@@ -40,6 +46,7 @@ class MegaBoController extends Controller
             'history' => 'nullable|array|max:10',
             'history.*.role' => 'required|string|in:user,assistant',
             'history.*.content' => 'required|string|max:4000',
+            'context' => 'nullable|string|in:' . implode(',', array_merge(array_keys(self::CONTEXTS), ['other'])),
         ]);
 
         if (!$bo->isConfigured()) {
@@ -50,7 +57,12 @@ class MegaBoController extends Controller
         set_time_limit(150);
 
         try {
-            return response()->json(['answer' => $bo->ask($data['question'], $data['history'] ?? [])]);
+            $question = $data['question'];
+            if (isset(self::CONTEXTS[$data['context'] ?? ''])) {
+                $question = '(La personne consulte la page « ' . self::CONTEXTS[$data['context']] . " » de l'espace Ops.)\n" . $question;
+            }
+
+            return response()->json(['answer' => $bo->ask($question, $data['history'] ?? [])]);
         } catch (\Throwable $e) {
             Log::error('Mega Bo : réponse impossible', ['error' => $e->getMessage()]);
 

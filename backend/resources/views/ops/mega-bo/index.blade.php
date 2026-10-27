@@ -34,7 +34,7 @@
     <div class="xl:col-span-2 ops-card mb-chat" style="overflow:hidden">
         <div id="mb-log" class="mb-log" aria-live="polite">
             <div id="mb-hello" class="mb-hello">
-                @include('ops.mega-bo._orb', ['size' => 72, 'class' => 'mx-auto'])
+                @include('ops.mega-bo._orb', ['size' => 72, 'class' => 'mbo-center'])
                 <h2>Je suis Mega Bo</h2>
                 <p class="text-sm">Je lis la fréquentation, la santé de la plateforme et l'activité de boséjour, et je réponds à vos questions. Je ne modifie rien et je ne vois aucune donnée de client.</p>
                 @if ($available)
