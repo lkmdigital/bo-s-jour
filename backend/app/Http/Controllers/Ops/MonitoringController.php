@@ -89,6 +89,8 @@ class MonitoringController extends Controller
     {
         return view('ops.monitoring.settings', [
             'enabled' => $alerts->enabled(),
+            'megaBoReport' => \App\Services\Ops\MegaBo\MegaBoReport::sendingEnabled(),
+            'megaBoTemplate' => \App\Services\Ops\MegaBo\MegaBoReport::TEMPLATE,
             'phones' => implode("\n", $alerts->phones()),
             'emails' => implode("\n", $alerts->emails()),
             'heartbeatUrl' => config('ops.heartbeat_token') ? url('/ops/heartbeat/' . config('ops.heartbeat_token')) : null,
@@ -101,11 +103,13 @@ class MonitoringController extends Controller
     {
         $data = $request->validate([
             'enabled' => 'nullable|boolean',
+            'mega_bo_report' => 'nullable|boolean',
             'phones' => 'nullable|string|max:500',
             'emails' => 'nullable|string|max:500',
         ]);
 
         Setting::set('ops_alerts_enabled', (bool) ($data['enabled'] ?? false), 'boolean', 'Supervision : alertes activées');
+        Setting::set('mega_bo_report_enabled', (bool) ($data['mega_bo_report'] ?? false), 'boolean', 'Mega Bo : rapport quotidien envoyé');
         Setting::set('ops_alert_phones', (string) ($data['phones'] ?? ''), 'string', 'Supervision : numéros WhatsApp alertés');
         Setting::set('ops_alert_emails', (string) ($data['emails'] ?? ''), 'string', 'Supervision : e-mails alertés');
 

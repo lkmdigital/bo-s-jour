@@ -40,6 +40,8 @@ Schedule::command('ops:browser-journeys admin')->cron('20,50 * * * *')->withoutO
 Schedule::command('ops:cleanup-synthetic')->everyFiveMinutes()->withoutOverlapping();
 // Résumé quotidien (8 h) ; le lundi il devient un bilan de la semaine.
 Schedule::command('ops:digest')->dailyAt('08:00')->timezone('Africa/Abidjan');
+// Rapport quotidien de Mega Bo (l'assistant IA d'Ops) : après le résumé de la supervision de 8 h. L'envoi se règle dans Ops > Alertes.
+Schedule::command('ops:mega-bo-report')->dailyAt('08:10')->timezone('Africa/Abidjan')->withoutOverlapping(15);
 
 // ── File d'attente ──────────────────────────────────────────────────────────────────────────
 // Aucun processus permanent ne traitait la file (QUEUE_CONNECTION=database) : e-mails de réservation et

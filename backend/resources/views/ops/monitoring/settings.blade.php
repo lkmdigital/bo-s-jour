@@ -16,6 +16,14 @@
                     </span>
                 </label>
 
+                <label class="flex items-start gap-3">
+                    <input type="checkbox" name="mega_bo_report" value="1" class="mt-1" {{ $megaBoReport ? 'checked' : '' }}>
+                    <span>
+                        <span class="font-semibold">Envoyer le rapport quotidien de Mega Bo</span>
+                        <span class="block text-sm text-gray-500">Chaque matin vers 8 h 10 (heure d'Abidjan), aux mêmes destinataires que les alertes. Indépendant de l'interrupteur ci-dessus. Le modèle WhatsApp attendu est <code>{{ $megaBoTemplate }}</code>.</span>
+                    </span>
+                </label>
+
                 <div>
                     <label class="block font-semibold mb-1" for="phones">Numéros WhatsApp alertés</label>
                     <textarea id="phones" name="phones" rows="3" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="2250161133466">{{ old('phones', $phones) }}</textarea>

@@ -77,6 +77,49 @@ class AlertService
         $this->sendEverywhere(null, $type, 'critical', $level, $headline, $detail, '📋');
     }
 
+    /**
+     * Envoie un rapport (Mega Bo) aux mêmes destinataires que les alertes : WhatsApp (modèle approuvé, avec repli en
+     * texte libre) et e-mail. Retourne le nombre d'envois réussis, tous canaux confondus.
+     *
+     * @param array<int,string> $templateParams variables du modèle WhatsApp, dans l'ordre
+     */
+    public function deliverReport(string $type, string $subject, string $html, string $template, array $templateParams, string $fallbackText): int
+    {
+        $delivered = 0;
+
+        foreach ($this->phones() as $phone) {
+            if ($this->whatsappBudgetExhausted()) {
+                $this->record(null, $type, 'whatsapp', $phone, 'skipped', 'plafond horaire atteint');
+                continue;
+            }
+            $sent = false;
+            $error = null;
+            try {
+                $sent = $this->whatsapp->sendTemplate($phone, $template, $templateParams);
+                if (!$sent) {
+                    $sent = $this->whatsapp->sendText($phone, $fallbackText);
+                    $error = $sent ? 'modèle indisponible, envoyé en texte libre' : 'WhatsApp a refusé le message';
+                }
+            } catch (\Throwable $e) {
+                $error = $e->getMessage();
+            }
+            $delivered += $sent ? 1 : 0;
+            $this->record(null, $type, 'whatsapp', $phone, $sent ? 'sent' : 'failed', $error);
+        }
+
+        foreach ($this->emails() as $email) {
+            try {
+                Mail::html($html, fn ($m) => $m->to($email)->subject($subject));
+                $delivered++;
+                $this->record(null, $type, 'email', $email, 'sent');
+            } catch (\Throwable $e) {
+                $this->record(null, $type, 'email', $email, 'failed', $e->getMessage());
+            }
+        }
+
+        return $delivered;
+    }
+
     private function sendEverywhere(?OpsIncident $incident, string $type, string $severity, string $level, string $headline, string $detail, string $icon): void
     {
         $quiet = $severity === 'major' && !in_array($type, ['test', 'digest'], true) && $this->isQuietHour();

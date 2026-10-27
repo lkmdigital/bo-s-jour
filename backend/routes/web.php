@@ -4,6 +4,7 @@ use App\Http\Controllers\Ops\AudienceController as OpsAudienceController;
 use App\Http\Controllers\Ops\AuthController as OpsAuthController;
 use App\Http\Controllers\Ops\DashboardController as OpsDashboardController;
 use App\Http\Controllers\Ops\LogsController as OpsLogsController;
+use App\Http\Controllers\Ops\MegaBoController as OpsMegaBoController;
 use App\Http\Controllers\Ops\MonitoringController as OpsMonitoringController;
 use App\Http\Controllers\Ops\PaymentsController as OpsPaymentsController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +30,12 @@ Route::prefix('ops')->name('ops.')->group(function () {
         Route::get('/', [OpsDashboardController::class, 'index'])->name('dashboard');
 
         Route::get('/audience', [OpsAudienceController::class, 'index'])->name('audience.index');
+
+        Route::prefix('mega-bo')->name('megabo.')->group(function () {
+            Route::get('/', [OpsMegaBoController::class, 'index'])->name('index');
+            Route::post('/question', [OpsMegaBoController::class, 'ask'])->middleware('throttle:20,1')->name('ask');
+            Route::get('/rapports/{report}', [OpsMegaBoController::class, 'report'])->name('report');
+        });
 
         Route::prefix('supervision')->name('monitoring.')->group(function () {
             Route::get('/', [OpsMonitoringController::class, 'index'])->name('index');
