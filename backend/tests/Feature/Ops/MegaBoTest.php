@@ -160,6 +160,41 @@ class MegaBoTest extends TestCase
         $this->assertStringNotContainsString('<script>', $html);   // le HTML éventuel de l'IA est neutralisé
     }
 
+    public function test_ops_emails_use_the_brand_layout_escape_content_and_carry_a_text_version(): void
+    {
+        config(['mail.default' => 'array']);
+        Setting::set('ops_alert_emails', 'equipe@example.com', 'string', '');
+        $report = OpsMegaBoReport::create(['report_date' => now()->toDateString(), 'headline' => 'Tout va bien <b>', 'summary' => 's', 'body' => "## En bref\nTout va bien <script>alert(1)</script>"]);
+
+        $html = app(MegaBoReport::class)->emailHtml($report);
+
+        $this->assertStringContainsString('#FF0000', $html);                      // rouge de la charte
+        $this->assertStringContainsString('séjour</span>', $html);                // logotype boséjour
+        $this->assertStringContainsString('/images/mega-bo.png', $html);          // orbe de Mega Bo
+        $this->assertStringContainsString('07 06 40 29 29', $html);               // support WhatsApp dans le pied de page
+        $this->assertStringContainsString('<h2 style=', $html);                   // styles en ligne sur le Markdown
+        $this->assertStringNotContainsString('<script>', $html);
+        $this->assertStringContainsString('Tout va bien &lt;b&gt;', $html);       // titre échappé
+
+        app(MegaBoReport::class)->deliver($report);
+        $message = app('mailer')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+        $this->assertStringContainsString('boséjour', $message->getHtmlBody());
+        $this->assertStringContainsString('Tout va bien', $message->getTextBody());   // version texte présente
+    }
+
+    public function test_alert_emails_are_branded_with_a_level_colour_and_html_in_details_is_escaped(): void
+    {
+        $this->assertSame('critical', \App\Services\Ops\OpsMail::styleForLevel('CRITIQUE'));
+        $this->assertSame('major', \App\Services\Ops\OpsMail::styleForLevel('important'));
+        $this->assertSame('ok', \App\Services\Ops\OpsMail::styleForLevel('CRITIQUE', true));
+
+        $html = \App\Services\Ops\OpsMail::textToHtml("Ligne <img src=x onerror=alert(1)>\n• Voyageur : 99 %");
+
+        $this->assertStringNotContainsString('<img', $html);
+        $this->assertStringContainsString('&lt;img', $html);
+        $this->assertStringContainsString('Voyageur : 99 %', $html);
+    }
+
     public function test_command_does_not_send_when_sending_is_disabled(): void
     {
         Setting::set('anthropic_api_key', 'sk-test', 'string', '');

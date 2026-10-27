@@ -5,9 +5,9 @@ namespace App\Services\Ops\Monitor;
 use App\Models\Ops\OpsAlert;
 use App\Models\Ops\OpsIncident;
 use App\Models\Setting;
+use App\Services\Ops\OpsMail;
 use App\Services\WhatsAppService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * Envoi des alertes de supervision : WhatsApp (modèle approuvé par Meta, avec repli en texte libre) et
@@ -83,7 +83,7 @@ class AlertService
      *
      * @param array<int,string> $templateParams variables du modèle WhatsApp, dans l'ordre
      */
-    public function deliverReport(string $type, string $subject, string $html, string $template, array $templateParams, string $fallbackText): int
+    public function deliverReport(string $type, string $subject, string $html, string $emailText, string $template, array $templateParams, string $fallbackText): int
     {
         $delivered = 0;
 
@@ -109,7 +109,7 @@ class AlertService
 
         foreach ($this->emails() as $email) {
             try {
-                Mail::html($html, fn ($m) => $m->to($email)->subject($subject));
+                OpsMail::send($email, $subject, $html, $emailText);
                 $delivered++;
                 $this->record(null, $type, 'email', $email, 'sent');
             } catch (\Throwable $e) {
@@ -148,9 +148,19 @@ class AlertService
             $this->record($incident, $type, 'whatsapp', $phone, $sent ? 'sent' : 'failed', $error);
         }
 
+        $html = null;
         foreach ($this->emails() as $email) {
             try {
-                Mail::raw("$icon $level — $headline\n\n$detail\n\n— Supervision boséjour", fn ($m) => $m->to($email)->subject("[boséjour] $icon $level — " . mb_substr($headline, 0, 90)));
+                $html ??= OpsMail::render([
+                    'tag' => $type === 'resolved' ? 'Rétabli' : $level,
+                    'tagStyle' => OpsMail::styleForLevel($level, $type === 'resolved'),
+                    'title' => $headline,
+                    'content' => OpsMail::textToHtml($detail),
+                    'headerLabel' => 'Supervision',
+                    'preheader' => mb_substr(preg_replace('/\s+/', ' ', $detail), 0, 110),
+                    'button' => ['label' => 'Ouvrir la supervision', 'url' => url('/ops/supervision' . ($incident ? '/incidents' : ''))],
+                ]);
+                OpsMail::send($email, "[boséjour] $icon $level — " . mb_substr($headline, 0, 90), $html, "$icon $level — $headline\n\n$detail\n\n— Supervision boséjour");
                 $this->record($incident, $type, 'email', $email, 'sent');
             } catch (\Throwable $e) {
                 $this->record($incident, $type, 'email', $email, 'failed', $e->getMessage());

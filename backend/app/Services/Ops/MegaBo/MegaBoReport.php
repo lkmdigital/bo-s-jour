@@ -6,6 +6,7 @@ use App\Models\Ops\OpsMegaBoReport;
 use App\Models\Setting;
 use App\Services\AiModule;
 use App\Services\Ops\Monitor\AlertService;
+use App\Services\Ops\OpsMail;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -48,6 +49,7 @@ class MegaBoReport
             'mega_bo',
             "[boséjour] Rapport Mega Bo — $day",
             $this->emailHtml($report),
+            $this->emailText($report),
             self::TEMPLATE,
             [$day, $report->summary],
             "🤖 Mega Bo — rapport du $day\n{$report->summary}\n\nRapport complet : " . url('/ops/mega-bo/rapports/' . $report->id),
@@ -61,16 +63,27 @@ class MegaBoReport
 
     public function emailHtml(OpsMegaBoReport $report): string
     {
-        $html = Str::markdown($report->body, ['html_input' => 'escape', 'allow_unsafe_links' => false]);
-        $link = url('/ops/mega-bo/rapports/' . $report->id);
+        $body = Str::markdown($report->body, ['html_input' => 'escape', 'allow_unsafe_links' => false]);
 
-        return '<div style="font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:640px;margin:0 auto;color:#111;line-height:1.55">'
-            . '<p style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#888;margin:0 0 4px">Mega Bo · rapport du ' . e($report->report_date->format('d/m/Y')) . '</p>'
-            . '<h1 style="font-size:20px;margin:0 0 16px">' . e($report->headline) . '</h1>'
-            . $html
-            . '<hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0 12px">'
-            . '<p style="font-size:12px;color:#888">Rédigé par Mega Bo à partir des chiffres de la plateforme. Il peut se tromper : les chiffres de référence sont dans l\'espace Ops. '
-            . '<a href="' . e($link) . '" style="color:#c00">Voir le rapport en ligne</a></p></div>';
+        return OpsMail::render([
+            'tag' => 'Rapport quotidien',
+            'tagStyle' => 'ok',
+            'title' => $report->headline,
+            'subtitle' => 'Rapport du ' . $report->report_date->format('d/m/Y') . ', rédigé par Mega Bo',
+            'content' => OpsMail::styleMarkdown($body),
+            'headerLabel' => 'Mega Bo',
+            'orbUrl' => url('/images/mega-bo.png'),
+            'preheader' => $report->summary,
+            'button' => ['label' => 'Voir le rapport en ligne', 'url' => url('/ops/mega-bo/rapports/' . $report->id)],
+            'note' => "Rédigé par Mega Bo à partir des chiffres de la plateforme. Il peut se tromper : les chiffres de référence sont dans l'espace Ops.",
+        ]);
+    }
+
+    /** Version texte du même e-mail (le Markdown se lit très bien tel quel). */
+    public function emailText(OpsMegaBoReport $report): string
+    {
+        return "Mega Bo — rapport du " . $report->report_date->format('d/m/Y') . "\n\n{$report->headline}\n\n{$report->body}\n\n"
+            . 'Rapport en ligne : ' . url('/ops/mega-bo/rapports/' . $report->id) . "\n\n— Rédigé par Mega Bo. Il peut se tromper : les chiffres de référence sont dans l'espace Ops.";
     }
 
     private function systemPrompt(): string
