@@ -25,6 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
+        // Mesure d'audience (VisitTracker.tsx) : envoi anonyme, sans session ni cookie, qui n'écrit qu'une ligne
+        // de statistique. Sans cette exclusion, le middleware ci-dessus le classe « stateful » (il vient de
+        // bosejour.ci) et exige un jeton CSRF que le visiteur n'a pas : chaque visite recevait un 419.
+        $middleware->validateCsrfTokens(except: ['api/track']);
+
         // Middleware globaux de sécurité
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->append(\App\Http\Middleware\LogSecurityEvents::class);

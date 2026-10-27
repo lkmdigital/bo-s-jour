@@ -26,6 +26,23 @@ class OpsAudienceTest extends TestCase
         return $this->call('POST', '/api/track', [], [], [], $server, json_encode(['path' => $path, 'referrer' => $referrer]));
     }
 
+    /**
+     * Régression : depuis le passage aux cookies de session, toute requête venant du site est « stateful » pour Sanctum,
+     * donc soumise au CSRF. Laravel désactive ce contrôle pendant les tests, on vérifie donc directement l'exclusion :
+     * sans elle, chaque visite réelle recevait un 419 et la page Audience restait vide.
+     */
+    public function test_the_visit_endpoint_is_exempt_from_csrf_validation(): void
+    {
+        $middleware = app(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+        $inExcept = new \ReflectionMethod($middleware, 'inExceptArray');
+
+        $track = \Illuminate\Http\Request::create('/api/track', 'POST');
+        $other = \Illuminate\Http\Request::create('/api/bookings', 'POST');
+
+        $this->assertTrue($inExcept->invoke($middleware, $track), 'api/track doit échapper au CSRF');
+        $this->assertFalse($inExcept->invoke($middleware, $other), 'les autres routes restent protégées');
+    }
+
     public function test_a_page_view_is_recorded_with_device_browser_system_and_language(): void
     {
         $this->track('/accommodations/12?utm=x', self::PHONE, 'https://www.google.com/search?q=bosejour', ['Accept-Language' => 'fr-FR,fr;q=0.9'])->assertNoContent();
