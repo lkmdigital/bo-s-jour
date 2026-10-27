@@ -26,6 +26,7 @@
     $available = \App\Services\AiModule::configured();
 @endphp
 
+@include('ops.mega-bo._send-report')
 <template id="mbw-orb">@include('ops.mega-bo._orb', ['size' => 40])</template>
 
 <style>
@@ -146,6 +147,10 @@
         if (!st.messages.length) body.appendChild(welcome());
         st.messages.forEach((m, i) => {
             const r = row(m.role === 'user' ? 'user' : (m.error ? 'err' : 'bot'), m.role === 'user' ? esc(m.content) : md(m.content));
+            if (m.action && m.action.type === 'send_report') {
+                // Proposition d'envoi du rapport : l'état (en attente, envoyé, annulé) suit la conversation.
+                r.querySelector('.mbw-msg').appendChild(window.mboSend.card(m.action, m.actionState, s => { m.actionState = s; save(); }));
+            }
             if (i < st.messages.length - 1) r.style.animation = 'none'; // seul le dernier message apparaît en fondu
             body.appendChild(r);
         });
@@ -167,7 +172,7 @@
         try {
             const res = await fetch(URL_ASK, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': TOKEN }, body: JSON.stringify({ question: text, history, context: CONTEXT }) });
             const data = await res.json().catch(() => ({}));
-            if (res.ok && data.answer) { st.messages.push({ role: 'assistant', content: data.answer }); ok = true; }
+            if (res.ok && data.answer) { st.messages.push({ role: 'assistant', content: data.answer, action: data.action || null }); ok = true; }
             else st.messages.push({ role: 'assistant', error: true, content: data.error || 'Mega Bo n\'a pas pu répondre. Réessayez dans un instant.' });
         } catch (e) { st.messages.push({ role: 'assistant', error: true, content: 'Connexion impossible. Vérifiez votre réseau puis réessayez.' }); }
         loading = false; send.disabled = input.disabled = false; save(); render(); input.focus();

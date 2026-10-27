@@ -29,9 +29,16 @@ class MegaBoController extends Controller
         'alerts' => 'les Alertes', 'payments' => 'les Paiements', 'logs' => 'le Flux de logs', 'dashboard' => "la Vue d'ensemble",
     ];
 
-    public function index()
+    public function index(MegaBoReport $reports)
     {
+        $email = auth('web')->user()?->email;
+
         return view('ops.mega-bo.index', [
+            'sendOptions' => [
+                'team' => $reports->audienceSummary('team', $email),
+                'me' => $reports->audienceSummary('me', $email),
+            ],
+            'sendsLeft' => MegaBoReport::manualSendsLeft(),
             'available' => AiModule::configured(),
             'suggestions' => self::SUGGESTIONS,
             'reports' => OpsMegaBoReport::orderByDesc('report_date')->limit(14)->get(['id', 'report_date', 'headline', 'sent_at']),
@@ -39,7 +46,7 @@ class MegaBoController extends Controller
         ]);
     }
 
-    public function ask(Request $request, MegaBoService $bo)
+    public function ask(Request $request, MegaBoService $bo, MegaBoReport $reports)
     {
         $data = $request->validate([
             'question' => 'required|string|max:1000',
@@ -62,12 +69,37 @@ class MegaBoController extends Controller
                 $question = '(La personne consulte la page « ' . self::CONTEXTS[$data['context']] . " » de l'espace Ops.)\n" . $question;
             }
 
-            return response()->json(['answer' => $bo->ask($question, $data['history'] ?? [])]);
+            $answer = $bo->ask($question, $data['history'] ?? []);
+
+            // Proposition d'envoi du rapport : la personne la confirme d'un clic, rien n'est envoyé d'ici.
+            $action = null;
+            if ($proposal = $bo->proposedAction()) {
+                $action = $proposal + ['summary' => $reports->audienceSummary($proposal['audience'], auth('web')->user()?->email)];
+            }
+
+            return response()->json(['answer' => $answer, 'action' => $action]);
         } catch (\Throwable $e) {
             Log::error('Mega Bo : réponse impossible', ['error' => $e->getMessage()]);
 
             return response()->json(['error' => "Mega Bo n'a pas pu répondre pour le moment. Réessayez dans un instant."], 502);
         }
+    }
+
+    /** Envoi du rapport à la demande (bouton de la page, ou confirmation d'une proposition de Mega Bo dans le chat). */
+    public function send(Request $request, MegaBoReport $reports)
+    {
+        $data = $request->validate(['audience' => 'required|string|in:team,me']);
+
+        if (!AiModule::configured()) {
+            return response()->json(['ok' => false, 'error' => "Mega Bo n'est pas encore activé : la clé API Anthropic est absente."], 503);
+        }
+
+        // Rédaction par l'IA puis envois : on laisse le temps de finir.
+        set_time_limit(170);
+
+        $result = $reports->sendNow($data['audience'], auth('web')->user()?->email);
+
+        return response()->json($result, $result['ok'] ? 200 : 422);
     }
 
     public function report(OpsMegaBoReport $report)

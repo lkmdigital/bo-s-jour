@@ -238,6 +238,7 @@ class MegaBoTest extends TestCase
         $this->mock(MegaBoService::class, function ($m) {
             $m->shouldReceive('isConfigured')->andReturn(true);
             $m->shouldReceive('ask')->once()->with('Combien de visiteurs ?', [])->andReturn('12 visiteurs.');
+            $m->shouldReceive('proposedAction')->andReturn(null);
         });
         $this->postJson('/ops/mega-bo/question', ['question' => 'Combien de visiteurs ?'])->assertOk()->assertJson(['answer' => '12 visiteurs.']);
     }
@@ -248,6 +249,7 @@ class MegaBoTest extends TestCase
         $this->mock(MegaBoService::class, function ($m) {
             $m->shouldReceive('isConfigured')->andReturn(true);
             $m->shouldReceive('ask')->once()->withArgs(fn ($q, $h) => str_contains($q, "page « l'Audience »") && str_ends_with($q, 'Et hier ?'))->andReturn('ok');
+            $m->shouldReceive('proposedAction')->andReturn(null);
         });
 
         $this->postJson('/ops/mega-bo/question', ['question' => 'Et hier ?', 'context' => 'audience'])->assertOk();
@@ -265,5 +267,128 @@ class MegaBoTest extends TestCase
         $this->get('/ops/audience')->assertSee('Combien de visiteurs cette semaine ?');         // suggestions de la page
         $this->get('/ops/supervision/incidents')->assertSee(json_encode('Résume les incidents de la semaine'), false);   // transmis au script en JSON
         $this->get('/ops/mega-bo')->assertOk()->assertDontSee('mbw-launcher', false);
+    }
+
+    // --- Envoi du rapport à la demande (bouton et confirmation depuis le chat) ---------------------------------------
+
+    private function readyToSend(int $reports = 1): User
+    {
+        Mail::fake();
+        Setting::set('anthropic_api_key', 'sk-ant-test', 'string');
+        Setting::set('ops_alert_emails', 'equipe@example.com,client@example.com', 'string', '');
+        Setting::set('ops_alert_phones', '2250161133466', 'string', '');
+        $this->mock(MegaBoService::class, fn ($m) => $m->shouldReceive('complete')->times($reports)->andReturn('{"headline":"Titre du jour","whatsapp":"Tout va bien.","report":"## En bref\nTout va bien."}'));
+
+        return tap(User::factory()->create(['role' => 'admin', 'email' => 'moi@example.com']), fn ($u) => $this->actingAs($u, 'web'));
+    }
+
+    public function test_sending_the_report_to_myself_only_emails_me_and_does_not_mark_it_sent_to_the_team(): void
+    {
+        $this->readyToSend();
+        $this->mock(WhatsAppService::class)->shouldNotReceive('sendTemplate');
+
+        $this->postJson('/ops/mega-bo/envoyer', ['audience' => 'me'])->assertOk()->assertJson(['ok' => true, 'sent' => 1]);
+
+        $this->assertSame(['moi@example.com'], OpsAlert::where('type', 'mega_bo')->where('channel', 'email')->pluck('recipient')->all());
+        $this->assertSame(0, OpsAlert::where('channel', 'whatsapp')->count());
+        $this->assertNull(OpsMegaBoReport::first()->sent_at);
+    }
+
+    public function test_sending_the_report_to_the_team_reaches_every_recipient_and_marks_it_sent(): void
+    {
+        $this->readyToSend();
+        $this->mock(WhatsAppService::class)->shouldReceive('sendTemplate')->once()->andReturn(true);
+
+        $this->postJson('/ops/mega-bo/envoyer', ['audience' => 'team'])->assertOk()->assertJson(['ok' => true, 'sent' => 3, 'left' => 4]);
+
+        $this->assertEqualsCanonicalizing(['equipe@example.com', 'client@example.com'], OpsAlert::where('channel', 'email')->pluck('recipient')->all());
+        $this->assertNotNull(OpsMegaBoReport::first()->sent_at);
+    }
+
+    public function test_a_recent_report_is_reused_so_previewing_then_sending_does_not_write_it_twice(): void
+    {
+        $this->readyToSend(1);   // une seule rédaction pour deux envois
+        $this->mock(WhatsAppService::class)->shouldReceive('sendTemplate')->andReturn(true);
+
+        $this->postJson('/ops/mega-bo/envoyer', ['audience' => 'me'])->assertOk();
+        $this->postJson('/ops/mega-bo/envoyer', ['audience' => 'team'])->assertOk();
+
+        $this->assertSame(1, OpsMegaBoReport::count());
+    }
+
+    public function test_manual_sends_are_capped_per_day(): void
+    {
+        config(['ops.max_manual_report_sends_per_day' => 1]);
+        $this->readyToSend();
+
+        $this->postJson('/ops/mega-bo/envoyer', ['audience' => 'me'])->assertOk()->assertJson(['left' => 0]);
+        $this->postJson('/ops/mega-bo/envoyer', ['audience' => 'me'])->assertStatus(422)->assertJsonPath('ok', false)->assertSee('Limite atteinte');
+        $this->assertSame(1, OpsAlert::where('channel', 'email')->count());   // le second n'est pas parti
+    }
+
+    public function test_the_send_endpoint_is_for_admins_only_and_refuses_unknown_audiences_or_a_missing_key(): void
+    {
+        $this->post('/ops/mega-bo/envoyer', ['audience' => 'team'])->assertRedirect(route('ops.login'));
+
+        $this->actingAs(User::factory()->create(['role' => 'admin']), 'web');
+        $this->postJson('/ops/mega-bo/envoyer', ['audience' => 'tout le monde'])->assertStatus(422);
+        $this->postJson('/ops/mega-bo/envoyer', ['audience' => 'team'])->assertStatus(503);   // pas de clé API
+    }
+
+    public function test_sending_to_the_team_without_recipients_is_refused_before_anything_is_written(): void
+    {
+        Setting::set('anthropic_api_key', 'sk-ant-test', 'string');
+        $this->actingAs(User::factory()->create(['role' => 'admin']), 'web');
+        $this->mock(MegaBoService::class)->shouldNotReceive('complete');
+
+        $this->postJson('/ops/mega-bo/envoyer', ['audience' => 'team'])->assertStatus(422)->assertSee('Aucun destinataire');
+        $this->assertSame(0, OpsMegaBoReport::count());
+    }
+
+    public function test_mega_bo_can_only_propose_the_send_and_never_sends_by_itself(): void
+    {
+        Mail::fake();
+        $this->mock(WhatsAppService::class)->shouldNotReceive('sendTemplate');
+        $bo = app(MegaBoService::class);
+        $tool = new \ReflectionMethod($bo, 'executeTool');
+
+        $tool->invoke($bo, 'propose_report_send', ['audience' => 'team']);
+        $this->assertSame(['type' => 'send_report', 'audience' => 'team'], $bo->proposedAction());
+
+        $tool->invoke($bo, 'propose_report_send', ['audience' => 'tous les clients et le monde entier']);   // jamais un destinataire choisi par l'IA
+        $this->assertSame('me', $bo->proposedAction()['audience']);
+
+        $this->assertSame(0, OpsAlert::count());
+        $this->assertSame(0, OpsMegaBoReport::count());
+    }
+
+    public function test_the_answer_carries_the_proposal_with_who_would_receive_it(): void
+    {
+        Setting::set('ops_alert_emails', 'equipe@example.com,client@example.com', 'string', '');
+        Setting::set('ops_alert_phones', '2250161133466', 'string', '');
+        $this->actingAs(User::factory()->create(['role' => 'admin', 'email' => 'moi@example.com']), 'web');
+        $this->mock(MegaBoService::class, function ($m) {
+            $m->shouldReceive('isConfigured')->andReturn(true);
+            $m->shouldReceive('ask')->once()->andReturn("C'est prêt : confirmez avec le bouton.");
+            $m->shouldReceive('proposedAction')->andReturn(['type' => 'send_report', 'audience' => 'team']);
+        });
+
+        $this->postJson('/ops/mega-bo/question', ['question' => "Envoie le rapport à l'équipe"])
+            ->assertOk()
+            ->assertJsonPath('action.type', 'send_report')
+            ->assertJsonPath('action.audience', 'team')
+            ->assertJsonPath('action.summary', "à toute l'équipe et au client : 2 adresses e-mail et 1 numéro WhatsApp");
+        $this->assertSame(0, OpsAlert::count());   // proposer n'envoie rien
+    }
+
+    public function test_the_page_offers_the_send_buttons_with_the_remaining_count(): void
+    {
+        Setting::set('anthropic_api_key', 'sk-ant-test', 'string');
+        $this->actingAs(User::factory()->create(['role' => 'admin', 'email' => 'moi@example.com']), 'web');
+
+        $this->get('/ops/mega-bo')->assertOk()
+            ->assertSee('Envoyer le rapport maintenant')
+            ->assertSee('Il reste 5 envois manuels aujourd')
+            ->assertSee('moi@example.com');
     }
 }

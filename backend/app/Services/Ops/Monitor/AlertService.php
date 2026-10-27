@@ -82,12 +82,15 @@ class AlertService
      * texte libre) et e-mail. Retourne le nombre d'envois réussis, tous canaux confondus.
      *
      * @param array<int,string> $templateParams variables du modèle WhatsApp, dans l'ordre
+     * @param string|null $onlyEmail si renseigné, le rapport n'est envoyé qu'à cette adresse (pas de WhatsApp, pas de liste)
      */
-    public function deliverReport(string $type, string $subject, string $html, string $emailText, string $template, array $templateParams, string $fallbackText): int
+    public function deliverReport(string $type, string $subject, string $html, string $emailText, string $template, array $templateParams, string $fallbackText, ?string $onlyEmail = null): int
     {
         $delivered = 0;
+        $phones = $onlyEmail === null ? $this->phones() : [];
+        $emails = $onlyEmail === null ? $this->emails() : [$onlyEmail];
 
-        foreach ($this->phones() as $phone) {
+        foreach ($phones as $phone) {
             if ($this->whatsappBudgetExhausted()) {
                 $this->record(null, $type, 'whatsapp', $phone, 'skipped', 'plafond horaire atteint');
                 continue;
@@ -107,7 +110,7 @@ class AlertService
             $this->record(null, $type, 'whatsapp', $phone, $sent ? 'sent' : 'failed', $error);
         }
 
-        foreach ($this->emails() as $email) {
+        foreach ($emails as $email) {
             try {
                 OpsMail::send($email, $subject, $html, $emailText);
                 $delivered++;

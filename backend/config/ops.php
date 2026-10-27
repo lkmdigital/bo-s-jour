@@ -44,5 +44,7 @@ return [
     'log_window_minutes' => 30,
     'reminder_every_minutes' => 60,
     'max_whatsapp_alerts_per_hour' => 6,
+    // Envois du rapport de Mega Bo déclenchés à la main (bouton ou chat), par jour : chaque rédaction est facturée par Anthropic.
+    'max_manual_report_sends_per_day' => 5,
     'result_retention_days' => 30,
 ];

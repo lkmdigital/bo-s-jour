@@ -8,6 +8,8 @@ use App\Services\AiModule;
 use App\Services\Ops\Monitor\AlertService;
 use App\Services\Ops\OpsMail;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -41,8 +43,97 @@ class MegaBoReport
         );
     }
 
-    /** Envoie le rapport par WhatsApp et e-mail. Retourne le nombre d'envois réussis. */
-    public function deliver(OpsMegaBoReport $report): int
+    /** Un rapport rédigé depuis moins de ce délai est réutilisé par un envoi manuel : pas de seconde facture, et le même texte part à tous. */
+    private const REUSE_MINUTES = 30;
+
+    private static function manualCounterKey(): string
+    {
+        return 'ops:mega-bo:manual-sends:' . now('Africa/Abidjan')->toDateString();
+    }
+
+    public static function manualSendsLeft(): int
+    {
+        return max(0, (int) config('ops.max_manual_report_sends_per_day') - (int) Cache::get(self::manualCounterKey(), 0));
+    }
+
+    /** À qui partirait l'envoi, en une phrase : affichée avant la confirmation. */
+    public function audienceSummary(string $audience, ?string $myEmail): string
+    {
+        if ($audience !== 'team') {
+            return 'à vous seul, par e-mail' . ($myEmail ? " ($myEmail)" : '');
+        }
+
+        $parts = [];
+        if ($n = count($this->alerts->emails())) {
+            $parts[] = $n . ' adresse' . ($n > 1 ? 's' : '') . ' e-mail';
+        }
+        if ($n = count($this->alerts->phones())) {
+            $parts[] = $n . ' numéro' . ($n > 1 ? 's' : '') . ' WhatsApp';
+        }
+
+        return 'à toute l\'équipe et au client : ' . ($parts ? implode(' et ', $parts) : 'aucun destinataire enregistré');
+    }
+
+    /**
+     * Rédige (ou reprend, si elle date de moins de 30 minutes) le rapport du jour et l'envoie à la demande.
+     * « team » : tous les destinataires enregistrés (WhatsApp et e-mail) ; « me » : un seul e-mail, pour relire avant.
+     *
+     * @return array{ok:bool,sent?:int,error?:string,url?:string,left?:int}
+     */
+    public function sendNow(string $audience, ?string $myEmail): array
+    {
+        $audience = $audience === 'team' ? 'team' : 'me';
+
+        if ($audience === 'me' && !filter_var($myEmail, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'error' => "Votre adresse e-mail est introuvable : envoyez le rapport à l'équipe, ou renseignez-la dans votre compte."];
+        }
+        if ($audience === 'team' && !$this->alerts->emails() && !$this->alerts->phones()) {
+            return ['ok' => false, 'error' => "Aucun destinataire n'est enregistré : ajoutez-en dans Ops > Alertes."];
+        }
+        if (self::manualSendsLeft() <= 0) {
+            return ['ok' => false, 'error' => 'Limite atteinte : ' . config('ops.max_manual_report_sends_per_day') . " envois manuels par jour. Le rapport reste lisible dans la liste, et l'envoi automatique de demain matin n'est pas concerné."];
+        }
+
+        $lock = Cache::lock('ops:mega-bo:manual-send', 180);
+        if (!$lock->get()) {
+            return ['ok' => false, 'error' => 'Un envoi est déjà en cours : patientez une minute.'];
+        }
+
+        try {
+            $today = now('Africa/Abidjan');
+            $report = OpsMegaBoReport::whereDate('report_date', $today->toDateString())->first();
+            if (!$report || $report->updated_at->lt(now()->subMinutes(self::REUSE_MINUTES))) {
+                $report = $this->generate($today);
+            }
+
+            // Un envoi « à moi » ne doit pas effacer la trace de l'envoi de l'équipe.
+            $previousSentAt = $report->sent_at;
+            $sent = $this->deliver($report, $audience === 'me' ? $myEmail : null);
+            if ($audience === 'me' && $previousSentAt) {
+                $report->update(['sent_at' => $previousSentAt]);
+            }
+
+            Cache::put(self::manualCounterKey(), (int) Cache::get(self::manualCounterKey(), 0) + 1, $today->copy()->endOfDay());
+            Log::channel('single')->info('Mega Bo : rapport envoyé à la demande', ['destinataires' => $audience, 'envois' => $sent]);
+
+            return $sent > 0
+                ? ['ok' => true, 'sent' => $sent, 'url' => route('ops.megabo.report', $report), 'left' => self::manualSendsLeft()]
+                : ['ok' => false, 'url' => route('ops.megabo.report', $report), 'error' => "Le rapport est rédigé, mais aucun message n'a pu partir : voir Ops > Alertes."];
+        } catch (\Throwable $e) {
+            Log::error('Mega Bo : envoi à la demande impossible', ['error' => $e->getMessage()]);
+
+            return ['ok' => false, 'error' => "Mega Bo n'a pas pu rédiger le rapport pour le moment. Réessayez dans un instant."];
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * Envoie le rapport par WhatsApp et e-mail. Retourne le nombre d'envois réussis.
+     *
+     * @param string|null $onlyEmail si renseigné, un seul e-mail à cette adresse (relecture) : le rapport n'est pas marqué « envoyé »
+     */
+    public function deliver(OpsMegaBoReport $report, ?string $onlyEmail = null): int
     {
         $day = $report->report_date->format('d/m/Y');
         $sent = $this->alerts->deliverReport(
@@ -53,8 +144,9 @@ class MegaBoReport
             self::TEMPLATE,
             [$day, $report->summary],
             "🤖 Mega Bo — rapport du $day\n{$report->summary}\n\nRapport complet : " . url('/ops/mega-bo/rapports/' . $report->id),
+            $onlyEmail,
         );
-        if ($sent > 0) {
+        if ($sent > 0 && $onlyEmail === null) {
             $report->update(['sent_at' => now()]);
         }
 

@@ -34,6 +34,7 @@ Route::prefix('ops')->name('ops.')->group(function () {
         Route::prefix('mega-bo')->name('megabo.')->group(function () {
             Route::get('/', [OpsMegaBoController::class, 'index'])->name('index');
             Route::post('/question', [OpsMegaBoController::class, 'ask'])->middleware('throttle:20,1')->name('ask');
+            Route::post('/envoyer', [OpsMegaBoController::class, 'send'])->middleware('throttle:6,1')->name('send');
             Route::get('/rapports/{report}', [OpsMegaBoController::class, 'report'])->name('report');
         });
 

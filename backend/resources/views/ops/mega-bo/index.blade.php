@@ -22,6 +22,7 @@
     .mb-form textarea { flex:1; resize:none; border:1px solid #d1d5db; border-radius:12px; padding:10px 12px; font-size:14px; max-height:120px; }
     .mb-form button { border-radius:12px; background:#111; color:#fff; font-weight:600; padding:0 20px; }
     .mb-form button:disabled { opacity:.5; cursor:wait; }
+    #mb-send-box .mbs-card { flex:1 1 100%; margin-top:0; }
     .mb-dots span { display:inline-block; width:6px; height:6px; margin-right:4px; border-radius:50%; background:#9ca3af; animation:mb-b 1s infinite; }
     .mb-dots span:nth-child(2){animation-delay:.15s} .mb-dots span:nth-child(3){animation-delay:.3s}
     @keyframes mb-b { 0%,80%,100%{transform:translateY(0);opacity:.5} 40%{transform:translateY(-4px);opacity:1} }
@@ -30,6 +31,7 @@
 @endpush
 
 @section('content')
+@include('ops.mega-bo._send-report')
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
     <div class="xl:col-span-2 ops-card mb-chat" style="overflow:hidden">
         <div id="mb-log" class="mb-log" aria-live="polite">
@@ -55,6 +57,22 @@
     </div>
 
     <div class="space-y-6">
+        <div class="ops-card p-5 text-sm">
+            <h2 class="font-bold mb-1">Envoyer le rapport maintenant</h2>
+            <p class="text-gray-600 mb-3">Mega Bo rédige le rapport à l'instant puis l'envoie. Pour le relire avant, envoyez-le d'abord à vous seul.</p>
+            <div id="mb-send-box" class="flex flex-wrap gap-2">
+                <button type="button" class="mbs-btn go" data-audience="team" {{ $available && $sendsLeft > 0 ? '' : 'disabled' }}>Envoyer à l'équipe et au client</button>
+                <button type="button" class="mbs-btn no" data-audience="me" {{ $available && $sendsLeft > 0 ? '' : 'disabled' }}>Me l'envoyer par e-mail</button>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">
+                @if ($sendsLeft > 0)
+                    Il reste {{ $sendsLeft }} envoi{{ $sendsLeft > 1 ? 's' : '' }} manuel{{ $sendsLeft > 1 ? 's' : '' }} aujourd'hui. Une confirmation est demandée avant chaque envoi.
+                @else
+                    Limite d'envois manuels atteinte pour aujourd'hui. L'envoi automatique de demain matin n'est pas concerné.
+                @endif
+            </p>
+        </div>
+
         <div class="ops-card p-5 text-sm">
             <h2 class="font-bold mb-1">Rapport quotidien</h2>
             <p class="text-gray-600 mb-3">
@@ -119,7 +137,11 @@
             const data = await res.json().catch(() => ({}));
             wait.remove();
             if (!res.ok || !data.answer) { add('error', esc(data.error || 'Mega Bo n\'a pas pu répondre. Réessayez dans un instant.')); }
-            else { add('bot', render(data.answer)); history.push({ role: 'user', content: question }, { role: 'assistant', content: data.answer }); }
+            else {
+                const bubble = add('bot', render(data.answer));
+                if (data.action && data.action.type === 'send_report') bubble.appendChild(window.mboSend.card(data.action));
+                history.push({ role: 'user', content: question }, { role: 'assistant', content: data.answer });
+            }
         } catch (e) { wait.remove(); add('error', 'Connexion impossible. Vérifiez votre réseau puis réessayez.'); }
         send.disabled = input.disabled = false; input.focus();
     }
@@ -127,6 +149,14 @@
     input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(input.value); } });
     input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
     document.querySelectorAll('.mb-chip').forEach(b => b.addEventListener('click', () => ask(b.dataset.q)));
+
+    // Envoi du rapport à la demande : un clic ouvre la confirmation, qui rappelle à qui il partira.
+    const box = document.getElementById('mb-send-box'), options = @json($sendOptions);
+    const buttons = [...box.children];
+    const restore = () => box.replaceChildren(...buttons);
+    buttons.forEach(b => b.addEventListener('click', () => {
+        box.replaceChildren(window.mboSend.card({ audience: b.dataset.audience, summary: options[b.dataset.audience] }, null, null, restore));
+    }));
 })();
 </script>
 @endsection
