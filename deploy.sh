@@ -53,7 +53,7 @@ BACKEND_DIR=""
 FRONTEND_DIR=""
 API_URL=""
 FRONTEND_URL=""
-PHP_SERVICE="php8.2-fpm"
+PHP_SERVICE="php8.4-fpm"
 NGINX_SERVICE="nginx"
 PM2_APP="monbeaupays-frontend"
 

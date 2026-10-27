@@ -47,7 +47,7 @@ Vérifier :
 journalctl -u nginx -f --no-pager -n 50
 
 # Logs du service PHP-FPM (adapter le nom du service si besoin)
-journalctl -u php8.2-fpm -f --no-pager -n 50
+journalctl -u php8.4-fpm -f --no-pager -n 50
 ```
 
 Si tu vois des lignes, elles sont déjà dans le journal et seront visibles dans l’onglet Logs de Netdata (une fois le nœud connecté à Netdata Cloud).
@@ -68,7 +68,7 @@ journalctl -f
 journalctl -u nginx -f
 
 # PHP-FPM
-journalctl -u php8.2-fpm -f
+journalctl -u php8.4-fpm -f
 
 # Netdata
 journalctl -u netdata -f
@@ -138,7 +138,7 @@ Ensuite, dans l’onglet Logs de Netdata, filtre par `SYSLOG_IDENTIFIER=laravel`
 |--------|----------|
 | Version Netdata | `netdata -v` |
 | Logs Nginx (temps réel) | `journalctl -u nginx -f` |
-| Logs PHP-FPM (temps réel) | `journalctl -u php8.2-fpm -f` |
+| Logs PHP-FPM (temps réel) | `journalctl -u php8.4-fpm -f` |
 | Logs Netdata | `journalctl -u netdata -f` |
 | Dernières erreurs système | `journalctl -p err -n 100` |
 | Logs Laravel (fichier) | `tail -f /var/www/monbeaupays-backend/storage/logs/laravel.log` |
