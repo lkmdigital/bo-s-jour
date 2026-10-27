@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Ops;
 
+use App\Models\Booking;
 use App\Models\Ops\OpsAlert;
 use App\Models\Ops\OpsMegaBoReport;
+use App\Models\Payment;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\Ops\MegaBo\MegaBoData;
@@ -54,6 +56,40 @@ class MegaBoTest extends TestCase
         $this->assertSame(0, $a['visitors']);
         $this->assertSame(0, $a['days_with_data']);
         $this->assertNull($a['measurement_started']);
+    }
+
+    public function test_direct_access_keeps_its_label(): void
+    {
+        $this->visit('/');
+
+        $this->assertSame('Accès direct', app(MegaBoData::class)->audience('7d')['sources'][0]['source']);
+    }
+
+    public function test_browser_journeys_are_not_listed_among_slow_checks_but_their_failures_are_counted(): void
+    {
+        DB::table('ops_check_results')->insert([
+            ['check_key' => 'browser.traveler', 'profile' => 'traveler', 'kind' => 'browser', 'status' => 'ok', 'duration_ms' => 30000, 'created_at' => now()],
+            ['check_key' => 'browser.traveler', 'profile' => 'traveler', 'kind' => 'browser', 'status' => 'fail', 'duration_ms' => 9000, 'created_at' => now()],
+            ['check_key' => 'api.home', 'profile' => 'system', 'kind' => 'api', 'status' => 'ok', 'duration_ms' => 400, 'created_at' => now()],
+        ]);
+
+        $m = app(MegaBoData::class)->monitoring(1);
+
+        $this->assertSame(['api.home'], array_column($m['slowest_checks'], 'check'));
+        $this->assertSame([['profile' => 'traveler', 'runs' => 2, 'failures' => 1]], $m['browser_journeys']);
+    }
+
+    public function test_cancellations_of_unpaid_bookings_are_told_apart_from_paid_ones(): void
+    {
+        $user = User::factory()->create();
+        $unpaid = Booking::factory()->for($user)->create(['status' => 'cancelled']);
+        $paid = Booking::factory()->for($user)->create(['status' => 'cancelled']);
+        Payment::create(['booking_id' => $paid->id, 'user_id' => $user->id, 'amount' => 5000, 'status' => 'completed', 'purpose' => 'full', 'payment_method' => 'wave-ci', 'payment_reference' => 'REF-MEGABO-1']);
+
+        $b = app(MegaBoData::class)->business(1)['current'];
+
+        $this->assertSame(2, $b['bookings_cancelled']);
+        $this->assertSame(1, $b['bookings_cancelled_that_had_been_paid']);
     }
 
     public function test_snapshot_contains_no_email_or_phone_from_incidents(): void

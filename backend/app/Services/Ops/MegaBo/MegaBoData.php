@@ -61,7 +61,7 @@ class MegaBoData
             ];
         }
 
-        $slowest = OpsCheckResult::where('created_at', '>=', $since)->where('duration_ms', '>', 0)
+        $slowest = OpsCheckResult::where('created_at', '>=', $since)->where('duration_ms', '>', 0)->where('kind', '!=', 'browser')
             ->selectRaw("check_key, count(*) as runs, round(avg(duration_ms)) as avg_ms, max(duration_ms) as max_ms, sum(case when status = 'fail' then 1 else 0 end) as failures")
             ->groupBy('check_key')->orderByDesc('avg_ms')->limit(6)->get()
             ->map(fn ($c) => ['check' => $c->check_key, 'runs' => (int) $c->runs, 'avg_ms' => (int) $c->avg_ms, 'max_ms' => (int) $c->max_ms, 'failures' => (int) $c->failures]);
@@ -70,6 +70,11 @@ class MegaBoData
             'period_days' => $days,
             'availability' => $availability,
             'slowest_checks' => $slowest->all(),
+            // Parcours simulés dans un vrai navigateur : leur durée de 20 à 40 s est NORMALE (ils enchaînent tout un parcours),
+            // seuls leurs échecs comptent.
+            'browser_journeys' => OpsCheckResult::where('created_at', '>=', $since)->where('kind', 'browser')
+                ->selectRaw("profile, count(*) as runs, sum(case when status = 'fail' then 1 else 0 end) as failures")->groupBy('profile')->get()
+                ->map(fn ($j) => ['profile' => $j->profile, 'runs' => (int) $j->runs, 'failures' => (int) $j->failures])->all(),
             'incidents' => $this->incidentSummary($since),
             'open_incidents_now' => OpsIncident::where('status', 'open')->orderBy('first_seen_at')->limit(8)->get()->map(fn ($i) => $this->incident($i))->all(),
         ];
@@ -162,10 +167,14 @@ class MegaBoData
             ->where(fn ($q) => $q->whereNull('users.is_synthetic')->orWhere('users.is_synthetic', false));
 
         $payments = $real(DB::table('payments')->where('payments.status', 'completed')->whereBetween('payments.created_at', [$from, $to]), 'payments');
+        $cancelled = $real(DB::table('bookings')->where('bookings.status', 'cancelled')->whereBetween('bookings.updated_at', [$from, $to]), 'bookings');
 
         return [
             'booking_requests' => $real(DB::table('bookings')->whereBetween('bookings.created_at', [$from, $to]), 'bookings')->count(),
-            'bookings_cancelled' => $real(DB::table('bookings')->where('bookings.status', 'cancelled')->whereBetween('bookings.updated_at', [$from, $to]), 'bookings')->count(),
+            'bookings_cancelled' => $cancelled->count(),
+            // Les réservations jamais payées sont annulées automatiquement à l'expiration : un pic d'annulations
+            // sans paiement est un nettoyage, pas un problème. Seules celles qui avaient été payées méritent l'attention.
+            'bookings_cancelled_that_had_been_paid' => (clone $cancelled)->whereExists(fn ($q) => $q->select(DB::raw(1))->from('payments as p')->whereColumn('p.booking_id', 'bookings.id')->where('p.status', 'completed'))->count(),
             'successful_payments' => (clone $payments)->count(),
             'amount_paid_fcfa' => (int) round((float) (clone $payments)->sum('payments.amount')),
             'new_accounts' => DB::table('users')->whereBetween('created_at', [$from, $to])->where(fn ($q) => $q->whereNull('is_synthetic')->orWhere('is_synthetic', false))->count(),
@@ -180,6 +189,10 @@ class MegaBoData
 
     private function cleanHost(string $host): string
     {
+        if ($host === 'Accès direct') {
+            return $host; // libellé produit par AudienceReport quand il n'y a pas de site de provenance
+        }
+
         return preg_match('/^[A-Za-z0-9.\-]{1,60}$/', $host) ? $host : 'Autre';
     }
 
