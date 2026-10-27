@@ -7,6 +7,7 @@ import { isAdminOrController } from '@/lib/userUtils';
 import AdminSidebar from '@/components/dashboard/admin/AdminSidebar';
 import AdminNotificationBell from '@/components/dashboard/admin/AdminNotificationBell';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import AdminAssistant from '@/components/ai/AdminAssistant';
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -49,6 +50,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         </div>
         <main className="flex-1 min-w-0 p-4 lg:p-8 pt-2 lg:pt-4">{children}</main>
       </div>
+      <AdminAssistant />
     </div>
   );
 }

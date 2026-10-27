@@ -28,10 +28,14 @@ class AdminAiController extends Controller
 
         $data = $request->validate([
             'question' => 'required|string|min:3|max:500',
+            // Échanges précédents de la conversation en cours (bulle de discussion)
+            'history' => 'sometimes|array|max:' . AdminAiAssistantService::MAX_HISTORY_MESSAGES,
+            'history.*.role' => 'required_with:history|string|in:user,assistant',
+            'history.*.content' => 'required_with:history|string|max:4000',
         ]);
 
         try {
-            $answer = $assistant->ask($data['question']);
+            $answer = $assistant->ask($data['question'], $data['history'] ?? []);
             return response()->json(['data' => ['answer' => $answer]]);
         } catch (\Throwable $e) {
             Log::error('Erreur assistant IA admin', ['error' => $e->getMessage()]);

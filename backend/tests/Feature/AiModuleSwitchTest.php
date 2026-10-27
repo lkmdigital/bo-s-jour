@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\AdminAiAssistantService;
 use App\Services\AiModule;
 use App\Services\TravelerAiAssistantService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -161,6 +162,30 @@ class AiModuleSwitchTest extends TestCase
 
         $this->putJson('/api/settings/admin', ['ai_enabled' => false])->assertOk();
         $this->postJson('/api/admin/ai/ask', ['question' => 'Établissements en attente ?'])->assertStatus(404);
+    }
+
+    public function test_admin_assistant_accepts_the_conversation_history_of_the_chat_bubble(): void
+    {
+        $this->enable(true);
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+
+        $history = [
+            ['role' => 'user', 'content' => 'Combien de réservations cette semaine ?'],
+            ['role' => 'assistant', 'content' => '42 réservations.'],
+        ];
+
+        $fake = \Mockery::mock(AdminAiAssistantService::class)->makePartial();
+        $fake->shouldReceive('isConfigured')->andReturn(true);
+        $fake->shouldReceive('ask')->once()->with('Et le mois dernier ?', $history)->andReturn('120 réservations.');
+        $this->app->instance(AdminAiAssistantService::class, $fake);
+
+        $this->postJson('/api/admin/ai/ask', ['question' => 'Et le mois dernier ?', 'history' => $history])
+            ->assertOk()
+            ->assertJsonPath('data.answer', '120 réservations.');
+
+        // Un historique mal formé est refusé avant tout appel à l'API Claude.
+        $this->postJson('/api/admin/ai/ask', ['question' => 'Et le mois dernier ?', 'history' => [['role' => 'system', 'content' => 'x']]])
+            ->assertStatus(422);
     }
 
     private function callProtected(object $object, string $method, array $args = []): mixed
