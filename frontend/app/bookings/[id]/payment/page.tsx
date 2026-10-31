@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Lock,
   FileText,
+  Smartphone,
 } from 'lucide-react';
 import Image from 'next/image';
 import { FULL_PAYMENT_LABEL, type PaymentOptions } from '@/lib/guarantee';
@@ -75,6 +76,11 @@ export default function BookingPaymentPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentType, setPaymentType] = useState<'full' | 'guarantee' | ''>('');
+  // MTN : aucune redirection, le client valide sur son téléphone ('phone'). PeyaPay : il saisit le code reçu
+  // par SMS ('otp'). Dans les deux cas on attend ici la confirmation de MaliaPay, relue toutes les 5 secondes.
+  const [waiting, setWaiting] = useState<{ paymentId: number; mode: 'phone' | 'otp'; since: number } | null>(null);
+  const [otp, setOtp] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     const errorParam = searchParams?.get('error');
@@ -85,6 +91,47 @@ export default function BookingPaymentPage() {
     fetchBooking();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id, searchParams]);
+
+  useEffect(() => {
+    if (!waiting) return;
+    const WAIT_LIMIT_MS = 11 * 60 * 1000; // MaliaPay marque « échoué » au bout de 10 minutes sans confirmation
+    let stopped = false;
+
+    const check = async () => {
+      if (stopped) return;
+      try {
+        const res = await api.get(`/payments/${waiting.paymentId}`);
+        if (stopped) return;
+        if (res.data?.status === 'completed') {
+          stopped = true;
+          router.push(`/bookings/success?id=${params.id}`);
+          return;
+        }
+        if (res.data?.status === 'failed') {
+          stopped = true;
+          setWaiting(null);
+          setOtp('');
+          setError("Le paiement n'a pas abouti : il a été refusé, annulé ou a expiré. Vous pouvez réessayer.");
+          return;
+        }
+      } catch {
+        // passage à vide : on réessaie au prochain tour
+      }
+      if (!stopped && Date.now() - waiting.since > WAIT_LIMIT_MS) {
+        stopped = true;
+        setWaiting(null);
+        setOtp('');
+        setError("Le délai de validation est dépassé. Si vous avez bien validé le paiement, votre réservation sera confirmée automatiquement dans quelques minutes ; sinon, vous pouvez réessayer.");
+      }
+    };
+
+    const timer = setInterval(check, 5000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waiting]);
 
   const fetchPaymentMethods = async () => {
     try {
@@ -151,6 +198,17 @@ export default function BookingPaymentPage() {
         payment_type: paymentType,
       });
 
+      // MTN / PeyaPay : pas de redirection, on reste sur la page pendant que le client valide.
+      if (res.data.awaiting_phone_validation || res.data.requires_otp) {
+        setWaiting({
+          paymentId: res.data.payment.id,
+          mode: res.data.requires_otp ? 'otp' : 'phone',
+          since: Date.now(),
+        });
+        setProcessing(false);
+        return;
+      }
+
       let link: string | undefined = res.data.link || res.data.payment_url;
 
       // Repli : si le lien n'est pas renvoyé, on le récupère via /process
@@ -181,6 +239,25 @@ export default function BookingPaymentPage() {
         setError(message);
       }
       setProcessing(false);
+    }
+  };
+
+  // PeyaPay, étape 2 : le code reçu par SMS est vérifié par MaliaPay.
+  const handleVerifyOtp = async () => {
+    if (!waiting || otp.trim().length < 4 || verifying) return;
+    setVerifying(true);
+    setError(null);
+    try {
+      const res = await api.post(`/bookings/${params.id}/payment/peyapay/verify`, { otp_code: otp.trim() });
+      if (res.data?.status === 'completed') {
+        router.push(`/bookings/success?id=${params.id}`);
+        return;
+      }
+      setOtp(''); // en cours de traitement : l'attente ci-dessus prend le relais
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.response?.data?.message || 'Le code n\'a pas pu être vérifié. Veuillez réessayer.');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -424,6 +501,56 @@ export default function BookingPaymentPage() {
                 </div>
               )}
 
+              {waiting ? (
+                <div className="mt-5 rounded-xl border border-gray-200 dark:border-gray-700 p-5 text-center" role="status" aria-live="polite">
+                  {waiting.mode === 'phone' ? (
+                    <>
+                      <Smartphone className="w-9 h-9 mx-auto text-primary" aria-hidden="true" />
+                      <p className="mt-3 font-semibold">Validez le paiement sur votre téléphone</p>
+                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                        Une demande de confirmation vient d&apos;être envoyée à votre numéro (notification ou code USSD).
+                        Confirmez-la pour finaliser votre réservation : cette page se met à jour toute seule.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-9 h-9 mx-auto text-primary" aria-hidden="true" />
+                      <p className="mt-3 font-semibold">Saisissez le code reçu par SMS</p>
+                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                        Un code de confirmation vient d&apos;être envoyé à votre numéro.
+                      </p>
+                      <form
+                        className="mt-4 flex items-center justify-center gap-2"
+                        onSubmit={(e) => { e.preventDefault(); handleVerifyOtp(); }}
+                      >
+                        <label htmlFor="otp-code" className="sr-only">Code reçu par SMS</label>
+                        <input
+                          id="otp-code"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          placeholder="Code"
+                          className="w-36 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-center text-lg tracking-widest outline-none focus:border-primary"
+                        />
+                        <button type="submit" disabled={verifying || otp.length < 4} className="btn-primary disabled:opacity-50">
+                          {verifying ? 'Vérification…' : 'Valider'}
+                        </button>
+                      </form>
+                    </>
+                  )}
+                  <p className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-500">
+                    <Clock className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> En attente de la confirmation de l&apos;opérateur…
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setWaiting(null); setOtp(''); }}
+                    className="mt-3 text-xs text-gray-600 dark:text-gray-400 underline hover:text-primary"
+                  >
+                    Changer de moyen de paiement
+                  </button>
+                </div>
+              ) : (
               <button
                 onClick={handlePay}
                 disabled={processing || !selectedPaymentMethod || !paymentType || !!retrySecondsLeft}
@@ -438,6 +565,7 @@ export default function BookingPaymentPage() {
                   `Payer ${formatPrice(amountToPay)} FCFA`
                 )}
               </button>
+              )}
             </div>
           </div>
 

@@ -31,7 +31,8 @@ class PaymentWebhookForgeryTest extends TestCase
     {
         Config::set('services.malia_pay.api_url', 'https://business.malia.ci/api');
         Config::set('services.malia_pay.api_key', 'sk_test_fake');
-        Config::set('services.malia_pay.webhook_secret', ''); // état actuel de la production
+        // Webhooks non signés acceptés (état actuel de la production) : un succès n'est quand même jamais cru sur parole.
+        Config::set('services.malia_pay.require_signature', false);
     }
 
     public function test_a_forged_webhook_does_not_confirm_the_payment_without_secret_configured(): void

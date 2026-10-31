@@ -320,6 +320,12 @@ class MaliaPayIntegrationTest extends TestCase
             'payment_reference' => 'REF-FAILED-1',
         ]);
 
+        // Un échec n'est plus cru sur parole : MaliaPay est interrogé et confirme.
+        Http::fake([
+            'business.malia.ci/api/v1/payments/*' => Http::response(['status' => 'failed', 'reference' => 'REF-FAILED-1'], 200),
+        ]);
+        $payment->update(['transaction_id' => 'FAKE_TX_FAILED']);
+
         $response = $this->postJson('/api/payments/webhook', [
             'reference' => 'REF-FAILED-1',
             'status' => 'failed',

@@ -141,6 +141,9 @@ Route::post('/bookings/{id}/guest-cancel', [BookingController::class, 'guestCanc
 // Payment initiation (public - permet le paiement sans authentification pour les réservations sans compte)
 Route::post('/bookings/{bookingId}/payment/initiate', [PaymentController::class, 'initiate'])->middleware('throttle:15,1,payment-initiate'); // 15 tentatives par minute — un aller-retour passerelle qui échoue (timeout réseau, retour "Annulé") pousse à réessayer plusieurs fois de suite
 
+// PeyaPay, étape 2 : code reçu par SMS (public comme l'initiation ; plafonné pour interdire de deviner le code)
+Route::post('/bookings/{bookingId}/payment/peyapay/verify', [PaymentController::class, 'verifyPeyaPay'])->middleware('throttle:8,1,peyapay-verify');
+
 // Payment processing (public - permet le traitement du paiement sans authentification)
 Route::post('/payments/{paymentId}/process', [PaymentController::class, 'process'])->middleware('throttle:15,1,payment-process'); // idem : appelé en repli juste après /initiate, ne doit pas être le facteur limitant
 

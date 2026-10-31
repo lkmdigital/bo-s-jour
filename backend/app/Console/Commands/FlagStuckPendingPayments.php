@@ -22,6 +22,11 @@ use Illuminate\Support\Facades\Mail;
  * via GET /v1/payments/{transaction_id} (PaymentController::checkTransactionStatus())
  * et confirmer/échouer automatiquement, au lieu de se contenter d'alerter un humain.
  *
+ * MaliaPay n'envoie la notification (webhook) qu'UNE fois et ne la renvoie pas : ce passage est donc le
+ * seul rattrapage d'une notification manquée. Il revérifie aussi les paiements « échoués » des 3
+ * derniers jours : MaliaPay marque « failed » au bout de 10 minutes sans confirmation de l'opérateur,
+ * puis « success » si celui-ci confirme plus tard (cas fréquent de la carte bancaire).
+ *
  * Les paiements SANS transaction_id (créés avant la migration, ancienne API) ne
  * peuvent pas être vérifiés ainsi — ils restent listés dans le digest e-mail pour
  * une confirmation manuelle après vérification dans le dashboard marchand MaliaPay
@@ -87,40 +92,24 @@ class FlagStuckPendingPayments extends Command
 
             if ($payment->status === 'failed') {
                 // Déjà « échoué » : on ne fait qu'inverser si MaliaPay dit succès, sans bruit sinon.
-                if ($realStatus === 'success') {
-                    $paymentController->confirmPaymentSuccess(
-                        $payment->id,
-                        $maliaStatus['transaction_id'] ?? $payment->transaction_id,
-                        isset($maliaStatus['montant']) ? (int) round((float) $maliaStatus['montant']) : null,
-                        $maliaStatus,
-                        'reconciliation_echec_corrige'
-                    );
+                if ($paymentController->confirmFromMaliaStatus($payment, $maliaStatus, 'reconciliation_echec_corrige')) {
                     $resolvedSuccess++;
                 }
                 continue;
             }
 
             if ($realStatus === 'success') {
-                $paymentController->confirmPaymentSuccess(
-                    $payment->id,
-                    $maliaStatus['transaction_id'] ?? $payment->transaction_id,
-                    isset($maliaStatus['montant']) ? (int) round((float) $maliaStatus['montant']) : null,
-                    $maliaStatus,
-                    'reconciliation_auto'
-                );
-                $resolvedSuccess++;
+                // Confirme si la référence rapportée est bien la nôtre ; sinon le paiement reste à vérifier à la main.
+                if ($paymentController->confirmFromMaliaStatus($payment, $maliaStatus, 'reconciliation_auto')) {
+                    $resolvedSuccess++;
+                } else {
+                    $stillStuck->push($payment);
+                }
                 continue;
             }
 
             if ($realStatus === 'failed' || $realStatus === 'cancelled') {
-                $payment->update([
-                    'status' => 'failed',
-                    'payment_data' => array_merge($payment->payment_data ?? [], [
-                        'reconciliation_data' => $maliaStatus,
-                        'failed_at' => now()->toIso8601String(),
-                    ]),
-                ]);
-                $payment->booking?->update(['payment_status' => 'failed']);
+                $paymentController->markFailedFromMaliaStatus($payment, $maliaStatus);
 
                 Log::info('payments:flag-stuck-pending : paiement marqué échoué après vérification MaliaPay', [
                     'payment_id' => $payment->id,
@@ -131,7 +120,7 @@ class FlagStuckPendingPayments extends Command
                 continue;
             }
 
-            // "pending"/"processing" côté MaliaPay aussi : probablement un abandon de
+            // "pending"/"processing"/"pending_otp" côté MaliaPay aussi : probablement un abandon de
             // paiement normal, mais pas de certitude — reste listé pour suivi humain.
             $stillStuck->push($payment);
         }

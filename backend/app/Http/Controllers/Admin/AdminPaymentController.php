@@ -342,13 +342,9 @@ class AdminPaymentController extends Controller
         $status = $malia['status'] ?? null;
 
         if (strtolower((string) $status) === 'success') {
-            $controller->confirmPaymentSuccess(
-                $payment->id,
-                $malia['transaction_id'] ?? $payment->transaction_id,
-                isset($malia['montant']) ? (int) round((float) $malia['montant']) : null,
-                $malia,
-                'reconciliation_admin'
-            );
+            if (!$controller->confirmFromMaliaStatus($payment, $malia, 'reconciliation_admin')) {
+                return response()->json(['message' => "Malia Pay indique un succès, mais pour une autre référence que celle de ce paiement : confirmation refusée. Vérifiez dans le tableau de bord Malia Pay."], 409);
+            }
             return response()->json(['message' => 'Paiement confirmé : Malia Pay indique un succès.', 'status' => 'completed']);
         }
 
@@ -356,8 +352,7 @@ class AdminPaymentController extends Controller
             if ($payment->status === 'failed') {
                 return response()->json(['message' => 'Malia Pay confirme que ce paiement a bien échoué.', 'status' => 'failed']);
             }
-            $payment->update(['status' => 'failed']);
-            $payment->booking?->update(['payment_status' => 'failed']);
+            $controller->markFailedFromMaliaStatus($payment, $malia);
             return response()->json(['message' => 'Malia Pay indique que ce paiement a échoué.', 'status' => 'failed']);
         }
 

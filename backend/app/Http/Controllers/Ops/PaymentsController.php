@@ -59,21 +59,16 @@ class PaymentsController extends Controller
         $metaStatus = strtolower((string) ($malia['status'] ?? ''));
 
         if ($metaStatus === 'success') {
-            $controller->confirmPaymentSuccess(
-                $payment->id,
-                $malia['transaction_id'] ?? $payment->transaction_id,
-                isset($malia['montant']) ? (int) round((float) $malia['montant']) : null,
-                $malia,
-                'reconciliation_ops'
-            );
+            if (!$controller->confirmFromMaliaStatus($payment, $malia, 'reconciliation_ops')) {
+                return back()->with('ops_error', 'Malia Pay indique un succès, mais pour une autre référence que celle de ce paiement : confirmation refusée. Vérifiez dans le tableau de bord Malia Pay.');
+            }
             Log::info('Ops : paiement confirmé via réconciliation manuelle', ['payment_id' => $payment->id, 'admin_id' => $request->user('web')?->id]);
             return back()->with('ops_success', 'Paiement confirmé : Malia Pay indique un succès.');
         }
 
         if ($metaStatus === 'failed' || $metaStatus === 'cancelled') {
             if ($payment->status !== 'failed') {
-                $payment->update(['status' => 'failed']);
-                $payment->booking?->update(['payment_status' => 'failed']);
+                $controller->markFailedFromMaliaStatus($payment, $malia);
             }
             return back()->with('ops_error', 'Malia Pay indique que ce paiement a échoué.');
         }

@@ -45,10 +45,17 @@ return [
         // MaliaPay, aucun appel opérateur réel) au lieu de /api/v1/payments. À laisser
         // false en production uniquement, une fois l'intégration validée en sandbox.
         'sandbox' => env('MALIA_PAY_SANDBOX', false),
-        // Secret partagé pour authentifier les webhooks entrants de MaliaPay.
-        // Tant qu'il est vide, le webhook est accepté (rétrocompat) mais un avertissement
-        // est journalisé. À renseigner en prod (et côté MaliaPay) pour rejeter les faux appels.
-        'webhook_secret' => env('MALIA_PAY_WEBHOOK_SECRET', ''),
+        // Notifications (webhook) : MaliaPay signe chaque envoi (en-têtes X-MaliaPay-Timestamp et
+        // X-MaliaPay-Signature = HMAC-SHA256 de « {timestamp}.{corps brut} » calculé avec la clé API,
+        // documentation du 2026-10-30). Aucun secret à part à configurer. Une notification signée
+        // mais fausse est toujours rejetée (401). Mettre true pour rejeter AUSSI celles sans
+        // signature, une fois constaté dans les journaux que MaliaPay signe bien tous ses envois.
+        // Même sans cela, un succès n'est jamais cru sur parole : le statut est relu chez MaliaPay.
+        'require_signature' => env('MALIA_PAY_REQUIRE_SIGNATURE', false),
+        // Code du canal MTN : la documentation du 2026-10-30 écrit MTNCII, l'API accepte aussi MTNCI
+        // (liste des canaux renvoyée par le bac à sable) — MTNCI est celui qui a fonctionné en
+        // production. Changeable ici sans redéployer le code.
+        'mtn_channel' => env('MALIA_PAY_MTN_CHANNEL', 'MTNCI'),
     ],
 
     'google' => [

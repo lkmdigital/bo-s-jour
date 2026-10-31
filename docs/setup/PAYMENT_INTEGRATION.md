@@ -1,7 +1,8 @@
 # Intégration du système de paiement MaliaPay
 
-> Migrée le 2026-09-01 vers la nouvelle API documentée **business.malia.ci**
-> (remplace l'ancienne intégration malia-pay.com, non documentée officiellement).
+> Migrée le 2026-09-01 vers la nouvelle API documentée **business.malia.ci**.
+> Mise à jour le 2026-10-31 d'après la documentation MaliaPay du **2026-10-30**
+> (notifications signées, statuts qui évoluent, MTN sans redirection, PeyaPay, erreurs).
 
 ## Configuration
 
@@ -9,130 +10,114 @@
 
 ```env
 MALIA_PAY_API_URL=https://business.malia.ci/api
-MALIA_PAY_API_KEY=            # X-API-Key — jamais commitée, jamais exposée côté client
+MALIA_PAY_API_KEY=             # X-API-Key — jamais commitée, jamais exposée côté client
 MALIA_PAY_MERCHANT_ID=
 MALIA_PAY_SANDBOX=false        # true en local/staging : passe par /api/v1/test (aucun appel opérateur réel)
-MALIA_PAY_WEBHOOK_SECRET=      # à renseigner en prod, sinon le webhook accepte tout appel (rétrocompat)
+MALIA_PAY_REQUIRE_SIGNATURE=false  # true : rejette aussi les notifications SANS signature (voir « Sécurité »)
+MALIA_PAY_MTN_CHANNEL=MTNCI    # MTNCI (fonctionne en production) ou MTNCII (écrit ainsi dans la doc du 2026-10-30)
 ```
 
-### Méthodes de paiement actives
+`MALIA_PAY_WEBHOOK_SECRET` n'existe plus : MaliaPay signe ses notifications avec la clé API, aucun
+secret à part à configurer.
 
-- **Wave CI** → `WAVECI`
-- **Visa/Mastercard** → `CARD`
-- **Orange CI** → `OMCI`
-- **Djamo** → `DJAMO`
-- **MTN Mobile Money** → `MTNCI` (activé le 2026-09-01)
+### Moyens de paiement
 
-`MOOVCI` est confirmé par la doc officielle MaliaPay mais **volontairement non activé**
-au checkout (même mécanique que MTN pour l'activer : décommenter dans `$channelMap` de
-`PaymentController::createPaymentLink()`, dans `PaymentMethodSeeder`, et ajouter le logo
-au footer). `PEYA_PAY` (paiement par code OTP SMS, flux en 2 appels `/peyapay/init` +
-`/peyapay/verify`) n'est pas non plus intégré — nécessite un écran de saisie de code
-dédié côté front, reporté à une session ultérieure.
+| Moyen | Canal | État |
+|---|---|---|
+| Wave CI | `WAVECI` | actif (redirection) |
+| Orange CI | `OMCI` | actif (redirection) |
+| Djamo | `DJAMO` | actif (redirection) |
+| Visa / Mastercard | `CARD` | actif (redirection) |
+| MTN Mobile Money | `MTNCI` / `MTNCII` | actif — **sans redirection** : le client valide sur son téléphone |
+| PeyaPay | `PEYA_PAY` | **code prêt, non proposé** : paiement par code reçu par SMS ; s'active en créant la ligne `peya-pay` dans les moyens de paiement (il faut aussi un logo) |
+| Moov CI | `MOOVCI` | **non activé** : « momentanément indisponible » selon MaliaPay (doc du 2026-10-30) |
+
+L'API accepte `WAVECI, OMCI, MTNCII, MTNCI, MOOVCI, CARD, DJAMO, PEYA_PAY` (liste renvoyée par le bac à
+sable). Table de correspondance : `PaymentController::channelFor()`.
 
 ## Flux de paiement
 
 ### 1. Initiation
 
-**Endpoint** : `POST /api/bookings/{bookingId}/payment/initiate`
+`POST /api/bookings/{bookingRef}/payment/initiate` appelle `POST {API}/v1/payments` (ou `/v1/test` en
+sandbox, ou `/v1/peyapay/init` pour PeyaPay) avec `X-API-Key` et `Accept: application/json` (sans lui, une
+erreur de validation revient en redirection HTML). Le `transaction_id` est enregistré **dès la création**.
+Montant minimum : 100 FCFA (refusé avant tout appel).
 
-Appelle en interne `POST {MALIA_PAY_API_URL}/v1/payments` (ou `/v1/test` en sandbox)
-avec le header `X-API-Key`. Réponse MaliaPay : `{status, transaction_id, link, montant,
-channel, reference}`. Le `transaction_id` est enregistré sur le `Payment` **dès la
-création** (pas seulement à la confirmation), pour permettre une vérification de statut
-même si le webhook n'arrive jamais (voir §4).
+La réponse indique le parcours : `link` (redirection), `awaiting_phone_validation` (MTN) ou
+`requires_otp` (PeyaPay). Les frais (`fees`) sont conservés dans `payment_data`.
 
-### 2. Redirection
+### 2. Trois parcours
 
-L'utilisateur est redirigé vers `link` (page de paiement de l'opérateur, hébergée par
-MaliaPay). En sandbox, `link` est vide (aucun appel opérateur simulé) — normal, pas une
-erreur.
+- **Wave, Orange, Djamo, carte** : redirection vers `link`.
+- **MTN** : aucun lien, statut `pending`. L'écran affiche « Validez le paiement sur votre téléphone » et
+  relit le statut toutes les 5 secondes (`GET /api/payments/{id}`). Un second clic ne renvoie pas de
+  demande tant que la première est encore en cours chez MaliaPay (évite le double paiement).
+- **PeyaPay** : un code est envoyé par SMS ; le client le saisit sur notre page →
+  `POST /api/bookings/{ref}/payment/peyapay/verify` (8 essais/minute) → relecture du statut avant validation.
 
-### 3. Webhook de confirmation
+### 3. Notifications (webhook) — `POST /api/payments/webhook`
 
-**Endpoint** : `POST /api/payments/webhook` (sans authentification, secret partagé optionnel)
+MaliaPay l'envoie **une seule fois**, attend **10 secondes** au plus une réponse HTTP 200 et **ne
+réessaie pas**. Elle peut arriver dans le désordre, et un même paiement peut être notifié plusieurs fois
+(d'abord `failed`, puis `success`). Notre traitement :
 
-**Payload reçu** :
-```json
-{
-  "transaction_id": "MYLB8V4HHFXDAODU4IGH1NYBY",
-  "status": "success",
-  "reference": "CMD-2026-001",
-  "montant": 5000,
-  "channel": "WAVECI"
-}
-```
+- **Signature** : `X-MaliaPay-Timestamp` + `X-MaliaPay-Signature` (`sha256=` + HMAC-SHA256 de
+  `{timestamp}.{corps brut}` avec la clé API), horodatage de moins de 5 minutes. Signature fausse ou périmée
+  → 401. Absente → acceptée (sauf `MALIA_PAY_REQUIRE_SIGNATURE=true`), mais le statut est toujours relu.
+- **`success`** : jamais cru sur parole. Le statut est relu chez MaliaPay et la **référence** doit être la
+  nôtre (`PaymentController::confirmFromMaliaStatus()`, point d'entrée unique).
+- **`pending`, `processing`, `pending_otp`** : ignorés (ce n'est pas un échec).
+- **`failed`, `cancelled`** : le statut est relu. Si MaliaPay dit « succès » → confirmé ; « en cours » →
+  ignoré ; injoignable → enregistré seulement si la notification est signée (sinon la réconciliation tranche).
+  Un échec ne défait jamais une réservation déjà soldée ou garantie par un autre paiement.
+- Le traitement continue même si MaliaPay raccroche (`ignore_user_abort`), la relecture du statut est
+  limitée à 6 secondes.
 
-**Statuts possibles** : `pending`, `processing` (ignorés, en attente de la suite),
-`success` (confirme le paiement), `failed`/`cancelled` (marque le paiement échoué).
+### 4. Filet de sécurité — les notifications peuvent manquer
 
-### 4. Filet de sécurité — le webhook n'a AUCUNE garantie de livraison
+Avec un envoi unique et sans nouvel essai, **la réconciliation est le seul rattrapage**. Découverte du
+2026-09-01 : 30 paiements réels sur 31 étaient restés « pending » faute de webhook.
 
-**Découverte du 2026-09-01** : avec l'ancienne intégration, le webhook a cessé de se
-déclencher après le 22 mai 2026 sans que rien ne le signale — 30 paiements réels sur 31
-sont restés "pending" pendant plus de 3 mois. Le webhook seul n'est jamais suffisant.
+`payments:flag-stuck-pending` (toutes les 5 minutes avec `--minutes=3 --no-digest`, et chaque jour à 8 h
+avec le digest e-mail aux admins — **nécessite le cron `schedule:run` sur le serveur**) :
 
-Trois mécanismes complémentaires, tous dans `App\Console\Commands\FlagStuckPendingPayments`
-(planifiée quotidiennement à 8h — voir `routes/console.php` — **nécessite que le cron du
-serveur exécute `php artisan schedule:run` chaque minute**, à vérifier sur le VPS) :
+1. relit le statut des paiements « pending » bloqués **et des paiements « échoués » des 3 derniers jours**
+   (MaliaPay marque « failed » au bout de 10 minutes sans confirmation de l'opérateur, puis « success » si
+   celui-ci confirme plus tard — cas fréquent de la carte) ;
+2. liste pour suivi humain ceux qu'il ne peut pas vérifier (sans `transaction_id`, API indisponible) ;
+3. la page de retour (`GET /api/payments/{id}`) relit aussi le statut (une fois par 3 secondes au plus).
 
-1. **Réconciliation automatique** : pour tout paiement "pending" resté bloqué au-delà du
-   seuil (`--hours`, 6h par défaut) ET disposant d'un `transaction_id` (paiements créés
-   depuis la migration du 2026-09-01), interroge `GET /v1/payments/{transaction_id}`
-   (`PaymentController::checkTransactionStatus()`) et confirme/échoue automatiquement
-   selon le vrai statut MaliaPay.
-2. **Digest e-mail admin** : pour les paiements non vérifiables automatiquement (ancienne
-   intégration sans `transaction_id`, ou API MaliaPay indisponible), envoie un e-mail
-   quotidien récapitulatif aux admins (`App\Mail\StuckPaymentsDigest`) — à croiser
-   manuellement avec le dashboard marchand MaliaPay.
-3. **Confirmation manuelle** : `POST /api/admin/payments/{paymentId}/confirm-manually`
-   (admin uniquement, `transaction_id` requis) — réutilise exactement la même logique de
-   confirmation que le webhook (`PaymentController::confirmPaymentSuccess()`, idempotent,
-   mêmes effets de bord : commission, e-mails, code de réservation).
+Confirmation manuelle : `POST /api/admin/payments/{id}/confirm-manually` (admin) et la réconciliation Ops.
+Toutes passent par `confirmPaymentSuccess()` : idempotent (`lockForUpdate`), mêmes effets de bord
+(commission, e-mails, code de réservation).
 
-### 5. Redirection après paiement
+### 5. Statuts MaliaPay
 
-- **Succès** : `/bookings/{bookingId}?payment=success`
-- **Erreur** : `/bookings/{bookingId}/payment?error=1`
+`pending` (initié) · `processing` (chez l'opérateur) · `pending_otp` (PeyaPay, code attendu) · `success` ·
+`failed` · `cancelled`. Toujours tenir compte du **dernier** statut reçu.
 
-## Structure des données
+### 6. Erreurs de la passerelle
 
-### Payment
-
-```php
-{
-  "id": 1,
-  "booking_id": 1,
-  "user_id": 1,
-  "amount": 50000,
-  "status": "pending|completed|failed",
-  "payment_method": "wave-ci|visa-mastercard|orange-ci|djamo",
-  "payment_reference": "ABC123XYZ456",   // notre référence interne
-  "transaction_id": "MYLB8V4HHFXDAODU4IGH1NYBY", // ID MaliaPay, connu dès la création
-  "payment_data": {
-    "payment_link": "https://business.malia.ci/checkout/...",
-    "method": "wave-ci",
-    "confirmation_source": "webhook|admin_manual|reconciliation_auto",
-    "webhook_data": {...}
-  },
-  "paid_at": "2026-09-01T15:30:00Z"
-}
-```
+| HTTP | Sens | Message au voyageur | Journal |
+|---|---|---|---|
+| 401 | clé API invalide / marchand inactif | « paiement momentanément indisponible » (503) | **critical** : plus aucun paiement ne passe |
+| 422 | champ invalide (montant < 100, canal inconnu…) | message adapté | warning |
+| 502 | opérateur refuse ou canal en maintenance (`reason`) | « moyen de paiement momentanément indisponible, choisissez-en un autre » | warning + `reason` |
+| 500 / autre | erreur serveur | « impossible de créer le lien, réessayez » | error |
 
 ## Sécurité
 
-- Webhook accessible sans authentification par nature (appel serveur-à-serveur MaliaPay)
-  — sécurisé par `MALIA_PAY_WEBHOOK_SECRET` (secret partagé en header/query/body, ou
-  signature HMAC-SHA256) si configuré ; sinon accepté avec un avertissement journalisé
-  (`PaymentController::verifyWebhookSignature()`).
+- Webhook sans authentification par nature (appel serveur-à-serveur) : protégé par la signature
+  ci-dessus **et** par la relecture du statut avant toute validation.
 - `MALIA_PAY_API_KEY` : jamais côté client, uniquement dans `.env` (gitignored).
-- Toutes les confirmations (webhook, manuelle, réconciliation auto) passent par la même
-  transaction DB verrouillée (`lockForUpdate`), garantissant l'idempotence — un paiement
-  déjà "completed" ne redéclenche jamais une seconde fois commission/e-mails.
+- Passer `MALIA_PAY_REQUIRE_SIGNATURE=true` une fois constaté (journal « Webhook malia-pay non signé »
+  absent) que MaliaPay signe bien tous ses envois.
 
 ## Test
 
-En local, avec `MALIA_PAY_SANDBOX=true` : le flux complet (initiation → réponse
-`status: success` immédiate, `link` vide) fonctionne sans jamais appeler un opérateur
-réel — voir `/api/v1/test` dans la doc MaliaPay. Voir `tests/Feature/MaliaPayIntegrationTest.php`
-pour les tests automatisés (Http::fake, aucun appel réseau réel).
+- **Sandbox** (`MALIA_PAY_SANDBOX=true`) : `/v1/test` simule un succès immédiat (`link` vide), n'envoie
+  **aucune notification**, et la transaction de test n'est pas relisible (`GET` → 404). Seul le succès est
+  simulable : les échecs, annulations et confirmations tardives ne le sont pas.
+- **Tests automatisés** : `tests/Feature/MaliaPayIntegrationTest.php` et
+  `tests/Feature/MaliaPayDocumentation20261030Test.php` (`Http::fake`, aucun appel réseau réel).
