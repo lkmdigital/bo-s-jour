@@ -46,6 +46,10 @@ interface Accommodation {
   created_at: string;
   stats?: {
     total_rooms: number;
+    /** Nombre saisi à la création (peut ne correspondre à aucune chambre enregistrée) */
+    declared_rooms?: number | null;
+    /** Aucune chambre active enregistrée : le voyageur ne peut pas choisir de chambre */
+    rooms_missing?: boolean;
     occupancy_rate: number;
     occupied_nights: number;
     total_available_nights: number;
@@ -409,6 +413,13 @@ export default function AdminAccommodationsPage() {
                   {/* Statistiques */}
                   {acc.stats && (
                     <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                      {acc.stats.rooms_missing && (
+                        <p className="mb-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200 text-xs px-3 py-2" role="alert">
+                          Aucune chambre enregistrée
+                          {acc.stats.declared_rooms ? ` (${acc.stats.declared_rooms} déclarée${acc.stats.declared_rooms > 1 ? 's' : ''} à la création)` : ''}
+                          {' : les voyageurs ne peuvent pas choisir de chambre. Demandez au partenaire de les ajouter.'}
+                        </p>
+                      )}
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div className="flex items-center gap-2">
                           <Bed className="w-4 h-4 text-primary" />

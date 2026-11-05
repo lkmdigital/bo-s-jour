@@ -65,6 +65,8 @@ export default function HostDocumentsPage() {
   const [profile, setProfile] = useState<HostProfile | null>(null);
   const [requirements, setRequirements] = useState<Record<string, ComplianceRequirement>>({});
   const [status, setStatus] = useState<string | null>(null);
+  // Documents facultatifs tant que le super administrateur ne les a pas rendus obligatoires.
+  const [documentsRequired, setDocumentsRequired] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -87,6 +89,7 @@ export default function HostDocumentsPage() {
         setTaxNumber(u.tax_account_number || '');
         setRequirements(res.data?.compliance_requirements ?? {});
         setStatus(res.data?.compliance_status ?? null);
+        setDocumentsRequired(!!res.data?.documents_required);
       })
       .catch((err) => setError(err.response?.data?.message || 'Erreur lors du chargement des documents'))
       .finally(() => setLoading(false));
@@ -154,7 +157,9 @@ export default function HostDocumentsPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Documents</h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">
-          Téléversez vos documents légaux et administratifs. Ils sont vérifiés par notre équipe avant la publication de votre établissement.
+          {documentsRequired
+            ? 'Téléversez vos documents légaux et administratifs. Ils sont vérifiés par notre équipe avant la publication de votre établissement.'
+            : 'Vous pouvez téléverser vos documents légaux et administratifs. Ils sont facultatifs pour le moment : vous pouvez ajouter vos établissements sans eux.'}
         </p>
       </div>
 
@@ -170,7 +175,13 @@ export default function HostDocumentsPage() {
           <ShieldCheck className="w-6 h-6 text-bosejour-red flex-shrink-0" />
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Statut global</p>
-            <p className="font-semibold text-gray-900 dark:text-white capitalize">{status === 'conforme' ? 'Conforme' : 'Non conforme — documents manquants'}</p>
+            <p className="font-semibold text-gray-900 dark:text-white">
+              {status === 'conforme'
+                ? 'Conforme'
+                : documentsRequired
+                  ? 'Non conforme — documents manquants'
+                  : 'Dossier à compléter — facultatif pour le moment'}
+            </p>
           </div>
         </div>
       )}
@@ -185,8 +196,8 @@ export default function HostDocumentsPage() {
                   <CheckCircle2 className="w-4 h-4" /> Fourni
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-red-600 text-sm font-medium">
-                  <XCircle className="w-4 h-4" /> Manquant
+                <span className={`inline-flex items-center gap-1 text-sm font-medium ${documentsRequired ? 'text-red-600' : 'text-gray-500'}`}>
+                  <XCircle className="w-4 h-4" /> {documentsRequired ? 'Manquant' : 'Non fourni (facultatif)'}
                 </span>
               )}
             </div>

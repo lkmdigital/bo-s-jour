@@ -124,7 +124,8 @@ export default function HostDashboardPage() {
       .get('/host/profile')
       .then((res) => {
         const requirements = (res.data?.compliance_requirements ?? {}) as Record<string, { label: string; ok: boolean }>;
-        setComplianceMissing(Object.values(requirements).filter((r) => !r.ok).map((r) => r.label));
+        // Documents facultatifs : pas de bandeau d'alerte pour des pièces qu'on ne demande pas encore.
+        setComplianceMissing(res.data?.documents_required ? Object.values(requirements).filter((r) => !r.ok).map((r) => r.label) : []);
       })
       .catch(() => {});
 

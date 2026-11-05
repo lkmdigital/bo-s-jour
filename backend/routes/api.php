@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\AdminHostController;
 use App\Http\Controllers\Admin\AdminAccommodationController;
 use App\Http\Controllers\Admin\AdminActivityLogController;
 use App\Http\Controllers\Admin\AdminComplianceController;
+use App\Http\Controllers\Admin\PartnerDocumentsSettingController;
 use App\Http\Controllers\Admin\AdminAiController;
 use App\Http\Controllers\Admin\AdminCorporateController;
 use App\Http\Controllers\Admin\AdminLoyaltyController;
@@ -459,6 +460,10 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     // Paramètres globaux (admin)
     Route::get('/settings/admin', [SettingsController::class, 'getAdminSettings'])->middleware('role:admin');
     Route::put('/settings/admin', [SettingsController::class, 'updateAdminSettings'])->middleware('role:admin');
+
+    // Documents des partenaires : obligatoires ou facultatifs (lecture : admin ; modification : super administrateur, vérifié dans le contrôleur)
+    Route::get('/settings/partner-documents', [PartnerDocumentsSettingController::class, 'show'])->middleware('role:admin');
+    Route::put('/settings/partner-documents', [PartnerDocumentsSettingController::class, 'update'])->middleware('role:admin');
 
     // Analytics
     Route::prefix('analytics')->group(function () {

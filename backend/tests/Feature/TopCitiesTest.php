@@ -39,14 +39,14 @@ class TopCitiesTest extends TestCase
         return $accommodation;
     }
 
-    public function test_returns_only_cities_with_published_and_bookable_accommodations(): void
+    public function test_returns_only_cities_with_published_accommodations_that_have_a_photo(): void
     {
         $this->makeBookableAccommodation(['city' => 'Korhogo', 'price_per_night' => 12000]);
         $this->makeBookableAccommodation(['city' => 'Korhogo', 'price_per_night' => 20000]);
         $this->makeBookableAccommodation(['city' => 'Abidjan', 'price_per_night' => 50000]);
 
-        // Établissement publié mais SANS chambre active : ne doit pas compter
-        // comme réellement réservable.
+        // Établissement publié sans chambre ET sans photo : une ville n'est présentée en carte destination que si l'un
+        // de ses établissements a une photo (l'absence de chambre, elle, n'exclut plus : voir AccommodationVisibilityTest).
         Accommodation::factory()->create(['status' => 'published', 'city' => 'San-Pédro']);
 
         // Établissement non publié : ne doit pas apparaître non plus.
@@ -57,7 +57,7 @@ class TopCitiesTest extends TestCase
 
         $this->assertTrue($cities->contains('city', 'Korhogo'));
         $this->assertTrue($cities->contains('city', 'Abidjan'));
-        $this->assertFalse($cities->contains('city', 'San-Pédro'), 'sans chambre active, ne doit pas apparaître');
+        $this->assertFalse($cities->contains('city', 'San-Pédro'), 'sans photo, la ville n\'est pas présentable en carte');
         $this->assertFalse($cities->contains('city', 'Bouaké'), 'non publié, ne doit pas apparaître');
 
         $korhogo = $cities->firstWhere('city', 'Korhogo');

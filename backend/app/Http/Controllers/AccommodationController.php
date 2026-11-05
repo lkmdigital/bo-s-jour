@@ -7,6 +7,8 @@ use App\Models\AccommodationImage;
 use App\Models\Room;
 use App\Services\RoomPricingService;
 use App\Services\ImageUploadService;
+use App\Services\HostProfileCompletion;
+use App\Services\PartnerDocuments;
 use App\Support\Security\PublicExposure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -106,42 +108,8 @@ class AccommodationController extends Controller
         $checkOut = $request->get('check_out');
         $guests = $request->get('guests');
 
-        if ($checkIn && $checkOut) {
-            // Filtrer les hébergements qui ont au moins une chambre disponible pour ces dates
-            $query->whereHas('rooms', function($q) use ($checkIn, $checkOut, $guests) {
-                $q->where('is_active', true);
-                
-                // Filtrer par capacité si nombre de voyageurs spécifié
-                if ($guests) {
-                    $q->where('capacity', '>=', $guests);
-                }
-                
-                // Exclure les chambres avec des conflits de disponibilité manuelle
-                $q->whereDoesntHave('availabilities', function($aq) use ($checkIn, $checkOut) {
-                    $aq->whereBetween('date', [$checkIn, $checkOut])
-                       ->where('status', '!=', 'available');
-                });
-                
-                // Vérifier qu'il reste au moins une chambre disponible
-                // On compare la quantité avec le nombre de réservations confirmées pour ces dates
-                $q->whereRaw('COALESCE(quantity, 1) > COALESCE((
-                    SELECT COUNT(*) 
-                    FROM bookings 
-                    WHERE bookings.room_id = rooms.id 
-                    AND bookings.status = "confirmed"
-                    AND (
-                        (bookings.check_in <= ? AND bookings.check_out >= ?)
-                        OR (bookings.check_in BETWEEN ? AND ?)
-                        OR (bookings.check_out BETWEEN ? AND ?)
-                    )
-                ), 0)', [$checkOut, $checkIn, $checkIn, $checkOut, $checkIn, $checkOut]);
-            });
-        } elseif ($guests) {
-            // Si seulement le nombre de voyageurs est spécifié (sans dates)
-            $query->whereHas('rooms', function($q) use ($guests) {
-                $q->where('is_active', true)
-                  ->where('capacity', '>=', $guests);
-            });
+        if (($checkIn && $checkOut) || $guests) {
+            $query->availableFor($checkIn && $checkOut ? $checkIn : null, $checkIn && $checkOut ? $checkOut : null, $guests ? (int) $guests : null);
         }
 
         // Tri (mapping depuis le paramètre `sort` du front)
@@ -391,19 +359,20 @@ class AccommodationController extends Controller
     {
         $limit = min((int) $request->get('limit', 6), 12);
 
+        // Tous les établissements publiés comptent, avec ou sans chambre enregistrée (avant le 2026-11-05, ceux sans
+        // chambre active manquaient au décompte : « Korhogo 11 » pour 12 établissements).
         $rows = Accommodation::published()
-            ->whereHas('rooms', fn ($q) => $q->where('is_active', true))
             ->select('id', 'city', 'name', 'price_per_night', 'rating', 'cancellation_policy_hours',
                 'pricing_non_refundable_enabled', 'pricing_non_refundable_discount',
                 'pricing_modifiable_enabled', 'pricing_modifiable_surcharge')
-            ->with(['images' => fn ($q) => $q->where('is_primary', true)->limit(1)])
+            ->with(['images' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('order')])
             ->get()
             ->filter(fn ($a) => !empty(trim((string) $a->city)))
             ->groupBy(fn ($a) => mb_strtolower(trim($a->city)));
 
         $cities = $rows->map(function ($group) {
-            // Représentant de la ville : le mieux noté, sinon le moins cher.
-            $representative = $group->sortByDesc(fn ($a) => $a->rating ?? 0)->first();
+            // Représentant de la ville : le mieux noté parmi ceux qui ont une photo (la photo principale d'abord).
+            $representative = $group->sortByDesc(fn ($a) => $a->rating ?? 0)->first(fn ($a) => $a->images->isNotEmpty()) ?? $group->first();
             return [
                 'city' => trim($group->first()->city),
                 'accommodations_count' => $group->count(),
@@ -714,23 +683,36 @@ class AccommodationController extends Controller
             ]),
         ]);
 
-        if (!$complianceUser->profile_completed) {
-            Log::warning('Accommodation creation blocked: profile not completed', [
-                'user_id' => $user->id,
-            ]);
-            return response()->json([
-                'message' => 'Votre profil doit être complété à 100% avant de pouvoir ajouter un hébergement. Veuillez compléter votre profil dans la section "Profil".',
-                'profile_completion_required' => true
-            ], 403);
-        }
+        if (PartnerDocuments::required()) {
+            if (!$complianceUser->profile_completed) {
+                Log::warning('Accommodation creation blocked: profile not completed', [
+                    'user_id' => $user->id,
+                ]);
+                return response()->json([
+                    'message' => 'Votre profil doit être complété à 100% avant de pouvoir ajouter un hébergement. Veuillez compléter votre profil dans la section "Profil".',
+                    'profile_completion_required' => true
+                ], 403);
+            }
 
-        if (!$complianceUser->profile_verified) {
-            Log::warning('Accommodation creation blocked: profile awaiting verification', [
+            if (!$complianceUser->profile_verified) {
+                Log::warning('Accommodation creation blocked: profile awaiting verification', [
+                    'user_id' => $user->id,
+                ]);
+                return response()->json([
+                    'message' => 'Votre profil est en attente de vérification par l\'administrateur. Vous pourrez ajouter des hébergements une fois votre profil vérifié.',
+                    'profile_verification_required' => true
+                ], 403);
+            }
+        } elseif (!($complianceUser->profile_completed && $complianceUser->profile_verified) && HostProfileCompletion::percentage($complianceUser, false) < 100) {
+            // Documents facultatifs (réglage « Documents partenaires ») : ni documents, ni validation par un
+            // administrateur ; seules les informations de contact restent demandées. Un partenaire déjà complet et
+            // vérifié à l'ancienne n'est jamais bloqué par le régime assoupli.
+            Log::warning('Accommodation creation blocked: contact details incomplete', [
                 'user_id' => $user->id,
             ]);
             return response()->json([
-                'message' => 'Votre profil est en attente de vérification par l\'administrateur. Vous pourrez ajouter des hébergements une fois votre profil vérifié.',
-                'profile_verification_required' => true
+                'message' => 'Complétez vos informations de contact dans la section "Profil" avant d\'ajouter un hébergement. Les documents (pièce d\'identité, RCCM, licence…) sont facultatifs pour le moment.',
+                'profile_completion_required' => true
             ], 403);
         }
 
@@ -1144,9 +1126,16 @@ class AccommodationController extends Controller
                 'label' => 'Coordonnées bancaires renseignées (pour les reversements)',
                 'ok' => $accommodation->host?->hasBankDetails() ?? false,
             ],
+            // Recommandé, pas bloquant : sans chambre enregistrée, le voyageur ne peut pas choisir de chambre
+            // (l'établissement reste réservable tel quel). `blocking: false` = n'empêche pas de publier.
+            'rooms' => [
+                'label' => 'Au moins une chambre enregistrée (recommandé)',
+                'ok' => $accommodation->rooms()->where('is_active', true)->exists(),
+                'blocking' => false,
+            ],
         ];
 
-        $ready = collect($checks)->every(fn ($c) => $c['ok']);
+        $ready = collect($checks)->filter(fn ($c) => $c['blocking'] ?? true)->every(fn ($c) => $c['ok']);
 
         return response()->json([
             'ready' => $ready,
@@ -1199,6 +1188,10 @@ class AccommodationController extends Controller
         return response()->json([
             'message' => 'Établissement soumis à la revue de notre équipe.',
             'submitted_for_review_at' => $accommodation->submitted_for_review_at,
+            // Conseil, pas obstacle : ajouter ses chambres permet au voyageur de choisir la sienne.
+            'warnings' => $accommodation->rooms()->where('is_active', true)->exists()
+                ? []
+                : ["Aucune chambre n'est enregistrée : pensez à les ajouter depuis l'onglet « Chambres » pour que les voyageurs puissent choisir."],
         ]);
     }
 

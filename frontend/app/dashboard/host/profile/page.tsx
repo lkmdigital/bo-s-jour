@@ -56,6 +56,8 @@ export default function HostProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [completion, setCompletion] = useState(0);
+  // Documents facultatifs tant que le super administrateur ne les a pas rendus obligatoires.
+  const [documentsRequired, setDocumentsRequired] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   // Changement d'e-mail (retour client 2026-09-02 : le champ était verrouillé
@@ -125,6 +127,7 @@ export default function HostProfilePage() {
       setProfile(profileData);
       setCompletion(response.data.completion_percentage);
       setIsComplete(response.data.is_complete);
+      setDocumentsRequired(!!response.data.documents_required);
       setComplianceData({
         status: response.data.compliance_status ?? profileData.compliance_status ?? null,
         requirements: response.data.compliance_requirements ?? [],
@@ -448,8 +451,8 @@ export default function HostProfilePage() {
                       </span>
                     ) : isComplete ? (
                       <span className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4" />
-                        En attente de vérification
+                        {documentsRequired ? <AlertCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                        {documentsRequired ? 'En attente de vérification' : 'Profil complet'}
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
@@ -934,9 +937,9 @@ export default function HostProfilePage() {
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Statut</span>
                     <span className={`font-medium ${
-                      profile.profile_verified ? 'text-green-600' : isComplete ? 'text-yellow-600' : 'text-red-600'
+                      profile.profile_verified || (isComplete && !documentsRequired) ? 'text-green-600' : isComplete ? 'text-yellow-600' : 'text-red-600'
                     }`}>
-                      {profile.profile_verified ? 'Vérifié' : isComplete ? 'En attente' : 'Incomplet'}
+                      {profile.profile_verified ? 'Vérifié' : isComplete ? (documentsRequired ? 'En attente' : 'Complet') : 'Incomplet'}
                     </span>
                   </div>
                   <div className="flex justify-between">

@@ -599,7 +599,12 @@ class AdminAccommodationController extends Controller
             })
             ->count();
 
-        // Fallback : si aucune chambre en table mais un nombre de chambres est renseigné sur l'établissement
+        // Chambres réellement enregistrées : c'est ce que le voyageur peut choisir, et ce que l'admin doit voir.
+        // (Avant le 2026-11-05, le nombre déclaré à la création s'affichait à la place quand il n'y en avait aucune,
+        // ce qui masquait le problème : « 3 chambres, 3 libres » pour une villa sans aucune chambre enregistrée.)
+        $registeredRooms = $totalRooms;
+
+        // Calculs d'occupation seulement : à défaut de chambres enregistrées, on se base sur le nombre déclaré.
         if ($totalRooms === 0 && $accommodation->bedrooms !== null) {
             $totalRooms = (int) $accommodation->bedrooms;
         }
@@ -700,7 +705,9 @@ class AdminAccommodationController extends Controller
         $freeRoomsToday = max($totalRooms - $occupiedRoomsToday, 0);
 
         $stats = [
-            'total_rooms' => $totalRooms,
+            'total_rooms' => $registeredRooms,
+            'declared_rooms' => $accommodation->bedrooms !== null ? (int) $accommodation->bedrooms : null,
+            'rooms_missing' => $registeredRooms === 0,
             'occupancy_rate' => $occupancyRate,
             'occupied_nights' => $occupiedNights,
             'total_available_nights' => $totalAvailableNights,

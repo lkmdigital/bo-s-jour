@@ -14,6 +14,8 @@ interface AppSettingsStore {
   aiEnabled: boolean;
   /** L'assistant voyageur répond aussi aux visiteurs non connectés */
   aiGuestEnabled: boolean;
+  /** Documents de conformité des partenaires obligatoires ? (réglage du super administrateur ; facultatifs par défaut) */
+  partnerDocumentsRequired: boolean;
   loaded: boolean;
   fetchSettings: () => Promise<void>;
 }
@@ -29,6 +31,7 @@ export const useAppSettingsStore = create<AppSettingsStore>((set) => ({
   whatsappVerificationEnabled: false,
   aiEnabled: false,
   aiGuestEnabled: false,
+  partnerDocumentsRequired: false,
   loaded: false,
 
   fetchSettings: async () => {
@@ -44,6 +47,7 @@ export const useAppSettingsStore = create<AppSettingsStore>((set) => ({
         whatsappVerificationEnabled: !!d.whatsapp_verification_enabled,
         aiEnabled: !!d.ai_enabled,
         aiGuestEnabled: !!d.ai_guest_enabled,
+        partnerDocumentsRequired: !!d.partner_documents_required,
         loaded: true,
       });
     } catch {

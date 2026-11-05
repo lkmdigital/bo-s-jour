@@ -33,6 +33,8 @@ class SettingsController extends Controller
             'whatsapp_verification_enabled' => (bool) Setting::get('whatsapp_enabled', false)
                 && (bool) Setting::get('whatsapp_otp_enabled', false),
             'languages_enabled' => (array) Setting::get('languages_enabled', ['fr', 'en']),
+            // Documents de conformité des partenaires : obligatoires ou facultatifs (réglage du super administrateur).
+            'partner_documents_required' => \App\Services\PartnerDocuments::required(),
             // Module IA : seulement des drapeaux, jamais la clé. `ai_enabled` vaut vrai si l'admin a
             // activé le module ET qu'une clé est renseignée — le site masque tout le reste du temps.
             'ai_enabled' => \App\Services\AiModule::available(),

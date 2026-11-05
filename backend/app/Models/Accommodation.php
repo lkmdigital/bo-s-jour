@@ -277,6 +277,75 @@ class Accommodation extends Model
         return $query->where('city', $city);
     }
 
+    /**
+     * La ville s'écrit toujours de la même façon (« San Pedro », jamais « SAN PEDRO » ni « San pedro ») : les villes
+     * populaires, les filtres et les recherches regroupent ainsi les établissements d'une même ville.
+     */
+    public function setCityAttribute($value): void
+    {
+        $this->attributes['city'] = \App\Support\CityName::normalize($value);
+    }
+
+    /**
+     * Établissements pouvant accueillir la demande (dates et/ou nombre de voyageurs).
+     *
+     * - Avec chambres : au moins une chambre ACTIVE de capacité suffisante, libre sur toute la période.
+     * - Sans aucune chambre active : l'établissement se réserve tel quel (réservation « sans chambre »), il est donc jugé
+     *   sur sa propre capacité d'accueil et sur ses réservations confirmées, au lieu d'être écarté de toutes les
+     *   recherches (constat du 2026-11-05 : Villa Massouk et La Belle Rive, publiées sans chambre, étaient introuvables
+     *   sur le site, qui envoie toujours un nombre de voyageurs).
+     */
+    public function scopeAvailableFor($query, ?string $checkIn, ?string $checkOut, ?int $guests)
+    {
+        $hasDates = $checkIn && $checkOut;
+
+        return $query->where(function ($outer) use ($checkIn, $checkOut, $guests, $hasDates) {
+            $outer->whereHas('rooms', function ($q) use ($checkIn, $checkOut, $guests, $hasDates) {
+                $q->where('is_active', true);
+
+                if ($guests) {
+                    $q->where('capacity', '>=', $guests);
+                }
+
+                if ($hasDates) {
+                    // Exclure les chambres avec des conflits de disponibilité manuelle
+                    $q->whereDoesntHave('availabilities', function ($aq) use ($checkIn, $checkOut) {
+                        $aq->whereBetween('date', [$checkIn, $checkOut])
+                            ->where('status', '!=', 'available');
+                    });
+
+                    // Vérifier qu'il reste au moins une chambre disponible : on compare la quantité avec le
+                    // nombre de réservations confirmées pour ces dates.
+                    $q->whereRaw('COALESCE(quantity, 1) > COALESCE((
+                        SELECT COUNT(*)
+                        FROM bookings
+                        WHERE bookings.room_id = rooms.id
+                        AND bookings.status = "confirmed"
+                        AND (
+                            (bookings.check_in <= ? AND bookings.check_out >= ?)
+                            OR (bookings.check_in BETWEEN ? AND ?)
+                            OR (bookings.check_out BETWEEN ? AND ?)
+                        )
+                    ), 0)', [$checkOut, $checkIn, $checkIn, $checkOut, $checkIn, $checkOut]);
+                }
+            })->orWhere(function ($noRooms) use ($checkIn, $checkOut, $guests, $hasDates) {
+                $noRooms->whereDoesntHave('rooms', fn ($r) => $r->where('is_active', true));
+
+                if ($guests) {
+                    // Capacité non renseignée = inconnue : on ne l'écarte pas.
+                    $noRooms->where(fn ($w) => $w->whereNull('max_guests')->orWhere('max_guests', '>=', $guests));
+                }
+
+                if ($hasDates) {
+                    $noRooms->whereDoesntHave('bookings', fn ($b) => $b->whereNull('room_id')
+                        ->where('status', 'confirmed')
+                        ->where('check_in', '<', $checkOut)
+                        ->where('check_out', '>', $checkIn));
+                }
+            });
+        });
+    }
+
     public function scopeByType($query, $type)
     {
         return $query->where('type', $type);

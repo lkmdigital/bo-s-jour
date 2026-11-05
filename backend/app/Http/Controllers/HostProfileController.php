@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\HostProfileCompletion;
+use App\Services\PartnerDocuments;
 use App\Mail\OtpMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -127,6 +129,7 @@ class HostProfileController extends Controller
             'is_complete' => $completion >= 100,
             'compliance_status' => $user->compliance_status,
             'compliance_requirements' => $user->compliance_requirements,
+            'documents_required' => PartnerDocuments::required(),
         ]);
     }
 
@@ -285,7 +288,9 @@ class HostProfileController extends Controller
 
         // Recalculer le statut de complétion
         $completion = $this->calculateCompletion($user);
-        $user->profile_completed = $completion >= 100;
+        // Le drapeau stocké garde TOUJOURS le sens historique (documents compris) : si le super administrateur rend un
+        // jour les documents obligatoires, un profil complété sans documents ne passe pas pour complet.
+        $user->profile_completed = HostProfileCompletion::percentage($user, true) >= 100;
         
         // Sauvegarder toutes les modifications en une seule fois
         try {
@@ -314,6 +319,7 @@ class HostProfileController extends Controller
                 'is_complete' => $completion >= 100,
                 'compliance_status' => $user->compliance_status,
                 'compliance_requirements' => $user->compliance_requirements,
+                'documents_required' => PartnerDocuments::required(),
             ], 200);
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la sauvegarde du profil', [
@@ -328,64 +334,10 @@ class HostProfileController extends Controller
         }
     }
 
+    /** Pourcentage affiché au partenaire : selon que les documents sont obligatoires ou non (voir PartnerDocuments). */
     private function calculateCompletion($user): int
     {
-        $requiredFields = [
-            'name' => 5,
-            'email' => 5,
-            'phone' => 10,
-            'date_of_birth' => 5,
-            'bio' => 5,
-            'address_line1' => 10,
-            'city' => 5,
-            'country' => 5,
-            'phone_fixed' => 10,
-            'whatsapp' => 10,
-            'rccm' => 5,
-            'tax_account_number' => 5,
-            'id_type' => 10,
-            'id_number' => 10,
-            'id_document_path' => 15, // Pour passeport ou autre
-            'id_document_recto_path' => 7.5, // Pour CNI/Permis (recto)
-            'id_document_verso_path' => 7.5, // Pour CNI/Permis (verso)
-            'proof_of_address_path' => 15,
-            'business_license_path' => 10,
-            'rccm_document_path' => 10,
-            'tax_document_path' => 10,
-        ];
-
-        $total = 0;
-        foreach ($requiredFields as $field => $points) {
-            $value = $user->getAttribute($field);
-            if (!empty($value)) {
-                $total += $points;
-            }
-        }
-
-        // Pour CNI et Permis, vérifier que recto ET verso sont présents
-        $idType = $user->getAttribute('id_type');
-        if (in_array($idType, ['CNI', 'Permis de conduire'])) {
-            $hasRecto = !empty($user->getAttribute('id_document_recto_path'));
-            $hasVerso = !empty($user->getAttribute('id_document_verso_path'));
-            if ($hasRecto && $hasVerso) {
-                // Les deux côtés sont présents, les points sont déjà comptés (7.5 + 7.5 = 15)
-                // Tout est bon
-            } else {
-                // Si seulement un côté est présent ou aucun, on retire les points déjà ajoutés
-                // car le document est incomplet
-                if ($hasRecto) {
-                    $total -= 7.5; // Retirer les points du recto
-                }
-                if ($hasVerso) {
-                    $total -= 7.5; // Retirer les points du verso
-                }
-            }
-        } else {
-            // Pour Passeport ou Autre, on utilise id_document_path
-            // Les points sont déjà comptés si le fichier existe
-        }
-
-        return min(100, $total);
+        return HostProfileCompletion::percentage($user);
     }
 }
 

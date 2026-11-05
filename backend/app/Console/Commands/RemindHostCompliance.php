@@ -20,6 +20,13 @@ class RemindHostCompliance extends Command
 
     public function handle(): int
     {
+        // Documents facultatifs : on ne relance personne pour des pièces qu'on ne demande pas (voir PartnerDocuments).
+        if (!\App\Services\PartnerDocuments::required()) {
+            $this->info('Documents partenaires facultatifs : aucune relance de conformité.');
+
+            return self::SUCCESS;
+        }
+
         $now = now();
         $frontend = rtrim(config('services.frontend_url'), '/');
         $sent = 0;

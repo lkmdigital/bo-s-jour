@@ -16,6 +16,7 @@ import {
   CreditCard,
   MessageSquareText,
   Scale,
+  FileCheck2,
   ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
@@ -75,6 +76,12 @@ const CARDS: SettingsCard[] = [
     icon: MessageSquareText,
     title: 'Modèles',
     description: 'Message WhatsApp automatique et e-mails transactionnels.',
+  },
+  {
+    href: '/dashboard/admin/settings/documents-partenaires',
+    icon: FileCheck2,
+    title: 'Documents partenaires',
+    description: "Pièces et numéros de conformité : obligatoires ou facultatifs pour ajouter un établissement.",
   },
   {
     href: '/dashboard/admin/juridique?doc=cgv',
