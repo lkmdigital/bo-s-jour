@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 use App\Services\ImageUploadService;
+use App\Support\Security\PublicExposure;
 use Intervention\Image\ImageManager;
 
 class RoomController extends Controller
@@ -41,7 +42,7 @@ class RoomController extends Controller
         $room = Room::with(['accommodation', 'availabilities', 'images', 'primaryImage', 'activePromotions'])
             ->where('accommodation_id', $accommodationId)
             ->findOrFail($id);
-        
+
         return response()->json($room);
     }
 
@@ -130,7 +131,12 @@ class RoomController extends Controller
         } else {
             $room->is_available = true;
         }
-        
+
+        // Route publique : la chambre embarque son établissement, dont les réglages internes (calendrier iCal…) restent privés.
+        if ($room->accommodation) {
+            PublicExposure::accommodation($room->accommodation);
+        }
+
         return response()->json($room);
     }
     
@@ -169,6 +175,10 @@ class RoomController extends Controller
             'effective_price_per_night',
             \App\Services\RoomPricingService::getDisplayPricePerNight((float) $room->price_per_night, $room->accommodation)
         );
+
+        if ($room->accommodation) {
+            PublicExposure::accommodation($room->accommodation);
+        }
 
         return response()->json($room);
     }

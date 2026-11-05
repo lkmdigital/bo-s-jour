@@ -7,7 +7,7 @@ use App\Models\AccommodationImage;
 use App\Models\Room;
 use App\Services\RoomPricingService;
 use App\Services\ImageUploadService;
-use App\Support\Security\SensitiveUserFields;
+use App\Support\Security\PublicExposure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -24,7 +24,7 @@ class AccommodationController extends Controller
     private function hideReviewerSensitiveFields($accommodation): void
     {
         foreach ($accommodation->reviews as $review) {
-            $review->user?->makeHidden(SensitiveUserFields::DOCUMENTS_FINANCIAL_AND_CONTACT);
+            PublicExposure::reviewer($review->user);
         }
     }
 
@@ -175,10 +175,9 @@ class AccommodationController extends Controller
         $perPage = $request->get('per_page', 12);
         $accommodations = $query->paginate($perPage);
 
-        // Endpoint public (aucune authentification requise) : jamais les données
-        // sensibles de l'hôte (documents, coordonnées bancaires, identifiants fiscaux).
+        // Endpoint public (aucune authentification requise) : l'hôte n'y est jamais plus qu'un nom et une photo.
         foreach ($accommodations->getCollection() as $accommodation) {
-            $accommodation->host?->makeHidden(SensitiveUserFields::DOCUMENTS_AND_FINANCIAL);
+            PublicExposure::accommodation($accommodation);
             // Prix à afficher = prix réellement facturé (retour client 2026-09-08).
             $accommodation->setAttribute(
                 'effective_price_per_night',
@@ -221,10 +220,10 @@ class AccommodationController extends Controller
         } else {
             // Public: only published accommodations with active rooms
             $accommodation = $query->published()->findOrFail($id);
-            // Endpoint public (aucune authentification requise) : jamais les données
-            // sensibles de l'hôte. La branche propriétaire/admin ci-dessus garde un accès
-            // complet, légitime (voir /dashboard/admin/accommodations/{id} et le profil hôte).
-            $accommodation->host?->makeHidden(SensitiveUserFields::DOCUMENTS_AND_FINANCIAL);
+            // Endpoint public (aucune authentification requise) : l'hôte n'y est jamais plus qu'un nom et
+            // une photo. La branche propriétaire/admin ci-dessus garde un accès complet, légitime (voir
+            // /dashboard/admin/accommodations/{id} et le profil hôte).
+            PublicExposure::accommodation($accommodation);
         }
 
         // Un avis affiche son auteur (nom, avatar) — jamais ses coordonnées de contact ni

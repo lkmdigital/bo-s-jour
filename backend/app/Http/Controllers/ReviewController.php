@@ -161,7 +161,8 @@ class ReviewController extends Controller
 
     public function index(Request $request, $accommodationId)
     {
-        $query = Review::with('user')
+        // Liste publique : l'auteur d'un avis n'est jamais plus que son nom et sa photo (même règle que all()).
+        $query = Review::with('user:id,name,avatar')
             ->where('accommodation_id', $accommodationId)
             ->where('moderation_status', 'approved')
             ->orderBy('created_at', 'desc');
