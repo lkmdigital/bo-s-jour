@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/error_text.dart';
 import '../../../core/theme/brand.dart';
@@ -94,7 +95,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
                       itemCount: list.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 16),
-                      itemBuilder: (_, i) => AccommodationCard(accommodation: list[i]),
+                      itemBuilder: (_, i) => AccommodationCard(accommodation: list[i], onTap: () => context.push('/accommodations/${list[i].id}')),
                     ),
               loading: () => ListView(padding: const EdgeInsets.fromLTRB(20, 4, 20, 24), children: List.generate(3, (_) => const Padding(padding: EdgeInsets.only(bottom: 16), child: Skeleton(height: 280, radius: 20)))),
               error: (e, _) => ErrorView(message: errorText(e, l10n), onRetry: () => ref.invalidate(searchResultsProvider(query))),

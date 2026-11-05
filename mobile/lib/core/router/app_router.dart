@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/accommodations/presentation/accommodation_detail_screen.dart';
 import '../../features/accommodations/presentation/explore_screen.dart';
 import '../../features/accommodations/presentation/home_screen.dart';
 import '../../features/bookings/presentation/bookings_screen.dart';
@@ -12,6 +13,8 @@ import '../../l10n/app_localizations.dart';
 final routerProvider = Provider<GoRouter>((ref) => GoRouter(
       initialLocation: '/',
       routes: [
+        // Hors des onglets : la fiche couvre tout l'écran (barre de navigation comprise) et le retour ramène à l'onglet d'origine.
+        GoRoute(path: '/accommodations/:id', builder: (_, state) => AccommodationDetailScreen(id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0)),
         StatefulShellRoute.indexedStack(
           builder: (context, state, shell) => AppShell(shell: shell),
           branches: [

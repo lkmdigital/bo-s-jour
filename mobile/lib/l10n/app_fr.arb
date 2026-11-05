@@ -91,5 +91,109 @@
   "typeGuesthouse": "Maison d'hôtes",
   "typeApartment": "Résidence",
   "typeOther": "Hébergement",
-  "newBadge": "Nouveau"
+  "newBadge": "Nouveau",
+  "detailBack": "Retour",
+  "detailPhotoCounter": "{current} / {total}",
+  "@detailPhotoCounter": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "detailGuests": "{count, plural, =1{1 voyageur} other{{count} voyageurs}}",
+  "@detailGuests": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "detailBedrooms": "{count, plural, =1{1 chambre} other{{count} chambres}}",
+  "@detailBedrooms": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "detailBathrooms": "{count, plural, =1{1 salle de bain} other{{count} salles de bain}}",
+  "@detailBathrooms": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "detailCheckIn": "Arrivée dès {time}",
+  "@detailCheckIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "detailCheckOut": "Départ avant {time}",
+  "@detailCheckOut": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "detailAbout": "À propos",
+  "detailReadMore": "Lire la suite",
+  "detailReadLess": "Réduire",
+  "detailAmenities": "Équipements et services",
+  "detailRooms": "Chambres",
+  "detailFromPerNight": "dès {price} FCFA / nuit",
+  "@detailFromPerNight": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "detailPolicies": "Réservation et paiement",
+  "detailCancelStrict": "Annulation stricte : réservation non remboursable, aucune annulation gratuite.",
+  "detailCancelModerate": "Annulation modérée : gratuite jusqu'à {hours} h avant l'arrivée. Passé ce délai, 50 % sont conservés et 50 % vous sont rendus en avoir.",
+  "@detailCancelModerate": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "detailCancelFlexible": "Annulation flexible : gratuite jusqu'à {hours} h avant l'arrivée. Ensuite, la garantie est transformée en avoir.",
+  "@detailCancelFlexible": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "detailSpecialConditions": "Conditions particulières",
+  "detailReviews": "Avis des voyageurs",
+  "detailNoReviews": "Pas encore d'avis : cet établissement vient d'arriver sur boséjour.",
+  "detailHostReply": "Réponse de l'établissement",
+  "detailViewMap": "Voir sur la carte",
+  "detailBook": "Réserver",
+  "detailServiceReception24h": "Réception 24 h/24",
+  "detailServiceShuttle": "Navette",
+  "detailServiceLaundry": "Blanchisserie",
+  "detailServicePets": "Animaux acceptés",
+  "detailServiceSmoking": "Espace fumeur",
+  "detailServiceBreakfast": "Petit-déjeuner inclus",
+  "detailNotFound": "Cet établissement n'est plus disponible.",
+  "detailStars": "{count} étoiles",
+  "@detailStars": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

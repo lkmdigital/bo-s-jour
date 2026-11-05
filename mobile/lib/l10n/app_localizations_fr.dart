@@ -211,4 +211,137 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get newBadge => 'Nouveau';
+
+  @override
+  String get detailBack => 'Retour';
+
+  @override
+  String detailPhotoCounter(int current, int total) {
+    return '$current / $total';
+  }
+
+  @override
+  String detailGuests(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count voyageurs',
+      one: '1 voyageur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String detailBedrooms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chambres',
+      one: '1 chambre',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String detailBathrooms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count salles de bain',
+      one: '1 salle de bain',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String detailCheckIn(String time) {
+    return 'Arrivée dès $time';
+  }
+
+  @override
+  String detailCheckOut(String time) {
+    return 'Départ avant $time';
+  }
+
+  @override
+  String get detailAbout => 'À propos';
+
+  @override
+  String get detailReadMore => 'Lire la suite';
+
+  @override
+  String get detailReadLess => 'Réduire';
+
+  @override
+  String get detailAmenities => 'Équipements et services';
+
+  @override
+  String get detailRooms => 'Chambres';
+
+  @override
+  String detailFromPerNight(String price) {
+    return 'dès $price FCFA / nuit';
+  }
+
+  @override
+  String get detailPolicies => 'Réservation et paiement';
+
+  @override
+  String get detailCancelStrict =>
+      'Annulation stricte : réservation non remboursable, aucune annulation gratuite.';
+
+  @override
+  String detailCancelModerate(int hours) {
+    return 'Annulation modérée : gratuite jusqu\'à $hours h avant l\'arrivée. Passé ce délai, 50 % sont conservés et 50 % vous sont rendus en avoir.';
+  }
+
+  @override
+  String detailCancelFlexible(int hours) {
+    return 'Annulation flexible : gratuite jusqu\'à $hours h avant l\'arrivée. Ensuite, la garantie est transformée en avoir.';
+  }
+
+  @override
+  String get detailSpecialConditions => 'Conditions particulières';
+
+  @override
+  String get detailReviews => 'Avis des voyageurs';
+
+  @override
+  String get detailNoReviews =>
+      'Pas encore d\'avis : cet établissement vient d\'arriver sur boséjour.';
+
+  @override
+  String get detailHostReply => 'Réponse de l\'établissement';
+
+  @override
+  String get detailViewMap => 'Voir sur la carte';
+
+  @override
+  String get detailBook => 'Réserver';
+
+  @override
+  String get detailServiceReception24h => 'Réception 24 h/24';
+
+  @override
+  String get detailServiceShuttle => 'Navette';
+
+  @override
+  String get detailServiceLaundry => 'Blanchisserie';
+
+  @override
+  String get detailServicePets => 'Animaux acceptés';
+
+  @override
+  String get detailServiceSmoking => 'Espace fumeur';
+
+  @override
+  String get detailServiceBreakfast => 'Petit-déjeuner inclus';
+
+  @override
+  String get detailNotFound => 'Cet établissement n\'est plus disponible.';
+
+  @override
+  String detailStars(int count) {
+    return '$count étoiles';
+  }
 }

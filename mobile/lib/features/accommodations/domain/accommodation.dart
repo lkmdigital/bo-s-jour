@@ -1,4 +1,5 @@
 import '../../../core/config/app_config.dart';
+import '../../../core/json.dart';
 
 /// Hébergement tel qu'il apparaît dans les listes (réponse de GET /accommodations).
 class Accommodation {
@@ -24,14 +25,14 @@ class Accommodation {
 
   factory Accommodation.fromJson(Map<String, dynamic> json) {
     final reviews = (json['total_reviews'] as num?)?.toInt() ?? 0;
-    final rating = _toDouble(json['rating']);
+    final rating = toDouble(json['rating']);
 
     return Accommodation(
       id: (json['id'] as num).toInt(),
       name: json['name'] as String? ?? '',
       city: json['city'] as String? ?? '',
       type: json['type'] as String? ?? 'other',
-      pricePerNight: _toNum(json['effective_price_per_night']) ?? _toNum(json['price_per_night']) ?? 0,
+      pricePerNight: toNum(json['effective_price_per_night']) ?? toNum(json['price_per_night']) ?? 0,
       reviews: reviews,
       rating: reviews > 0 && rating != null && rating > 0 ? rating : null,
       imageUrl: _primaryImage(json['images']),
@@ -60,7 +61,7 @@ class City {
   factory City.fromJson(Map<String, dynamic> json) => City(
         name: json['city'] as String? ?? '',
         count: (json['accommodations_count'] as num?)?.toInt() ?? 0,
-        fromPrice: _toNum(json['from_price']) ?? 0,
+        fromPrice: toNum(json['from_price']) ?? 0,
         imageUrl: resolveImageUrl(json['image'] as String?),
       );
 }
@@ -72,12 +73,3 @@ String? resolveImageUrl(String? url) {
 
   return '${AppConfig.apiOrigin}${url.startsWith('/') ? '' : '/'}$url';
 }
-
-num? _toNum(Object? value) {
-  if (value is num) return value;
-  if (value is String) return num.tryParse(value);
-
-  return null;
-}
-
-double? _toDouble(Object? value) => _toNum(value)?.toDouble();

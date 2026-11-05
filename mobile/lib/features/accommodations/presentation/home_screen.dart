@@ -68,7 +68,7 @@ class HomeScreen extends ConsumerWidget {
             Text(l10n.homeDiscover, style: theme.textTheme.titleLarge),
             const SizedBox(height: 12),
             featured.when(
-              data: (list) => Column(children: [for (final a in list) Padding(padding: const EdgeInsets.only(bottom: 16), child: AccommodationCard(accommodation: a))]),
+              data: (list) => Column(children: [for (final a in list) Padding(padding: const EdgeInsets.only(bottom: 16), child: AccommodationCard(accommodation: a, onTap: () => context.push('/accommodations/${a.id}')))]),
               loading: () => Column(children: List.generate(2, (_) => const Padding(padding: EdgeInsets.only(bottom: 16), child: Skeleton(height: 280, radius: 20)))),
               error: (e, _) => SizedBox(height: 220, child: ErrorView(message: errorText(e, l10n), onRetry: () => ref.invalidate(featuredAccommodationsProvider))),
             ),

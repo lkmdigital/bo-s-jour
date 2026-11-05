@@ -39,8 +39,9 @@ flutter gen-l10n         # après avoir modifié lib/l10n/*.arb (les fichiers g�
 - **Erreurs** : les messages du serveur adressés au voyageur sont repris, les pannes techniques ne montrent jamais de détail.
 - Identifiant d'application : `ci.bosejour.app`.
 
-## État (phase 0)
+## État
 
-Socle terminé : thème, réseau, connexion (e-mail + mot de passe), navigation à quatre onglets, accueil et recherche
-branchés sur l'API. À venir (phase 1) : fiche établissement, réservation, paiement, réservations du voyageur, inscription,
-code e-mail et double authentification, assistant Bo, notifications.
+- **Phase 0 (terminée)** : thème, réseau, connexion (e-mail + mot de passe), navigation à quatre onglets, accueil et recherche.
+- **Phase 1 (en cours)** : **fiche établissement** faite (photos, infos clés, équipements, chambres, garantie et annulation, avis, barre « Réserver »).
+  Le bouton « Réserver » ouvre pour l'instant la page de l'établissement sur le site, en attendant le parcours de réservation dans l'appli.
+  À venir : réservation, paiement, mes réservations, inscription, code e-mail et double authentification, assistant Bo, notifications.

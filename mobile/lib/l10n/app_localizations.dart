@@ -439,6 +439,192 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Nouveau'**
   String get newBadge;
+
+  /// No description provided for @detailBack.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour'**
+  String get detailBack;
+
+  /// No description provided for @detailPhotoCounter.
+  ///
+  /// In fr, this message translates to:
+  /// **'{current} / {total}'**
+  String detailPhotoCounter(int current, int total);
+
+  /// No description provided for @detailGuests.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 voyageur} other{{count} voyageurs}}'**
+  String detailGuests(int count);
+
+  /// No description provided for @detailBedrooms.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 chambre} other{{count} chambres}}'**
+  String detailBedrooms(int count);
+
+  /// No description provided for @detailBathrooms.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 salle de bain} other{{count} salles de bain}}'**
+  String detailBathrooms(int count);
+
+  /// No description provided for @detailCheckIn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrivée dès {time}'**
+  String detailCheckIn(String time);
+
+  /// No description provided for @detailCheckOut.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ avant {time}'**
+  String detailCheckOut(String time);
+
+  /// No description provided for @detailAbout.
+  ///
+  /// In fr, this message translates to:
+  /// **'À propos'**
+  String get detailAbout;
+
+  /// No description provided for @detailReadMore.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lire la suite'**
+  String get detailReadMore;
+
+  /// No description provided for @detailReadLess.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réduire'**
+  String get detailReadLess;
+
+  /// No description provided for @detailAmenities.
+  ///
+  /// In fr, this message translates to:
+  /// **'Équipements et services'**
+  String get detailAmenities;
+
+  /// No description provided for @detailRooms.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chambres'**
+  String get detailRooms;
+
+  /// No description provided for @detailFromPerNight.
+  ///
+  /// In fr, this message translates to:
+  /// **'dès {price} FCFA / nuit'**
+  String detailFromPerNight(String price);
+
+  /// No description provided for @detailPolicies.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réservation et paiement'**
+  String get detailPolicies;
+
+  /// No description provided for @detailCancelStrict.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annulation stricte : réservation non remboursable, aucune annulation gratuite.'**
+  String get detailCancelStrict;
+
+  /// No description provided for @detailCancelModerate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annulation modérée : gratuite jusqu\'à {hours} h avant l\'arrivée. Passé ce délai, 50 % sont conservés et 50 % vous sont rendus en avoir.'**
+  String detailCancelModerate(int hours);
+
+  /// No description provided for @detailCancelFlexible.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annulation flexible : gratuite jusqu\'à {hours} h avant l\'arrivée. Ensuite, la garantie est transformée en avoir.'**
+  String detailCancelFlexible(int hours);
+
+  /// No description provided for @detailSpecialConditions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Conditions particulières'**
+  String get detailSpecialConditions;
+
+  /// No description provided for @detailReviews.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avis des voyageurs'**
+  String get detailReviews;
+
+  /// No description provided for @detailNoReviews.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pas encore d\'avis : cet établissement vient d\'arriver sur boséjour.'**
+  String get detailNoReviews;
+
+  /// No description provided for @detailHostReply.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réponse de l\'établissement'**
+  String get detailHostReply;
+
+  /// No description provided for @detailViewMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir sur la carte'**
+  String get detailViewMap;
+
+  /// No description provided for @detailBook.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réserver'**
+  String get detailBook;
+
+  /// No description provided for @detailServiceReception24h.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réception 24 h/24'**
+  String get detailServiceReception24h;
+
+  /// No description provided for @detailServiceShuttle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Navette'**
+  String get detailServiceShuttle;
+
+  /// No description provided for @detailServiceLaundry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Blanchisserie'**
+  String get detailServiceLaundry;
+
+  /// No description provided for @detailServicePets.
+  ///
+  /// In fr, this message translates to:
+  /// **'Animaux acceptés'**
+  String get detailServicePets;
+
+  /// No description provided for @detailServiceSmoking.
+  ///
+  /// In fr, this message translates to:
+  /// **'Espace fumeur'**
+  String get detailServiceSmoking;
+
+  /// No description provided for @detailServiceBreakfast.
+  ///
+  /// In fr, this message translates to:
+  /// **'Petit-déjeuner inclus'**
+  String get detailServiceBreakfast;
+
+  /// No description provided for @detailNotFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet établissement n\'est plus disponible.'**
+  String get detailNotFound;
+
+  /// No description provided for @detailStars.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} étoiles'**
+  String detailStars(int count);
 }
 
 class _AppLocalizationsDelegate

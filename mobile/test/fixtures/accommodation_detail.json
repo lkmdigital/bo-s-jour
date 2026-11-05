@@ -1,0 +1,179 @@
+{
+  "id": 37,
+  "name": "LE RANCH HOTEL SAN PEDRO",
+  "type": "hotel",
+  "city": "SAN PEDRO",
+  "address": "Quartier Nitoro, Rue de l'École Française Jacques Monod, San-Pédro, Côte d'Ivoire.",
+  "star_rating": 2,
+  "description": "écouvrez le cadre idyllique du Ranch Hôtel, votre havre de paix au cœur de San-Pedro. Idéalement situé dans le quartier calme et résidentiel de Nitoro, à deux pas de l'École Française Jacques Monod, notre établissement (anciennement Hôtel Résidence Christy) vous offre le parfait équilibre entre détente, confort moderne et hospitalité ivoirienne.\nQue vous voyagiez pour les affaires ou pour les vacances, laissez-vous séduire par notre magnifique piscine extérieure et notre jacuzzi, parfaits pour vous rafraîchir après une journée d'exploration ou de réunions.\nPourquoi nos voyageurs nous choisissent :\n• Tout inclus pour votre confort : Profitez gratuitement d'un délicieux petit-déjeuner chaque matin, d'une connexion Wi-Fi haut débit dans tout l'établissement et d'un parking privé sécurisé.\n• Détente et Restauration : Savourez des spécialités locales et internationales dans notre restaurant, ou détendez-vous avec un cocktail au bord de la piscine grâce à notre bar.\n• Services premiums : Pour un séjour sans stress, nous mettons à votre disposition une navette aéroport, un service d'étage (room service) et un centre d'affaires équipé.\n• Esprit de famille & Accessibilité : Notre hôtel entièrement non-fumeur est conçu pour accueillir toute la famille (kids-friendly). De plus, l'ensemble du site est accessible aux personnes en fauteuil roulant et nous accueillons vos animaux de compagnie avec plaisir.\nSéjournez au Ranch Hôtel et vivez une expérience inoubliable à San-Pedro. Réservez dès maintenant votre chambre !",
+  "description_en": null,
+  "latitude": "4.74228000",
+  "longitude": "-6.63448200",
+  "price_per_night": "65000.00",
+  "effective_price_per_night": 65000,
+  "max_guests": 28,
+  "bedrooms": 14,
+  "bathrooms": 14,
+  "amenities": [
+    "Wi-Fi",
+    "Parking",
+    "Climatisation",
+    "Petit-déjeuner",
+    "Piscine",
+    "Service de chambre",
+    "Restaurant",
+    "Bar",
+    "Salle de bain privée",
+    "Télévision",
+    "Lave-linge",
+    "Terrasse"
+  ],
+  "shuttle_service": true,
+  "laundry": false,
+  "reception_24h": true,
+  "smoking_area": false,
+  "pets_allowed": false,
+  "breakfast_included": true,
+  "check_in_time": "15:00:00",
+  "check_out_time": "12:00:00",
+  "cancellation_policy_hours": 48,
+  "special_conditions": null,
+  "rating": "4.50",
+  "total_reviews": 1,
+  "guarantee": {
+    "enabled": true,
+    "type": "first_night",
+    "percentage": null,
+    "fixed_amount": null,
+    "label": "Garantie de réservation",
+    "summary": "1re nuit",
+    "description": "Garantie de réservation : la 1re nuit est réglée en ligne ; le solde se règle directement à l'établissement, à l'arrivée."
+  },
+  "images": [
+    {
+      "id": 298,
+      "url": "https://api.bosejour.ci/storage/accommodations/37/acc_7a64ef69-cc1e-4dd9-86da-83c826336a4c.jpeg",
+      "is_primary": false,
+      "order": 1
+    },
+    {
+      "id": 299,
+      "url": "https://api.bosejour.ci/storage/accommodations/37/acc_066bb1c7-d401-4736-9a73-6ba71774b72d.jpeg",
+      "is_primary": false,
+      "order": 2
+    },
+    {
+      "id": 300,
+      "url": "https://api.bosejour.ci/storage/accommodations/37/acc_313a44bc-36ed-4800-8e03-48dcbf830e3c.jpeg",
+      "is_primary": false,
+      "order": 3
+    },
+    {
+      "id": 301,
+      "url": "https://api.bosejour.ci/storage/accommodations/37/acc_b196e793-4879-4b36-9141-09428e436783.jpeg",
+      "is_primary": false,
+      "order": 4
+    }
+  ],
+  "host": {
+    "id": 96,
+    "name": "Hôte (données de contact retirées de ce fichier de test)"
+  },
+  "rooms": [
+    {
+      "id": 90,
+      "name": "CHAMBRE DOUBLE",
+      "name_en": null,
+      "description": null,
+      "capacity": 2,
+      "price_per_night": "65000.00",
+      "effective_price_per_night": 65000,
+      "amenities": [
+        "Wi-Fi",
+        "Climatisation",
+        "Télévision",
+        "Mini-bar",
+        "Produits d'accueil"
+      ],
+      "is_active": true,
+      "quantity": 2,
+      "images": [
+        {
+          "full_url": "https://api.bosejour.ci/storage/rooms/90/room_46856893-26dc-4776-8f20-4b94c9cd775d.jpeg",
+          "is_primary": true
+        }
+      ],
+      "primary_image": {
+        "full_url": "https://api.bosejour.ci/storage/rooms/90/room_46856893-26dc-4776-8f20-4b94c9cd775d.jpeg"
+      }
+    },
+    {
+      "id": 91,
+      "name": "CHAMBRE PREMIUM",
+      "name_en": null,
+      "description": null,
+      "capacity": 3,
+      "price_per_night": "80000.00",
+      "effective_price_per_night": 80000,
+      "amenities": [
+        "Wi-Fi",
+        "Climatisation",
+        "Télévision",
+        "Mini-bar",
+        "Produits d'accueil",
+        "Balcon",
+        "Terrasse"
+      ],
+      "is_active": true,
+      "quantity": 7,
+      "images": [
+        {
+          "full_url": "https://api.bosejour.ci/storage/rooms/91/room_5cd19ca5-88e7-4f18-b142-b872bc6f5f0e.jpeg",
+          "is_primary": true
+        }
+      ],
+      "primary_image": {
+        "full_url": "https://api.bosejour.ci/storage/rooms/91/room_5cd19ca5-88e7-4f18-b142-b872bc6f5f0e.jpeg"
+      }
+    },
+    {
+      "id": 92,
+      "name": "SUITE JUNIOR",
+      "name_en": null,
+      "description": null,
+      "capacity": 3,
+      "price_per_night": "70000.00",
+      "effective_price_per_night": 70000,
+      "amenities": [
+        "BUREAU",
+        "Wi-Fi",
+        "Climatisation",
+        "Télévision",
+        "Mini-bar"
+      ],
+      "is_active": true,
+      "quantity": 1,
+      "images": [
+        {
+          "full_url": "https://api.bosejour.ci/storage/rooms/92/room_85c4327e-321d-450b-a14f-f4a3dc43ae38.jpeg",
+          "is_primary": false
+        }
+      ],
+      "primary_image": {
+        "full_url": "https://api.bosejour.ci/storage/rooms/92/room_f0d39d21-05c4-42de-b3bc-609b8b49b85a.jpeg"
+      }
+    }
+  ],
+  "reviews": [
+    {
+      "id": 1,
+      "rating": 4.5,
+      "comment": "Séjour très agréable, personnel accueillant.",
+      "created_at": "2026-10-12T09:30:00.000000Z",
+      "user": {
+        "name": "Awa Koné"
+      },
+      "admin_reply": "Merci Awa, au plaisir de vous revoir !"
+    }
+  ]
+}

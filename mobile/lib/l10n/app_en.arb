@@ -91,5 +91,109 @@
   "typeGuesthouse": "Guesthouse",
   "typeApartment": "Residence",
   "typeOther": "Stay",
-  "newBadge": "New"
+  "newBadge": "New",
+  "detailBack": "Back",
+  "detailPhotoCounter": "{current} / {total}",
+  "@detailPhotoCounter": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "detailGuests": "{count, plural, =1{1 guest} other{{count} guests}}",
+  "@detailGuests": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "detailBedrooms": "{count, plural, =1{1 bedroom} other{{count} bedrooms}}",
+  "@detailBedrooms": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "detailBathrooms": "{count, plural, =1{1 bathroom} other{{count} bathrooms}}",
+  "@detailBathrooms": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "detailCheckIn": "Check-in from {time}",
+  "@detailCheckIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "detailCheckOut": "Check-out before {time}",
+  "@detailCheckOut": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "detailAbout": "About",
+  "detailReadMore": "Read more",
+  "detailReadLess": "Show less",
+  "detailAmenities": "Amenities and services",
+  "detailRooms": "Rooms",
+  "detailFromPerNight": "from {price} FCFA / night",
+  "@detailFromPerNight": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "detailPolicies": "Booking and payment",
+  "detailCancelStrict": "Strict cancellation: non-refundable booking, no free cancellation.",
+  "detailCancelModerate": "Moderate cancellation: free up to {hours} h before arrival. After that, 50% is kept and 50% is returned as credit.",
+  "@detailCancelModerate": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "detailCancelFlexible": "Flexible cancellation: free up to {hours} h before arrival. After that, the guarantee is turned into credit.",
+  "@detailCancelFlexible": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "detailSpecialConditions": "Special conditions",
+  "detailReviews": "Guest reviews",
+  "detailNoReviews": "No reviews yet: this place has just joined boséjour.",
+  "detailHostReply": "Reply from the property",
+  "detailViewMap": "View on map",
+  "detailBook": "Book",
+  "detailServiceReception24h": "24-hour front desk",
+  "detailServiceShuttle": "Shuttle",
+  "detailServiceLaundry": "Laundry",
+  "detailServicePets": "Pets allowed",
+  "detailServiceSmoking": "Smoking area",
+  "detailServiceBreakfast": "Breakfast included",
+  "detailNotFound": "This place is no longer available.",
+  "detailStars": "{count} stars",
+  "@detailStars": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

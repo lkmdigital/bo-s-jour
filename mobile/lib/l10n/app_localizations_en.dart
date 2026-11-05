@@ -208,4 +208,137 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get newBadge => 'New';
+
+  @override
+  String get detailBack => 'Back';
+
+  @override
+  String detailPhotoCounter(int current, int total) {
+    return '$current / $total';
+  }
+
+  @override
+  String detailGuests(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count guests',
+      one: '1 guest',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String detailBedrooms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bedrooms',
+      one: '1 bedroom',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String detailBathrooms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bathrooms',
+      one: '1 bathroom',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String detailCheckIn(String time) {
+    return 'Check-in from $time';
+  }
+
+  @override
+  String detailCheckOut(String time) {
+    return 'Check-out before $time';
+  }
+
+  @override
+  String get detailAbout => 'About';
+
+  @override
+  String get detailReadMore => 'Read more';
+
+  @override
+  String get detailReadLess => 'Show less';
+
+  @override
+  String get detailAmenities => 'Amenities and services';
+
+  @override
+  String get detailRooms => 'Rooms';
+
+  @override
+  String detailFromPerNight(String price) {
+    return 'from $price FCFA / night';
+  }
+
+  @override
+  String get detailPolicies => 'Booking and payment';
+
+  @override
+  String get detailCancelStrict =>
+      'Strict cancellation: non-refundable booking, no free cancellation.';
+
+  @override
+  String detailCancelModerate(int hours) {
+    return 'Moderate cancellation: free up to $hours h before arrival. After that, 50% is kept and 50% is returned as credit.';
+  }
+
+  @override
+  String detailCancelFlexible(int hours) {
+    return 'Flexible cancellation: free up to $hours h before arrival. After that, the guarantee is turned into credit.';
+  }
+
+  @override
+  String get detailSpecialConditions => 'Special conditions';
+
+  @override
+  String get detailReviews => 'Guest reviews';
+
+  @override
+  String get detailNoReviews =>
+      'No reviews yet: this place has just joined boséjour.';
+
+  @override
+  String get detailHostReply => 'Reply from the property';
+
+  @override
+  String get detailViewMap => 'View on map';
+
+  @override
+  String get detailBook => 'Book';
+
+  @override
+  String get detailServiceReception24h => '24-hour front desk';
+
+  @override
+  String get detailServiceShuttle => 'Shuttle';
+
+  @override
+  String get detailServiceLaundry => 'Laundry';
+
+  @override
+  String get detailServicePets => 'Pets allowed';
+
+  @override
+  String get detailServiceSmoking => 'Smoking area';
+
+  @override
+  String get detailServiceBreakfast => 'Breakfast included';
+
+  @override
+  String get detailNotFound => 'This place is no longer available.';
+
+  @override
+  String detailStars(int count) {
+    return '$count stars';
+  }
 }

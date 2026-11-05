@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:bosejour/app.dart';
 import 'package:bosejour/core/network/providers.dart';
 import 'package:bosejour/core/storage/token_storage.dart';
 import 'package:bosejour/features/accommodations/data/accommodation_repository.dart';
+import 'package:bosejour/core/network/api_exception.dart';
 import 'package:bosejour/features/accommodations/domain/accommodation.dart';
+import 'package:bosejour/features/accommodations/domain/accommodation_detail.dart';
 import 'package:bosejour/features/auth/data/auth_repository.dart';
 import 'package:bosejour/features/auth/domain/user.dart';
 import 'package:dio/dio.dart';
@@ -66,10 +69,13 @@ class FakeAuthRepository implements AuthRepository {
 }
 
 class FakeAccommodationRepository implements AccommodationRepository {
-  FakeAccommodationRepository({this.cities = const [], this.accommodations = const [], this.error});
+  FakeAccommodationRepository({this.cities = const [], this.accommodations = const [], this.details = const {}, this.error});
 
   final List<City> cities;
   final List<Accommodation> accommodations;
+
+  /// Fiches complètes par identifiant ; une fiche absente répond 404, comme le serveur pour un établissement non publié.
+  final Map<int, AccommodationDetail> details;
   Object? error;
   final List<String?> searches = [];
 
@@ -88,6 +94,16 @@ class FakeAccommodationRepository implements AccommodationRepository {
 
     return accommodations.where((a) => q.isEmpty || a.name.toLowerCase().contains(q) || a.city.toLowerCase().contains(q)).toList();
   }
+
+  final List<int> detailRequests = [];
+
+  @override
+  Future<AccommodationDetail> detail(int id) async {
+    detailRequests.add(id);
+    if (error != null) throw error!;
+
+    return details[id] ?? (throw ApiException(ApiErrorKind.rejected, 'No query results for model [App\\Models\\Accommodation] $id', statusCode: 404));
+  }
 }
 
 const traveler = User(id: 1, name: 'Awa Koné', email: 'awa@example.com', role: 'user');
@@ -102,6 +118,22 @@ const sampleAccommodations = [
   Accommodation(id: 1, name: 'Hôtel Ivoire Premium', city: 'Abidjan', type: 'hotel', pricePerNight: 33000, reviews: 2, rating: 4.5),
   Accommodation(id: 7, name: 'Villa Asili', city: 'Grand-Bassam', type: 'guesthouse', pricePerNight: 50000, reviews: 0),
 ];
+
+/// Réponse réelle de l'API (test/fixtures), sans photos : les tests n'ont pas de réseau.
+Map<String, dynamic> sampleDetailJson() {
+  final json = jsonDecode(File('test/fixtures/accommodation_detail.json').readAsStringSync()) as Map<String, dynamic>;
+  json['images'] = <Object>[];
+  for (final room in json['rooms'] as List) {
+    (room as Map<String, dynamic>)['images'] = <Object>[];
+    room['primary_image'] = null;
+  }
+
+  return json;
+}
+
+AccommodationDetail sampleDetail({bool english = false}) => AccommodationDetail.fromJson(sampleDetailJson(), english: english);
+
+const sampleListItem = Accommodation(id: 37, name: 'LE RANCH HOTEL SAN PEDRO', city: 'SAN PEDRO', type: 'hotel', pricePerNight: 65000, reviews: 1, rating: 4.5);
 
 bool _fontsLoaded = false;
 

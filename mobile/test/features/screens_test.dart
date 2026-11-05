@@ -1,4 +1,6 @@
+import 'package:bosejour/core/format.dart';
 import 'package:bosejour/core/network/api_exception.dart';
+import 'package:bosejour/features/accommodations/domain/accommodation_detail.dart';
 import 'package:bosejour/features/accommodations/presentation/explore_screen.dart';
 import 'package:bosejour/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
@@ -181,5 +183,99 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(TextField, 'abidjan'), findsOneWidget);
+  });
+
+  group('Fiche établissement', () {
+    // Les prix s'écrivent avec des espaces insécables : on utilise le même formateur que l'appli.
+    final price = formatFcfa(65000, 'fr');
+    FakeAccommodationRepository repoWithDetail() => FakeAccommodationRepository(accommodations: const [sampleListItem], details: {37: sampleDetail()});
+
+    Future<void> openFromExplore(WidgetTester tester, FakeAccommodationRepository repo) async {
+      await pumpApp(tester, accommodations: repo);
+      await tester.tap(find.text('Explorer').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('LE RANCH HOTEL SAN PEDRO'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('toucher un hébergement ouvre sa fiche : informations, prix et bouton Réserver', (tester) async {
+      final repo = repoWithDetail();
+      await openFromExplore(tester, repo);
+
+      expect(repo.detailRequests, [37]);
+      expect(find.text('LE RANCH HOTEL SAN PEDRO'), findsOneWidget);
+      expect(find.text('SAN PEDRO · Hôtel'), findsOneWidget);
+      expect(find.text('28 voyageurs'), findsOneWidget);
+      expect(find.text('Arrivée dès 15:00'), findsOneWidget);
+      expect(find.text('dès $price FCFA / nuit'), findsOneWidget);
+      expect(find.text('Réserver'), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing, reason: 'la fiche couvre tout l\'écran');
+    });
+
+    testWidgets('les sections se lisent en défilant : équipements, chambres, garantie, annulation, avis', (tester) async {
+      await openFromExplore(tester, repoWithDetail());
+
+      await tester.scrollUntilVisible(find.text('Équipements et services'), 300);
+      expect(find.text('Piscine'), findsOneWidget);
+      expect(find.text('Réception 24 h/24'), findsOneWidget);
+
+      await tester.scrollUntilVisible(find.text('CHAMBRE DOUBLE'), 300);
+      expect(find.text('$price FCFA / nuit'), findsWidgets);
+
+      await tester.scrollUntilVisible(find.text('Garantie de réservation'), 300);
+      expect(find.textContaining('La 1re nuit est réglée en ligne'), findsOneWidget, reason: 'le texte de la garantie vient du serveur (sans répéter son titre)');
+      expect(find.textContaining('Garantie de réservation :'), findsNothing);
+      expect(find.textContaining('Annulation flexible : gratuite jusqu\'à 48 h'), findsOneWidget);
+
+      await tester.scrollUntilVisible(find.text('Awa Koné'), 300);
+      expect(find.textContaining('Séjour très agréable'), findsOneWidget);
+      expect(find.textContaining('Merci Awa'), findsOneWidget);
+    });
+
+    testWidgets('le bouton retour ramène à la liste', (tester) async {
+      await openFromExplore(tester, repoWithDetail());
+
+      await tester.tap(find.bySemanticsLabel('Retour'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('dès $price FCFA / nuit'), findsNothing);
+      expect(find.text('Explorer'), findsWidgets);
+      expect(find.byType(NavigationBar), findsOneWidget);
+    });
+
+    testWidgets('un établissement qui n\'est plus publié affiche un message clair (pas le texte technique du serveur)', (tester) async {
+      await openFromExplore(tester, FakeAccommodationRepository(accommodations: const [sampleListItem]));
+
+      expect(find.text('Cet établissement n\'est plus disponible.'), findsOneWidget);
+      expect(find.textContaining('No query results'), findsNothing);
+      expect(find.text('Réessayer'), findsNothing, reason: 'réessayer n\'y changerait rien');
+    });
+
+    testWidgets('une panne du réseau propose Réessayer, puis la fiche s\'affiche', (tester) async {
+      final repo = repoWithDetail();
+      await pumpApp(tester, accommodations: repo);
+      await tester.tap(find.text('Explorer').last);
+      await tester.pumpAndSettle();
+      repo.error = ApiException(ApiErrorKind.network, 'Impossible de joindre boséjour. Vérifiez votre connexion internet.');
+      await tester.tap(find.text('LE RANCH HOTEL SAN PEDRO'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Impossible de joindre boséjour'), findsOneWidget);
+
+      repo.error = null;
+      await tester.tap(find.text('Réessayer'));
+      await tester.pumpAndSettle();
+      expect(find.text('dès $price FCFA / nuit'), findsOneWidget);
+    });
+
+    testWidgets('sans avis, la fiche le dit au lieu d\'inventer une note', (tester) async {
+      final json = sampleDetailJson()..['reviews'] = <Object>[]..['total_reviews'] = 0..['rating'] = '0.00';
+      final repo = FakeAccommodationRepository(accommodations: const [sampleListItem], details: {37: AccommodationDetail.fromJson(json)});
+      await openFromExplore(tester, repo);
+
+      expect(find.text('Nouveau'), findsWidgets);
+      await tester.scrollUntilVisible(find.textContaining('Pas encore d\'avis'), 300);
+      expect(find.textContaining('vient d\'arriver sur boséjour'), findsOneWidget);
+    });
   });
 }
