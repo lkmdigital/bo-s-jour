@@ -213,6 +213,8 @@ class PartnerReferralDetailTest extends TestCase
         $this->assertSame('Rencontré au salon. Relancer en janvier.', $data['notes']);
         $this->assertSame(config('services.frontend_url') . '/p/CHEZMAMA?s=qr', $data['qr_link']);
         $this->assertSame(config('services.frontend_url') . '/p/CHEZMAMA', $data['link']);
+        $this->assertSame('Chez Mama', $data['poster_name'], 'nom imprimé sur l\'affiche');
+        $this->assertEquals(5, $data['discount_percent']);
     }
 
     public function test_the_contact_details_of_a_pending_ambassador_can_be_corrected_but_not_a_linked_one(): void
@@ -238,5 +240,9 @@ class PartnerReferralDetailTest extends TestCase
         $block = $this->getJson('/api/me/loyalty')->json('data.ambassador');
 
         $this->assertSame(config('services.frontend_url') . '/p/CHEZMAMA?s=qr', $block['qr_link']);
+        $this->assertSame('Chez Mama', $block['poster_name']);
+
+        $partner->update(['display_name' => null]);
+        $this->assertSame($partner->user->name, $this->getJson('/api/me/loyalty')->json('data.ambassador.poster_name'), 'sans nom affiché : le nom du compte');
     }
 }

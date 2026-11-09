@@ -159,6 +159,7 @@ class LoyaltyController extends Controller
         return [
             'code' => $partner->code,
             'display_name' => $partner->display_name,
+            'poster_name' => $partner->display_name ?: $user->name,   // « Invitation de … » sur l'affiche
             'link' => $service->shortLink($partner),
             'qr_link' => $service->qrLink($partner),
             'signup_points' => PartnerReferralService::signupPoints(),

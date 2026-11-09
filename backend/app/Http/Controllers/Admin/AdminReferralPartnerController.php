@@ -94,6 +94,8 @@ class AdminReferralPartnerController extends Controller
             'data' => $this->present($partner) + [
                 'notes' => $partner->notes,
                 'created_by' => $partner->createdBy?->name,
+                'poster_name' => $partner->display_name ?: ($partner->user?->name ?? 'boséjour'),
+                'discount_percent' => PartnerReferralService::discountPercent(),
                 'report' => app(PartnerReferralReport::class)->build($partner, (int) $request->query('days', 30)),
             ],
         ]);

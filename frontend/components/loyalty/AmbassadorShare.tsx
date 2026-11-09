@@ -4,10 +4,12 @@ import { useRef } from 'react';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { Copy, Download, Link2, Mail, MessageCircle, Share2 } from 'lucide-react';
 import { useToast } from '@/components/common/ToastContext';
+import PosterDownload from '@/components/loyalty/PosterDownload';
 
 export interface AmbassadorData {
   code: string;
   display_name: string | null;
+  poster_name?: string;
   link: string;
   qr_link?: string;
   signup_points: number;
@@ -162,6 +164,10 @@ export default function AmbassadorShare({ data }: { data: AmbassadorData }) {
             </span>
           </div>
         </div>
+      </div>
+
+      <div className="pt-4 border-t border-primary/20">
+        <PosterDownload qrLink={data.qr_link ?? data.link} name={data.poster_name || data.display_name || 'boséjour'} percent={data.discount_percent} code={data.code} />
       </div>
     </div>
   );

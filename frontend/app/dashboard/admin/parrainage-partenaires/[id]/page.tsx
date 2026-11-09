@@ -13,6 +13,7 @@ import api from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
 import { useToast } from '@/components/common/ToastContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import PosterDownload from '@/components/loyalty/PosterDownload';
 
 interface Person { id: number; name: string; email: string; phone: string | null }
 interface BookingRow {
@@ -27,7 +28,7 @@ interface ReferralRow {
 interface Detail {
   id: number; code: string; display_name: string | null; is_active: boolean; created_at: string; status: 'active_account' | 'pending_account';
   claimed_at: string | null; invited_email: string | null; invited_phone: string | null; user: Person | null; link: string; qr_link: string;
-  notes: string | null; created_by: string | null;
+  notes: string | null; created_by: string | null; poster_name: string; discount_percent: number;
   report: {
     visits: { total: number; unique_visitors: number; returning_visitors: number; today: number; last_7_days: number; last_30_days: number; by_source: { qr: number; link: number; unknown: number }; first_at: string | null; last_at: string | null };
     funnel: { visitors: number; signups: number; signups_validated: number; bookings: number; rate_signup: number | null; rate_validation: number | null; rate_booking: number | null; rate_global: number | null };
@@ -306,6 +307,9 @@ export default function AmbassadorDetailPage() {
               <div className="flex flex-wrap gap-2">
                 <button onClick={() => { const c = pngRef.current?.querySelector('canvas'); if (c) download(c.toDataURL('image/png'), `bosejour-qr-${data.code}.png`); }} className="btn-primary text-xs inline-flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> QR code PNG</button>
                 <button onClick={downloadSvg} className="btn-outline text-xs inline-flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> QR code SVG</button>
+              </div>
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+                <PosterDownload compact qrLink={data.qr_link} name={data.poster_name} percent={data.discount_percent} code={data.code} />
               </div>
             </div>
           </div>
