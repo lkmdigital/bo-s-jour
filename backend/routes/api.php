@@ -24,6 +24,8 @@ use App\Http\Controllers\Admin\PartnerDocumentsSettingController;
 use App\Http\Controllers\Admin\AdminAiController;
 use App\Http\Controllers\Admin\AdminCorporateController;
 use App\Http\Controllers\Admin\AdminLoyaltyController;
+use App\Http\Controllers\Admin\AdminReferralPartnerController;
+use App\Http\Controllers\PartnerReferralController;
 use App\Http\Controllers\Admin\AdminLegalDocumentController;
 use App\Http\Controllers\Admin\AdminPaymentMethodController;
 use App\Http\Controllers\Admin\AdminDiscoveryController;
@@ -162,6 +164,10 @@ Route::post('/auth/activate-staff', [AuthController::class, 'activateStaffInvita
 Route::post('/auth/register-traveler', [AuthController::class, 'registerTraveler'])->middleware('throttle:10,1,auth-register-traveler'); // inscription voyageur (légère)
 Route::post('/auth/register-partner-light', [AuthController::class, 'registerPartnerLight'])->middleware('throttle:10,1,auth-register-partner'); // inscription hôte (légère)
 Route::get('/auth/guest-prefill', [AuthController::class, 'guestPrefill'])->middleware('throttle:20,1,auth-guest-prefill'); // préremplissage depuis compte invité existant
+
+// Parrainage ambassadeur : comptage d'un scan / clic (page /p/{code}) et reconnaissance d'un code à l'inscription
+Route::post('/referral/click', [PartnerReferralController::class, 'click'])->middleware('throttle:30,1,referral-click');
+Route::get('/referral/resolve/{code}', [PartnerReferralController::class, 'resolve'])->where('code', '[A-Za-z0-9]{1,20}')->middleware('throttle:30,1,referral-resolve');
 
 // Email OTP & Password Reset (public)
 Route::post('/auth/send-otp', [AuthController::class, 'sendEmailOtp'])->middleware('throttle:6,1,auth-send-otp'); // laisse renvoyer le code 2-3 fois (mail en retard) sans se bloquer
@@ -564,6 +570,13 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::put('/campaigns/{id}', [AdminLoyaltyController::class, 'updateCampaign'])->where('id', '[0-9]+');
             Route::get('/vouchers', [AdminLoyaltyController::class, 'vouchers']);
             Route::get('/establishments', [AdminLoyaltyController::class, 'establishments']);
+        });
+
+        // Parrainage ambassadeurs (admin)
+        Route::prefix('referral-partners')->middleware('role:admin')->group(function () {
+            Route::get('/', [AdminReferralPartnerController::class, 'index']);
+            Route::post('/', [AdminReferralPartnerController::class, 'store']);
+            Route::put('/{id}', [AdminReferralPartnerController::class, 'update'])->where('id', '[0-9]+');
         });
 
         // Programme Corporate (admin) — paliers de CA annuel et récompenses figées

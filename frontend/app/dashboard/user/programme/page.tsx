@@ -11,6 +11,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Brand from '@/components/common/Brand';
 import Pagination from '@/components/common/Pagination';
 import ReferralShare from '@/components/loyalty/ReferralShare';
+import AmbassadorShare, { type AmbassadorData } from '@/components/loyalty/AmbassadorShare';
 import {
   Award, Gift, TrendingUp, Ticket, History, Megaphone,
   CheckCircle2, Clock, XCircle,
@@ -61,6 +62,7 @@ interface LoyaltyData {
   referral_link: string | null;
   referral_bonus_parrain: number;
   referral_bonus_filleul: number;
+  ambassador: AmbassadorData | null;
   reward_tiers: RewardTier[];
   vouchers: Voucher[];
   active_campaigns: ActiveCampaign[];
@@ -341,6 +343,9 @@ export default function MemberProgrammePage() {
             </div>
           </div>
         )}
+
+        {/* Espace ambassadeur (désigné par l'administration) : QR code traçable et compteurs */}
+        {data?.ambassador && <AmbassadorShare data={data.ambassador} />}
 
         {/* Parrainage : code, lien et QR code */}
         {data?.referral_code && (

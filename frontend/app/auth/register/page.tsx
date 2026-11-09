@@ -72,6 +72,8 @@ function RegisterContent() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [codeInfo, setCodeInfo] = useState<{ valid: boolean; type: 'partner' | 'member' | null; label: string | null } | null>(null);
+  const [codeLocked, setCodeLocked] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
@@ -107,6 +109,22 @@ function RegisterContent() {
     }
   };
 
+  const resolveCode = async (code: string) => {
+    const clean = code.trim();
+    if (!/^[A-Za-z0-9]{1,20}$/.test(clean)) {
+      setCodeInfo(null);
+      return null;
+    }
+    try {
+      const { data } = await api.get(`/referral/resolve/${encodeURIComponent(clean)}`);
+      setCodeInfo(data);
+      return data as { valid: boolean; type: 'partner' | 'member' | null; label: string | null };
+    } catch {
+      setCodeInfo(null);
+      return null;
+    }
+  };
+
   // À l'arrivée : email éventuel passé en query (lien d'activation / login), et type
   useEffect(() => {
     const email = params.get('email');
@@ -116,7 +134,11 @@ function RegisterContent() {
       tryPrefill(email);
     }
     const ref = params.get('ref');
-    if (ref) set('referral_code', ref.toUpperCase());
+    if (ref) {
+      set('referral_code', ref.toUpperCase());
+      // Le code arrive par un lien ou un QR code : on le verrouille s'il est reconnu (un code inconnu reste modifiable).
+      resolveCode(ref).then((info) => setCodeLocked(!!info?.valid));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -411,13 +433,37 @@ function RegisterContent() {
 
           {passwordBlock}
 
-          <Field label="Code de parrainage" hint="Un ami vous a invité ? Renseignez son code pour que vous receviez tous les deux un bonus de points.">
+          <Field
+            label={codeLocked ? 'Code d\'invitation' : 'Code de parrainage'}
+            hint={
+              codeLocked
+                ? undefined
+                : 'Un ami ou un partenaire vous a invité ? Renseignez son code (facultatif).'
+            }
+          >
             <input
-              className={inputCls + ' max-w-xs uppercase'}
+              className={inputCls + ' max-w-xs uppercase' + (codeLocked ? ' bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : '')}
               value={form.referral_code}
-              onChange={(e) => set('referral_code', e.target.value.toUpperCase())}
+              readOnly={codeLocked}
+              aria-readonly={codeLocked}
+              onChange={(e) => {
+                set('referral_code', e.target.value.toUpperCase());
+                setCodeInfo(null);
+              }}
+              onBlur={() => form.referral_code && !codeLocked && resolveCode(form.referral_code)}
               placeholder="Ex : ABC12345"
             />
+            {codeInfo?.valid && (
+              <span className="mt-1.5 flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {codeInfo.type === 'partner'
+                  ? `Invitation de ${codeInfo.label || 'notre partenaire'} reconnue.`
+                  : "Code d'un membre reconnu."}
+              </span>
+            )}
+            {form.referral_code && codeInfo && !codeInfo.valid && (
+              <span className="block mt-1.5 text-xs text-amber-700 dark:text-amber-400">Ce code n&apos;est pas reconnu : vérifiez-le ou laissez le champ vide.</span>
+            )}
           </Field>
 
           {/* CGV + erreur + submit */}

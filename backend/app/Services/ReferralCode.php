@@ -24,7 +24,7 @@ final class ReferralCode
             for ($i = 0; $i < self::LENGTH; $i++) {
                 $code .= self::ALPHABET[random_int(0, strlen(self::ALPHABET) - 1)];
             }
-        } while (User::where('referral_code', $code)->exists());
+        } while (!PartnerReferralService::codeAvailable($code));
 
         return $code;
     }

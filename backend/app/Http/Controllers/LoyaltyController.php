@@ -7,7 +7,9 @@ use App\Models\LoyaltyRewardTier;
 use App\Models\LoyaltyTier;
 use App\Models\LoyaltyVoucher;
 use App\Models\Setting;
+use App\Models\ReferralPartner;
 use App\Services\LoyaltyService;
+use App\Services\PartnerReferralService;
 use App\Services\ReferralCode;
 use Illuminate\Http\Request;
 
@@ -86,6 +88,8 @@ class LoyaltyController extends Controller
                 'referral_link' => $user->referral_code ? ReferralCode::link($user->referral_code) : null,
                 'referral_bonus_parrain' => (int) Setting::get('loyalty_referral_bonus_parrain', 50),
                 'referral_bonus_filleul' => (int) Setting::get('loyalty_referral_bonus_filleul', 50),
+                // Ambassadeur désigné par l'administration : lien court traçable (le QR code encode celui-là, pour compter les scans) et chiffres.
+                'ambassador' => $this->ambassadorBlock($user),
                 'reward_tiers' => $rewardTiers,
                 'vouchers' => $vouchers,
                 'active_campaigns' => $activeCampaigns,
@@ -140,5 +144,22 @@ class LoyaltyController extends Controller
         }
 
         return response()->json(['data' => $voucher], 201);
+    }
+
+    private function ambassadorBlock($user): ?array
+    {
+        $partner = ReferralPartner::where('user_id', $user->id)->where('is_active', true)->first();
+        if (!$partner) {
+            return null;
+        }
+        $service = app(PartnerReferralService::class);
+
+        return [
+            'code' => $partner->code,
+            'display_name' => $partner->display_name,
+            'link' => $service->shortLink($partner),
+            'signup_points' => (int) Setting::get('loyalty_partner_signup_points', PartnerReferralService::DEFAULT_SIGNUP_POINTS),
+            'stats' => $service->stats($partner),
+        ];
     }
 }

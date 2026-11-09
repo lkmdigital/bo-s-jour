@@ -9,6 +9,7 @@ use App\Services\TwoFactorService;
 use App\Services\OneSignalService;
 use App\Services\SmsService;
 use App\Services\LoyaltyService;
+use App\Services\PartnerReferralService;
 use App\Mail\OtpMail;
 use App\Mail\PasswordResetMail;
 use Illuminate\Http\Request;
@@ -245,7 +246,11 @@ class AuthController extends Controller
         // Parrainage : résolu une seule fois, jamais écrasé si le compte (invité
         // finalisant son inscription) en a déjà un — et un compte ne peut pas se
         // parrainer lui-même.
-        if (!$user->referred_by_user_id && !empty($data['referral_code'])) {
+        // Un code d'ambassadeur (QR code / lien traçable) ouvre un autre parcours que le parrainage entre membres :
+        // 50 points pour l'ambassadeur à l'inscription validée, sans le bonus « après séjour » des membres.
+        $partnerReferral = app(PartnerReferralService::class);
+        $ambassador = !empty($data['referral_code']) ? $partnerReferral->resolve($data['referral_code']) : null;
+        if (!$ambassador && !$user->referred_by_user_id && !empty($data['referral_code'])) {
             $referrer = User::where('referral_code', $data['referral_code'])->first();
             if ($referrer && $referrer->id !== $user->id) {
                 $user->referred_by_user_id = $referrer->id;
@@ -276,6 +281,9 @@ class AuthController extends Controller
         $user->is_guest = false;
         $isNewAccount = !$existing;
         $user->save();
+        if ($ambassador) {
+            $partnerReferral->attach($ambassador, $user);
+        }
         CorporateCollaborator::linkPendingInvitations($user);
         if ($isNewAccount) {
             $this->notifyLoyaltyWelcome($user);
@@ -1002,6 +1010,9 @@ class AuthController extends Controller
             'last_login_ip'        => $request->ip(),
             'login_count'          => ($user->login_count ?? 0) + 1,
         ]);
+
+        // Parrainage ambassadeur, palier 1 : l'inscription est « validée » dès que l'e-mail est vérifié.
+        app(PartnerReferralService::class)->onEmailVerified($user);
 
         $user->load('roles');
         Auth::guard('web')->login($user);
