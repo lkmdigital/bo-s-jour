@@ -8,5 +8,5 @@ class ReferralPartnerClick extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $fillable = ['referral_partner_id', 'visitor_hash'];
+    protected $fillable = ['referral_partner_id', 'visitor_hash', 'source'];
 }

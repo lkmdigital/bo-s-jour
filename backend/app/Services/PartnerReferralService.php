@@ -73,6 +73,12 @@ class PartnerReferralService
         return rtrim((string) config('services.frontend_url', 'https://bosejour.ci'), '/') . '/p/' . urlencode($partner->code);
     }
 
+    /** Lien encodé dans le QR code : même page, avec la source « qr » pour distinguer un scan d'un clic sur le lien partagé. */
+    public function qrLink(ReferralPartner $partner): string
+    {
+        return $this->shortLink($partner) . '?s=qr';
+    }
+
     /** Lien direct vers l'inscription, code prérempli (utilisé après le comptage du clic). */
     public function registerPath(ReferralPartner $partner): string
     {
@@ -85,7 +91,7 @@ class PartnerReferralService
      * Compte un visiteur unique par jour (empreinte salée IP + navigateur, aucune donnée brute conservée).
      * Retourne true si le clic a été enregistré, false s'il s'agissait du même visiteur le même jour.
      */
-    public function recordClick(ReferralPartner $partner, ?string $ip, ?string $userAgent): bool
+    public function recordClick(ReferralPartner $partner, ?string $ip, ?string $userAgent, ?string $source = null): bool
     {
         $hash = hash_hmac('sha256', ($ip ?? '') . '|' . ($userAgent ?? ''), (string) config('app.key'));
 
@@ -97,7 +103,11 @@ class PartnerReferralService
             return false;
         }
 
-        ReferralPartnerClick::create(['referral_partner_id' => $partner->id, 'visitor_hash' => $hash]);
+        ReferralPartnerClick::create([
+            'referral_partner_id' => $partner->id,
+            'visitor_hash' => $hash,
+            'source' => in_array($source, ['qr', 'link'], true) ? $source : null,
+        ]);
 
         return true;
     }

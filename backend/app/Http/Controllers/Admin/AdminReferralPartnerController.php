@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ReferralPartner;
 use App\Models\User;
+use App\Services\PartnerReferralReport;
 use App\Services\PartnerReferralService;
 use App\Services\ReferralCode;
 use Illuminate\Http\Request;
@@ -84,13 +85,49 @@ class AdminReferralPartnerController extends Controller
         return response()->json(['data' => $this->present($partner->load('user:id,name,email,phone'))], 201);
     }
 
+    /** Fiche complète : identité, performance, évolution, filleuls, réservations générées, points et journal. */
+    public function show(Request $request, int $id)
+    {
+        $partner = ReferralPartner::with('user:id,name,email,phone')->findOrFail($id);
+
+        return response()->json([
+            'data' => $this->present($partner) + [
+                'notes' => $partner->notes,
+                'created_by' => $partner->createdBy?->name,
+                'report' => app(PartnerReferralReport::class)->build($partner, (int) $request->query('days', 30)),
+            ],
+        ]);
+    }
+
     public function update(Request $request, int $id)
     {
         $partner = ReferralPartner::findOrFail($id);
         $data = $request->validate([
             'display_name' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:5000',
             'is_active' => 'sometimes|boolean',
+            // Coordonnées d'un ambassadeur qui n'a pas encore de compte (corriger une faute de frappe dans l'e-mail ou le numéro).
+            'invited_email' => 'sometimes|nullable|email|max:255',
+            'invited_phone' => 'sometimes|nullable|string|max:30',
         ]);
+
+        if ($partner->user_id && (array_key_exists('invited_email', $data) || array_key_exists('invited_phone', $data))) {
+            throw ValidationException::withMessages(['invited_email' => ["Cet ambassadeur a déjà un compte : ses coordonnées ne se modifient plus ici."]]);
+        }
+        if (array_key_exists('invited_email', $data)) {
+            $data['invited_email'] = $data['invited_email'] ? strtolower(trim($data['invited_email'])) : null;
+        }
+        if (array_key_exists('invited_phone', $data)) {
+            $key = PartnerReferralService::phoneKey($data['invited_phone']);
+            if ($data['invited_phone'] && !$key) {
+                throw ValidationException::withMessages(['invited_phone' => ['Ce numéro semble incomplet (8 chiffres au minimum).']]);
+            }
+            $data['invited_phone_key'] = $key;
+        }
+        $after = array_merge($partner->only(['invited_email', 'invited_phone_key']), $data);
+        if (!$partner->user_id && empty($after['invited_email']) && empty($after['invited_phone_key'])) {
+            throw ValidationException::withMessages(['invited_email' => ["Gardez au moins l'e-mail ou le numéro WhatsApp de l'ambassadeur."]]);
+        }
 
         $partner->update($data);
 
@@ -112,6 +149,7 @@ class AdminReferralPartnerController extends Controller
             'invited_phone' => $p->invited_phone,
             'user' => $p->user ? ['id' => $p->user->id, 'name' => $p->user->name, 'email' => $p->user->email, 'phone' => $p->user->phone] : null,
             'link' => $this->service->shortLink($p),
+            'qr_link' => $this->service->qrLink($p),
             'stats' => $this->service->stats($p),
         ];
     }

@@ -19,8 +19,12 @@ export default function AmbassadorShortLinkPage() {
     let cancelled = false;
     const fallback = /^[A-Z0-9]{1,20}$/.test(code) ? `/auth/register?ref=${encodeURIComponent(code)}` : '/auth/register';
 
+    // Le QR code encode /p/CODE?s=qr : on sait ainsi distinguer un scan d'un clic sur le lien partagé.
+    const s = new URLSearchParams(window.location.search).get('s');
+    const source = s === 'qr' ? 'qr' : 'link';
+
     api
-      .post('/referral/click', { code })
+      .post('/referral/click', { code, source })
       .then((res) => !cancelled && router.replace(res.data?.redirect || fallback))
       .catch(() => !cancelled && router.replace(fallback));
 

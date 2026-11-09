@@ -576,6 +576,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         Route::prefix('referral-partners')->middleware('role:admin')->group(function () {
             Route::get('/', [AdminReferralPartnerController::class, 'index']);
             Route::post('/', [AdminReferralPartnerController::class, 'store']);
+            Route::get('/{id}', [AdminReferralPartnerController::class, 'show'])->where('id', '[0-9]+');
             Route::put('/{id}', [AdminReferralPartnerController::class, 'update'])->where('id', '[0-9]+');
         });
 

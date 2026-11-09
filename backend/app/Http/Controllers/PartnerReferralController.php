@@ -17,14 +17,14 @@ class PartnerReferralController extends Controller
      */
     public function click(Request $request)
     {
-        $data = $request->validate(['code' => 'required|string|max:20']);
+        $data = $request->validate(['code' => 'required|string|max:20', 'source' => 'nullable|in:qr,link']);
 
         $partner = $this->service->resolve($data['code']);
         if (!$partner) {
             return response()->json(['valid' => false], 404);
         }
 
-        $this->service->recordClick($partner, $request->ip(), $request->userAgent());
+        $this->service->recordClick($partner, $request->ip(), $request->userAgent(), $data['source'] ?? null);
 
         return response()->json(['valid' => true, 'redirect' => $this->service->registerPath($partner)]);
     }

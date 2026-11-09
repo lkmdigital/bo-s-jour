@@ -10,12 +10,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ReferralPartner extends Model
 {
     protected $fillable = [
-        'user_id', 'invited_email', 'invited_phone', 'invited_phone_key', 'claimed_at', 'code', 'display_name', 'is_active', 'created_by_user_id',
+        'user_id', 'invited_email', 'invited_phone', 'invited_phone_key', 'claimed_at', 'code', 'display_name', 'notes', 'is_active', 'created_by_user_id',
     ];
 
     protected function casts(): array
     {
         return ['is_active' => 'boolean', 'claimed_at' => 'datetime'];
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     public function user(): BelongsTo

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Copy, Download, PauseCircle, PlayCircle, QrCode, UserPlus } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/common/ToastContext';
@@ -193,7 +194,9 @@ export default function AdminAmbassadorsPage() {
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-gray-50 dark:border-gray-800 last:border-0 align-top">
                   <td className="p-3">
-                    <p className="font-medium text-gray-900 dark:text-white">{r.display_name || r.user?.name || 'Ambassadeur'}</p>
+                    <Link href={`/dashboard/admin/parrainage-partenaires/${r.id}`} className="font-medium text-gray-900 dark:text-white hover:text-primary hover:underline">
+                      {r.display_name || r.user?.name || 'Ambassadeur'}
+                    </Link>
                     <p className="text-xs text-gray-500">{r.user?.email ?? r.invited_email ?? r.invited_phone}</p>
                     <p className="text-xs mt-0.5">
                       {r.status === 'pending_account' ? (
@@ -223,7 +226,8 @@ export default function AdminAmbassadorsPage() {
                     <span className="block">{pct(r.stats.conversion_booking)} réservent</span>
                   </td>
                   <td className="p-3 text-right tabular-nums font-semibold">{r.stats.points_awarded}</td>
-                  <td className="p-3 text-right">
+                  <td className="p-3 text-right whitespace-nowrap">
+                    <Link href={`/dashboard/admin/parrainage-partenaires/${r.id}`} className="text-xs text-primary font-medium hover:underline mr-3">Voir la fiche</Link>
                     <button onClick={() => toggle(r)} className="text-gray-400 hover:text-primary" aria-label={r.is_active ? 'Suspendre' : 'Réactiver'} title={r.is_active ? 'Suspendre' : 'Réactiver'}>
                       {r.is_active ? <PauseCircle className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
                     </button>

@@ -9,6 +9,7 @@ export interface AmbassadorData {
   code: string;
   display_name: string | null;
   link: string;
+  qr_link?: string;
   signup_points: number;
   booking_points: number;
   discount_percent: number;
@@ -111,11 +112,11 @@ export default function AmbassadorShare({ data }: { data: AmbassadorData }) {
 
       <div className="flex flex-col sm:flex-row gap-5 items-start">
         <div className="rounded-xl bg-white p-3 border border-gray-200 shrink-0" ref={svgWrap}>
-          <QRCodeSVG value={data.link} size={168} level="M" marginSize={2} bgColor="#ffffff" fgColor="#0F0F0F" role="img" aria-label="QR code d'invitation boséjour" />
+          <QRCodeSVG value={data.qr_link ?? data.link} size={168} level="M" marginSize={2} bgColor="#ffffff" fgColor="#0F0F0F" role="img" aria-label="QR code d'invitation boséjour" />
         </div>
         {/* Version haute résolution, hors écran, uniquement pour le téléchargement PNG. */}
         <div ref={pngWrap} className="hidden" aria-hidden>
-          <QRCodeCanvas value={data.link} size={PRINT_SIZE} level="M" marginSize={4} bgColor="#ffffff" fgColor="#000000" />
+          <QRCodeCanvas value={data.qr_link ?? data.link} size={PRINT_SIZE} level="M" marginSize={4} bgColor="#ffffff" fgColor="#000000" />
         </div>
 
         <div className="min-w-0 flex-1 space-y-3 w-full">

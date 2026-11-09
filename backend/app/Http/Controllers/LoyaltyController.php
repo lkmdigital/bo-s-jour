@@ -160,6 +160,7 @@ class LoyaltyController extends Controller
             'code' => $partner->code,
             'display_name' => $partner->display_name,
             'link' => $service->shortLink($partner),
+            'qr_link' => $service->qrLink($partner),
             'signup_points' => PartnerReferralService::signupPoints(),
             'booking_points' => PartnerReferralService::bookingPoints(),
             'discount_percent' => PartnerReferralService::discountPercent(),
