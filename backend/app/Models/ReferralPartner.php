@@ -9,11 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** Ambassadeur externe : un membre qui recrute des clients via son QR code / lien traçable. */
 class ReferralPartner extends Model
 {
-    protected $fillable = ['user_id', 'code', 'display_name', 'is_active', 'created_by_user_id'];
+    protected $fillable = [
+        'user_id', 'invited_email', 'invited_phone', 'invited_phone_key', 'claimed_at', 'code', 'display_name', 'is_active', 'created_by_user_id',
+    ];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return ['is_active' => 'boolean', 'claimed_at' => 'datetime'];
     }
 
     public function user(): BelongsTo

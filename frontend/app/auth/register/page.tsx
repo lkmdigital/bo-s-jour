@@ -72,7 +72,7 @@ function RegisterContent() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [codeInfo, setCodeInfo] = useState<{ valid: boolean; type: 'partner' | 'member' | null; label: string | null } | null>(null);
+  const [codeInfo, setCodeInfo] = useState<{ valid: boolean; type: 'partner' | 'member' | null; label: string | null; discount_percent?: number } | null>(null);
   const [codeLocked, setCodeLocked] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
@@ -118,7 +118,7 @@ function RegisterContent() {
     try {
       const { data } = await api.get(`/referral/resolve/${encodeURIComponent(clean)}`);
       setCodeInfo(data);
-      return data as { valid: boolean; type: 'partner' | 'member' | null; label: string | null };
+      return data as { valid: boolean; type: 'partner' | 'member' | null; label: string | null; discount_percent?: number };
     } catch {
       setCodeInfo(null);
       return null;
@@ -457,7 +457,7 @@ function RegisterContent() {
               <span className="mt-1.5 flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {codeInfo.type === 'partner'
-                  ? `Invitation de ${codeInfo.label || 'notre partenaire'} reconnue.`
+                  ? `Invitation de ${codeInfo.label || 'notre partenaire'} reconnue : ${codeInfo.discount_percent ?? 5} % de remise sur votre première nuitée.`
                   : "Code d'un membre reconnu."}
               </span>
             )}

@@ -10,6 +10,8 @@ export interface AmbassadorData {
   display_name: string | null;
   link: string;
   signup_points: number;
+  booking_points: number;
+  discount_percent: number;
   stats: {
     clicks: number;
     signups: number;
@@ -43,7 +45,7 @@ export default function AmbassadorShare({ data }: { data: AmbassadorData }) {
   const pngWrap = useRef<HTMLDivElement>(null);
   const { stats } = data;
 
-  const message = `Rejoignez boséjour et réservez votre prochain séjour en Côte d'Ivoire avec mon invitation : ${data.link}`;
+  const message = `Rejoignez boséjour et réservez votre prochain séjour en Côte d'Ivoire : ${data.discount_percent} % de remise sur votre première nuitée avec mon invitation : ${data.link}`;
 
   const copyLink = async () => {
     try {
@@ -91,8 +93,9 @@ export default function AmbassadorShare({ data }: { data: AmbassadorData }) {
         <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-1">Espace ambassadeur</p>
         <h3 className="font-bold text-gray-900 dark:text-white">{data.display_name || 'Votre réseau boséjour'}</h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          Vous gagnez <strong>{data.signup_points} points</strong> chaque fois qu&apos;un client s&apos;inscrit avec votre QR code ou votre lien et valide son
-          compte. Vos points se transforment en bons de réduction sur vos séjours.
+          Vous gagnez <strong>{data.signup_points} points</strong> quand un client s&apos;inscrit avec votre QR code ou votre lien et valide son compte, puis{' '}
+          <strong>{data.booking_points} points de plus</strong> à sa première réservation confirmée. Votre client bénéficie de{' '}
+          <strong>{data.discount_percent}&nbsp;% de remise</strong> sur sa première nuitée. Vos points se transforment en bons de réduction sur vos séjours.
         </p>
       </div>
 

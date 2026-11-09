@@ -597,6 +597,7 @@ class BookingService
         }
 
         $from = $booking->status;
+        $booking->referralActorId = $actorId;
         $booking->update(['status' => $to->value]);
         $this->logHistory($booking, $from, $to, $action, $actorId, $note, $meta);
     }

@@ -62,6 +62,39 @@ class LoyaltyService
     }
 
     /**
+     * Retire des points déjà crédités (ex. le filleul annule la réservation qui les avait fait gagner). Jamais plus que la
+     * cagnotte disponible : si le membre en a déjà dépensé une partie en bons, seul le solde restant est retiré.
+     * Retourne le nombre de points réellement retirés.
+     */
+    public function revokePoints(User $user, int $points, string $type, ?Booking $booking = null, ?string $description = null): int
+    {
+        return DB::transaction(function () use ($user, $points, $type, $booking, $description) {
+            $user = User::lockForUpdate()->find($user->id);
+            $revoked = min($points, max(0, (int) $user->loyalty_points_balance));
+            if ($revoked <= 0) {
+                return 0;
+            }
+
+            LoyaltyPointsTransaction::create([
+                'user_id' => $user->id,
+                'points' => -$revoked,
+                'type' => $type,
+                'booking_id' => $booking?->id,
+                'description' => $description,
+            ]);
+            $user->decrement('loyalty_points_balance', $revoked);
+            $user->decrement('loyalty_points_lifetime', min($revoked, (int) $user->loyalty_points_lifetime));
+
+            $this->notify($user, $type, $description ?? "{$revoked} points de fidélité ont été retirés de votre compte.", [
+                'points' => -$revoked,
+                'booking_id' => $booking?->id,
+            ]);
+
+            return $revoked;
+        });
+    }
+
+    /**
      * Prévient le voyageur lorsqu'un gain de points le fait passer sous la
      * barre des 100 points restants avant sa prochaine récompense de cagnotte
      * — une seule fois par palier (ne renotifie pas à chaque gain suivant tant

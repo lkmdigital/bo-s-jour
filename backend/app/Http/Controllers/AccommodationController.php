@@ -330,19 +330,37 @@ class AccommodationController extends Controller
             // le total de la réservation, donc dans le calcul de la garantie (décision boséjour
             // 2026-10-08 — le récapitulatif doit annoncer le montant de la page de paiement).
             'extra_breakfast_quantity' => 'nullable|integer|min:0|max:20',
+            // Code d'invitation d'un ambassadeur saisi dans le récapitulatif (remise de bienvenue de 5 % sur la 1re nuitée).
+            'referral_code' => 'nullable|string|max:20',
         ], [
             'check_in.after_or_equal' => "La date d'arrivée doit être aujourd'hui ou dans le futur.",
             'check_out.after' => "La date de départ doit être postérieure à la date d'arrivée.",
         ]);
 
-        return response()->json(\App\Services\StayQuoteService::quote(
-            $accommodation,
-            $request->filled('room_id') ? (int) $request->room_id : null,
-            $request->check_in,
-            $request->check_out,
-            (int) ($request->input('rooms_quantity') ?? 1),
-            (int) ($request->input('extra_breakfast_quantity') ?? 0)
-        ));
+        $roomId = $request->filled('room_id') ? (int) $request->room_id : null;
+        $rooms = (int) ($request->input('rooms_quantity') ?? 1);
+        $breakfast = (int) ($request->input('extra_breakfast_quantity') ?? 0);
+
+        $quote = \App\Services\StayQuoteService::quote($accommodation, $roomId, $request->check_in, $request->check_out, $rooms, $breakfast);
+
+        // Remise de bienvenue du parrainage ambassadeur : affichée et déduite du montant à payer AVANT la réservation.
+        $offer = app(\App\Services\PartnerReferralService::class)
+            ->welcomeDiscount($request->user('sanctum'), $request->input('referral_code'), (float) $quote['effective_price_per_night'], $rooms);
+        $quote['referral_discount'] = null;
+        if ($offer['error']) {
+            $quote['referral_discount'] = ['error' => $offer['error']];
+        } elseif ($offer['amount'] > 0) {
+            $quote = \App\Services\StayQuoteService::quote(
+                $accommodation, $roomId, $request->check_in, $request->check_out, $rooms, $breakfast, $offer['amount']
+            );
+            $quote['referral_discount'] = [
+                'amount' => $offer['amount'],
+                'percent' => $offer['percent'],
+                'label' => 'Invitation de ' . ($offer['partner']->display_name ?: 'notre partenaire'),
+            ];
+        }
+
+        return response()->json($quote);
     }
 
     /**

@@ -90,6 +90,8 @@ class LoyaltyController extends Controller
                 'referral_bonus_filleul' => (int) Setting::get('loyalty_referral_bonus_filleul', 50),
                 // Ambassadeur désigné par l'administration : lien court traçable (le QR code encode celui-là, pour compter les scans) et chiffres.
                 'ambassador' => $this->ambassadorBlock($user),
+                // Remises de bienvenue encore disponibles (invitations d'ambassadeurs pas encore utilisées sur une réservation).
+                'welcome_discounts' => $this->welcomeDiscounts($user),
                 'reward_tiers' => $rewardTiers,
                 'vouchers' => $vouchers,
                 'active_campaigns' => $activeCampaigns,
@@ -158,8 +160,22 @@ class LoyaltyController extends Controller
             'code' => $partner->code,
             'display_name' => $partner->display_name,
             'link' => $service->shortLink($partner),
-            'signup_points' => (int) Setting::get('loyalty_partner_signup_points', PartnerReferralService::DEFAULT_SIGNUP_POINTS),
+            'signup_points' => PartnerReferralService::signupPoints(),
+            'booking_points' => PartnerReferralService::bookingPoints(),
+            'discount_percent' => PartnerReferralService::discountPercent(),
             'stats' => $service->stats($partner),
         ];
+    }
+
+    private function welcomeDiscounts($user): array
+    {
+        return \App\Models\ReferralPartnerReferral::with('partner:id,display_name,is_active')
+            ->where('user_id', $user->id)
+            ->where('discount_state', \App\Models\ReferralPartnerReferral::DISCOUNT_AVAILABLE)
+            ->whereHas('partner', fn ($q) => $q->where('is_active', true))
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($r) => ['label' => $r->partner->display_name ?: 'Un partenaire boséjour', 'percent' => PartnerReferralService::discountPercent()])
+            ->all();
     }
 }

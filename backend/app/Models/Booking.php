@@ -16,12 +16,34 @@ class Booking extends Model
     // visible explicitement à la création et à la consultation par jeton/propriétaire.
     protected $hidden = ['access_token'];
 
+    /** Qui change le statut (connu de BookingService) — le parrainage distingue l'annulation du voyageur de celle de l'hôte. Pas une colonne. */
+    public ?int $referralActorId = null;
+
     protected static function booted(): void
     {
         static::creating(function (Booking $booking) {
             if (empty($booking->access_token)) {
                 $booking->access_token = self::generateAccessToken();
             }
+        });
+
+        // Parrainage ambassadeur : la remise de bienvenue et les points de 1re réservation suivent le statut, quel que soit le chemin
+        // (paiement, confirmation manuelle, annulation du voyageur, de l'hôte ou expiration automatique). Jamais bloquant.
+        static::updated(function (Booking $booking) {
+            if (!$booking->wasChanged('status')) {
+                return;
+            }
+            $original = $booking->getOriginal('status');
+            $from = $original instanceof \App\Enums\BookingStatus ? $original : \App\Enums\BookingStatus::tryFrom((string) $original);
+            $to = $booking->status;
+
+            app(\App\Services\PartnerReferralService::class)->safely(function ($service) use ($booking, $from, $to) {
+                if ($to === \App\Enums\BookingStatus::Confirmed) {
+                    $service->onBookingConfirmed($booking);
+                } elseif ($to === \App\Enums\BookingStatus::Cancelled && $from) {
+                    $service->onBookingCancelled($booking, $from, $booking->referralActorId ?? request()->user()?->id);
+                }
+            });
         });
     }
 
@@ -104,6 +126,8 @@ class Booking extends Model
         'review_token',
         'review_link_sent_at',
         'loyalty_voucher_id',
+        'partner_referral_id',
+        'referral_discount_amount',
         'loyalty_points_awarded_at',
     ];
 

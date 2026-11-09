@@ -63,6 +63,7 @@ interface LoyaltyData {
   referral_bonus_parrain: number;
   referral_bonus_filleul: number;
   ambassador: AmbassadorData | null;
+  welcome_discounts?: { label: string; percent: number }[];
   reward_tiers: RewardTier[];
   vouchers: Voucher[];
   active_campaigns: ActiveCampaign[];
@@ -343,6 +344,19 @@ export default function MemberProgrammePage() {
             </div>
           </div>
         )}
+
+        {/* Badge de remise de bienvenue : invitation d'un ambassadeur pas encore utilisée sur une réservation */}
+        {data?.welcome_discounts?.map((d, i) => (
+          <div key={i} className="flex items-start gap-3 rounded-2xl border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/10 p-4" data-testid="welcome-discount">
+            <Gift className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" aria-hidden />
+            <div className="text-sm">
+              <p className="font-semibold text-emerald-900 dark:text-emerald-200">Remise de bienvenue : {d.percent}&nbsp;% sur votre première nuitée</p>
+              <p className="text-emerald-800/80 dark:text-emerald-300/80">
+                Grâce à l&apos;invitation de {d.label}. Elle s&apos;applique automatiquement à votre prochaine réservation.
+              </p>
+            </div>
+          </div>
+        ))}
 
         {/* Espace ambassadeur (désigné par l'administration) : QR code traçable et compteurs */}
         {data?.ambassador && <AmbassadorShare data={data.ambassador} />}

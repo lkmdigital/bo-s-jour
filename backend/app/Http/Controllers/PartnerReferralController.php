@@ -34,7 +34,10 @@ class PartnerReferralController extends Controller
     {
         $partner = $this->service->resolve($code);
         if ($partner) {
-            return response()->json(['valid' => true, 'type' => 'partner', 'label' => $partner->display_name]);
+            return response()->json([
+                'valid' => true, 'type' => 'partner', 'label' => $partner->display_name,
+                'discount_percent' => PartnerReferralService::discountPercent(),
+            ]);
         }
 
         $isMemberCode = User::where('referral_code', PartnerReferralService::normalize($code))->exists();

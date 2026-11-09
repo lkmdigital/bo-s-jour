@@ -192,6 +192,7 @@ class BookingController extends Controller
             'breakfast_menu_selection' => 'nullable|array|max:50',
             'breakfast_menu_selection.*' => 'string|max:255',
             'promo_code' => 'nullable|string|max:100',
+            'referral_code' => 'nullable|string|max:20',
             'special_requests' => 'nullable|string|max:1000',
             'booked_for_third_party' => 'nullable|boolean',
             // Numéro saisi à la réservation (voyageur connecté ou non) : c'est lui qui reçoit les messages
@@ -483,12 +484,43 @@ class BookingController extends Controller
 
         // Appliquer la réduction si une promotion ou un bon de fidélité existe
         $totalPrice = $basePrice;
+        $discountAmount = 0.0;
         if ($promotion) {
             $discountAmount = $promotion->computeDiscount($basePrice, $effectivePricePerNight);
             $totalPrice = $basePrice - $discountAmount;
         } elseif ($loyaltyVoucher) {
             $discountAmount = $loyaltyVoucher->computeDiscount($basePrice);
             $totalPrice = $basePrice - $discountAmount;
+        }
+
+        // Remise de bienvenue du parrainage ambassadeur (cahier des charges du 2026-11-09) : 5 % de la première nuitée,
+        // financés par boséjour (base_price reste le tarif plein : commission et net hôte inchangés). Jamais cumulée avec
+        // une autre réduction : si le voyageur a saisi un code promo ou choisi un bon, c'est son choix qui s'applique ;
+        // face à une promotion automatique, la plus avantageuse l'emporte et l'invitation non utilisée reste disponible.
+        $referralPartner = null;
+        $referralAmount = 0.0;
+        $submittedReferralCode = trim((string) $request->input('referral_code', ''));
+        if ($isMember) {
+            $offer = app(\App\Services\PartnerReferralService::class)
+                ->welcomeDiscount($user, $submittedReferralCode, (float) $effectivePricePerNight, $roomsQuantity);
+
+            if ($offer['error'] && $submittedReferralCode !== '') {
+                return response()->json(['message' => $offer['error']], 422);
+            }
+            if ($offer['amount'] > 0) {
+                if ($submittedReferralCode !== '' && ($submittedPromoCode !== '' || $loyaltyVoucher)) {
+                    return response()->json([
+                        'message' => "Vous ne pouvez pas cumuler un code d'invitation avec un code promo ou un bon de fidélité sur la même réservation.",
+                    ], 422);
+                }
+                $explicitDiscount = $submittedPromoCode !== '' || $loyaltyVoucher;
+                if (!$explicitDiscount && $offer['amount'] > $discountAmount) {
+                    $promotion = null;
+                    $referralPartner = $offer['partner'];
+                    $referralAmount = $offer['amount'];
+                    $totalPrice = $basePrice - $referralAmount;
+                }
+            }
         }
 
         // Petits-déjeuners supplémentaires (retour client 2026-09-02, Partie 4.11) :
@@ -564,7 +596,7 @@ class BookingController extends Controller
         try {
         $booking = DB::transaction(function () use (
             $request, $room, $accommodation, $user, $bookedForThirdParty,
-            $totalPrice, $basePrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion, $loyaltyVoucher,
+            $totalPrice, $basePrice, $depositAmount, $isNonRefundable, $cancellationHours, $corporateOwnerId, $promotion, $loyaltyVoucher, $referralPartner, $referralAmount,
             $extraBreakfastQuantity, $extraBreakfastUnitPrice, $extraBreakfastTotal, $roomsQuantity,
             $breakfastMenuSelection, $isDeferredCorporate, $initialStatus, $initialExpiresInHours
         ) {
@@ -644,6 +676,10 @@ class BookingController extends Controller
                     ? null
                     : now()->addHours($initialExpiresInHours),
             ]);
+
+            if ($referralPartner) {
+                app(\App\Services\PartnerReferralService::class)->reserveDiscount($newBooking, $referralPartner, $referralAmount);
+            }
 
             // NOTE: Les dates ne sont bloquées que lors de la confirmation (après paiement)
             // dans BookingService::confirm() pour permettre les réservations concurrentes en pending

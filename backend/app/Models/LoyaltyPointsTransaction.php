@@ -16,6 +16,7 @@ class LoyaltyPointsTransaction extends Model
     public const TYPE_REFERRAL_FILLEUL = 'referral_filleul';
     public const TYPE_PARTNER_SIGNUP = 'partner_signup';
     public const TYPE_PARTNER_BOOKING = 'partner_booking';
+    public const TYPE_PARTNER_BOOKING_REVERSAL = 'partner_booking_rev';
     public const TYPE_REVIEW_BONUS = 'review_bonus';
     public const TYPE_CAMPAIGN_BONUS = 'campaign_bonus';
     public const TYPE_VOUCHER_CLAIMED = 'voucher_claimed';
@@ -29,6 +30,7 @@ class LoyaltyPointsTransaction extends Model
         self::TYPE_REFERRAL_FILLEUL => 'Bonus parrainage (filleul)',
         self::TYPE_PARTNER_SIGNUP => 'Parrainage ambassadeur (inscription)',
         self::TYPE_PARTNER_BOOKING => 'Parrainage ambassadeur (1re réservation)',
+        self::TYPE_PARTNER_BOOKING_REVERSAL => 'Parrainage ambassadeur (points retirés)',
         self::TYPE_REVIEW_BONUS => 'Bonus avis',
         self::TYPE_CAMPAIGN_BONUS => 'Bonus campagne',
         self::TYPE_VOUCHER_CLAIMED => 'Bon réclamé',

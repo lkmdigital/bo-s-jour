@@ -1011,9 +1011,6 @@ class AuthController extends Controller
             'login_count'          => ($user->login_count ?? 0) + 1,
         ]);
 
-        // Parrainage ambassadeur, palier 1 : l'inscription est « validée » dès que l'e-mail est vérifié.
-        app(PartnerReferralService::class)->onEmailVerified($user);
-
         $user->load('roles');
         Auth::guard('web')->login($user);
         // Empêche la fixation de session (audit sécurité externe 2026-09-27, Phase 2) :

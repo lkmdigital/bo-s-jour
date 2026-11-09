@@ -19,6 +19,8 @@ class StayQuoteService
     /**
      * @param int|null $roomId chambre choisie ; sans chambre, le tarif de base de l'établissement s'applique
      * @param int $extraBreakfastQuantity petits-déjeuners supplémentaires (entrent dans le total payé)
+     * @param float $referralDiscount remise de bienvenue du parrainage ambassadeur (financée par boséjour) : elle réduit le montant
+     *        à payer, donc la garantie et le paiement intégral annoncés ; le tarif plein reste celui de l'hôte
      */
     public static function quote(
         Accommodation $accommodation,
@@ -26,7 +28,8 @@ class StayQuoteService
         string $checkIn,
         string $checkOut,
         int $roomsQuantity = 1,
-        int $extraBreakfastQuantity = 0
+        int $extraBreakfastQuantity = 0,
+        float $referralDiscount = 0.0
     ): array {
         $roomsQuantity = max(1, $roomsQuantity);
 
@@ -87,7 +90,7 @@ class StayQuoteService
             $extraBreakfastTotal = $extraBreakfastQuantity * (float) $accommodation->breakfast_price;
         }
         $paymentOptions = PaymentOptionsService::previewPaymentOptions(
-            $total + $extraBreakfastTotal, $checkIn, $checkOut, (int) $cancellationHours, $accommodation
+            max(0.0, $total + $extraBreakfastTotal - $referralDiscount), $checkIn, $checkOut, (int) $cancellationHours, $accommodation
         );
 
         // Détail de la remise long séjour appliquée (retour client 2026-09-02,

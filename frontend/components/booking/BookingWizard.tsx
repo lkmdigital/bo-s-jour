@@ -30,6 +30,8 @@ interface PriceQuote {
   effective_price_per_night?: number;
   cancellation_policy_hours?: number;
   long_stay_discount?: LongStayDiscountInfo | null;
+  // Remise de bienvenue (invitation d'un ambassadeur) : 5 % de la première nuitée, financés par boséjour.
+  referral_discount?: { amount?: number; percent?: number; label?: string; error?: string } | null;
   payment_options?: { full_only: boolean; reason: string | null; options: { full: PaymentOptionItem; guarantee?: PaymentOptionItem } };
 }
 
@@ -291,6 +293,8 @@ export default function BookingWizard(props: Props) {
   const [loyaltyVouchers, setLoyaltyVouchers] = useState<LoyaltyVoucherOption[]>([]);
   const [loyaltyVoucherCode, setLoyaltyVoucherCode] = useState('');
   const [discountMode, setDiscountMode] = useState<'promo' | 'loyalty'>('promo');
+  const [referralInput, setReferralInput] = useState('');
+  const [referralCode, setReferralCode] = useState('');   // code d'invitation appliqué (déclenche le nouveau calcul du récapitulatif)
   const [cgv, setCgv] = useState(false);
   const [quote, setQuote] = useState<PriceQuote | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -321,10 +325,15 @@ export default function BookingWizard(props: Props) {
     // Les petits-déjeuners supplémentaires entrent dans le total de la réservation : le serveur
     // calcule donc la garantie dessus, pour que ce récapitulatif annonce le montant du paiement.
     const breakfastParam = extraBreakfast && canOfferExtraBreakfast ? `&extra_breakfast_quantity=${extraBreakfastQty}` : '';
-    api.get(`/accommodations/${props.accommodationId}/price-preview?check_in=${checkIn}&check_out=${checkOut}${roomParam}${roomsParam}${breakfastParam}`)
+    const referralParam = referralCode ? `&referral_code=${encodeURIComponent(referralCode)}` : '';
+    api.get(`/accommodations/${props.accommodationId}/price-preview?check_in=${checkIn}&check_out=${checkOut}${roomParam}${roomsParam}${breakfastParam}${referralParam}`)
       .then((r) => setQuote(r.data))
       .catch(() => setQuote(null));
-  }, [checkIn, checkOut, props.accommodationId, props.roomId, hasDates, canBookMultipleRooms, roomsQuantity, extraBreakfast, extraBreakfastQty, canOfferExtraBreakfast]);
+  }, [checkIn, checkOut, props.accommodationId, props.roomId, hasDates, canBookMultipleRooms, roomsQuantity, extraBreakfast, extraBreakfastQty, canOfferExtraBreakfast, referralCode]);
+
+  // La remise de bienvenue ne se cumule pas avec un code promo saisi ni un bon de fidélité choisi : c'est ce choix qui s'applique.
+  const otherDiscountChosen = (discountMode === 'promo' && !!promoCode.trim()) || (discountMode === 'loyalty' && !!loyaltyVoucherCode);
+  const referralAmount = !otherDiscountChosen && quote?.referral_discount?.amount ? quote.referral_discount.amount : 0;
 
   const guarantee = quote?.payment_options?.options?.guarantee;
   const full = quote?.payment_options?.options?.full;
@@ -390,6 +399,7 @@ export default function BookingWizard(props: Props) {
         breakfast_menu_selection: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
         promo_code: discountMode === 'promo' ? (promoCode.trim() || undefined) : undefined,
         loyalty_voucher_code: discountMode === 'loyalty' ? (loyaltyVoucherCode || undefined) : undefined,
+        referral_code: !otherDiscountChosen && referralCode ? referralCode : undefined,
         special_requests: specialRequests.trim() || undefined,
         booked_for_third_party: bookedForThirdParty,
       };
@@ -799,6 +809,46 @@ export default function BookingWizard(props: Props) {
                 )}
               </div>
 
+              {/* Code d'invitation d'un ambassadeur : 5 % sur la première nuitée (membres connectés) */}
+              {isAuthenticated && (
+                <div>
+                  <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">
+                    Code d&apos;invitation <span className="text-gray-400 font-normal">(facultatif)</span>
+                  </label>
+                  <div className="flex gap-2 max-w-xs">
+                    <input
+                      value={referralInput}
+                      onChange={(e) => setReferralInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setReferralCode(referralInput.trim()); } }}
+                      placeholder="Ex: CHEZMAMA"
+                      maxLength={20}
+                      className="min-w-0 flex-1 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm uppercase focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setReferralCode(referralInput.trim())}
+                      className="px-3 py-2 rounded-xl border border-primary text-primary text-sm font-medium hover:bg-primary/5"
+                    >
+                      Appliquer
+                    </button>
+                  </div>
+                  {quote?.referral_discount?.error && (
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">{quote.referral_discount.error}</p>
+                  )}
+                  {quote?.referral_discount?.amount ? (
+                    otherDiscountChosen ? (
+                      <p className="text-xs text-gray-500 mt-1">Non cumulable avec le code promo ou le bon de fidélité choisi : le vôtre s&apos;applique.</p>
+                    ) : (
+                      <p className="text-xs text-green-700 dark:text-green-400 mt-1">
+                        {quote.referral_discount.label} : {quote.referral_discount.percent} % de remise sur votre première nuitée.
+                      </p>
+                    )
+                  ) : (
+                    <p className="text-xs text-gray-400 mt-1">Un partenaire vous a invité ? Saisissez son code pour {`5 %`} de remise sur votre première nuitée.</p>
+                  )}
+                </div>
+              )}
+
               {/* Demandes particulières (facultatif) */}
               <div>
                 <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">
@@ -897,6 +947,12 @@ export default function BookingWizard(props: Props) {
                     <span>-{formatPrice(quote.long_stay_discount.discount_amount)} FCFA</span>
                   </div>
                 )}
+                {referralAmount > 0 && (
+                  <div className="flex justify-between text-green-600 dark:text-green-400">
+                    <span>Remise de bienvenue ({quote.referral_discount?.percent} % sur la 1re nuitée)</span>
+                    <span>-{formatPrice(referralAmount)} FCFA</span>
+                  </div>
+                )}
                 {extraBreakfast && canOfferExtraBreakfast && (
                   <div className="flex justify-between">
                     <span className="text-gray-500">Petit-déjeuner supplémentaire ×{extraBreakfastQty}</span>
@@ -905,7 +961,7 @@ export default function BookingWizard(props: Props) {
                 )}
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>{formatPrice(quote.total + (extraBreakfast && canOfferExtraBreakfast ? extraBreakfastQty * (props.breakfastPrice || 0) : 0))} FCFA</span>
+                  <span>{formatPrice(quote.total - referralAmount + (extraBreakfast && canOfferExtraBreakfast ? extraBreakfastQty * (props.breakfastPrice || 0) : 0))} FCFA</span>
                 </div>
                 {onlineNow != null && (
                   <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 mt-2">

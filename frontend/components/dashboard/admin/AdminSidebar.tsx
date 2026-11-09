@@ -17,6 +17,7 @@ import {
   ClipboardCheck,
   Gift,
   Award,
+  QrCode,
   Megaphone,
   Map,
   BrainCircuit,
@@ -107,6 +108,7 @@ const NAV_GROUPS: NavGroup[] = [
       // désormais, masqué côté public tant que rien n'est publié.
       { href: '/dashboard/admin/decouvertes', label: 'Découvertes', icon: Compass },
       { href: '/dashboard/admin/programme', label: 'Membre du programme', icon: Award },
+      { href: '/dashboard/admin/parrainage-partenaires', label: 'Parrainage Partenaires', icon: QrCode },
       { href: '/dashboard/admin/commercialisation', label: 'Commercialisation', icon: Megaphone },
     ],
   },

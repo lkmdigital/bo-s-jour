@@ -14,7 +14,13 @@ return new class extends Migration
     {
         Schema::create('referral_partners', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();   // le compte membre qui reçoit les points
+            // Le compte membre qui reçoit les points. Vide tant que l'ambassadeur désigné par e-mail ou WhatsApp n'a pas créé
+            // son compte : il le retrouve alors tel quel (voir PartnerReferralService::claimPending).
+            $table->foreignId('user_id')->nullable()->unique()->constrained()->cascadeOnDelete();
+            $table->string('invited_email')->nullable()->index();
+            $table->string('invited_phone', 30)->nullable();
+            $table->string('invited_phone_key', 12)->nullable()->index();   // 9 derniers chiffres : +225 07…, 07… et 225 07… se retrouvent
+            $table->timestamp('claimed_at')->nullable();
             $table->string('code', 20)->unique();                                       // code d'invitation (distinct des codes membres)
             $table->string('display_name')->nullable();                                 // ex. « Restaurant Chez Mama »
             $table->boolean('is_active')->default(true);
@@ -36,9 +42,15 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();             // le filleul
             $table->timestamp('signup_validated_at')->nullable();                       // e-mail vérifié : palier 1
             $table->unsignedInteger('signup_points')->default(0);
-            $table->unsignedBigInteger('first_booking_id')->nullable();                 // palier 2 (étape suivante)
+            $table->timestamp('signup_credited_at')->nullable();                        // vide tant que l'ambassadeur n'a pas de compte
+            $table->unsignedBigInteger('first_booking_id')->nullable();                 // palier 2 : 1re réservation confirmée
             $table->timestamp('first_booking_at')->nullable();
             $table->unsignedInteger('booking_points')->default(0);
+            $table->timestamp('booking_credited_at')->nullable();
+            // Remise de bienvenue du filleul : available → reserved (posée sur une réservation non payée) → used (payée)
+            // ou forfeited (annulée par le voyageur après paiement). Elle redevient available si la réservation tombe sans faute du voyageur.
+            $table->string('discount_state', 12)->default('available');
+            $table->unsignedBigInteger('discount_booking_id')->nullable();
             $table->timestamps();
             $table->unique(['referral_partner_id', 'user_id']);   // un même parrain ne compte qu'une fois pour un même filleul
         });

@@ -216,6 +216,14 @@ class User extends Authenticatable
                 $user->referral_code = \App\Services\ReferralCode::generate();
             }
         });
+
+        // Parrainage ambassadeur : dès qu'un e-mail est vérifié (code OTP, connexion Google…), l'inscription faite via un
+        // ambassadeur devient « validée » et un ambassadeur désigné à ce nom retrouve son compte. Jamais bloquant.
+        static::saved(function (User $user) {
+            if ($user->wasChanged('email_verified_at') && $user->email_verified_at) {
+                app(\App\Services\PartnerReferralService::class)->safely(fn ($service) => $service->onEmailVerified($user));
+            }
+        });
     }
 
     public function hasCompleteIdentityDocument(): bool
