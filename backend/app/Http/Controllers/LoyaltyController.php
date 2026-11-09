@@ -6,9 +6,10 @@ use App\Models\LoyaltyCampaign;
 use App\Models\LoyaltyRewardTier;
 use App\Models\LoyaltyTier;
 use App\Models\LoyaltyVoucher;
+use App\Models\Setting;
 use App\Services\LoyaltyService;
+use App\Services\ReferralCode;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class LoyaltyController extends Controller
 {
@@ -23,7 +24,7 @@ class LoyaltyController extends Controller
         $user = $request->user();
 
         if (empty($user->referral_code)) {
-            $user->update(['referral_code' => $this->generateReferralCode()]);
+            $user->update(['referral_code' => ReferralCode::generate()]);
         }
 
         $tiers = LoyaltyTier::active()->ordered()->get();
@@ -80,6 +81,11 @@ class LoyaltyController extends Controller
                 'points_lifetime' => $user->loyalty_points_lifetime,
                 'points_balance' => $user->loyalty_points_balance,
                 'referral_code' => $user->referral_code,
+                // Lien d'inscription qui préremplit le code (et que le QR code encode) ; montants réglés par l'administrateur,
+                // pour que le texte affiché au membre ne dise jamais autre chose que ce qui sera crédité.
+                'referral_link' => $user->referral_code ? ReferralCode::link($user->referral_code) : null,
+                'referral_bonus_parrain' => (int) Setting::get('loyalty_referral_bonus_parrain', 50),
+                'referral_bonus_filleul' => (int) Setting::get('loyalty_referral_bonus_filleul', 50),
                 'reward_tiers' => $rewardTiers,
                 'vouchers' => $vouchers,
                 'active_campaigns' => $activeCampaigns,
@@ -134,14 +140,5 @@ class LoyaltyController extends Controller
         }
 
         return response()->json(['data' => $voucher], 201);
-    }
-
-    protected function generateReferralCode(): string
-    {
-        do {
-            $code = strtoupper(Str::random(8));
-        } while (\App\Models\User::where('referral_code', $code)->exists());
-
-        return $code;
     }
 }

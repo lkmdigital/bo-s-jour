@@ -10,8 +10,9 @@ import MemberAside from '@/components/dashboard/user/MemberAside';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Brand from '@/components/common/Brand';
 import Pagination from '@/components/common/Pagination';
+import ReferralShare from '@/components/loyalty/ReferralShare';
 import {
-  Award, Gift, TrendingUp, Copy, Ticket, History, Megaphone,
+  Award, Gift, TrendingUp, Ticket, History, Megaphone,
   CheckCircle2, Clock, XCircle,
 } from 'lucide-react';
 
@@ -57,6 +58,9 @@ interface LoyaltyData {
   points_lifetime: number;
   points_balance: number;
   referral_code: string | null;
+  referral_link: string | null;
+  referral_bonus_parrain: number;
+  referral_bonus_filleul: number;
   reward_tiers: RewardTier[];
   vouchers: Voucher[];
   active_campaigns: ActiveCampaign[];
@@ -158,13 +162,6 @@ export default function MemberProgrammePage() {
     } finally {
       setClaimingId(null);
     }
-  };
-
-  const copyReferralCode = () => {
-    if (!data?.referral_code) return;
-    navigator.clipboard.writeText(data.referral_code).then(() => {
-      showSuccess('Code de parrainage copié.');
-    });
   };
 
   if (isLoading || (loading && isAuthenticated)) return <LoadingSpinner message="Chargement de votre programme fidélité…" size="lg" />;
@@ -345,22 +342,14 @@ export default function MemberProgrammePage() {
           </div>
         )}
 
-        {/* Parrainage */}
+        {/* Parrainage : code, lien et QR code */}
         {data?.referral_code && (
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
-            <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-1">Parrainez vos proches</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Partagez votre code et gagnez des points à chaque inscription.
-            </p>
-            <div className="flex items-center gap-2">
-              <code className="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-mono font-semibold">
-                {data.referral_code}
-              </code>
-              <button onClick={copyReferralCode} className="btn-outline text-xs inline-flex items-center gap-1.5">
-                <Copy className="w-3.5 h-3.5" /> Copier
-              </button>
-            </div>
-          </div>
+          <ReferralShare
+            code={data.referral_code}
+            link={data.referral_link}
+            bonusParrain={data.referral_bonus_parrain ?? 50}
+            bonusFilleul={data.referral_bonus_filleul ?? 50}
+          />
         )}
       </div>
 

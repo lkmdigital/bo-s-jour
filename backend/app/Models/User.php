@@ -205,6 +205,19 @@ class User extends Authenticatable
         return $this->staff_role === 'administrateur' ? HostStaff::PERMISSIONS : [];
     }
 
+    /**
+     * Tout membre (voyageur inscrit, pas un invité ni un partenaire) reçoit son code de parrainage dès la création de son
+     * compte ; un compte existant qui n'en a pas encore en reçoit un à son prochain enregistrement (connexion, profil…).
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if ($user->role === 'user' && !$user->is_guest && empty($user->referral_code)) {
+                $user->referral_code = \App\Services\ReferralCode::generate();
+            }
+        });
+    }
+
     public function hasCompleteIdentityDocument(): bool
     {
         $hasSingle = !empty($this->id_document_path);
