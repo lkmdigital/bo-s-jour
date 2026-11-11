@@ -63,6 +63,10 @@ class Booking extends Model
      */
     public static function findByRef(string $ref, $user = null, array $with = []): ?self
     {
+        // Le bouton « Payer » du modèle WhatsApp peut laisser le texte « {{1}} » devant le jeton (constaté en production le 2026-11-11) :
+        // on le retire, comme le font déjà les liens du site, pour que ces liens restent valables.
+        $ref = trim(preg_replace('/\{\{\s*\d+\s*\}\}/', '', rawurldecode(rawurldecode($ref))));
+
         if (ctype_digit($ref)) {
             return $user ? self::with($with)->find((int) $ref) : null;
         }

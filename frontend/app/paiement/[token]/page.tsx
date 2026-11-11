@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cleanBookingRef } from '@/lib/bookingRef';
 
 /**
  * Lien court utilisé par le bouton « Payer ma réservation » du modèle WhatsApp
@@ -7,5 +8,6 @@ import { redirect } from 'next/navigation';
  */
 export default async function PaiementRedirect({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  redirect(`/bookings/${encodeURIComponent(token)}/payment`);
+  // Le bouton WhatsApp a pu envoyer « {{1}} » devant le jeton : on le retire.
+  redirect(`/bookings/${encodeURIComponent(cleanBookingRef(token))}/payment`);
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { cleanBookingRef } from '@/lib/bookingRef';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -62,6 +63,7 @@ interface PaymentMethod {
 
 export default function BookingPaymentPage() {
   const params = useParams();
+  const bookingRef = cleanBookingRef(String(params.id ?? ''));
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, user } = useAuthStore();
@@ -90,7 +92,7 @@ export default function BookingPaymentPage() {
     fetchPaymentMethods();
     fetchBooking();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.id, searchParams]);
+  }, [bookingRef, searchParams]);
 
   useEffect(() => {
     if (!waiting) return;
@@ -104,7 +106,7 @@ export default function BookingPaymentPage() {
         if (stopped) return;
         if (res.data?.status === 'completed') {
           stopped = true;
-          router.push(`/bookings/success?id=${params.id}`);
+          router.push(`/bookings/success?id=${bookingRef}`);
           return;
         }
         if (res.data?.status === 'failed') {
@@ -152,7 +154,7 @@ export default function BookingPaymentPage() {
   const fetchBooking = async () => {
     try {
       setError(null);
-      const response = await api.get(`/bookings/${params.id}`);
+      const response = await api.get(`/bookings/${bookingRef}`);
       const bookingData: Booking = response.data;
 
       if (isAuthenticated && user && bookingData.user_id !== user.id) {
@@ -160,7 +162,7 @@ export default function BookingPaymentPage() {
         return;
       }
       if (bookingData.payment_status === 'paid') {
-        router.push(`/bookings/${params.id}`);
+        router.push(`/bookings/${bookingRef}`);
         return;
       }
       // Retour client 2026-09-16 : "confirmation hôte avant paiement" — tant
@@ -170,7 +172,7 @@ export default function BookingPaymentPage() {
       // d'attente et sera aussi la cible du lien de la notification "payez
       // maintenant" une fois l'hôte aura confirmé.
       if (bookingData.status === 'awaiting_host_confirmation') {
-        router.push(`/bookings/${params.id}`);
+        router.push(`/bookings/${bookingRef}`);
         return;
       }
 
@@ -201,7 +203,7 @@ export default function BookingPaymentPage() {
     setError(null);
     setRetryAfter(null);
     try {
-      const res = await api.post(`/bookings/${params.id}/payment/initiate`, {
+      const res = await api.post(`/bookings/${bookingRef}/payment/initiate`, {
         payment_method: selectedPaymentMethod,
         payment_type: paymentType,
       });
@@ -256,9 +258,9 @@ export default function BookingPaymentPage() {
     setVerifying(true);
     setError(null);
     try {
-      const res = await api.post(`/bookings/${params.id}/payment/peyapay/verify`, { otp_code: otp.trim() });
+      const res = await api.post(`/bookings/${bookingRef}/payment/peyapay/verify`, { otp_code: otp.trim() });
       if (res.data?.status === 'completed') {
-        router.push(`/bookings/success?id=${params.id}`);
+        router.push(`/bookings/success?id=${bookingRef}`);
         return;
       }
       setOtp(''); // en cours de traitement : l'attente ci-dessus prend le relais
@@ -334,7 +336,7 @@ export default function BookingPaymentPage() {
         {/* En-tête */}
         <div className="mb-6">
           <Link
-            href={`/bookings/${params.id}`}
+            href={`/bookings/${bookingRef}`}
             className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary transition mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
