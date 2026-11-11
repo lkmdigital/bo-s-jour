@@ -176,8 +176,16 @@ export default function BookingPaymentPage() {
 
       setBooking(bookingData);
       setPaymentType('full');
-    } catch (err) {
-      setError('Impossible de charger les informations de la réservation. Veuillez réessayer.');
+    } catch (err: any) {
+      // Dit la vraie raison (lien invalide, accès refusé, serveur indisponible, réseau) plutôt qu'un message unique : le voyageur sait quoi
+      // faire, et le code affiché permet de retrouver la cause dans les journaux du serveur.
+      const status = err?.response?.status;
+      const base = 'Impossible de charger les informations de la réservation.';
+      if (status === 404) setError(`${base} Ce lien de paiement n'est plus valable : la réservation est introuvable.`);
+      else if (status === 403) setError(`${base} Vous n'avez pas accès à cette réservation : ouvrez le lien depuis le message reçu, ou connectez-vous avec le compte utilisé pour réserver.`);
+      else if (status >= 500) setError(`${base} Le service rencontre un problème momentané. Réessayez dans quelques instants (code ${status}).`);
+      else if (!err?.response) setError(`${base} Vérifiez votre connexion internet puis réessayez.`);
+      else setError(`${base} Veuillez réessayer (code ${status}).`);
     } finally {
       setLoading(false);
     }
