@@ -578,6 +578,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             Route::post('/', [AdminReferralPartnerController::class, 'store']);
             Route::get('/{id}', [AdminReferralPartnerController::class, 'show'])->where('id', '[0-9]+');
             Route::put('/{id}', [AdminReferralPartnerController::class, 'update'])->where('id', '[0-9]+');
+            Route::delete('/{id}', [AdminReferralPartnerController::class, 'destroy'])->where('id', '[0-9]+');
         });
 
         // Programme Corporate (admin) — paliers de CA annuel et récompenses figées

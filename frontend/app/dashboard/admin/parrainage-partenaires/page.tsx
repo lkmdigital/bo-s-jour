@@ -2,15 +2,18 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Copy, Download, PauseCircle, PlayCircle, QrCode, UserPlus } from 'lucide-react';
+import { Copy, Download, Pencil, PauseCircle, PlayCircle, QrCode, Search, Trash2, UserPlus } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/common/ToastContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import AmbassadorEditModal from '@/components/dashboard/admin/AmbassadorEditModal';
+import { useDeleteAmbassador } from '@/components/dashboard/admin/useDeleteAmbassador';
 
 interface Ambassador {
   id: number;
   code: string;
   display_name: string | null;
+  notes: string | null;
   is_active: boolean;
   created_at: string;
   status: 'active_account' | 'pending_account';
@@ -41,6 +44,10 @@ export default function AdminAmbassadorsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ email: '', phone: '', display_name: '', code: '' });
+  const [editing, setEditing] = useState<Ambassador | null>(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'active' | 'suspended' | 'pending'>('all');
+  const deleteAmbassador = useDeleteAmbassador();
 
   const load = useCallback(() => {
     api.get('/admin/referral-partners')
@@ -51,6 +58,26 @@ export default function AdminAmbassadorsPage() {
   }, []);
 
   useEffect(load, [load]);
+
+  const label = (r: Ambassador) => r.display_name || r.user?.name || 'Ambassadeur';
+
+  const remove = async (r: Ambassador) => {
+    if (await deleteAmbassador({ id: r.id, name: label(r) })) load();
+  };
+
+  const counts = {
+    all: rows.length,
+    active: rows.filter((r) => r.is_active && r.status === 'active_account').length,
+    suspended: rows.filter((r) => !r.is_active).length,
+    pending: rows.filter((r) => r.status === 'pending_account').length,
+  };
+  const visible = rows.filter((r) => {
+    if (filter === 'active' && !(r.is_active && r.status === 'active_account')) return false;
+    if (filter === 'suspended' && r.is_active) return false;
+    if (filter === 'pending' && r.status !== 'pending_account') return false;
+    const q = search.trim().toLowerCase();
+    return !q || `${label(r)} ${r.code} ${r.user?.email ?? ''} ${r.invited_email ?? ''} ${r.invited_phone ?? ''} ${r.user?.phone ?? ''}`.toLowerCase().includes(q);
+  });
 
   const designate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,6 +203,27 @@ export default function AdminAmbassadorsPage() {
       ) : rows.length === 0 ? (
         <p className="card text-sm text-gray-500 text-center">Aucun ambassadeur pour le moment.</p>
       ) : (
+        <>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrer par statut">
+            {([
+              ['all', 'Tous'],
+              ['active', 'Actifs'],
+              ['suspended', 'Suspendus'],
+              ['pending', 'En attente'],
+            ] as const).map(([key, text]) => (
+              <button key={key} onClick={() => setFilter(key)} className={`px-3 py-1.5 rounded-full text-xs font-medium ${filter === key ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                {text} <span className="opacity-70">({counts[key]})</span>
+              </button>
+            ))}
+          </div>
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nom, code, e-mail, téléphone…" aria-label="Rechercher un ambassadeur" className="pl-9 pr-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm w-64" />
+          </div>
+        </div>
+        {visible.length === 0 && <p className="card text-sm text-gray-500 text-center">Aucun ambassadeur ne correspond.</p>}
+        {visible.length > 0 && (
         <div className="card overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase text-gray-500 border-b border-gray-100 dark:border-gray-700">
@@ -191,7 +239,7 @@ export default function AdminAmbassadorsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {visible.map((r) => (
                 <tr key={r.id} className="border-b border-gray-50 dark:border-gray-800 last:border-0 align-top">
                   <td className="p-3">
                     <Link href={`/dashboard/admin/parrainage-partenaires/${r.id}`} className="font-medium text-gray-900 dark:text-white hover:text-primary hover:underline">
@@ -228,16 +276,22 @@ export default function AdminAmbassadorsPage() {
                   <td className="p-3 text-right tabular-nums font-semibold">{r.stats.points_awarded}</td>
                   <td className="p-3 text-right whitespace-nowrap">
                     <Link href={`/dashboard/admin/parrainage-partenaires/${r.id}`} className="text-xs text-primary font-medium hover:underline mr-3">Voir la fiche</Link>
-                    <button onClick={() => toggle(r)} className="text-gray-400 hover:text-primary" aria-label={r.is_active ? 'Suspendre' : 'Réactiver'} title={r.is_active ? 'Suspendre' : 'Réactiver'}>
+                    <button onClick={() => setEditing(r)} className="text-gray-400 hover:text-primary align-middle mr-2" aria-label="Modifier" title="Modifier"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => toggle(r)} className="text-gray-400 hover:text-primary align-middle mr-2" aria-label={r.is_active ? 'Suspendre' : 'Réactiver'} title={r.is_active ? 'Suspendre' : 'Réactiver'}>
                       {r.is_active ? <PauseCircle className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
                     </button>
+                    <button onClick={() => remove(r)} className="text-gray-400 hover:text-red-600 align-middle" aria-label="Supprimer" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        )}
+        </>
       )}
+
+      {editing && <AmbassadorEditModal ambassador={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />}
     </div>
   );
 }

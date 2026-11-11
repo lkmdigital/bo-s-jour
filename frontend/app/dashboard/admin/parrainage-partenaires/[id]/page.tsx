@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import {
-  ArrowLeft, Banknote, CalendarCheck, Copy, Download, ExternalLink, Eye, Gift, MousePointerClick, PauseCircle, PlayCircle, QrCode, Save, Search,
+  ArrowLeft, Banknote, CalendarCheck, Copy, Download, ExternalLink, Eye, Gift, MousePointerClick, Pencil, PauseCircle, PlayCircle, QrCode, Save, Search, Trash2,
   Star, UserCheck, Users,
 } from 'lucide-react';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -14,6 +14,8 @@ import { formatPrice } from '@/lib/utils';
 import { useToast } from '@/components/common/ToastContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import PosterDownload from '@/components/loyalty/PosterDownload';
+import AmbassadorEditModal from '@/components/dashboard/admin/AmbassadorEditModal';
+import { useDeleteAmbassador } from '@/components/dashboard/admin/useDeleteAmbassador';
 
 interface Person { id: number; name: string; email: string; phone: string | null }
 interface BookingRow {
@@ -86,6 +88,9 @@ function Section({ title, children, action }: { title: string; children: React.R
 
 export default function AmbassadorDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const deleteAmbassador = useDeleteAmbassador();
+  const [editing, setEditing] = useState(false);
   const { showError, showSuccess } = useToast();
   const [data, setData] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -224,13 +229,22 @@ export default function AmbassadorDetailPage() {
               <span className="text-gray-400">· désigné le {day(data.created_at)}{data.created_by ? ` par ${data.created_by}` : ''}</span>
             </div>
           </div>
-          <button
-            onClick={() => save({ is_active: !data.is_active }, data.is_active ? 'Ambassadeur suspendu' : 'Ambassadeur réactivé')}
-            disabled={saving}
-            className="btn-outline inline-flex items-center gap-2 text-sm"
-          >
-            {data.is_active ? <><PauseCircle className="w-4 h-4" /> Suspendre</> : <><PlayCircle className="w-4 h-4" /> Réactiver</>}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setEditing(true)} className="btn-outline inline-flex items-center gap-2 text-sm"><Pencil className="w-4 h-4" /> Modifier</button>
+            <button
+              onClick={() => save({ is_active: !data.is_active }, data.is_active ? 'Ambassadeur suspendu' : 'Ambassadeur réactivé')}
+              disabled={saving}
+              className="btn-outline inline-flex items-center gap-2 text-sm"
+            >
+              {data.is_active ? <><PauseCircle className="w-4 h-4" /> Suspendre</> : <><PlayCircle className="w-4 h-4" /> Réactiver</>}
+            </button>
+            <button
+              onClick={async () => { if (await deleteAmbassador({ id: data.id, name: title })) router.push('/dashboard/admin/parrainage-partenaires'); }}
+              className="btn-outline inline-flex items-center gap-2 text-sm text-red-600 border-red-300 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" /> Supprimer
+            </button>
+          </div>
         </div>
         {!data.is_active && (
           <p className="mt-3 text-xs rounded-lg bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-200 p-3">
@@ -495,6 +509,14 @@ export default function AmbassadorDetailPage() {
           <Save className="w-4 h-4" /> Enregistrer les notes
         </button>
       </Section>
+
+      {editing && (
+        <AmbassadorEditModal
+          ambassador={{ id: data.id, code: data.code, display_name: data.display_name, notes: data.notes, status: data.status, invited_email: data.invited_email, invited_phone: data.invited_phone }}
+          onClose={() => setEditing(false)}
+          onSaved={() => { setEditing(false); load(); }}
+        />
+      )}
 
       <p className="text-xs text-gray-400 flex items-center gap-1.5"><UserCheck className="w-3.5 h-3.5" /> Les clics comptent un visiteur une fois par jour ; les visites d&apos;avant la mise en place des scans n&apos;ont pas d&apos;origine distinguée.</p>
     </div>

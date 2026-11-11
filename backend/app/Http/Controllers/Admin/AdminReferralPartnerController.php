@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\ReferralPartner;
+use App\Models\ReferralPartnerReferral;
 use App\Models\User;
 use App\Services\PartnerReferralReport;
 use App\Services\PartnerReferralService;
 use App\Services\ReferralCode;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -108,11 +111,19 @@ class AdminReferralPartnerController extends Controller
             'display_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:5000',
             'is_active' => 'sometimes|boolean',
+            // Changer le code rend caduques les affiches et QR codes déjà imprimés : l'écran de l'administrateur le dit avant de valider.
+            'code' => ['sometimes', 'string', 'regex:/^[A-Za-z0-9]{4,20}$/'],
             // Coordonnées d'un ambassadeur qui n'a pas encore de compte (corriger une faute de frappe dans l'e-mail ou le numéro).
             'invited_email' => 'sometimes|nullable|email|max:255',
             'invited_phone' => 'sometimes|nullable|string|max:30',
         ]);
 
+        if (array_key_exists('code', $data)) {
+            $data['code'] = PartnerReferralService::normalize($data['code']);
+            if ($data['code'] !== $partner->code && !PartnerReferralService::codeAvailable($data['code'], $partner->id)) {
+                throw ValidationException::withMessages(['code' => ['Ce code est déjà utilisé.']]);
+            }
+        }
         if ($partner->user_id && (array_key_exists('invited_email', $data) || array_key_exists('invited_phone', $data))) {
             throw ValidationException::withMessages(['invited_email' => ["Cet ambassadeur a déjà un compte : ses coordonnées ne se modifient plus ici."]]);
         }
@@ -136,12 +147,42 @@ class AdminReferralPartnerController extends Controller
         return response()->json(['data' => $this->present($partner->load('user:id,name,email,phone'))]);
     }
 
+    /**
+     * Supprime un ambassadeur. S'il a déjà des clients rattachés, la suppression efface leur historique de parrainage (et les remises de
+     * bienvenue qu'ils n'avaient pas encore utilisées) : elle n'a lieu qu'avec `force=1`, après confirmation. Les points déjà versés restent
+     * acquis, les comptes des clients et leurs réservations ne sont pas touchés. Pour simplement arrêter un ambassadeur : le suspendre.
+     */
+    public function destroy(Request $request, int $id)
+    {
+        $partner = ReferralPartner::findOrFail($id);
+        $referrals = ReferralPartnerReferral::where('referral_partner_id', $partner->id);
+        $count = (clone $referrals)->count();
+
+        if ($count > 0 && !$request->boolean('force')) {
+            return response()->json([
+                'message' => "Cet ambassadeur a {$count} client" . ($count > 1 ? 's' : '') . ' rattaché' . ($count > 1 ? 's' : '') . ".",
+                'requires_confirmation' => true,
+                'referrals' => $count,
+                'points_awarded' => (int) (clone $referrals)->sum(DB::raw('signup_points + booking_points')),
+            ], 409);
+        }
+
+        DB::transaction(function () use ($partner, $referrals) {
+            // Les réservations gardent le montant de la remise accordée (comptabilité) mais ne pointent plus vers un rattachement supprimé.
+            Booking::whereIn('partner_referral_id', (clone $referrals)->pluck('id'))->update(['partner_referral_id' => null]);
+            $partner->delete();
+        });
+
+        return response()->json(['message' => 'Ambassadeur supprimé.']);
+    }
+
     private function present(ReferralPartner $p): array
     {
         return [
             'id' => $p->id,
             'code' => $p->code,
             'display_name' => $p->display_name,
+            'notes' => $p->notes,
             'is_active' => $p->is_active,
             'created_at' => $p->created_at?->toIso8601String(),
             // « pending » : désigné avant son inscription, il retrouvera tout dès qu'un compte vérifié porte cet e-mail ou ce numéro.
