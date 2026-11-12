@@ -77,6 +77,12 @@
                     <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><span style="font-size:13px;color:#6b7280;">Départ</span></td>
                     <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span style="font-size:14px;font-weight:600;color:#111827;">{{ \Carbon\Carbon::parse($booking->check_out)->translatedFormat('d F Y') }}</span></td>
                   </tr>
+                  @if($booking->roomsSummary())
+                  <tr>
+                    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><span style="font-size:13px;color:#6b7280;">Chambre(s)</span></td>
+                    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span style="font-size:14px;font-weight:600;color:#111827;">{{ $booking->roomsSummary() }}</span></td>
+                  </tr>
+                  @endif
                   <tr>
                     <td style="padding:8px 0;"><span style="font-size:13px;color:#6b7280;">Voyageurs</span></td>
                     <td style="padding:8px 0;text-align:right;"><span style="font-size:14px;font-weight:600;color:#111827;">{{ $booking->guests }} personne(s)</span></td>

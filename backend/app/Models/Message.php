@@ -109,7 +109,9 @@ class Message extends Model
             'is_from_platform' => true,
             'subject' => 'Nouvelle demande de réservation — à confirmer',
             'body' => "Un voyageur souhaite réserver " . $accommodationName . ".\n\n"
-                . "Séjour du " . $checkIn . " au " . $checkOut . " — " . ($booking->guests ?? 1) . " voyageur(s).\n\n"
+                . "Séjour du " . $checkIn . " au " . $checkOut . " — " . ($booking->guests ?? 1) . " voyageur(s).\n"
+                . ($booking->roomsSummary() ? "Chambre(s) : " . $booking->roomsSummary() . ".\n" : '')
+                . "\n"
                 . "Merci de confirmer la disponibilité avant le " . $deadline . " (sinon la demande sera annulée automatiquement).\n\n"
                 . "Demande #" . $booking->id . ".",
             'booking_id' => $booking->id,

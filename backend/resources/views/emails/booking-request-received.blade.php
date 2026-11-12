@@ -46,8 +46,8 @@
                   </tr>
                   @if($room)
                   <tr>
-                    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><span style="font-size:13px;color:#6b7280;">Chambre</span></td>
-                    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span style="font-size:14px;font-weight:600;color:#111827;">{{ $room->name ?? $room->room_number ?? '—' }}</span></td>
+                    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><span style="font-size:13px;color:#6b7280;">Chambre(s)</span></td>
+                    <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;"><span style="font-size:14px;font-weight:600;color:#111827;">{{ $booking->roomsSummary() ?? $room->name ?? $room->room_number ?? '—' }}</span></td>
                   </tr>
                   @endif
                   <tr>

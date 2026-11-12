@@ -49,4 +49,14 @@ class BookingRoomsSummaryTest extends TestCase
         $message = Message::where('recipient_id', $booking->accommodation->host_id)->latest('id')->first();
         $this->assertStringContainsString('2 × Chambre standard (Double)', $message->body);
     }
+
+    public function test_host_request_alert_states_the_rooms_requested(): void
+    {
+        $booking = $this->bookingWithRooms(2);
+
+        Message::notifyHostNewRequest($booking);
+
+        $message = Message::where('recipient_id', $booking->accommodation->host_id)->latest('id')->first();
+        $this->assertStringContainsString('2 × Chambre standard (Double)', $message->body);
+    }
 }
