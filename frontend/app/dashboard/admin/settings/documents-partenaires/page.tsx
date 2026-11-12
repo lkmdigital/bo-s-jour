@@ -8,6 +8,7 @@ import { useToast } from '@/components/common/ToastContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import SettingsPageShell from '@/components/dashboard/admin/SettingsPageShell';
 import { useAppSettingsStore } from '@/stores/appSettingsStore';
+import HostDocumentTypesManager from '@/components/dashboard/admin/HostDocumentTypesManager';
 
 interface PartnerDocumentsSetting {
   required: boolean;
@@ -51,7 +52,7 @@ export default function AdminPartnerDocumentsSettingsPage() {
     <SettingsPageShell
       icon={FileCheck2}
       title="Documents partenaires"
-      description="Pièce d'identité, justificatif de domicile, licence d'exploitation, RCCM et document fiscal : obligatoires ou facultatifs pour ajouter un établissement."
+      description="Quels documents sont demandés aux partenaires, lesquels sont obligatoires ou facultatifs, et si ces exigences s'appliquent pour ajouter un établissement."
     >
       {loading || !setting ? (
         <LoadingSpinner />
@@ -86,7 +87,7 @@ export default function AdminPartnerDocumentsSettingsPage() {
               <div className={`rounded-xl border p-4 ${setting.required ? 'border-amber-300 bg-amber-50/60 dark:bg-amber-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
                 <p className="font-semibold mb-2">Obligatoires</p>
                 <ul className="list-disc pl-4 space-y-1 text-gray-600 dark:text-gray-300">
-                  <li>Le profil doit être complet à 100 %, documents et numéros compris.</li>
+                  <li>Le profil doit être complet à 100 % : informations de contact, numéros et documents cochés « Obligatoire » ci-dessous.</li>
                   <li>Un administrateur doit valider le compte avant le premier établissement.</li>
                   <li>Les relances de conformité reprennent chaque matin.</li>
                 </ul>
@@ -137,6 +138,8 @@ export default function AdminPartnerDocumentsSettingsPage() {
               <Lock className="w-4 h-4" /> Seul le super administrateur peut modifier ce réglage.
             </p>
           )}
+
+          <HostDocumentTypesManager documentsRequired={setting.required} />
         </div>
       )}
     </SettingsPageShell>

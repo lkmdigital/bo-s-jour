@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useConfirm } from '@/components/common/ConfirmContext';
 import { isAdmin, isController } from '@/lib/userUtils';
 import api from '@/lib/api';
+import { customDocumentUrl } from '@/lib/utils';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -86,7 +87,8 @@ interface HostDetails {
   profile_completed: boolean;
   profile_verified: boolean;
   compliance_status?: 'conforme' | 'non_conforme';
-  compliance_requirements?: Record<string, { label: string; ok: boolean }>;
+  compliance_requirements?: Record<string, { label: string; ok: boolean; required?: boolean }>;
+  host_documents?: { id: number; path: string; host_document_type_id: number; type?: { label: string } }[];
   profile_verified_at?: string | null;
   verification_notes?: string | null;
   created_at: string;
@@ -235,6 +237,7 @@ export default function AdminHostDetailPage() {
       label: 'Document contribuable',
       path: host.tax_document_path,
     },
+    ...(host.host_documents ?? []).map((d) => ({ label: d.type?.label ?? 'Document', path: d.path, url: customDocumentUrl(host.id, d.host_document_type_id) })),
   ].filter((d) => d.path);
 
   const primaryIdDoc = buildFileUrl(host.id_document_recto_path || host.id_document_path);
@@ -543,7 +546,7 @@ export default function AdminHostDetailPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {documents.map((doc, index) => {
-                const url = buildFileUrl(doc.path);
+                const url = 'url' in doc && doc.url ? doc.url : buildFileUrl(doc.path);
                 return (
                   <div
                     key={`${doc.label}-${index}`}
@@ -591,8 +594,8 @@ export default function AdminHostDetailPage() {
                 {Object.entries(host.compliance_requirements).map(([key, req]) => (
                   <div key={key} className="flex items-center justify-between gap-3 p-2 rounded bg-gray-50 dark:bg-gray-900/40">
                     <span className="text-gray-700 dark:text-gray-300">{req.label}</span>
-                    <span className={req.ok ? 'text-green-600 dark:text-green-400 font-medium' : 'text-red-600 dark:text-red-400 font-medium'}>
-                      {req.ok ? 'OK' : 'Manquant'}
+                    <span className={req.ok ? 'text-green-600 dark:text-green-400 font-medium' : req.required === false ? 'text-gray-500 font-medium' : 'text-red-600 dark:text-red-400 font-medium'}>
+                      {req.ok ? 'OK' : req.required === false ? 'Facultatif' : 'Manquant'}
                     </span>
                   </div>
                 ))}

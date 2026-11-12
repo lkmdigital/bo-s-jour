@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\HostDocumentType;
+
 /**
  * Pourcentage de complétion du profil d'un partenaire.
  *
  * Deux calculs, selon que les documents sont obligatoires ou non (voir PartnerDocuments) :
- * - OBLIGATOIRES : le calcul historique, inchangé (informations de contact + numéros et documents de conformité) ;
+ * - OBLIGATOIRES : informations de contact + numéros + les documents que l'administrateur a cochés obligatoires ;
  * - FACULTATIFS : seules les informations de contact comptent, ramenées à 100 %.
  */
 final class HostProfileCompletion
@@ -48,45 +50,51 @@ final class HostProfileCompletion
         return (int) min(100, round($total / array_sum(self::CONTACT_FIELDS) * 100));
     }
 
-    /** Calcul historique (documents obligatoires), repris tel quel de HostProfileController. */
+    /** Numéros de conformité : toujours demandés quand les documents sont obligatoires. */
+    private const NUMBER_FIELDS = [
+        'rccm' => 5,
+        'tax_account_number' => 5,
+        'id_type' => 10,
+        'id_number' => 10,
+    ];
+
+    /** Poids d'un document dans le pourcentage : la pièce d'identité pèse plus, les autres 10 points. */
+    private const IDENTITY_DOCUMENT_POINTS = 15;
+    private const OTHER_DOCUMENT_POINTS = 10;
+
+    /**
+     * Documents OBLIGATOIRES : informations de contact + numéros + chaque type de document que l'administrateur a
+     * coché obligatoire (Paramètres > Documents partenaires). Un document facultatif ou retiré ne compte pas.
+     * Le pourcentage n'atteint 100 que si TOUT l'obligatoire est fourni : un partenaire sans un document obligatoire
+     * reste à 99 % au plus.
+     */
     private static function withDocuments($user): int
     {
-        $requiredFields = self::CONTACT_FIELDS + [
-            'rccm' => 5,
-            'tax_account_number' => 5,
-            'id_type' => 10,
-            'id_number' => 10,
-            'id_document_path' => 15, // Pour passeport ou autre
-            'id_document_recto_path' => 7.5, // Pour CNI/Permis (recto)
-            'id_document_verso_path' => 7.5, // Pour CNI/Permis (verso)
-            'proof_of_address_path' => 15,
-            'business_license_path' => 10,
-            'rccm_document_path' => 10,
-            'tax_document_path' => 10,
-        ];
-
+        $earned = 0;
         $total = 0;
-        foreach ($requiredFields as $field => $points) {
+        $complete = true;
+
+        foreach (self::CONTACT_FIELDS + self::NUMBER_FIELDS as $field => $points) {
+            $total += $points;
             if (!empty($user->getAttribute($field))) {
-                $total += $points;
+                $earned += $points;
+            } else {
+                $complete = false;
             }
         }
 
-        // Pour CNI et Permis, recto ET verso sont nécessaires : un seul côté ne compte pas.
-        $idType = $user->getAttribute('id_type');
-        if (in_array($idType, ['CNI', 'Permis de conduire'])) {
-            $hasRecto = !empty($user->getAttribute('id_document_recto_path'));
-            $hasVerso = !empty($user->getAttribute('id_document_verso_path'));
-            if (!($hasRecto && $hasVerso)) {
-                if ($hasRecto) {
-                    $total -= 7.5;
-                }
-                if ($hasVerso) {
-                    $total -= 7.5;
-                }
+        foreach (HostDocumentType::active()->where('is_required', true) as $type) {
+            $points = $type->legacy_column === 'id_document_path' ? self::IDENTITY_DOCUMENT_POINTS : self::OTHER_DOCUMENT_POINTS;
+            $total += $points;
+            if ($user->hasHostDocument($type)) {
+                $earned += $points;
+            } else {
+                $complete = false;
             }
         }
 
-        return (int) min(100, $total);
+        $percentage = (int) round($earned / $total * 100);
+
+        return $complete ? 100 : min(99, $percentage);
     }
 }

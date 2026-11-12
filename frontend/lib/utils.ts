@@ -131,6 +131,13 @@ export function secureDocumentUrl(userId?: number | string | null, field?: strin
   return `${apiUrl}/documents/${userId}/${slug}`;
 }
 
+/** URL du fichier fourni pour un type de document créé par l'admin (disque privé, accès contrôlé). */
+export function customDocumentUrl(userId?: number | string | null, typeId?: number | string | null): string | null {
+  if (!userId || !typeId) return null;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bosejour.ci/api';
+  return `${apiUrl}/documents/${userId}/custom/${typeId}`;
+}
+
 /**
  * Formate un montant en entier (sans décimales) avec séparateurs de milliers
  * @param amount - Le montant à formater (peut être number, string ou decimal)

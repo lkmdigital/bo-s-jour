@@ -17,6 +17,8 @@ use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\RevenueController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminHostController;
+use App\Http\Controllers\Admin\AdminHostDocumentTypeController;
+use App\Http\Controllers\HostDocumentController;
 use App\Http\Controllers\Admin\AdminAccommodationController;
 use App\Http\Controllers\Admin\AdminActivityLogController;
 use App\Http\Controllers\Admin\AdminComplianceController;
@@ -196,6 +198,8 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         // admin/contrôleur uniquement, voir SecureDocumentController::authorizeAccess().
         Route::get('/documents/{userId}/{field}', [\App\Http\Controllers\SecureDocumentController::class, 'show'])
             ->where(['userId' => '[0-9]+', 'field' => '[a-z-]+']);
+        Route::get('/documents/{userId}/custom/{typeId}', [\App\Http\Controllers\SecureDocumentController::class, 'showCustom'])
+            ->where(['userId' => '[0-9]+', 'typeId' => '[0-9]+']);
 
         // Profil voyageur (mise à jour + mot de passe + pièces d'identité)
         Route::put('/me/profile', [UserProfileController::class, 'update']);
@@ -254,6 +258,8 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
             // conformité), aucune permission staff ne couvre ce module (voir HostProfileController).
             Route::get('/host/profile', [HostProfileController::class, 'show']);
             Route::post('/host/profile', [HostProfileController::class, 'update']); // POST pour FormData
+            Route::get('/host/documents', [HostDocumentController::class, 'index']);
+            Route::post('/host/documents/{typeId}', [HostDocumentController::class, 'store'])->where('typeId', '[0-9]+');
             Route::post('/host/profile/email/request-change', [HostProfileController::class, 'requestEmailChange']);
             Route::post('/host/profile/email/confirm-change', [HostProfileController::class, 'confirmEmailChange']);
 
@@ -485,6 +491,12 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
         // Paramètres > Conditions générales de vente / Juridique
         Route::get('/legal-documents', [AdminLegalDocumentController::class, 'index'])->middleware('role:admin');
         Route::put('/legal-documents/{slug}', [AdminLegalDocumentController::class, 'update'])->middleware('role:admin');
+
+        // Paramètres > Documents à fournir (types obligatoires / facultatifs)
+        Route::get('/host-document-types', [AdminHostDocumentTypeController::class, 'index'])->middleware('role:admin');
+        Route::post('/host-document-types', [AdminHostDocumentTypeController::class, 'store'])->middleware('role:admin');
+        Route::put('/host-document-types/{id}', [AdminHostDocumentTypeController::class, 'update'])->middleware('role:admin')->where('id', '[0-9]+');
+        Route::delete('/host-document-types/{id}', [AdminHostDocumentTypeController::class, 'destroy'])->middleware('role:admin')->where('id', '[0-9]+');
 
         // Paramètres > Facturation (moyens de paiement)
         Route::get('/payment-methods', [AdminPaymentMethodController::class, 'index'])->middleware('role:admin');

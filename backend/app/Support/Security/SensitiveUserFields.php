@@ -23,6 +23,8 @@ final class SensitiveUserFields
         'bank_name', 'bank_account_holder', 'bank_account_number',
         'tax_account_number', 'rccm', 'id_number', 'cnps_number',
         'date_of_birth', 'verification_notes',
+        // Relation chargée à la volée par User::getComplianceRequirementsAttribute().
+        'host_documents',
     ];
 
     /** Pour un tiers (avis, réservation) affiché à quelqu'un d'autre : en plus des

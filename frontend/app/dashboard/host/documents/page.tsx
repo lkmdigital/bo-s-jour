@@ -4,10 +4,19 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
-import { secureDocumentUrl } from '@/lib/utils';
+import { customDocumentUrl, secureDocumentUrl } from '@/lib/utils';
 import { CheckCircle2, XCircle, FileText, Upload, Eye, Loader2, CreditCard, Landmark, ShieldCheck } from 'lucide-react';
 
-interface ComplianceRequirement { label: string; ok: boolean }
+interface ComplianceRequirement { label: string; ok: boolean; required?: boolean }
+
+interface CustomDocument {
+  id: number;
+  label: string;
+  description: string | null;
+  is_required: boolean;
+  is_custom: boolean;
+  provided: boolean;
+}
 
 interface HostProfile {
   id?: number;
@@ -24,14 +33,27 @@ interface HostProfile {
   tax_document_path?: string;
 }
 
+function RequirementBadge({ required }: { required?: boolean }) {
+  if (required === undefined) return null;
+  return (
+    <span className={`ml-2 align-middle text-[11px] font-semibold px-1.5 py-0.5 rounded ${required ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+      {required ? 'Obligatoire' : 'Facultatif'}
+    </span>
+  );
+}
+
 function FileRow({
-  label, currentPath, userId, field, onPick, uploading,
-}: { label: string; currentPath?: string | null; userId?: number; field: string; onPick: (f: File) => void; uploading: boolean }) {
-  const url = currentPath ? secureDocumentUrl(userId, field) : null;
+  label, currentPath, userId, field, onPick, uploading, required, hint, fileUrl,
+}: {
+  label: string; currentPath?: string | null; userId?: number; field?: string; onPick: (f: File) => void; uploading: boolean;
+  required?: boolean; hint?: string | null; fileUrl?: string | null;
+}) {
+  const url = currentPath ? (fileUrl ?? secureDocumentUrl(userId, field)) : null;
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</p>
+        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}<RequirementBadge required={required} /></p>
+        {hint && <p className="text-xs text-gray-500 dark:text-gray-400">{hint}</p>}
         {currentPath ? (
           <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400 mt-0.5">
             <CheckCircle2 className="w-3.5 h-3.5" /> Fourni
@@ -42,8 +64,8 @@ function FileRow({
             )}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400 mt-0.5">
-            <XCircle className="w-3.5 h-3.5" /> Manquant
+          <span className={`inline-flex items-center gap-1 text-xs mt-0.5 ${required === false ? 'text-gray-500 dark:text-gray-400' : 'text-red-600 dark:text-red-400'}`}>
+            <XCircle className="w-3.5 h-3.5" /> {required === false ? 'Non fourni' : 'Manquant'}
           </span>
         )}
       </div>
@@ -71,6 +93,7 @@ export default function HostDocumentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [customDocs, setCustomDocs] = useState<CustomDocument[]>([]);
 
   const [idType, setIdType] = useState('');
   const [idNumber, setIdNumber] = useState('');
@@ -78,7 +101,13 @@ export default function HostDocumentsPage() {
   const [taxNumber, setTaxNumber] = useState('');
   const [savingNumbers, setSavingNumbers] = useState(false);
 
+  const loadCustomDocs = () =>
+    api.get('/host/documents')
+      .then((res) => setCustomDocs((res.data?.data ?? []).filter((d: CustomDocument) => d.is_custom)))
+      .catch(() => {});
+
   const load = () => {
+    loadCustomDocs();
     api.get('/host/profile')
       .then((res) => {
         const u = res.data?.user ?? {};
@@ -108,6 +137,26 @@ export default function HostDocumentsPage() {
       setProfile(res.data?.user ?? profile);
       setRequirements(res.data?.compliance_requirements ?? requirements);
       setStatus(res.data?.compliance_status ?? status);
+      setSuccess('Document enregistré ✓');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Erreur lors du téléversement du document");
+    } finally {
+      setUploadingField(null);
+    }
+  };
+
+  const uploadCustom = async (doc: CustomDocument, file: File) => {
+    setUploadingField(`custom_${doc.id}`);
+    setError(null);
+    setSuccess(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await api.post(`/host/documents/${doc.id}`, fd);
+      setRequirements(res.data?.compliance_requirements ?? requirements);
+      setStatus(res.data?.compliance_status ?? status);
+      await loadCustomDocs();
       setSuccess('Document enregistré ✓');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
@@ -150,6 +199,9 @@ export default function HostDocumentsPage() {
   }
 
   const items = Object.entries(requirements);
+  // Une ligne n'est affichée que si l'admin demande ce document ; sinon (type supprimé ou désactivé) on la masque.
+  const asked = (key: string) => key in requirements;
+  const isRequired = (key: string) => requirements[key]?.required;
   const needsRectoVerso = idType === 'CNI' || idType === 'Permis de conduire';
 
   return (
@@ -195,6 +247,8 @@ export default function HostDocumentsPage() {
                 <span className="inline-flex items-center gap-1 text-green-600 text-sm font-medium">
                   <CheckCircle2 className="w-4 h-4" /> Fourni
                 </span>
+              ) : req.required === false ? (
+                <span className="inline-flex items-center gap-1 text-gray-500 text-sm font-medium">Facultatif</span>
               ) : (
                 <span className={`inline-flex items-center gap-1 text-sm font-medium ${documentsRequired ? 'text-red-600' : 'text-gray-500'}`}>
                   <XCircle className="w-4 h-4" /> {documentsRequired ? 'Manquant' : 'Non fourni (facultatif)'}
@@ -241,11 +295,12 @@ export default function HostDocumentsPage() {
           </div>
         </form>
 
-        <div className="mt-2">
+        {asked('manager_id_document') && <div className="mt-2">
           {needsRectoVerso ? (
             <>
               <FileRow
                 label="Document d'identité — Recto"
+                required={isRequired('manager_id_document')}
                 currentPath={profile?.id_document_recto_path}
                 userId={profile?.id}
                 field="id_document_recto"
@@ -254,6 +309,7 @@ export default function HostDocumentsPage() {
               />
               <FileRow
                 label="Document d'identité — Verso"
+                required={isRequired('manager_id_document')}
                 currentPath={profile?.id_document_verso_path}
                 userId={profile?.id}
                 field="id_document_verso"
@@ -264,6 +320,7 @@ export default function HostDocumentsPage() {
           ) : (
             <FileRow
               label="Document d'identité"
+              required={isRequired('manager_id_document')}
               currentPath={profile?.id_document_path}
               userId={profile?.id}
               field="id_document"
@@ -271,7 +328,7 @@ export default function HostDocumentsPage() {
               onPick={(f) => uploadFile('id_document', f)}
             />
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Documents administratifs */}
@@ -280,14 +337,15 @@ export default function HostDocumentsPage() {
           <FileText className="w-5 h-5 text-primary" /> Documents administratifs
         </h2>
 
-        <FileRow
+        {asked('proof_of_address') && <FileRow
           label="Justificatif de domicile"
+          required={isRequired('proof_of_address')}
           currentPath={profile?.proof_of_address_path}
           userId={profile?.id}
           field="proof_of_address"
           uploading={uploadingField === 'proof_of_address'}
           onPick={(f) => uploadFile('proof_of_address', f)}
-        />
+        />}
 
         <div className="py-3 border-b border-gray-100 dark:border-gray-700">
           <label className="block text-sm font-medium mb-2">Numéro RCCM</label>
@@ -304,14 +362,15 @@ export default function HostDocumentsPage() {
             </button>
           </div>
         </div>
-        <FileRow
+        {asked('rccm_document') && <FileRow
           label="Document RCCM"
+          required={isRequired('rccm_document')}
           currentPath={profile?.rccm_document_path}
           userId={profile?.id}
           field="rccm_document"
           uploading={uploadingField === 'rccm_document'}
           onPick={(f) => uploadFile('rccm_document', f)}
-        />
+        />}
 
         <div className="py-3 border-b border-gray-100 dark:border-gray-700">
           <label className="block text-sm font-medium mb-2">Numéro contribuable (IFU)</label>
@@ -328,24 +387,46 @@ export default function HostDocumentsPage() {
             </button>
           </div>
         </div>
-        <FileRow
+        {asked('tax_document') && <FileRow
           label="Document contribuable (IFU)"
+          required={isRequired('tax_document')}
           currentPath={profile?.tax_document_path}
           userId={profile?.id}
           field="tax_document"
           uploading={uploadingField === 'tax_document'}
           onPick={(f) => uploadFile('tax_document', f)}
-        />
+        />}
 
-        <FileRow
-          label="Licence d'exploitation (optionnel)"
+        {asked('operating_license_document') && <FileRow
+          label="Licence d'exploitation"
+          required={isRequired('operating_license_document')}
           currentPath={profile?.business_license_path}
           userId={profile?.id}
           field="business_license"
           uploading={uploadingField === 'business_license'}
           onPick={(f) => uploadFile('business_license', f)}
-        />
+        />}
       </div>
+
+      {customDocs.length > 0 && (
+        <div className="card">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" /> Autres documents demandés
+          </h2>
+          {customDocs.map((doc) => (
+            <FileRow
+              key={doc.id}
+              label={doc.label}
+              hint={doc.description}
+              required={doc.is_required}
+              currentPath={doc.provided ? String(doc.id) : null}
+              fileUrl={customDocumentUrl(profile?.id, doc.id)}
+              uploading={uploadingField === `custom_${doc.id}`}
+              onPick={(f) => uploadCustom(doc, f)}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-4 flex items-start gap-3">
         <Landmark className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />

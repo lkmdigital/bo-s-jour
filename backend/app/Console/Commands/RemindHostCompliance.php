@@ -56,7 +56,7 @@ class RemindHostCompliance extends Command
                     }
 
                     $missingLabels = collect($host->compliance_requirements)
-                        ->filter(fn ($check) => empty($check['ok']))
+                        ->filter(fn ($check) => $check['required'] && empty($check['ok']))
                         ->pluck('label')
                         ->values()
                         ->all();

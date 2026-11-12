@@ -72,6 +72,7 @@ class AdminHostController extends Controller
                 'accommodations',
                 'hostValidationHistory.validator',
                 'adminNotes.creator',
+                'hostDocuments.type',
             ])
             ->findOrFail($id);
 

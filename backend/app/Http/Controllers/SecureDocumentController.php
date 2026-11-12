@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HostDocument;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -47,6 +48,24 @@ class SecureDocumentController extends Controller
         // 'inline' : permet l'aperçu (balise <img>) en plus du téléchargement, comme le
         // faisait l'ancienne URL publique.
         return Storage::disk('local')->response($path, null, ['Content-Disposition' => 'inline']);
+    }
+
+    /**
+     * Fichier fourni pour un type de document créé par l'admin (Paramètres > Documents partenaires).
+     * Même disque privé et mêmes règles d'accès que les documents historiques ; le fichier reste
+     * consultable même si l'admin a retiré le type entre-temps (suppression logique).
+     */
+    public function showCustom(Request $request, int $userId, int $typeId)
+    {
+        $target = User::findOrFail($userId);
+        $this->authorizeAccess($request, $target);
+
+        $document = HostDocument::where('user_id', $target->id)->where('host_document_type_id', $typeId)->first();
+        if (!$document || !Storage::disk('local')->exists($document->path)) {
+            return response()->json(['message' => 'Document introuvable.'], 404);
+        }
+
+        return Storage::disk('local')->response($document->path, null, ['Content-Disposition' => 'inline']);
     }
 
     private function authorizeAccess(Request $request, User $target): void

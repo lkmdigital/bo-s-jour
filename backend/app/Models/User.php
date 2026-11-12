@@ -234,59 +234,65 @@ class User extends Authenticatable
         return $hasSingle || $hasRectoVerso;
     }
 
+    /** Fichiers fournis pour les types de documents créés par l'admin. */
+    public function hostDocuments()
+    {
+        return $this->hasMany(HostDocument::class);
+    }
+
+    public function hasHostDocument(HostDocumentType $type): bool
+    {
+        if ($type->legacy_column === 'id_document_path') {
+            return $this->hasCompleteIdentityDocument();
+        }
+        if ($type->legacy_column) {
+            return !empty($this->getAttribute($type->legacy_column));
+        }
+
+        return $this->hostDocuments->contains('host_document_type_id', $type->id);
+    }
+
+    /**
+     * Chaque entrée : label, ok, required. Seules les entrées obligatoires pèsent sur
+     * le statut de conformité ; les documents facultatifs sont listés pour information.
+     */
     public function getComplianceRequirementsAttribute(): array
     {
-        $checks = [
-            'manager_id_document' => [
-                'label' => 'Pièce du gérant',
-                'ok' => $this->hasCompleteIdentityDocument(),
-            ],
-            'manager_id_number' => [
-                'label' => 'Numéro de pièce du gérant',
-                'ok' => !empty($this->id_number),
-            ],
-            'establishment_number' => [
-                'label' => 'Numéro de l\'établissement',
-                'ok' => !empty($this->phone_fixed),
-            ],
-            'establishment_whatsapp' => [
-                'label' => 'WhatsApp de l\'établissement',
-                'ok' => !empty($this->whatsapp),
-            ],
-            'valid_email' => [
-                'label' => 'E-mail valide',
-                'ok' => !empty($this->email) && filter_var($this->email, FILTER_VALIDATE_EMAIL) !== false,
-            ],
-            'rccm_number' => [
-                'label' => 'Numéro RCM',
-                'ok' => !empty($this->rccm),
-            ],
-            'tax_number' => [
-                'label' => 'Numéro contribuable',
-                'ok' => !empty($this->tax_account_number),
-            ],
-            'rccm_document' => [
-                'label' => 'Document RCM',
-                'ok' => !empty($this->rccm_document_path),
-            ],
-            'operating_license_document' => [
-                'label' => 'Licence d\'exploitation',
-                'ok' => !empty($this->business_license_path),
-            ],
-            'tax_document' => [
-                'label' => 'Document contribuable',
-                'ok' => !empty($this->tax_document_path),
-            ],
-        ];
+        $documents = [];
+        foreach (HostDocumentType::active() as $type) {
+            $documents[$type->key] = [
+                'label' => $type->label,
+                'ok' => $this->hasHostDocument($type),
+                'required' => $type->is_required,
+            ];
+        }
+        $takeDocument = function (string $key) use (&$documents) {
+            $entry = $documents[$key] ?? null;
+            unset($documents[$key]);
 
-        return $checks;
+            return $entry ? [$key => $entry] : [];
+        };
+
+        $info = fn (string $label, bool $ok) => ['label' => $label, 'ok' => $ok, 'required' => true];
+
+        $checks = $takeDocument('manager_id_document')
+            + ['manager_id_number' => $info('Numéro de pièce du gérant', !empty($this->id_number))]
+            + ['establishment_number' => $info('Numéro de l\'établissement', !empty($this->phone_fixed))]
+            + ['establishment_whatsapp' => $info('WhatsApp de l\'établissement', !empty($this->whatsapp))]
+            + ['valid_email' => $info('E-mail valide', !empty($this->email) && filter_var($this->email, FILTER_VALIDATE_EMAIL) !== false)]
+            + ['rccm_number' => $info('Numéro RCM', !empty($this->rccm))]
+            + ['tax_number' => $info('Numéro contribuable', !empty($this->tax_account_number))]
+            + $takeDocument('rccm_document')
+            + $takeDocument('operating_license_document')
+            + $takeDocument('tax_document');
+
+        return $checks + $documents;
     }
 
     public function getComplianceStatusAttribute(): string
     {
-        $checks = $this->compliance_requirements;
-        foreach ($checks as $check) {
-            if (empty($check['ok'])) {
+        foreach ($this->compliance_requirements as $check) {
+            if ($check['required'] && empty($check['ok'])) {
                 return 'non_conforme';
             }
         }
