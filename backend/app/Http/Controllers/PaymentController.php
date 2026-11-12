@@ -1486,6 +1486,7 @@ class PaymentController extends Controller
             'body' => "Votre réservation a été confirmée.\n\n"
                 . "Code à présenter au gérant à votre arrivée : **" . $booking->confirmation_code . "**\n\n"
                 . "Remettez ce code au responsable de " . $accommodationName . " pour marquer le début de votre séjour.\n\n"
+                . ($booking->roomsSummary() ? "Chambre(s) réservée(s) : " . $booking->roomsSummary() . "\n" : '')
                 . "Réservation #" . $booking->id . " – " . $accommodationName,
             'booking_id' => $booking->id,
         ]);

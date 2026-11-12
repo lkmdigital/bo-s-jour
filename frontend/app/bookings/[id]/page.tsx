@@ -13,7 +13,7 @@ import Header from '@/components/common/Header';
 import Brand from '@/components/common/Brand';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { formatPrice, getRoomCategoryLabel } from '@/lib/utils';
+import { formatPrice, getRoomCategoryLabel, formatRoomsSummary } from '@/lib/utils';
 import { 
   Calendar, 
   Users, 
@@ -531,11 +531,11 @@ export default function BookingDetailPage() {
                   <div className="flex items-start gap-3">
                     <Bed className="w-5 h-5 text-primary mt-1" />
                     <div>
-                      <p className="font-semibold">Chambre réservée</p>
-                      <p className="text-gray-600 dark:text-gray-400">{booking.room.name}</p>
+                      <p className="font-semibold">{(booking.rooms_quantity || 1) > 1 ? 'Chambres réservées' : 'Chambre réservée'}</p>
+                      <p className="text-gray-600 dark:text-gray-400">{formatRoomsSummary(booking.room, booking.rooms_quantity)}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-500">
                         Catégorie : <span className="font-medium text-primary">{getRoomCategoryLabel(booking.room.room_category || booking.room.type)}</span> • Capacité : {booking.room.capacity}
-                        {(booking.rooms_quantity || 1) > 1 ? ` par chambre • ${booking.rooms_quantity} chambres` : ''}
+                        {(booking.rooms_quantity || 1) > 1 ? ' par chambre' : ''}
                       </p>
                       {booking.assigned_room_number && (
                         <p className="text-sm text-gray-500 dark:text-gray-500 mt-0.5">

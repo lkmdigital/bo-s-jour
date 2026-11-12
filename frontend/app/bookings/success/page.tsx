@@ -10,7 +10,7 @@ import Brand from '@/components/common/Brand';
 import { useSearchStore } from '@/stores/searchStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationPermission } from '@/hooks/useNotificationPermission';
-import { formatPrice, getRoomCategoryLabel } from '@/lib/utils';
+import { formatPrice, formatRoomsSummary } from '@/lib/utils';
 import {
   CheckCircle, Calendar, CalendarPlus, Sparkles, Home, List, FileText, KeyRound, UserPlus, Mail,
   Users, Bed, Wallet, LayoutDashboard, PlusCircle,
@@ -23,6 +23,7 @@ interface SuccessBooking {
   check_in?: string;
   check_out?: string;
   guests?: number;
+  rooms_quantity?: number;
   total_price?: number;
   amount_paid?: number;
   deposit_amount?: number;
@@ -143,7 +144,7 @@ function BookingSuccessContent() {
                       <p className="text-gray-400">Chambre</p>
                       <p className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
                         <Bed className="w-3.5 h-3.5 text-primary" />
-                        {getRoomCategoryLabel(booking.room.room_category || booking.room.type) || booking.room.name}
+                        {formatRoomsSummary(booking.room, booking.rooms_quantity)}
                       </p>
                     </div>
                   )}

@@ -176,6 +176,38 @@ class Booking extends Model
         return $this->belongsTo(Room::class);
     }
 
+    private const ROOM_CATEGORY_LABELS = [
+        'single' => 'Simple', 'double' => 'Double', 'twin' => 'Jumelle (2 lits)',
+        'triple' => 'Triple', 'suite' => 'Suite', 'suite_junior' => 'Suite Junior',
+        'suite_familiale' => 'Suite Familiale', 'studio' => 'Studio',
+        'apartment' => 'Appartement', 'bungalow' => 'Bungalow', 'villa' => 'Villa',
+        'pmr' => 'PMR (accessibilité)', 'other' => 'Autre', 'autre' => 'Autre',
+    ];
+
+    /**
+     * Libellé du type et du nombre de chambres réservées, ex. « 2 × Chambre standard (Double) » —
+     * "2 voyageurs" seul ne dit pas si c'est une ou deux chambres (retour client 2026-11-12).
+     */
+    public function roomsSummary(): ?string
+    {
+        $room = $this->room;
+        if (!$room) {
+            return null;
+        }
+
+        $quantity = max(1, (int) $this->rooms_quantity);
+        $name = trim((string) ($room->name ?: $room->room_number));
+        $categoryKey = $room->room_category ?: $room->type;
+        $category = $categoryKey ? (self::ROOM_CATEGORY_LABELS[$categoryKey] ?? ucfirst($categoryKey)) : null;
+
+        $label = $name !== '' ? $name : ($category ?? 'Chambre');
+        if ($name !== '' && $category && mb_stripos($name, $category) === false) {
+            $label .= ' (' . $category . ')';
+        }
+
+        return $quantity . ' × ' . $label;
+    }
+
     public function promotion()
     {
         return $this->belongsTo(Promotion::class);

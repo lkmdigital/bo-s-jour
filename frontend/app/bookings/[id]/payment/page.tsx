@@ -10,7 +10,7 @@ import { useRetryCountdown } from '@/hooks/useRetryCountdown';
 import Header from '@/components/common/Header';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, formatRoomsSummary } from '@/lib/utils';
 import {
   ArrowLeft,
   CheckCircle,
@@ -31,6 +31,8 @@ interface Booking {
   check_in: string;
   check_out: string;
   guests: number;
+  rooms_quantity?: number;
+  room?: { name?: string; type?: string; room_category?: string };
   total_price: number;
   status: string;
   payment_status: string;
@@ -595,6 +597,11 @@ export default function BookingPaymentPage() {
                     {format(new Date(booking.check_out), 'dd MMM yyyy', { locale: fr })}
                   </p>
                   <p>{nights} nuit{nights > 1 ? 's' : ''}</p>
+                  {booking.room && (
+                    <p className="font-medium text-gray-800 dark:text-gray-200">
+                      {formatRoomsSummary(booking.room, booking.rooms_quantity)}
+                    </p>
+                  )}
                   <p>
                     {booking.guests} {booking.guests > 1 ? 'voyageurs' : 'voyageur'}
                   </p>

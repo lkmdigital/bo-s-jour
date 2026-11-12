@@ -40,6 +40,25 @@ export function getRoomCategoryLabel(category?: string | null): string {
 }
 
 /**
+ * « 2 × Chambre standard (Double) » : type et nombre de chambres d'une réservation. « 2 voyageurs »
+ * seul ne dit pas combien de chambres sont réservées (retour client 2026-11-12). Même format que
+ * Booking::roomsSummary() côté backend (e-mails, messages).
+ */
+export function formatRoomsSummary(
+  room?: { name?: string | null; type?: string | null; room_category?: string | null } | null,
+  quantity?: number | null,
+): string {
+  if (!room) return '';
+  const name = (room.name || '').trim();
+  const category = getRoomCategoryLabel(room.room_category || room.type);
+  let label = name || category || 'Chambre';
+  if (name && category && !name.toLowerCase().includes(category.toLowerCase())) {
+    label += ` (${category})`;
+  }
+  return `${Math.max(1, quantity || 1)} × ${label}`;
+}
+
+/**
  * Formate une Date en "YYYY-MM-DD" à partir de ses composants en heure LOCALE.
  *
  * ⚠️ À utiliser à la place de `date.toISOString().split('T')[0]` partout où la date

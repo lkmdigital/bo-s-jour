@@ -120,7 +120,9 @@ class SmsService
         $checkIn  = $booking->check_in ? \Carbon\Carbon::parse($booking->check_in)->format('d/m/Y') : '';
         $checkOut = $booking->check_out ? \Carbon\Carbon::parse($booking->check_out)->format('d/m/Y') : '';
 
+        $rooms = $booking->roomsSummary();
         $message = "bosejour : nouvelle reservation pour {$place} du {$checkIn} au {$checkOut}."
+            . ($rooms ? " Chambre(s) : {$rooms}." : '')
             . " Connectez-vous a votre espace hote pour les details.";
 
         return $this->send($phone, $message);

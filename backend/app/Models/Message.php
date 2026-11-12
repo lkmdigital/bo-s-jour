@@ -79,7 +79,9 @@ class Message extends Model
             'is_from_platform' => true,
             'subject' => 'Nouvelle réservation confirmée',
             'body' => "Une nouvelle réservation vient d'être confirmée pour " . $accommodationName . ".\n\n"
-                . "Séjour du " . $checkIn . " au " . $checkOut . " — " . ($booking->guests ?? 1) . " voyageur(s).\n\n"
+                . "Séjour du " . $checkIn . " au " . $checkOut . " — " . ($booking->guests ?? 1) . " voyageur(s).\n"
+                . ($booking->roomsSummary() ? "Chambre(s) : " . $booking->roomsSummary() . ".\n" : '')
+                . "\n"
                 . "Réservation #" . $booking->id . ".",
             'booking_id' => $booking->id,
         ]);
