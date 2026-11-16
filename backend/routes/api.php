@@ -393,6 +393,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
     // Bookings protégées (nécessitent authentification)
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/bookings/host/overview', [BookingController::class, 'hostReservations'])->middleware(['role:host', 'hoststaff:reservations']);
+    Route::get('/bookings/host/export', [BookingController::class, 'exportHostCsv'])->middleware(['role:host', 'hoststaff:reservations']);
     Route::put('/bookings/{id}', [BookingController::class, 'update']);
     Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('throttle:5,1,booking-cancel');
     Route::post('/bookings/{booking}/refuse', [BookingController::class, 'refuse'])->middleware(['role:host,admin', 'throttle:10,1,booking-refuse']);
@@ -444,6 +445,7 @@ Route::get('/auth/{provider}/callback', [OAuthController::class, 'callback'])->w
 
     // Réservations (vue globale admin, tous établissements confondus)
     Route::get('/admin/bookings', [AdminBookingController::class, 'index'])->middleware('role:admin');
+    Route::get('/admin/bookings/export', [AdminBookingController::class, 'exportCsv'])->middleware('role:admin');
     Route::get('/admin/bookings/cities', [AdminBookingController::class, 'cities'])->middleware('role:admin');
     Route::get('/admin/bookings/{id}', [AdminBookingController::class, 'show'])->middleware('role:admin')->where('id', '[0-9]+');
 

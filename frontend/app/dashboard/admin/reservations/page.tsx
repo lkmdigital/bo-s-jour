@@ -6,6 +6,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ErrorDisplay from '@/components/common/ErrorDisplay';
 import Pagination from '@/components/common/Pagination';
 import DateRangeFilter from '@/components/common/DateRangeFilter';
+import ExportCsvButton from '@/components/common/ExportCsvButton';
 import { FilterSearch, FilterSelect } from '@/components/common/FilterBar';
 import { formatPrice } from '@/lib/utils';
 import { Building2 } from 'lucide-react';
@@ -110,9 +111,23 @@ export default function AdminReservationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Réservations</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Vue globale de toutes les réservations, tous établissements confondus</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Réservations</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Vue globale de toutes les réservations, tous établissements confondus</p>
+        </div>
+        <ExportCsvButton
+          url="/admin/bookings/export"
+          filenamePrefix="reservations"
+          params={{
+            status: statusFilter !== 'all' ? statusFilter : undefined,
+            payment_status: paymentStatusFilter !== 'all' ? paymentStatusFilter : undefined,
+            city: cityFilter !== 'all' ? cityFilter : undefined,
+            search: search || undefined,
+            from_date: dateFrom || undefined,
+            to_date: dateTo || undefined,
+          }}
+        />
       </div>
 
       <div className="space-y-3">

@@ -13,6 +13,33 @@ class AdminBookingController extends Controller
 {
     public function index(Request $request)
     {
+        $query = $this->filteredQuery($request);
+
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        $perPage = (int) $request->get('per_page', 20);
+        $bookings = $query->paginate($perPage);
+        // Libellés enrichis (retour client 2026-09-02, Partie 4.4) — calculés à
+        // partir des champs déjà chargés ci-dessus (payments inclus), donc pas
+        // de requête N+1 supplémentaire ici.
+        $bookings->getCollection()->each->append(['display_status_label', 'display_payment_status_label']);
+
+        return response()->json([
+            'data' => $bookings->items(),
+            'pagination' => [
+                'current_page' => $bookings->currentPage(),
+                'last_page' => $bookings->lastPage(),
+                'per_page' => $bookings->perPage(),
+                'total' => $bookings->total(),
+            ],
+        ]);
+    }
+
+    /** Requête filtrée (statut, paiement, ville, établissement, recherche, dates) — partagée par la liste et l'export. */
+    private function filteredQuery(Request $request)
+    {
         $query = Booking::with(['user:id,name,email,phone', 'accommodation:id,name,city,host_id,establishment_code', 'accommodation.host:id,name', 'room:id,name', 'payments:id,booking_id,status']);
 
         if ($request->filled('status')) {
@@ -65,26 +92,17 @@ class AdminBookingController extends Controller
             $query->where('check_out', '<=', $request->to_date);
         }
 
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        return $query;
+    }
 
-        $perPage = (int) $request->get('per_page', 20);
-        $bookings = $query->paginate($perPage);
-        // Libellés enrichis (retour client 2026-09-02, Partie 4.4) — calculés à
-        // partir des champs déjà chargés ci-dessus (payments inclus), donc pas
-        // de requête N+1 supplémentaire ici.
-        $bookings->getCollection()->each->append(['display_status_label', 'display_payment_status_label']);
+    /**
+     * Export CSV de TOUTES les réservations correspondant aux filtres de la page (pas seulement la page affichée).
+     */
+    public function exportCsv(Request $request)
+    {
+        $bookings = $this->filteredQuery($request)->orderByDesc('created_at')->orderByDesc('id')->limit(20000)->get();
 
-        return response()->json([
-            'data' => $bookings->items(),
-            'pagination' => [
-                'current_page' => $bookings->currentPage(),
-                'last_page' => $bookings->lastPage(),
-                'per_page' => $bookings->perPage(),
-                'total' => $bookings->total(),
-            ],
-        ]);
+        return \App\Support\BookingCsvExport::admin($bookings, 'reservations-' . now()->format('Y-m-d') . '.csv');
     }
 
     /**

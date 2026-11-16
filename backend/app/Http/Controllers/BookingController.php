@@ -34,6 +34,22 @@ class BookingController extends Controller
 
     public function index(Request $request)
     {
+        $query = $this->listQuery($request);
+
+        // Tri
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        $perPage = $request->get('per_page', 15);
+        $bookings = $query->paginate($perPage);
+
+        return response()->json($bookings);
+    }
+
+    /** Requête de la liste des réservations (voyageur, partenaire ou admin) avec ses filtres — partagée par la liste et l'export partenaire. */
+    private function listQuery(Request $request)
+    {
         $query = Booking::with(['accommodation.images', 'room', 'user', 'payment']);
 
         if ($request->user()->isUser()) {
@@ -95,15 +111,21 @@ class BookingController extends Controller
             });
         }
 
-        // Tri
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        return $query;
+    }
 
-        $perPage = $request->get('per_page', 15);
-        $bookings = $query->paginate($perPage);
+    /**
+     * Export CSV des réservations du partenaire (toutes celles qui correspondent aux filtres de la page, pas seulement la page affichée).
+     */
+    public function exportHostCsv(Request $request)
+    {
+        if (!$request->user()->isHost()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
 
-        return response()->json($bookings);
+        $bookings = $this->listQuery($request)->with(['payments:id,booking_id,status'])->orderByDesc('created_at')->orderByDesc('id')->limit(20000)->get();
+
+        return \App\Support\BookingCsvExport::host($bookings, 'reservations-' . now()->format('Y-m-d') . '.csv');
     }
 
     public function hostReservations(Request $request)

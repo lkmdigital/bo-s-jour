@@ -1,6 +1,7 @@
 'use client';
 
 import DateRangeFilter from '@/components/common/DateRangeFilter';
+import ExportCsvButton from '@/components/common/ExportCsvButton';
 import { FilterSelect } from '@/components/common/FilterBar';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
@@ -192,9 +193,21 @@ export default function HostReservationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Réservations</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Gérez les demandes et suivez les paiements</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Réservations</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Gérez les demandes et suivez les paiements</p>
+        </div>
+        <ExportCsvButton
+          url="/bookings/host/export"
+          filenamePrefix="reservations"
+          params={{
+            status: statusFilter !== 'all' ? statusFilter : undefined,
+            payment_status: paymentFilter !== 'all' ? paymentFilter : undefined,
+            from_date: dateFrom && dateTo ? dateFrom : undefined,
+            to_date: dateFrom && dateTo ? dateTo : undefined,
+          }}
+        />
       </div>
 
       {error && <ErrorDisplay error={error} onDismiss={() => setError(null)} />}
