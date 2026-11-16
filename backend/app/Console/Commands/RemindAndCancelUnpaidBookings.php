@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Booking;
 use App\Models\RoomAvailability;
 use App\Services\CancellationPolicyService;
+use App\Services\PaymentSettlement;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -32,7 +33,9 @@ class RemindAndCancelUnpaidBookings extends Command
             ->where('created_at', '<=', $now->clone()->subDays(2))
             ->where('check_in', '>', $now) // uniquement celles à venir
             ->with(['user', 'accommodation'])
-            ->get();
+            ->get()
+            // Jamais de rappel « soldez votre réservation » à un voyageur dont les paiements couvrent déjà le prix.
+            ->reject(fn (Booking $b) => PaymentSettlement::settledByPayments($b));
 
         foreach ($remindBookings as $booking) {
             if (!$booking->user?->email) {
@@ -78,7 +81,16 @@ class RemindAndCancelUnpaidBookings extends Command
             ->whereNotIn('payment_status', ['paid', 'guarantee_paid'])
             ->whereBetween('check_in', [$now, $now->clone()->addDay()])
             ->with(['user'])
-            ->get();
+            ->get()
+            // Garde-fou : une réservation déjà payée n'est jamais annulée « faute de paiement » (voir PaymentSettlement::settledByPayments).
+            ->reject(function (Booking $b) {
+                $settled = PaymentSettlement::settledByPayments($b);
+                if ($settled) {
+                    \Log::warning('Annulation automatique évitée : la réservation est déjà payée mais non soldée', ['booking_id' => $b->id]);
+                }
+
+                return $settled;
+            });
 
         $cancelledCount = 0;
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use App\Models\Payment;
 use App\Models\Setting;
 
 /**
@@ -37,6 +38,24 @@ final class PaymentSettlement
         }
 
         return $paid >= $expected - self::TOLERANCE;
+    }
+
+    /**
+     * Vrai si les paiements déjà encaissés suffisent à solder la réservation (paiement intégral au tarif annoncé compris), même si son statut
+     * n'a pas été mis à jour. Sert de garde-fou aux annulations automatiques : une réservation payée ne doit jamais être annulée « faute de
+     * paiement » (7 réservations payées ont été perdues ainsi entre le 11 et le 15 novembre 2026, régularisées depuis).
+     */
+    public static function settledByPayments(Booking $booking): bool
+    {
+        $paid = (float) Payment::where('booking_id', $booking->id)->where('status', 'completed')->sum('amount');
+        if ($paid <= 0) {
+            return false;
+        }
+
+        $probe = clone $booking;
+        $probe->amount_paid = max((float) $booking->amount_paid, min((float) $booking->total_price, $paid));
+
+        return self::fullPaymentCovers($probe);
     }
 
     /** Ramène le prix dû au montant effectivement réglé (réduction consentie) : plus de « reste à payer ». */

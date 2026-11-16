@@ -7,6 +7,7 @@ use App\Jobs\SendBookingCancellation;
 use App\Models\Booking;
 use App\Models\RoomAvailability;
 use App\Services\CancellationPolicyService;
+use App\Services\PaymentSettlement;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -34,6 +35,15 @@ class CancelExpiredBookings extends Command
         $cancelled = 0;
 
         foreach ($bookings as $booking) {
+            // Garde-fou : une réservation dont les paiements encaissés couvrent déjà le prix n'est jamais annulée « faute de paiement »,
+            // même si son statut n'a pas été mis à jour. Elle reste visible et se règle avec `payments:repair-discounted-full`.
+            if (PaymentSettlement::settledByPayments($booking)) {
+                \Log::warning('Annulation automatique évitée : la réservation est déjà payée mais non soldée', [
+                    'booking_id' => $booking->id, 'amount_paid' => $booking->amount_paid, 'total_price' => $booking->total_price,
+                ]);
+                continue;
+            }
+
             // Capturé AVANT la mise à jour : détermine si cette réservation
             // expirait en attente de l'hôte (retour client 2026-09-16) ou
             // selon le cas existant (pending non payée après 48h).
