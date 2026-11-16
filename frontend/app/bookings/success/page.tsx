@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 interface SuccessBooking {
+  id?: number;
   confirmation_code?: string;
   booking_number?: string;
   status?: string;
@@ -47,7 +48,7 @@ function googleCalendarUrl(b: SuccessBooking, bookingId?: string | null): string
   const d = (s: string) => s.slice(0, 10).replace(/-/g, '');
   const text = encodeURIComponent(`Séjour — ${b.accommodation?.name ?? 'boséjour'}`);
   const details = encodeURIComponent(
-    `Réservation boséjour${bookingId ? ` #${bookingId}` : ''}${b.confirmation_code ? ` · Code : ${b.confirmation_code}` : ''}`
+    `Réservation boséjour${b.booking_number ? ` ${b.booking_number}` : b.id ? ` #${b.id}` : ''}${b.confirmation_code ? ` · Code : ${b.confirmation_code}` : ''}`
   );
   const location = encodeURIComponent(b.accommodation?.city ?? '');
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${d(b.check_in)}/${d(b.check_out)}&details=${details}&location=${location}`;
@@ -124,7 +125,8 @@ function BookingSuccessContent() {
               <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
                 <Calendar className="w-5 h-5" />
                 <span className="font-semibold">
-                  Réservation {booking?.booking_number || `#${bookingId}`}
+                  {/* Jamais le jeton du lien (long, illisible) : le numéro de réservation, sinon l'identifiant interne. */}
+                  {booking?.booking_number ? `Réservation ${booking.booking_number}` : booking?.id ? `Réservation #${booking.id}` : 'Réservation'}
                 </span>
                 {booking?.status && (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">

@@ -55,6 +55,7 @@ interface BookingDetail {
   extra_breakfast_total?: number;
   breakfast_menu_selection?: string[];
   total_price: number;
+  base_price?: number | null;
   deposit_amount: number;
   amount_paid: number;
   payment_type?: 'full' | 'guarantee';
@@ -621,6 +622,13 @@ export default function HostBookingDetailPage() {
                     {formatPrice((booking.room?.price_per_night || booking.accommodation.price_per_night) * nights)} FCFA
                   </span>
                 </div>
+                {/* Remise accordée au voyageur (paiement intégral, code promo, bon, invitation) : prise en charge par boséjour, jamais par le partenaire. */}
+                {booking.base_price != null && Number(booking.base_price) > Number(booking.total_price) && (
+                  <div className="flex justify-between text-green-700 dark:text-green-400">
+                    <span>Remise accordée au voyageur <span className="text-xs">(prise en charge par boséjour)</span></span>
+                    <span className="font-medium">-{formatPrice(Number(booking.base_price) - Number(booking.total_price))} FCFA</span>
+                  </div>
+                )}
                 <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold">Total</span>

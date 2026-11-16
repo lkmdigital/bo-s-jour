@@ -11,6 +11,7 @@ use App\Models\Message;
 use App\Models\Setting;
 use App\Services\BookingService;
 use App\Services\PaymentOptionsService;
+use App\Services\PaymentSettlement;
 use App\Mail\BookingConfirmation;
 use App\Mail\HostNewBooking;
 use App\Support\Security\SensitiveUserFields;
@@ -1123,15 +1124,7 @@ class PaymentController extends Controller
                 ]),
             ]);
 
-            $booking = $this->updateBookingPaymentState($payment);
-
-            if ($booking->payment_status === 'paid') {
-                // Calculer et enregistrer la commission (released_at = null jusqu'au check-in)
-                $this->createCommission($payment);
-                $this->sendBookingCodeNotification($booking);
-                // Envoyer les emails de confirmation hôte + client (avec le bon confirmation_code)
-                $this->sendBookingEmails($booking);
-            }
+            $this->finalizeAfterPayment($payment);
 
             \Log::info("Paiement confirmé (source: {$source})", [
                 'payment_id' => $payment->id,
@@ -1221,6 +1214,25 @@ class PaymentController extends Controller
         ]);
     }
 
+    /**
+     * Répercute un paiement encaissé sur la réservation (montant payé, statut, confirmation) puis, si elle est soldée, enregistre la
+     * commission et envoie les confirmations. Appelée à la confirmation d'un paiement et par `payments:repair-discounted-full`.
+     */
+    public function finalizeAfterPayment(Payment $payment): Booking
+    {
+        $booking = $this->updateBookingPaymentState($payment);
+
+        if ($booking->payment_status === 'paid') {
+            // Calculer et enregistrer la commission (released_at = null jusqu'au check-in)
+            $this->createCommission($payment);
+            $this->sendBookingCodeNotification($booking);
+            // Envoyer les emails de confirmation hôte + client (avec le bon confirmation_code)
+            $this->sendBookingEmails($booking);
+        }
+
+        return $booking;
+    }
+
     private function updateBookingPaymentState(Payment $payment): Booking
     {
         $booking = $payment->booking()->lockForUpdate()->first();
@@ -1246,7 +1258,12 @@ class PaymentController extends Controller
         // montant réellement crédité — un paiement partiel (ou une transaction Malia Pay
         // réelle mais pour un montant sans rapport) aurait pu confirmer une réservation
         // sans qu'elle ait été intégralement réglée.
-        if ($payment->purpose === 'full' && $booking->amount_paid >= $booking->total_price) {
+        //
+        // Le montant demandé pour un paiement intégral est celui de l'option « payer la totalité » (réduction annoncée, 5 % par défaut) :
+        // exiger 100 % du total_price laissait toute réservation payée au tarif annoncé « en attente » avec un « reste à payer », sans
+        // confirmation, jusqu'à son expiration (constaté en production le 2026-11-15 : 41 800 payés sur 44 000, 26 600 sur 28 000).
+        if ($payment->purpose === 'full' && PaymentSettlement::fullPaymentCovers($booking)) {
+            PaymentSettlement::applyFullPaymentDiscount($booking);
             $booking->payment_status = 'paid';
             $booking->expires_at = null;
             $this->markConfirmedIfPending($booking);
