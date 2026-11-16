@@ -1216,18 +1216,20 @@ class PaymentController extends Controller
 
     /**
      * Répercute un paiement encaissé sur la réservation (montant payé, statut, confirmation) puis, si elle est soldée, enregistre la
-     * commission et envoie les confirmations. Appelée à la confirmation d'un paiement et par `payments:repair-discounted-full`.
+     * commission et envoie les confirmations (sauf `$notify = false`, pour une régularisation après coup). Appelée à la confirmation d'un paiement et par `payments:repair-discounted-full`.
      */
-    public function finalizeAfterPayment(Payment $payment): Booking
+    public function finalizeAfterPayment(Payment $payment, bool $notify = true): Booking
     {
         $booking = $this->updateBookingPaymentState($payment);
 
         if ($booking->payment_status === 'paid') {
             // Calculer et enregistrer la commission (released_at = null jusqu'au check-in)
             $this->createCommission($payment);
-            $this->sendBookingCodeNotification($booking);
-            // Envoyer les emails de confirmation hôte + client (avec le bon confirmation_code)
-            $this->sendBookingEmails($booking);
+            if ($notify) {
+                $this->sendBookingCodeNotification($booking);
+                // Envoyer les emails de confirmation hôte + client (avec le bon confirmation_code)
+                $this->sendBookingEmails($booking);
+            }
         }
 
         return $booking;
