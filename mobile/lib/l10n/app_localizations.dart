@@ -1417,6 +1417,330 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Connexion'**
   String get authLoginTitle;
+
+  /// No description provided for @bookingsTabUpcoming.
+  ///
+  /// In fr, this message translates to:
+  /// **'À venir'**
+  String get bookingsTabUpcoming;
+
+  /// No description provided for @bookingsTabPast.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passées'**
+  String get bookingsTabPast;
+
+  /// No description provided for @bookingsTabCancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annulées'**
+  String get bookingsTabCancelled;
+
+  /// No description provided for @statusAwaitingHost.
+  ///
+  /// In fr, this message translates to:
+  /// **'À confirmer par l\'hôte'**
+  String get statusAwaitingHost;
+
+  /// No description provided for @statusPending.
+  ///
+  /// In fr, this message translates to:
+  /// **'À payer'**
+  String get statusPending;
+
+  /// No description provided for @statusConfirmed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmée'**
+  String get statusConfirmed;
+
+  /// No description provided for @statusCancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annulée'**
+  String get statusCancelled;
+
+  /// No description provided for @statusCompleted.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminée'**
+  String get statusCompleted;
+
+  /// No description provided for @statusModified.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifiée'**
+  String get statusModified;
+
+  /// No description provided for @bookingsEmptyUpcoming.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun séjour à venir'**
+  String get bookingsEmptyUpcoming;
+
+  /// No description provided for @bookingsEmptyUpcomingSub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vos prochaines réservations apparaîtront ici, avec leur statut.'**
+  String get bookingsEmptyUpcomingSub;
+
+  /// No description provided for @bookingsEmptyPast.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun séjour passé'**
+  String get bookingsEmptyPast;
+
+  /// No description provided for @bookingsEmptyCancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune réservation annulée'**
+  String get bookingsEmptyCancelled;
+
+  /// No description provided for @bookingsExplore.
+  ///
+  /// In fr, this message translates to:
+  /// **'Explorer les séjours'**
+  String get bookingsExplore;
+
+  /// No description provided for @bookingGuestsCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 voyageur} other{{count} voyageurs}}'**
+  String bookingGuestsCount(int count);
+
+  /// No description provided for @bookingNumber.
+  ///
+  /// In fr, this message translates to:
+  /// **'N° {number}'**
+  String bookingNumber(String number);
+
+  /// No description provided for @bookingArrivalCode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code d\'arrivée'**
+  String get bookingArrivalCode;
+
+  /// No description provided for @bookingArrivalCodeHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Présentez ce code à la réception.'**
+  String get bookingArrivalCodeHint;
+
+  /// No description provided for @bookingCheckIn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrivée'**
+  String get bookingCheckIn;
+
+  /// No description provided for @bookingCheckOut.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ'**
+  String get bookingCheckOut;
+
+  /// No description provided for @bookingTotal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total du séjour'**
+  String get bookingTotal;
+
+  /// No description provided for @bookingPaid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déjà payé'**
+  String get bookingPaid;
+
+  /// No description provided for @bookingBalance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Solde à régler à l\'établissement'**
+  String get bookingBalance;
+
+  /// No description provided for @bookingPayGuarantee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Garantie de réservation'**
+  String get bookingPayGuarantee;
+
+  /// No description provided for @bookingPayFull.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paiement intégral'**
+  String get bookingPayFull;
+
+  /// No description provided for @bookingAwaitingNote.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'hôte doit confirmer votre demande.'**
+  String get bookingAwaitingNote;
+
+  /// No description provided for @bookingAwaitingBefore.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réponse attendue avant le {date}.'**
+  String bookingAwaitingBefore(String date);
+
+  /// No description provided for @bookingPendingNote.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'hôte a confirmé votre demande. Réglez pour valider votre séjour.'**
+  String get bookingPendingNote;
+
+  /// No description provided for @bookingPay.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payer'**
+  String get bookingPay;
+
+  /// No description provided for @bookingCancelCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler la réservation'**
+  String get bookingCancelCta;
+
+  /// No description provided for @bookingModifiedNote.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les dates ont été modifiées.'**
+  String get bookingModifiedNote;
+
+  /// No description provided for @bookingRequests.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre demande particulière'**
+  String get bookingRequests;
+
+  /// No description provided for @cancelTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler la réservation'**
+  String get cancelTitle;
+
+  /// No description provided for @cancelNonRefundable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réservation non remboursable'**
+  String get cancelNonRefundable;
+
+  /// No description provided for @cancelNonRefundablePaid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les {amount} FCFA déjà payés ne seront pas remboursés.'**
+  String cancelNonRefundablePaid(String amount);
+
+  /// No description provided for @cancelFree.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annulation gratuite'**
+  String get cancelFree;
+
+  /// No description provided for @cancelCreditNote.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un avoir de {amount} FCFA sera crédité sur votre compte pour une prochaine réservation.'**
+  String cancelCreditNote(String amount);
+
+  /// No description provided for @cancelLate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Délai d\'annulation dépassé'**
+  String get cancelLate;
+
+  /// No description provided for @cancelLateText.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'annulation gratuite n\'est plus possible dans ce délai.'**
+  String get cancelLateText;
+
+  /// No description provided for @cancelLateCredit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un avoir de {amount} FCFA sera crédité si applicable.'**
+  String cancelLateCredit(String amount);
+
+  /// No description provided for @cancelReason.
+  ///
+  /// In fr, this message translates to:
+  /// **'Motif d\'annulation'**
+  String get cancelReason;
+
+  /// No description provided for @cancelReason1.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changement de plans'**
+  String get cancelReason1;
+
+  /// No description provided for @cancelReason2.
+  ///
+  /// In fr, this message translates to:
+  /// **'Erreur de dates'**
+  String get cancelReason2;
+
+  /// No description provided for @cancelReason3.
+  ///
+  /// In fr, this message translates to:
+  /// **'Problème personnel'**
+  String get cancelReason3;
+
+  /// No description provided for @cancelReason4.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trouvé une meilleure offre'**
+  String get cancelReason4;
+
+  /// No description provided for @cancelReason5.
+  ///
+  /// In fr, this message translates to:
+  /// **'Autre'**
+  String get cancelReason5;
+
+  /// No description provided for @cancelReasonOther.
+  ///
+  /// In fr, this message translates to:
+  /// **'Décrivez votre motif…'**
+  String get cancelReasonOther;
+
+  /// No description provided for @cancelConfirmCheck.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je confirme vouloir annuler cette réservation et j\'ai compris la politique d\'annulation.'**
+  String get cancelConfirmCheck;
+
+  /// No description provided for @cancelSubmit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler la réservation'**
+  String get cancelSubmit;
+
+  /// No description provided for @cancelKeep.
+  ///
+  /// In fr, this message translates to:
+  /// **'Garder ma réservation'**
+  String get cancelKeep;
+
+  /// No description provided for @cancelDoneTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réservation annulée'**
+  String get cancelDoneTitle;
+
+  /// No description provided for @cancelDoneText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre réservation est annulée.'**
+  String get cancelDoneText;
+
+  /// No description provided for @cancelDoneCredit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un avoir de {amount} FCFA a été crédité sur votre compte.'**
+  String cancelDoneCredit(String amount);
+
+  /// No description provided for @cancelImpossible.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette réservation ne peut plus être annulée.'**
+  String get cancelImpossible;
 }
 
 class _AppLocalizationsDelegate

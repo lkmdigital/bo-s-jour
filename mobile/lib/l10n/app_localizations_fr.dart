@@ -804,4 +804,190 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get authLoginTitle => 'Connexion';
+
+  @override
+  String get bookingsTabUpcoming => 'À venir';
+
+  @override
+  String get bookingsTabPast => 'Passées';
+
+  @override
+  String get bookingsTabCancelled => 'Annulées';
+
+  @override
+  String get statusAwaitingHost => 'À confirmer par l\'hôte';
+
+  @override
+  String get statusPending => 'À payer';
+
+  @override
+  String get statusConfirmed => 'Confirmée';
+
+  @override
+  String get statusCancelled => 'Annulée';
+
+  @override
+  String get statusCompleted => 'Terminée';
+
+  @override
+  String get statusModified => 'Modifiée';
+
+  @override
+  String get bookingsEmptyUpcoming => 'Aucun séjour à venir';
+
+  @override
+  String get bookingsEmptyUpcomingSub =>
+      'Vos prochaines réservations apparaîtront ici, avec leur statut.';
+
+  @override
+  String get bookingsEmptyPast => 'Aucun séjour passé';
+
+  @override
+  String get bookingsEmptyCancelled => 'Aucune réservation annulée';
+
+  @override
+  String get bookingsExplore => 'Explorer les séjours';
+
+  @override
+  String bookingGuestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count voyageurs',
+      one: '1 voyageur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bookingNumber(String number) {
+    return 'N° $number';
+  }
+
+  @override
+  String get bookingArrivalCode => 'Code d\'arrivée';
+
+  @override
+  String get bookingArrivalCodeHint => 'Présentez ce code à la réception.';
+
+  @override
+  String get bookingCheckIn => 'Arrivée';
+
+  @override
+  String get bookingCheckOut => 'Départ';
+
+  @override
+  String get bookingTotal => 'Total du séjour';
+
+  @override
+  String get bookingPaid => 'Déjà payé';
+
+  @override
+  String get bookingBalance => 'Solde à régler à l\'établissement';
+
+  @override
+  String get bookingPayGuarantee => 'Garantie de réservation';
+
+  @override
+  String get bookingPayFull => 'Paiement intégral';
+
+  @override
+  String get bookingAwaitingNote => 'L\'hôte doit confirmer votre demande.';
+
+  @override
+  String bookingAwaitingBefore(String date) {
+    return 'Réponse attendue avant le $date.';
+  }
+
+  @override
+  String get bookingPendingNote =>
+      'L\'hôte a confirmé votre demande. Réglez pour valider votre séjour.';
+
+  @override
+  String get bookingPay => 'Payer';
+
+  @override
+  String get bookingCancelCta => 'Annuler la réservation';
+
+  @override
+  String get bookingModifiedNote => 'Les dates ont été modifiées.';
+
+  @override
+  String get bookingRequests => 'Votre demande particulière';
+
+  @override
+  String get cancelTitle => 'Annuler la réservation';
+
+  @override
+  String get cancelNonRefundable => 'Réservation non remboursable';
+
+  @override
+  String cancelNonRefundablePaid(String amount) {
+    return 'Les $amount FCFA déjà payés ne seront pas remboursés.';
+  }
+
+  @override
+  String get cancelFree => 'Annulation gratuite';
+
+  @override
+  String cancelCreditNote(String amount) {
+    return 'Un avoir de $amount FCFA sera crédité sur votre compte pour une prochaine réservation.';
+  }
+
+  @override
+  String get cancelLate => 'Délai d\'annulation dépassé';
+
+  @override
+  String get cancelLateText =>
+      'L\'annulation gratuite n\'est plus possible dans ce délai.';
+
+  @override
+  String cancelLateCredit(String amount) {
+    return 'Un avoir de $amount FCFA sera crédité si applicable.';
+  }
+
+  @override
+  String get cancelReason => 'Motif d\'annulation';
+
+  @override
+  String get cancelReason1 => 'Changement de plans';
+
+  @override
+  String get cancelReason2 => 'Erreur de dates';
+
+  @override
+  String get cancelReason3 => 'Problème personnel';
+
+  @override
+  String get cancelReason4 => 'Trouvé une meilleure offre';
+
+  @override
+  String get cancelReason5 => 'Autre';
+
+  @override
+  String get cancelReasonOther => 'Décrivez votre motif…';
+
+  @override
+  String get cancelConfirmCheck =>
+      'Je confirme vouloir annuler cette réservation et j\'ai compris la politique d\'annulation.';
+
+  @override
+  String get cancelSubmit => 'Annuler la réservation';
+
+  @override
+  String get cancelKeep => 'Garder ma réservation';
+
+  @override
+  String get cancelDoneTitle => 'Réservation annulée';
+
+  @override
+  String get cancelDoneText => 'Votre réservation est annulée.';
+
+  @override
+  String cancelDoneCredit(String amount) {
+    return 'Un avoir de $amount FCFA a été crédité sur votre compte.';
+  }
+
+  @override
+  String get cancelImpossible => 'Cette réservation ne peut plus être annulée.';
 }

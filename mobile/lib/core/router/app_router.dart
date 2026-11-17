@@ -13,7 +13,9 @@ import '../../features/auth/presentation/otp_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/two_factor_screen.dart';
 import '../../features/auth/presentation/welcome_screen.dart';
+import '../../features/bookings/presentation/booking_detail_screen.dart';
 import '../../features/bookings/presentation/booking_flow_screen.dart';
+import '../../features/bookings/presentation/cancel_booking_screen.dart';
 import '../../features/bookings/presentation/bookings_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../l10n/app_localizations.dart';
@@ -39,6 +41,8 @@ final routerProvider = Provider<GoRouter>((ref) => GoRouter(
             initialRoom: int.tryParse(q['room'] ?? ''),
           );
         }),
+        GoRoute(path: '/bookings/:id', builder: (_, state) => BookingDetailScreen(id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0)),
+        GoRoute(path: '/bookings/:id/cancel', builder: (_, state) => CancelBookingScreen(id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0)),
         GoRoute(path: '/bo', builder: (_, _) => const BoScreen()),
         GoRoute(path: '/auth/register', builder: (_, state) => RegisterScreen(referral: state.uri.queryParameters['ref'], next: state.uri.queryParameters['next'])),
         GoRoute(path: '/auth/login', builder: (_, state) => LoginScreen(next: state.uri.queryParameters['next'])),

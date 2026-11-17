@@ -460,5 +460,108 @@
   "bookSentBookings": "Mes réservations",
   "bookSentHome": "Retour à l'accueil",
   "welcomeContinue": "Continuer ma réservation",
-  "authLoginTitle": "Connexion"
+  "authLoginTitle": "Connexion",
+  "bookingsTabUpcoming": "À venir",
+  "bookingsTabPast": "Passées",
+  "bookingsTabCancelled": "Annulées",
+  "statusAwaitingHost": "À confirmer par l'hôte",
+  "statusPending": "À payer",
+  "statusConfirmed": "Confirmée",
+  "statusCancelled": "Annulée",
+  "statusCompleted": "Terminée",
+  "statusModified": "Modifiée",
+  "bookingsEmptyUpcoming": "Aucun séjour à venir",
+  "bookingsEmptyUpcomingSub": "Vos prochaines réservations apparaîtront ici, avec leur statut.",
+  "bookingsEmptyPast": "Aucun séjour passé",
+  "bookingsEmptyCancelled": "Aucune réservation annulée",
+  "bookingsExplore": "Explorer les séjours",
+  "bookingGuestsCount": "{count, plural, =1{1 voyageur} other{{count} voyageurs}}",
+  "@bookingGuestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookingNumber": "N° {number}",
+  "@bookingNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "bookingArrivalCode": "Code d'arrivée",
+  "bookingArrivalCodeHint": "Présentez ce code à la réception.",
+  "bookingCheckIn": "Arrivée",
+  "bookingCheckOut": "Départ",
+  "bookingTotal": "Total du séjour",
+  "bookingPaid": "Déjà payé",
+  "bookingBalance": "Solde à régler à l'établissement",
+  "bookingPayGuarantee": "Garantie de réservation",
+  "bookingPayFull": "Paiement intégral",
+  "bookingAwaitingNote": "L'hôte doit confirmer votre demande.",
+  "bookingAwaitingBefore": "Réponse attendue avant le {date}.",
+  "@bookingAwaitingBefore": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "bookingPendingNote": "L'hôte a confirmé votre demande. Réglez pour valider votre séjour.",
+  "bookingPay": "Payer",
+  "bookingCancelCta": "Annuler la réservation",
+  "bookingModifiedNote": "Les dates ont été modifiées.",
+  "bookingRequests": "Votre demande particulière",
+  "cancelTitle": "Annuler la réservation",
+  "cancelNonRefundable": "Réservation non remboursable",
+  "cancelNonRefundablePaid": "Les {amount} FCFA déjà payés ne seront pas remboursés.",
+  "@cancelNonRefundablePaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelFree": "Annulation gratuite",
+  "cancelCreditNote": "Un avoir de {amount} FCFA sera crédité sur votre compte pour une prochaine réservation.",
+  "@cancelCreditNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelLate": "Délai d'annulation dépassé",
+  "cancelLateText": "L'annulation gratuite n'est plus possible dans ce délai.",
+  "cancelLateCredit": "Un avoir de {amount} FCFA sera crédité si applicable.",
+  "@cancelLateCredit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelReason": "Motif d'annulation",
+  "cancelReason1": "Changement de plans",
+  "cancelReason2": "Erreur de dates",
+  "cancelReason3": "Problème personnel",
+  "cancelReason4": "Trouvé une meilleure offre",
+  "cancelReason5": "Autre",
+  "cancelReasonOther": "Décrivez votre motif…",
+  "cancelConfirmCheck": "Je confirme vouloir annuler cette réservation et j'ai compris la politique d'annulation.",
+  "cancelSubmit": "Annuler la réservation",
+  "cancelKeep": "Garder ma réservation",
+  "cancelDoneTitle": "Réservation annulée",
+  "cancelDoneText": "Votre réservation est annulée.",
+  "cancelDoneCredit": "Un avoir de {amount} FCFA a été crédité sur votre compte.",
+  "@cancelDoneCredit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelImpossible": "Cette réservation ne peut plus être annulée."
 }

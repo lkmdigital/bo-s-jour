@@ -12,6 +12,7 @@ import 'package:bosejour/features/assistant/data/assistant_repository.dart';
 import 'package:bosejour/features/assistant/domain/bo_models.dart';
 import 'package:bosejour/features/auth/data/auth_repository.dart';
 import 'package:bosejour/features/bookings/data/booking_repository.dart';
+import 'package:bosejour/features/bookings/domain/booking.dart';
 import 'package:bosejour/features/bookings/domain/booking_request.dart';
 import 'package:bosejour/features/bookings/domain/price_quote.dart';
 import 'package:bosejour/features/auth/domain/user.dart';
@@ -271,7 +272,12 @@ Future<ProviderContainer> pumpApp(
 
 /// Faux service de réservation : aucune demande ne part vraiment (en production, une demande prévient l'hôte par e-mail, SMS et WhatsApp).
 class FakeBookingRepository implements BookingRepository {
-  FakeBookingRepository({this.quoteResult, this.createError, this.quoteError});
+  FakeBookingRepository({this.quoteResult, this.createError, this.quoteError, this.bookings = const [], this.cancelError, this.cancelResult = const CancelResult()});
+
+  final List<Booking> bookings;
+  Object? cancelError;
+  CancelResult cancelResult;
+  final List<(int, String)> cancellations = [];
 
   PriceQuote? quoteResult;
   Object? quoteError;
@@ -288,12 +294,38 @@ class FakeBookingRepository implements BookingRepository {
   }
 
   @override
+  Future<List<Booking>> mine() async => bookings;
+
+  @override
+  Future<Booking> detail(int id) async => bookings.firstWhere((b) => b.id == id);
+
+  @override
+  Future<CancelResult> cancel(int id, String reason) async {
+    cancellations.add((id, reason));
+    if (cancelError != null) throw cancelError!;
+
+    return cancelResult;
+  }
+
+  @override
   Future<CreatedBooking> create(BookingRequest request) async {
     created.add(request);
     if (createError != null) throw createError!;
 
     return const CreatedBooking(id: 1871, status: 'awaiting_host_confirmation', accessToken: 'tok', accommodationName: 'Hôtel');
   }
+}
+
+/// Réservation d'exemple : séjour dans 20 jours, confirmée et payée en intégral.
+Booking sampleBooking({int id = 1871, BookingStatus status = BookingStatus.confirmed, int daysAhead = 20, String? paymentStatus = 'paid', num total = 108300, num? paid = 108300, String? code = 'BS-4Q7K', String name = 'Hôtel Les Cocotiers', int nights = 2, bool nonRefundable = false, int? hours = 48, String type = 'full'}) {
+  final from = DateTime.now().add(Duration(days: daysAhead));
+  final checkIn = DateTime(from.year, from.month, from.day);
+
+  return Booking(
+    id: id, status: status, checkIn: checkIn, checkOut: checkIn.add(Duration(days: nights)), guests: 2, totalPrice: total, accommodationName: name, city: 'Grand-Bassam',
+    paymentStatus: paymentStatus, paymentType: type, amountPaid: paid, confirmationCode: code, bookingNumber: 'BS-$id', accessToken: 'tok-$id',
+    isNonRefundable: nonRefundable, cancellationHours: hours,
+  );
 }
 
 /// Devis réel (hôtel 16, deux nuits) : paiement intégral à −5 %, garantie = 1re nuit.

@@ -647,13 +647,13 @@ class _PayInfo extends StatelessWidget {
   }
 }
 
-class _Sent extends StatelessWidget {
+class _Sent extends ConsumerWidget {
   const _Sent({required this.hostName});
 
   final String hostName;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final steps = [
@@ -692,7 +692,10 @@ class _Sent extends StatelessWidget {
               ]),
             ),
           const Spacer(),
-          FilledButton(key: const Key('sent-bookings'), onPressed: () => context.go('/bookings'), child: Text(l10n.bookSentBookings)),
+          FilledButton(key: const Key('sent-bookings'), onPressed: () {
+            ref.invalidate(myBookingsProvider);
+            context.go('/bookings');
+          }, child: Text(l10n.bookSentBookings)),
           const SizedBox(height: 10),
           OutlinedButton(onPressed: () => context.go('/'), child: Text(l10n.bookSentHome)),
         ]),

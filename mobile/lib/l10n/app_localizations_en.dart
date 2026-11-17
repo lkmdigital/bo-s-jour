@@ -799,4 +799,190 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authLoginTitle => 'Log in';
+
+  @override
+  String get bookingsTabUpcoming => 'Upcoming';
+
+  @override
+  String get bookingsTabPast => 'Past';
+
+  @override
+  String get bookingsTabCancelled => 'Cancelled';
+
+  @override
+  String get statusAwaitingHost => 'Awaiting host';
+
+  @override
+  String get statusPending => 'To pay';
+
+  @override
+  String get statusConfirmed => 'Confirmed';
+
+  @override
+  String get statusCancelled => 'Cancelled';
+
+  @override
+  String get statusCompleted => 'Completed';
+
+  @override
+  String get statusModified => 'Modified';
+
+  @override
+  String get bookingsEmptyUpcoming => 'No upcoming stays';
+
+  @override
+  String get bookingsEmptyUpcomingSub =>
+      'Your next bookings will appear here, with their status.';
+
+  @override
+  String get bookingsEmptyPast => 'No past stays';
+
+  @override
+  String get bookingsEmptyCancelled => 'No cancelled bookings';
+
+  @override
+  String get bookingsExplore => 'Explore stays';
+
+  @override
+  String bookingGuestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count guests',
+      one: '1 guest',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bookingNumber(String number) {
+    return 'No. $number';
+  }
+
+  @override
+  String get bookingArrivalCode => 'Arrival code';
+
+  @override
+  String get bookingArrivalCodeHint => 'Show this code at the front desk.';
+
+  @override
+  String get bookingCheckIn => 'Check-in';
+
+  @override
+  String get bookingCheckOut => 'Check-out';
+
+  @override
+  String get bookingTotal => 'Stay total';
+
+  @override
+  String get bookingPaid => 'Already paid';
+
+  @override
+  String get bookingBalance => 'Balance to pay at the property';
+
+  @override
+  String get bookingPayGuarantee => 'Booking guarantee';
+
+  @override
+  String get bookingPayFull => 'Full payment';
+
+  @override
+  String get bookingAwaitingNote => 'The host must confirm your request.';
+
+  @override
+  String bookingAwaitingBefore(String date) {
+    return 'Reply expected before $date.';
+  }
+
+  @override
+  String get bookingPendingNote =>
+      'The host has confirmed your request. Pay to secure your stay.';
+
+  @override
+  String get bookingPay => 'Pay';
+
+  @override
+  String get bookingCancelCta => 'Cancel booking';
+
+  @override
+  String get bookingModifiedNote => 'The dates were changed.';
+
+  @override
+  String get bookingRequests => 'Your special request';
+
+  @override
+  String get cancelTitle => 'Cancel booking';
+
+  @override
+  String get cancelNonRefundable => 'Non-refundable booking';
+
+  @override
+  String cancelNonRefundablePaid(String amount) {
+    return 'The $amount FCFA already paid will not be refunded.';
+  }
+
+  @override
+  String get cancelFree => 'Free cancellation';
+
+  @override
+  String cancelCreditNote(String amount) {
+    return 'A credit of $amount FCFA will be added to your account for a future booking.';
+  }
+
+  @override
+  String get cancelLate => 'Cancellation deadline passed';
+
+  @override
+  String get cancelLateText =>
+      'Free cancellation is no longer possible within this period.';
+
+  @override
+  String cancelLateCredit(String amount) {
+    return 'A credit of $amount FCFA will be issued where applicable.';
+  }
+
+  @override
+  String get cancelReason => 'Reason for cancelling';
+
+  @override
+  String get cancelReason1 => 'Change of plans';
+
+  @override
+  String get cancelReason2 => 'Wrong dates';
+
+  @override
+  String get cancelReason3 => 'Personal issue';
+
+  @override
+  String get cancelReason4 => 'Found a better offer';
+
+  @override
+  String get cancelReason5 => 'Other';
+
+  @override
+  String get cancelReasonOther => 'Describe your reason…';
+
+  @override
+  String get cancelConfirmCheck =>
+      'I confirm I want to cancel this booking and I understand the cancellation policy.';
+
+  @override
+  String get cancelSubmit => 'Cancel booking';
+
+  @override
+  String get cancelKeep => 'Keep my booking';
+
+  @override
+  String get cancelDoneTitle => 'Booking cancelled';
+
+  @override
+  String get cancelDoneText => 'Your booking has been cancelled.';
+
+  @override
+  String cancelDoneCredit(String amount) {
+    return 'A credit of $amount FCFA has been added to your account.';
+  }
+
+  @override
+  String get cancelImpossible => 'This booking can no longer be cancelled.';
 }

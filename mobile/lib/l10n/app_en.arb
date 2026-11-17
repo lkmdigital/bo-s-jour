@@ -460,5 +460,108 @@
   "bookSentBookings": "My bookings",
   "bookSentHome": "Back to home",
   "welcomeContinue": "Continue my booking",
-  "authLoginTitle": "Log in"
+  "authLoginTitle": "Log in",
+  "bookingsTabUpcoming": "Upcoming",
+  "bookingsTabPast": "Past",
+  "bookingsTabCancelled": "Cancelled",
+  "statusAwaitingHost": "Awaiting host",
+  "statusPending": "To pay",
+  "statusConfirmed": "Confirmed",
+  "statusCancelled": "Cancelled",
+  "statusCompleted": "Completed",
+  "statusModified": "Modified",
+  "bookingsEmptyUpcoming": "No upcoming stays",
+  "bookingsEmptyUpcomingSub": "Your next bookings will appear here, with their status.",
+  "bookingsEmptyPast": "No past stays",
+  "bookingsEmptyCancelled": "No cancelled bookings",
+  "bookingsExplore": "Explore stays",
+  "bookingGuestsCount": "{count, plural, =1{1 guest} other{{count} guests}}",
+  "@bookingGuestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookingNumber": "No. {number}",
+  "@bookingNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "bookingArrivalCode": "Arrival code",
+  "bookingArrivalCodeHint": "Show this code at the front desk.",
+  "bookingCheckIn": "Check-in",
+  "bookingCheckOut": "Check-out",
+  "bookingTotal": "Stay total",
+  "bookingPaid": "Already paid",
+  "bookingBalance": "Balance to pay at the property",
+  "bookingPayGuarantee": "Booking guarantee",
+  "bookingPayFull": "Full payment",
+  "bookingAwaitingNote": "The host must confirm your request.",
+  "bookingAwaitingBefore": "Reply expected before {date}.",
+  "@bookingAwaitingBefore": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "bookingPendingNote": "The host has confirmed your request. Pay to secure your stay.",
+  "bookingPay": "Pay",
+  "bookingCancelCta": "Cancel booking",
+  "bookingModifiedNote": "The dates were changed.",
+  "bookingRequests": "Your special request",
+  "cancelTitle": "Cancel booking",
+  "cancelNonRefundable": "Non-refundable booking",
+  "cancelNonRefundablePaid": "The {amount} FCFA already paid will not be refunded.",
+  "@cancelNonRefundablePaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelFree": "Free cancellation",
+  "cancelCreditNote": "A credit of {amount} FCFA will be added to your account for a future booking.",
+  "@cancelCreditNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelLate": "Cancellation deadline passed",
+  "cancelLateText": "Free cancellation is no longer possible within this period.",
+  "cancelLateCredit": "A credit of {amount} FCFA will be issued where applicable.",
+  "@cancelLateCredit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelReason": "Reason for cancelling",
+  "cancelReason1": "Change of plans",
+  "cancelReason2": "Wrong dates",
+  "cancelReason3": "Personal issue",
+  "cancelReason4": "Found a better offer",
+  "cancelReason5": "Other",
+  "cancelReasonOther": "Describe your reason…",
+  "cancelConfirmCheck": "I confirm I want to cancel this booking and I understand the cancellation policy.",
+  "cancelSubmit": "Cancel booking",
+  "cancelKeep": "Keep my booking",
+  "cancelDoneTitle": "Booking cancelled",
+  "cancelDoneText": "Your booking has been cancelled.",
+  "cancelDoneCredit": "A credit of {amount} FCFA has been added to your account.",
+  "@cancelDoneCredit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelImpossible": "This booking can no longer be cancelled."
 }
