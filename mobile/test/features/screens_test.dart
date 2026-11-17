@@ -123,8 +123,9 @@ void main() {
       expect(find.text('Se déconnecter'), findsNothing);
     });
 
-    testWidgets('un compte qui demande un code e-mail est expliqué clairement', (tester) async {
-      await pumpApp(tester, auth: FakeAuthRepository(loginResult: const LoginNeedsEmailOtp(4)));
+    testWidgets('un compte qui demande un code e-mail ouvre la saisie du code, puis la session', (tester) async {
+      final auth = FakeAuthRepository(loginResult: const LoginNeedsEmailOtp(4));
+      await pumpApp(tester, auth: auth);
       await tester.tap(find.text('Compte'));
       await tester.pumpAndSettle();
 
@@ -133,7 +134,14 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Accéder à mon espace'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('code de vérification'), findsOneWidget);
+      expect(find.text('Entrez le code reçu'), findsOneWidget);
+      expect(find.textContaining('nouveau@example.com'), findsOneWidget);
+
+      await tester.enterText(find.byKey(const Key('otp-field')), '123456');
+      await tester.pumpAndSettle();
+
+      expect(auth.otpAttempts, [(4, '123456')]);
+      expect(find.text('Entrez le code reçu'), findsNothing, reason: 'après la connexion, on revient sur le compte');
     });
 
     testWidgets('connexion réussie : le compte s\'affiche, puis la déconnexion ramène au formulaire', (tester) async {

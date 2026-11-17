@@ -165,14 +165,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loginPasswordRequired => 'Saisissez votre mot de passe.';
 
   @override
-  String get loginNeedsOtp =>
-      'Ce compte demande un code de vérification envoyé par e-mail. Cette étape n\'est pas encore disponible dans l\'application : connectez-vous une première fois depuis le site.';
-
-  @override
-  String get loginNeedsTwoFactor =>
-      'La double authentification de ce compte n\'est pas encore prise en charge dans l\'application. Connectez-vous depuis le site.';
-
-  @override
   String get retry => 'Réessayer';
 
   @override
@@ -344,4 +336,258 @@ class AppLocalizationsFr extends AppLocalizations {
   String detailStars(int count) {
     return '$count étoiles';
   }
+
+  @override
+  String get registerTitle => 'Créer mon espace';
+
+  @override
+  String get registerSubtitle =>
+      'Réservez, suivez vos paiements et cumulez des points au même endroit.';
+
+  @override
+  String get registerTypeIndividual => 'Individuel';
+
+  @override
+  String get registerTypeIndividualSub => 'Pour mes voyages personnels';
+
+  @override
+  String get registerTypeCorporate => 'Entreprise';
+
+  @override
+  String get registerTypeCorporateSub =>
+      'Déplacements professionnels, facture au nom de la société';
+
+  @override
+  String get registerCompany => 'Société';
+
+  @override
+  String get registerCompanyRequired => 'Saisissez le nom de la société.';
+
+  @override
+  String get registerFirstName => 'Prénom';
+
+  @override
+  String get registerLastName => 'Nom';
+
+  @override
+  String get registerNameRequired => 'Champ obligatoire.';
+
+  @override
+  String get registerPhone => 'Téléphone';
+
+  @override
+  String get registerPhoneHint => '07 07 00 00 00';
+
+  @override
+  String get registerPhoneInvalid => 'Ce numéro n\'est pas valide.';
+
+  @override
+  String get registerPasswordHint => '8 caractères minimum';
+
+  @override
+  String get registerPasswordTooShort => '8 caractères minimum.';
+
+  @override
+  String get registerReferral => 'Code d\'invitation (facultatif)';
+
+  @override
+  String registerReferralPartner(String name, String percent) {
+    return 'Invitation de $name : −$percent % sur votre première réservation';
+  }
+
+  @override
+  String get registerReferralKnown =>
+      'Code reconnu : il sera appliqué à votre inscription.';
+
+  @override
+  String get registerReferralUnknown => 'Ce code n\'existe pas.';
+
+  @override
+  String get registerAcceptPrefix => 'J\'accepte les ';
+
+  @override
+  String get registerAcceptAnd => ' et la ';
+
+  @override
+  String get registerTermsLink => 'conditions générales';
+
+  @override
+  String get registerPrivacyLink => 'politique de confidentialité';
+
+  @override
+  String get registerTermsRequired => 'Acceptez les conditions pour continuer.';
+
+  @override
+  String get registerSubmit => 'Recevoir mon code';
+
+  @override
+  String get registerHaveAccount => 'Déjà un compte ?';
+
+  @override
+  String get registerLogin => 'Me connecter';
+
+  @override
+  String get otpTitle => 'Entrez le code reçu';
+
+  @override
+  String otpSubtitle(String email) {
+    return 'Envoyé à $email, et par SMS si un numéro est enregistré. Il est valable 10 minutes.';
+  }
+
+  @override
+  String get otpResend => 'Renvoyer le code';
+
+  @override
+  String otpResendIn(String seconds) {
+    return 'Renvoyer dans $seconds s';
+  }
+
+  @override
+  String get otpResent => 'Un nouveau code vient d\'être envoyé.';
+
+  @override
+  String get twoFaTitle => 'Double authentification';
+
+  @override
+  String get twoFaSubtitle =>
+      'Saisissez le code à 6 chiffres de votre application d\'authentification.';
+
+  @override
+  String get twoFaUseRecovery => 'Utiliser un code de secours';
+
+  @override
+  String get twoFaUseCode => 'Utiliser le code de l\'application';
+
+  @override
+  String get twoFaRecoveryHint => 'Code de secours (8 caractères)';
+
+  @override
+  String get twoFaSubmit => 'Valider';
+
+  @override
+  String get forgotTitle => 'Mot de passe oublié';
+
+  @override
+  String get forgotSubtitle =>
+      'Indiquez votre e-mail : nous vous envoyons un lien pour en choisir un nouveau.';
+
+  @override
+  String get forgotSubmit => 'Envoyer le lien';
+
+  @override
+  String get forgotSent =>
+      'Lien envoyé. Vérifiez votre boîte de réception et vos courriers indésirables.';
+
+  @override
+  String get forgotBack => 'Retour à la connexion';
+
+  @override
+  String welcomeTitle(String name) {
+    return 'Bienvenue, $name !';
+  }
+
+  @override
+  String get welcomeSubtitle => 'Votre espace est prêt.';
+
+  @override
+  String welcomeDiscount(String percent) {
+    return '−$percent % sur votre première réservation';
+  }
+
+  @override
+  String get welcomeDiscountSub => 'Invitation appliquée automatiquement';
+
+  @override
+  String get welcomeCta => 'Découvrir les séjours';
+
+  @override
+  String get authBack => 'Retour';
+
+  @override
+  String get boLauncher => 'Demandez à Bo';
+
+  @override
+  String get boLauncherHint => 'Une question ?';
+
+  @override
+  String get boName => 'Bo';
+
+  @override
+  String get boSubtitle => 'Assistant boséjour';
+
+  @override
+  String get boHello => 'Bonjour !';
+
+  @override
+  String get boIntroTitle => 'Je suis Bo, votre assistant de séjour';
+
+  @override
+  String get boIntroText =>
+      'Dites-moi où, quand et pour combien de personnes : je trouve, je compare et je prépare votre réservation, partout en Côte d\'Ivoire.';
+
+  @override
+  String get boTileHotel => 'Un hôtel à Abidjan';
+
+  @override
+  String get boTileHotelQuestion => 'Je cherche un hôtel à Abidjan';
+
+  @override
+  String get boTileWeekend => 'Un week-end à Assinie';
+
+  @override
+  String get boTileWeekendQuestion =>
+      'Je cherche un hébergement pour un week-end à Assinie';
+
+  @override
+  String get boTileResidence => 'Une résidence meublée';
+
+  @override
+  String get boTileResidenceQuestion => 'Je cherche une résidence meublée';
+
+  @override
+  String get boTileBookings => 'Suivre ma réservation';
+
+  @override
+  String get boTileBookingsQuestion => 'Où en sont mes réservations ?';
+
+  @override
+  String get boInputHint => 'Demandez à Bo';
+
+  @override
+  String get boSend => 'Envoyer';
+
+  @override
+  String get boNewChat => 'Nouvelle conversation';
+
+  @override
+  String boToday(String time) {
+    return 'Aujourd\'hui · $time';
+  }
+
+  @override
+  String get boChoice => 'Choix de Bo';
+
+  @override
+  String get boPriceOnPage => 'Tarif sur la fiche';
+
+  @override
+  String get boView => 'Voir';
+
+  @override
+  String get boLoginRequired =>
+      'Connectez-vous à votre espace voyageur pour discuter avec Bo.';
+
+  @override
+  String get boLogin => 'Me connecter';
+
+  @override
+  String get boErrorTooFast =>
+      'Vous posez des questions un peu vite. Patientez une minute, puis réessayez.';
+
+  @override
+  String get boErrorGeneric =>
+      'Bo n\'a pas pu répondre. Vérifiez votre connexion, puis réessayez.';
+
+  @override
+  String get boClose => 'Fermer la conversation avec Bo';
 }

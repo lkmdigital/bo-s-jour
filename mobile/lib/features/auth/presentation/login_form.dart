@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../core/error_text.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/brand.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/common.dart';
 import '../data/auth_repository.dart';
+import 'auth_args.dart';
 import 'auth_controller.dart';
+import 'auth_scaffold.dart';
 
 /// Formulaire de connexion (onglet Compte quand personne n'est connecté).
 class LoginForm extends ConsumerStatefulWidget {
@@ -45,14 +46,15 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     try {
       final result = await ref.read(authControllerProvider.notifier).login(_email.text, _password.text);
       if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _error = switch (result) {
-          LoginSuccess() => null, // la session est ouverte : l'onglet Compte change tout seul
-          LoginNeedsEmailOtp() => l10n.loginNeedsOtp,
-          LoginNeedsTwoFactor() => l10n.loginNeedsTwoFactor,
-        };
-      });
+      setState(() => _busy = false);
+      switch (result) {
+        case LoginSuccess():
+          break; // la session est ouverte : l'onglet Compte change tout seul
+        case LoginNeedsEmailOtp(:final userId):
+          context.push('/auth/otp', extra: OtpArgs(userId: userId, email: _email.text.trim()));
+        case LoginNeedsTwoFactor(:final tempToken):
+          context.push('/auth/2fa', extra: tempToken);
+      }
     } on ApiException catch (e) {
       if (mounted) {
         setState(() {
@@ -70,8 +72,6 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     }
   }
 
-  Future<void> _openSite(String path) => launchUrl(AppConfig.sitePage(path), mode: LaunchMode.externalApplication);
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -88,7 +88,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
           const SizedBox(height: 6),
           Text(l10n.loginSubtitle, style: theme.textTheme.bodyMedium?.copyWith(color: Brand.textMuted)),
           const SizedBox(height: 24),
-          _FieldLabel(l10n.loginEmail),
+          FieldLabel(l10n.loginEmail),
           TextFormField(
             key: const Key('login-email'),
             controller: _email,
@@ -105,7 +105,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
             },
           ),
           const SizedBox(height: 16),
-          _FieldLabel(l10n.loginPassword),
+          FieldLabel(l10n.loginPassword),
           TextFormField(
             key: const Key('login-password'),
             controller: _password,
@@ -122,7 +122,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
             ),
             validator: (v) => (v ?? '').isEmpty ? l10n.loginPasswordRequired : null,
           ),
-          Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => _openSite('/auth/forgot-password'), child: Text(l10n.loginForgot))),
+          Align(alignment: Alignment.centerRight, child: TextButton(key: const Key('login-forgot'), onPressed: () => context.push('/auth/forgot'), child: Text(l10n.loginForgot))),
           if (_error != null)
             Container(
               key: const Key('login-error'),
@@ -138,23 +138,10 @@ class _LoginFormState extends ConsumerState<LoginForm> {
           const SizedBox(height: 18),
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Text(l10n.loginNoAccount, style: theme.textTheme.bodyMedium),
-            TextButton(onPressed: () => _openSite('/auth/register'), child: Text(l10n.loginCreate)),
+            TextButton(key: const Key('login-create'), onPressed: () => context.push('/auth/register'), child: Text(l10n.loginCreate)),
           ]),
         ],
       ),
     );
   }
-}
-
-/// Libellé placé au-dessus d'un champ (comme sur le site).
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8, left: 4),
-        child: Text(text, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-      );
 }

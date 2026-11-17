@@ -356,18 +356,6 @@ abstract class AppLocalizations {
   /// **'Saisissez votre mot de passe.'**
   String get loginPasswordRequired;
 
-  /// No description provided for @loginNeedsOtp.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ce compte demande un code de vérification envoyé par e-mail. Cette étape n\'est pas encore disponible dans l\'application : connectez-vous une première fois depuis le site.'**
-  String get loginNeedsOtp;
-
-  /// No description provided for @loginNeedsTwoFactor.
-  ///
-  /// In fr, this message translates to:
-  /// **'La double authentification de ce compte n\'est pas encore prise en charge dans l\'application. Connectez-vous depuis le site.'**
-  String get loginNeedsTwoFactor;
-
   /// No description provided for @retry.
   ///
   /// In fr, this message translates to:
@@ -625,6 +613,468 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{count} étoiles'**
   String detailStars(int count);
+
+  /// No description provided for @registerTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer mon espace'**
+  String get registerTitle;
+
+  /// No description provided for @registerSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réservez, suivez vos paiements et cumulez des points au même endroit.'**
+  String get registerSubtitle;
+
+  /// No description provided for @registerTypeIndividual.
+  ///
+  /// In fr, this message translates to:
+  /// **'Individuel'**
+  String get registerTypeIndividual;
+
+  /// No description provided for @registerTypeIndividualSub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pour mes voyages personnels'**
+  String get registerTypeIndividualSub;
+
+  /// No description provided for @registerTypeCorporate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Entreprise'**
+  String get registerTypeCorporate;
+
+  /// No description provided for @registerTypeCorporateSub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déplacements professionnels, facture au nom de la société'**
+  String get registerTypeCorporateSub;
+
+  /// No description provided for @registerCompany.
+  ///
+  /// In fr, this message translates to:
+  /// **'Société'**
+  String get registerCompany;
+
+  /// No description provided for @registerCompanyRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez le nom de la société.'**
+  String get registerCompanyRequired;
+
+  /// No description provided for @registerFirstName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prénom'**
+  String get registerFirstName;
+
+  /// No description provided for @registerLastName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom'**
+  String get registerLastName;
+
+  /// No description provided for @registerNameRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Champ obligatoire.'**
+  String get registerNameRequired;
+
+  /// No description provided for @registerPhone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Téléphone'**
+  String get registerPhone;
+
+  /// No description provided for @registerPhoneHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'07 07 00 00 00'**
+  String get registerPhoneHint;
+
+  /// No description provided for @registerPhoneInvalid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce numéro n\'est pas valide.'**
+  String get registerPhoneInvalid;
+
+  /// No description provided for @registerPasswordHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'8 caractères minimum'**
+  String get registerPasswordHint;
+
+  /// No description provided for @registerPasswordTooShort.
+  ///
+  /// In fr, this message translates to:
+  /// **'8 caractères minimum.'**
+  String get registerPasswordTooShort;
+
+  /// No description provided for @registerReferral.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code d\'invitation (facultatif)'**
+  String get registerReferral;
+
+  /// No description provided for @registerReferralPartner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Invitation de {name} : −{percent} % sur votre première réservation'**
+  String registerReferralPartner(String name, String percent);
+
+  /// No description provided for @registerReferralKnown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code reconnu : il sera appliqué à votre inscription.'**
+  String get registerReferralKnown;
+
+  /// No description provided for @registerReferralUnknown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce code n\'existe pas.'**
+  String get registerReferralUnknown;
+
+  /// No description provided for @registerAcceptPrefix.
+  ///
+  /// In fr, this message translates to:
+  /// **'J\'accepte les '**
+  String get registerAcceptPrefix;
+
+  /// No description provided for @registerAcceptAnd.
+  ///
+  /// In fr, this message translates to:
+  /// **' et la '**
+  String get registerAcceptAnd;
+
+  /// No description provided for @registerTermsLink.
+  ///
+  /// In fr, this message translates to:
+  /// **'conditions générales'**
+  String get registerTermsLink;
+
+  /// No description provided for @registerPrivacyLink.
+  ///
+  /// In fr, this message translates to:
+  /// **'politique de confidentialité'**
+  String get registerPrivacyLink;
+
+  /// No description provided for @registerTermsRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Acceptez les conditions pour continuer.'**
+  String get registerTermsRequired;
+
+  /// No description provided for @registerSubmit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recevoir mon code'**
+  String get registerSubmit;
+
+  /// No description provided for @registerHaveAccount.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déjà un compte ?'**
+  String get registerHaveAccount;
+
+  /// No description provided for @registerLogin.
+  ///
+  /// In fr, this message translates to:
+  /// **'Me connecter'**
+  String get registerLogin;
+
+  /// No description provided for @otpTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Entrez le code reçu'**
+  String get otpTitle;
+
+  /// No description provided for @otpSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyé à {email}, et par SMS si un numéro est enregistré. Il est valable 10 minutes.'**
+  String otpSubtitle(String email);
+
+  /// No description provided for @otpResend.
+  ///
+  /// In fr, this message translates to:
+  /// **'Renvoyer le code'**
+  String get otpResend;
+
+  /// No description provided for @otpResendIn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Renvoyer dans {seconds} s'**
+  String otpResendIn(String seconds);
+
+  /// No description provided for @otpResent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un nouveau code vient d\'être envoyé.'**
+  String get otpResent;
+
+  /// No description provided for @twoFaTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Double authentification'**
+  String get twoFaTitle;
+
+  /// No description provided for @twoFaSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez le code à 6 chiffres de votre application d\'authentification.'**
+  String get twoFaSubtitle;
+
+  /// No description provided for @twoFaUseRecovery.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utiliser un code de secours'**
+  String get twoFaUseRecovery;
+
+  /// No description provided for @twoFaUseCode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utiliser le code de l\'application'**
+  String get twoFaUseCode;
+
+  /// No description provided for @twoFaRecoveryHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code de secours (8 caractères)'**
+  String get twoFaRecoveryHint;
+
+  /// No description provided for @twoFaSubmit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valider'**
+  String get twoFaSubmit;
+
+  /// No description provided for @forgotTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe oublié'**
+  String get forgotTitle;
+
+  /// No description provided for @forgotSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Indiquez votre e-mail : nous vous envoyons un lien pour en choisir un nouveau.'**
+  String get forgotSubtitle;
+
+  /// No description provided for @forgotSubmit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer le lien'**
+  String get forgotSubmit;
+
+  /// No description provided for @forgotSent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lien envoyé. Vérifiez votre boîte de réception et vos courriers indésirables.'**
+  String get forgotSent;
+
+  /// No description provided for @forgotBack.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour à la connexion'**
+  String get forgotBack;
+
+  /// No description provided for @welcomeTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bienvenue, {name} !'**
+  String welcomeTitle(String name);
+
+  /// No description provided for @welcomeSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre espace est prêt.'**
+  String get welcomeSubtitle;
+
+  /// No description provided for @welcomeDiscount.
+  ///
+  /// In fr, this message translates to:
+  /// **'−{percent} % sur votre première réservation'**
+  String welcomeDiscount(String percent);
+
+  /// No description provided for @welcomeDiscountSub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Invitation appliquée automatiquement'**
+  String get welcomeDiscountSub;
+
+  /// No description provided for @welcomeCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Découvrir les séjours'**
+  String get welcomeCta;
+
+  /// No description provided for @authBack.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour'**
+  String get authBack;
+
+  /// No description provided for @boLauncher.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demandez à Bo'**
+  String get boLauncher;
+
+  /// No description provided for @boLauncherHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une question ?'**
+  String get boLauncherHint;
+
+  /// No description provided for @boName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bo'**
+  String get boName;
+
+  /// No description provided for @boSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Assistant boséjour'**
+  String get boSubtitle;
+
+  /// No description provided for @boHello.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bonjour !'**
+  String get boHello;
+
+  /// No description provided for @boIntroTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je suis Bo, votre assistant de séjour'**
+  String get boIntroTitle;
+
+  /// No description provided for @boIntroText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dites-moi où, quand et pour combien de personnes : je trouve, je compare et je prépare votre réservation, partout en Côte d\'Ivoire.'**
+  String get boIntroText;
+
+  /// No description provided for @boTileHotel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un hôtel à Abidjan'**
+  String get boTileHotel;
+
+  /// No description provided for @boTileHotelQuestion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je cherche un hôtel à Abidjan'**
+  String get boTileHotelQuestion;
+
+  /// No description provided for @boTileWeekend.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un week-end à Assinie'**
+  String get boTileWeekend;
+
+  /// No description provided for @boTileWeekendQuestion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je cherche un hébergement pour un week-end à Assinie'**
+  String get boTileWeekendQuestion;
+
+  /// No description provided for @boTileResidence.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une résidence meublée'**
+  String get boTileResidence;
+
+  /// No description provided for @boTileResidenceQuestion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je cherche une résidence meublée'**
+  String get boTileResidenceQuestion;
+
+  /// No description provided for @boTileBookings.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suivre ma réservation'**
+  String get boTileBookings;
+
+  /// No description provided for @boTileBookingsQuestion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Où en sont mes réservations ?'**
+  String get boTileBookingsQuestion;
+
+  /// No description provided for @boInputHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demandez à Bo'**
+  String get boInputHint;
+
+  /// No description provided for @boSend.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer'**
+  String get boSend;
+
+  /// No description provided for @boNewChat.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle conversation'**
+  String get boNewChat;
+
+  /// No description provided for @boToday.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aujourd\'hui · {time}'**
+  String boToday(String time);
+
+  /// No description provided for @boChoice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choix de Bo'**
+  String get boChoice;
+
+  /// No description provided for @boPriceOnPage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarif sur la fiche'**
+  String get boPriceOnPage;
+
+  /// No description provided for @boView.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir'**
+  String get boView;
+
+  /// No description provided for @boLoginRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connectez-vous à votre espace voyageur pour discuter avec Bo.'**
+  String get boLoginRequired;
+
+  /// No description provided for @boLogin.
+  ///
+  /// In fr, this message translates to:
+  /// **'Me connecter'**
+  String get boLogin;
+
+  /// No description provided for @boErrorTooFast.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous posez des questions un peu vite. Patientez une minute, puis réessayez.'**
+  String get boErrorTooFast;
+
+  /// No description provided for @boErrorGeneric.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bo n\'a pas pu répondre. Vérifiez votre connexion, puis réessayez.'**
+  String get boErrorGeneric;
+
+  /// No description provided for @boClose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer la conversation avec Bo'**
+  String get boClose;
 }
 
 class _AppLocalizationsDelegate

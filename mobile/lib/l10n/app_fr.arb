@@ -78,8 +78,6 @@
   "loginEmailRequired": "Saisissez votre e-mail.",
   "loginEmailInvalid": "Cette adresse e-mail n'est pas valide.",
   "loginPasswordRequired": "Saisissez votre mot de passe.",
-  "loginNeedsOtp": "Ce compte demande un code de vérification envoyé par e-mail. Cette étape n'est pas encore disponible dans l'application : connectez-vous une première fois depuis le site.",
-  "loginNeedsTwoFactor": "La double authentification de ce compte n'est pas encore prise en charge dans l'application. Connectez-vous depuis le site.",
   "retry": "Réessayer",
   "errorGeneric": "Un problème est survenu. Réessayez dans un instant.",
   "errorNetwork": "Impossible de joindre boséjour. Vérifiez votre connexion internet.",
@@ -195,5 +193,127 @@
         "type": "int"
       }
     }
-  }
+  },
+  "registerTitle": "Créer mon espace",
+  "registerSubtitle": "Réservez, suivez vos paiements et cumulez des points au même endroit.",
+  "registerTypeIndividual": "Individuel",
+  "registerTypeIndividualSub": "Pour mes voyages personnels",
+  "registerTypeCorporate": "Entreprise",
+  "registerTypeCorporateSub": "Déplacements professionnels, facture au nom de la société",
+  "registerCompany": "Société",
+  "registerCompanyRequired": "Saisissez le nom de la société.",
+  "registerFirstName": "Prénom",
+  "registerLastName": "Nom",
+  "registerNameRequired": "Champ obligatoire.",
+  "registerPhone": "Téléphone",
+  "registerPhoneHint": "07 07 00 00 00",
+  "registerPhoneInvalid": "Ce numéro n'est pas valide.",
+  "registerPasswordHint": "8 caractères minimum",
+  "registerPasswordTooShort": "8 caractères minimum.",
+  "registerReferral": "Code d'invitation (facultatif)",
+  "registerReferralPartner": "Invitation de {name} : −{percent} % sur votre première réservation",
+  "@registerReferralPartner": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "registerReferralKnown": "Code reconnu : il sera appliqué à votre inscription.",
+  "registerReferralUnknown": "Ce code n'existe pas.",
+  "registerAcceptPrefix": "J'accepte les ",
+  "registerAcceptAnd": " et la ",
+  "registerTermsLink": "conditions générales",
+  "registerPrivacyLink": "politique de confidentialité",
+  "registerTermsRequired": "Acceptez les conditions pour continuer.",
+  "registerSubmit": "Recevoir mon code",
+  "registerHaveAccount": "Déjà un compte ?",
+  "registerLogin": "Me connecter",
+  "otpTitle": "Entrez le code reçu",
+  "otpSubtitle": "Envoyé à {email}, et par SMS si un numéro est enregistré. Il est valable 10 minutes.",
+  "@otpSubtitle": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "otpResend": "Renvoyer le code",
+  "otpResendIn": "Renvoyer dans {seconds} s",
+  "@otpResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "otpResent": "Un nouveau code vient d'être envoyé.",
+  "twoFaTitle": "Double authentification",
+  "twoFaSubtitle": "Saisissez le code à 6 chiffres de votre application d'authentification.",
+  "twoFaUseRecovery": "Utiliser un code de secours",
+  "twoFaUseCode": "Utiliser le code de l'application",
+  "twoFaRecoveryHint": "Code de secours (8 caractères)",
+  "twoFaSubmit": "Valider",
+  "forgotTitle": "Mot de passe oublié",
+  "forgotSubtitle": "Indiquez votre e-mail : nous vous envoyons un lien pour en choisir un nouveau.",
+  "forgotSubmit": "Envoyer le lien",
+  "forgotSent": "Lien envoyé. Vérifiez votre boîte de réception et vos courriers indésirables.",
+  "forgotBack": "Retour à la connexion",
+  "welcomeTitle": "Bienvenue, {name} !",
+  "@welcomeTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSubtitle": "Votre espace est prêt.",
+  "welcomeDiscount": "−{percent} % sur votre première réservation",
+  "@welcomeDiscount": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeDiscountSub": "Invitation appliquée automatiquement",
+  "welcomeCta": "Découvrir les séjours",
+  "authBack": "Retour",
+  "boLauncher": "Demandez à Bo",
+  "boLauncherHint": "Une question ?",
+  "boName": "Bo",
+  "boSubtitle": "Assistant boséjour",
+  "boHello": "Bonjour !",
+  "boIntroTitle": "Je suis Bo, votre assistant de séjour",
+  "boIntroText": "Dites-moi où, quand et pour combien de personnes : je trouve, je compare et je prépare votre réservation, partout en Côte d'Ivoire.",
+  "boTileHotel": "Un hôtel à Abidjan",
+  "boTileHotelQuestion": "Je cherche un hôtel à Abidjan",
+  "boTileWeekend": "Un week-end à Assinie",
+  "boTileWeekendQuestion": "Je cherche un hébergement pour un week-end à Assinie",
+  "boTileResidence": "Une résidence meublée",
+  "boTileResidenceQuestion": "Je cherche une résidence meublée",
+  "boTileBookings": "Suivre ma réservation",
+  "boTileBookingsQuestion": "Où en sont mes réservations ?",
+  "boInputHint": "Demandez à Bo",
+  "boSend": "Envoyer",
+  "boNewChat": "Nouvelle conversation",
+  "boToday": "Aujourd'hui · {time}",
+  "@boToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "boChoice": "Choix de Bo",
+  "boPriceOnPage": "Tarif sur la fiche",
+  "boView": "Voir",
+  "boLoginRequired": "Connectez-vous à votre espace voyageur pour discuter avec Bo.",
+  "boLogin": "Me connecter",
+  "boErrorTooFast": "Vous posez des questions un peu vite. Patientez une minute, puis réessayez.",
+  "boErrorGeneric": "Bo n'a pas pu répondre. Vérifiez votre connexion, puis réessayez.",
+  "boClose": "Fermer la conversation avec Bo"
 }

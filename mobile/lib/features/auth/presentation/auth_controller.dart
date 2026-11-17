@@ -24,6 +24,21 @@ class AuthController extends AsyncNotifier<User?> {
     return result;
   }
 
+  /// Valide le code reçu par e-mail : ouvre la session.
+  Future<User> verifyOtp(int userId, String code) async {
+    final user = await ref.read(authRepositoryProvider).verifyOtp(userId, code);
+    state = AsyncData(user);
+
+    return user;
+  }
+
+  Future<User> completeTwoFactor(String tempToken, {String? code, String? recoveryCode}) async {
+    final user = await ref.read(authRepositoryProvider).completeTwoFactor(tempToken, code: code, recoveryCode: recoveryCode);
+    state = AsyncData(user);
+
+    return user;
+  }
+
   Future<void> logout() async {
     await ref.read(authRepositoryProvider).logout();
     state = const AsyncData(null);

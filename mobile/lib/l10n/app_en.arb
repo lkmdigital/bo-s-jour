@@ -78,8 +78,6 @@
   "loginEmailRequired": "Enter your email.",
   "loginEmailInvalid": "This email address is not valid.",
   "loginPasswordRequired": "Enter your password.",
-  "loginNeedsOtp": "This account requires a verification code sent by email. This step is not available in the app yet: sign in once from the website.",
-  "loginNeedsTwoFactor": "This account's two-factor authentication is not supported in the app yet. Sign in from the website.",
   "retry": "Try again",
   "errorGeneric": "Something went wrong. Please try again in a moment.",
   "errorNetwork": "Unable to reach boséjour. Check your internet connection.",
@@ -195,5 +193,127 @@
         "type": "int"
       }
     }
-  }
+  },
+  "registerTitle": "Create my account",
+  "registerSubtitle": "Book, track your payments and earn points in one place.",
+  "registerTypeIndividual": "Individual",
+  "registerTypeIndividualSub": "For my personal trips",
+  "registerTypeCorporate": "Company",
+  "registerTypeCorporateSub": "Business travel, invoice in the company's name",
+  "registerCompany": "Company name",
+  "registerCompanyRequired": "Enter the company name.",
+  "registerFirstName": "First name",
+  "registerLastName": "Last name",
+  "registerNameRequired": "Required field.",
+  "registerPhone": "Phone",
+  "registerPhoneHint": "07 07 00 00 00",
+  "registerPhoneInvalid": "This number is not valid.",
+  "registerPasswordHint": "At least 8 characters",
+  "registerPasswordTooShort": "At least 8 characters.",
+  "registerReferral": "Invitation code (optional)",
+  "registerReferralPartner": "Invitation from {name}: {percent}% off your first booking",
+  "@registerReferralPartner": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "registerReferralKnown": "Code recognised: it will be applied to your sign-up.",
+  "registerReferralUnknown": "This code does not exist.",
+  "registerAcceptPrefix": "I accept the ",
+  "registerAcceptAnd": " and the ",
+  "registerTermsLink": "terms and conditions",
+  "registerPrivacyLink": "privacy policy",
+  "registerTermsRequired": "Accept the terms to continue.",
+  "registerSubmit": "Get my code",
+  "registerHaveAccount": "Already have an account?",
+  "registerLogin": "Log in",
+  "otpTitle": "Enter the code you received",
+  "otpSubtitle": "Sent to {email}, and by SMS if a number is on file. It is valid for 10 minutes.",
+  "@otpSubtitle": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "otpResend": "Resend the code",
+  "otpResendIn": "Resend in {seconds} s",
+  "@otpResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "otpResent": "A new code has been sent.",
+  "twoFaTitle": "Two-step verification",
+  "twoFaSubtitle": "Enter the 6-digit code from your authenticator app.",
+  "twoFaUseRecovery": "Use a recovery code",
+  "twoFaUseCode": "Use the app code",
+  "twoFaRecoveryHint": "Recovery code (8 characters)",
+  "twoFaSubmit": "Confirm",
+  "forgotTitle": "Forgot password",
+  "forgotSubtitle": "Enter your e-mail: we'll send you a link to choose a new one.",
+  "forgotSubmit": "Send the link",
+  "forgotSent": "Link sent. Check your inbox and your spam folder.",
+  "forgotBack": "Back to log in",
+  "welcomeTitle": "Welcome, {name}!",
+  "@welcomeTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSubtitle": "Your account is ready.",
+  "welcomeDiscount": "{percent}% off your first booking",
+  "@welcomeDiscount": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeDiscountSub": "Invitation applied automatically",
+  "welcomeCta": "Discover stays",
+  "authBack": "Back",
+  "boLauncher": "Ask Bo",
+  "boLauncherHint": "Got a question?",
+  "boName": "Bo",
+  "boSubtitle": "boséjour assistant",
+  "boHello": "Hello!",
+  "boIntroTitle": "I'm Bo, your stay assistant",
+  "boIntroText": "Tell me where, when and for how many people: I find, compare and prepare your booking, anywhere in Côte d'Ivoire.",
+  "boTileHotel": "A hotel in Abidjan",
+  "boTileHotelQuestion": "I'm looking for a hotel in Abidjan",
+  "boTileWeekend": "A weekend in Assinie",
+  "boTileWeekendQuestion": "I'm looking for a place for a weekend in Assinie",
+  "boTileResidence": "A furnished residence",
+  "boTileResidenceQuestion": "I'm looking for a furnished residence",
+  "boTileBookings": "Track my booking",
+  "boTileBookingsQuestion": "Where do my bookings stand?",
+  "boInputHint": "Ask Bo",
+  "boSend": "Send",
+  "boNewChat": "New conversation",
+  "boToday": "Today · {time}",
+  "@boToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "boChoice": "Bo's pick",
+  "boPriceOnPage": "Price on the listing",
+  "boView": "View",
+  "boLoginRequired": "Log in to your traveller account to chat with Bo.",
+  "boLogin": "Log in",
+  "boErrorTooFast": "You're asking questions a little fast. Wait a minute, then try again.",
+  "boErrorGeneric": "Bo couldn't answer. Check your connection, then try again.",
+  "boClose": "Close the conversation with Bo"
 }

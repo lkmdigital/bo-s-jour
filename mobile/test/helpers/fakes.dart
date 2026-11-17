@@ -8,6 +8,8 @@ import 'package:bosejour/features/accommodations/data/accommodation_repository.d
 import 'package:bosejour/core/network/api_exception.dart';
 import 'package:bosejour/features/accommodations/domain/accommodation.dart';
 import 'package:bosejour/features/accommodations/domain/accommodation_detail.dart';
+import 'package:bosejour/features/assistant/data/assistant_repository.dart';
+import 'package:bosejour/features/assistant/domain/bo_models.dart';
 import 'package:bosejour/features/auth/data/auth_repository.dart';
 import 'package:bosejour/features/auth/domain/user.dart';
 import 'package:dio/dio.dart';
@@ -45,13 +47,23 @@ class FakeAdapter implements HttpClientAdapter {
 (int, Object?) Function(RequestOptions) offline() => (o) => throw DioException(requestOptions: o, type: DioExceptionType.connectionError);
 
 class FakeAuthRepository implements AuthRepository {
-  FakeAuthRepository({this.restored, this.loginResult, this.loginError});
+  FakeAuthRepository({this.restored, this.loginResult, this.loginError, this.registerError, this.otpError, this.referral = const ReferralInfo(valid: false)});
 
   User? restored;
   LoginResult? loginResult;
   Object? loginError;
+  Object? registerError;
+  Object? otpError;
+  Object? twoFactorError;
+  ReferralInfo referral;
   int logouts = 0;
   final List<(String, String)> logins = [];
+  final List<RegisterRequest> registrations = [];
+  final List<(int, String)> otpAttempts = [];
+  final List<String> resends = [];
+  final List<String> forgotten = [];
+  final List<(String, String?, String?)> twoFactorAttempts = [];
+  final List<String> referralLookups = [];
 
   @override
   Future<User?> restore() async => restored;
@@ -65,7 +77,69 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<PendingVerification> register(RegisterRequest request) async {
+    registrations.add(request);
+    if (registerError != null) throw registerError!;
+
+    return PendingVerification(userId: 42, email: request.email.trim());
+  }
+
+  @override
+  Future<User> verifyOtp(int userId, String code) async {
+    otpAttempts.add((userId, code));
+    if (otpError != null) throw otpError!;
+
+    return traveler;
+  }
+
+  @override
+  Future<void> resendOtp(String email) async => resends.add(email);
+
+  @override
+  Future<User> completeTwoFactor(String tempToken, {String? code, String? recoveryCode}) async {
+    twoFactorAttempts.add((tempToken, code, recoveryCode));
+    if (twoFactorError != null) throw twoFactorError!;
+
+    return traveler;
+  }
+
+  @override
+  Future<void> forgotPassword(String email) async => forgotten.add(email);
+
+  @override
+  Future<ReferralInfo> resolveReferral(String code) async {
+    referralLookups.add(code);
+
+    return referral;
+  }
+
+  @override
   Future<void> logout() async => logouts++;
+}
+
+/// Faux assistant : Bo éteint par défaut (comme tant que l'administrateur n'a pas activé le module IA).
+class FakeAssistantRepository implements AssistantRepository {
+  FakeAssistantRepository({this.settingsValue = const AiSettings(), this.answers = const [], this.error, this.delay = Duration.zero});
+
+  /// Temps de réflexion simulé (pour voir les trois points).
+  final Duration delay;
+
+  AiSettings settingsValue;
+  final List<BoAnswer> answers;
+  Object? error;
+  final List<(String, List<({String role, String content})>)> asked = [];
+
+  @override
+  Future<AiSettings> settings() async => settingsValue;
+
+  @override
+  Future<BoAnswer> ask(String question, List<({String role, String content})> history) async {
+    asked.add((question, history));
+    if (delay > Duration.zero) await Future<void>.delayed(delay);
+    if (error != null) throw error!;
+
+    return answers[(asked.length - 1).clamp(0, answers.length - 1)];
+  }
 }
 
 class FakeAccommodationRepository implements AccommodationRepository {
@@ -161,6 +235,7 @@ Future<ProviderContainer> pumpApp(
   WidgetTester tester, {
   FakeAuthRepository? auth,
   FakeAccommodationRepository? accommodations,
+  FakeAssistantRepository? assistant,
   Size size = const Size(390, 844),
 }) async {
   await loadBrandFonts();
@@ -171,6 +246,7 @@ Future<ProviderContainer> pumpApp(
   final container = ProviderContainer(retry: (_, _) => null, overrides: [
     authRepositoryProvider.overrideWithValue(auth ?? FakeAuthRepository()),
     accommodationRepositoryProvider.overrideWithValue(accommodations ?? FakeAccommodationRepository(cities: sampleCities, accommodations: sampleAccommodations)),
+    assistantRepositoryProvider.overrideWithValue(assistant ?? FakeAssistantRepository()),
     tokenStorageProvider.overrideWithValue(MemoryTokenStorage()),
     localeProvider.overrideWithValue(const Locale('fr')),
     appVersionProvider.overrideWithValue('1.0.0+1'),
@@ -178,7 +254,12 @@ Future<ProviderContainer> pumpApp(
   addTearDown(container.dispose);
 
   await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const BoSejourApp()));
-  await tester.pumpAndSettle();
+  // Bo allumé : son orbe cligne en continu, `pumpAndSettle` ne s'arrêterait jamais.
+  if (assistant?.settingsValue.enabled == true) {
+    await tester.pump(const Duration(milliseconds: 400));
+  } else {
+    await tester.pumpAndSettle();
+  }
 
   return container;
 }

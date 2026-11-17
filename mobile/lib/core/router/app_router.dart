@@ -5,6 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../features/accommodations/presentation/accommodation_detail_screen.dart';
 import '../../features/accommodations/presentation/explore_screen.dart';
 import '../../features/accommodations/presentation/home_screen.dart';
+import '../../features/assistant/presentation/bo_screen.dart';
+import '../../features/auth/presentation/auth_args.dart';
+import '../../features/auth/presentation/forgot_password_screen.dart';
+import '../../features/auth/presentation/otp_screen.dart';
+import '../../features/auth/presentation/register_screen.dart';
+import '../../features/auth/presentation/two_factor_screen.dart';
+import '../../features/auth/presentation/welcome_screen.dart';
 import '../../features/bookings/presentation/bookings_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../l10n/app_localizations.dart';
@@ -15,6 +22,13 @@ final routerProvider = Provider<GoRouter>((ref) => GoRouter(
       routes: [
         // Hors des onglets : la fiche couvre tout l'écran (barre de navigation comprise) et le retour ramène à l'onglet d'origine.
         GoRoute(path: '/accommodations/:id', builder: (_, state) => AccommodationDetailScreen(id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0)),
+        GoRoute(path: '/bo', builder: (_, _) => const BoScreen()),
+        GoRoute(path: '/auth/register', builder: (_, state) => RegisterScreen(referral: state.uri.queryParameters['ref'])),
+        // Les écrans suivants n'ont de sens qu'avec les données de l'étape précédente : sans elles (retour à froid), on revient au compte.
+        GoRoute(path: '/auth/otp', redirect: (_, state) => state.extra is OtpArgs ? null : '/account', builder: (_, state) => OtpScreen(args: state.extra! as OtpArgs)),
+        GoRoute(path: '/auth/2fa', redirect: (_, state) => state.extra is String ? null : '/account', builder: (_, state) => TwoFactorScreen(tempToken: state.extra! as String)),
+        GoRoute(path: '/auth/forgot', builder: (_, _) => const ForgotPasswordScreen()),
+        GoRoute(path: '/auth/welcome', builder: (_, state) => WelcomeScreen(args: state.extra is WelcomeArgs ? state.extra! as WelcomeArgs : const WelcomeArgs())),
         StatefulShellRoute.indexedStack(
           builder: (context, state, shell) => AppShell(shell: shell),
           branches: [
@@ -37,7 +51,11 @@ class AppShell extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      body: shell,
+      body: Stack(children: [
+        Positioned.fill(child: shell),
+        // Bo : présent sur tous les onglets, au-dessus de la barre de navigation.
+        const Positioned(right: 16, bottom: 16, child: BoLauncher()),
+      ]),
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),

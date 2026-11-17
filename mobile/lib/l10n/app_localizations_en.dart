@@ -162,14 +162,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginPasswordRequired => 'Enter your password.';
 
   @override
-  String get loginNeedsOtp =>
-      'This account requires a verification code sent by email. This step is not available in the app yet: sign in once from the website.';
-
-  @override
-  String get loginNeedsTwoFactor =>
-      'This account\'s two-factor authentication is not supported in the app yet. Sign in from the website.';
-
-  @override
   String get retry => 'Try again';
 
   @override
@@ -341,4 +333,258 @@ class AppLocalizationsEn extends AppLocalizations {
   String detailStars(int count) {
     return '$count stars';
   }
+
+  @override
+  String get registerTitle => 'Create my account';
+
+  @override
+  String get registerSubtitle =>
+      'Book, track your payments and earn points in one place.';
+
+  @override
+  String get registerTypeIndividual => 'Individual';
+
+  @override
+  String get registerTypeIndividualSub => 'For my personal trips';
+
+  @override
+  String get registerTypeCorporate => 'Company';
+
+  @override
+  String get registerTypeCorporateSub =>
+      'Business travel, invoice in the company\'s name';
+
+  @override
+  String get registerCompany => 'Company name';
+
+  @override
+  String get registerCompanyRequired => 'Enter the company name.';
+
+  @override
+  String get registerFirstName => 'First name';
+
+  @override
+  String get registerLastName => 'Last name';
+
+  @override
+  String get registerNameRequired => 'Required field.';
+
+  @override
+  String get registerPhone => 'Phone';
+
+  @override
+  String get registerPhoneHint => '07 07 00 00 00';
+
+  @override
+  String get registerPhoneInvalid => 'This number is not valid.';
+
+  @override
+  String get registerPasswordHint => 'At least 8 characters';
+
+  @override
+  String get registerPasswordTooShort => 'At least 8 characters.';
+
+  @override
+  String get registerReferral => 'Invitation code (optional)';
+
+  @override
+  String registerReferralPartner(String name, String percent) {
+    return 'Invitation from $name: $percent% off your first booking';
+  }
+
+  @override
+  String get registerReferralKnown =>
+      'Code recognised: it will be applied to your sign-up.';
+
+  @override
+  String get registerReferralUnknown => 'This code does not exist.';
+
+  @override
+  String get registerAcceptPrefix => 'I accept the ';
+
+  @override
+  String get registerAcceptAnd => ' and the ';
+
+  @override
+  String get registerTermsLink => 'terms and conditions';
+
+  @override
+  String get registerPrivacyLink => 'privacy policy';
+
+  @override
+  String get registerTermsRequired => 'Accept the terms to continue.';
+
+  @override
+  String get registerSubmit => 'Get my code';
+
+  @override
+  String get registerHaveAccount => 'Already have an account?';
+
+  @override
+  String get registerLogin => 'Log in';
+
+  @override
+  String get otpTitle => 'Enter the code you received';
+
+  @override
+  String otpSubtitle(String email) {
+    return 'Sent to $email, and by SMS if a number is on file. It is valid for 10 minutes.';
+  }
+
+  @override
+  String get otpResend => 'Resend the code';
+
+  @override
+  String otpResendIn(String seconds) {
+    return 'Resend in $seconds s';
+  }
+
+  @override
+  String get otpResent => 'A new code has been sent.';
+
+  @override
+  String get twoFaTitle => 'Two-step verification';
+
+  @override
+  String get twoFaSubtitle =>
+      'Enter the 6-digit code from your authenticator app.';
+
+  @override
+  String get twoFaUseRecovery => 'Use a recovery code';
+
+  @override
+  String get twoFaUseCode => 'Use the app code';
+
+  @override
+  String get twoFaRecoveryHint => 'Recovery code (8 characters)';
+
+  @override
+  String get twoFaSubmit => 'Confirm';
+
+  @override
+  String get forgotTitle => 'Forgot password';
+
+  @override
+  String get forgotSubtitle =>
+      'Enter your e-mail: we\'ll send you a link to choose a new one.';
+
+  @override
+  String get forgotSubmit => 'Send the link';
+
+  @override
+  String get forgotSent => 'Link sent. Check your inbox and your spam folder.';
+
+  @override
+  String get forgotBack => 'Back to log in';
+
+  @override
+  String welcomeTitle(String name) {
+    return 'Welcome, $name!';
+  }
+
+  @override
+  String get welcomeSubtitle => 'Your account is ready.';
+
+  @override
+  String welcomeDiscount(String percent) {
+    return '$percent% off your first booking';
+  }
+
+  @override
+  String get welcomeDiscountSub => 'Invitation applied automatically';
+
+  @override
+  String get welcomeCta => 'Discover stays';
+
+  @override
+  String get authBack => 'Back';
+
+  @override
+  String get boLauncher => 'Ask Bo';
+
+  @override
+  String get boLauncherHint => 'Got a question?';
+
+  @override
+  String get boName => 'Bo';
+
+  @override
+  String get boSubtitle => 'boséjour assistant';
+
+  @override
+  String get boHello => 'Hello!';
+
+  @override
+  String get boIntroTitle => 'I\'m Bo, your stay assistant';
+
+  @override
+  String get boIntroText =>
+      'Tell me where, when and for how many people: I find, compare and prepare your booking, anywhere in Côte d\'Ivoire.';
+
+  @override
+  String get boTileHotel => 'A hotel in Abidjan';
+
+  @override
+  String get boTileHotelQuestion => 'I\'m looking for a hotel in Abidjan';
+
+  @override
+  String get boTileWeekend => 'A weekend in Assinie';
+
+  @override
+  String get boTileWeekendQuestion =>
+      'I\'m looking for a place for a weekend in Assinie';
+
+  @override
+  String get boTileResidence => 'A furnished residence';
+
+  @override
+  String get boTileResidenceQuestion =>
+      'I\'m looking for a furnished residence';
+
+  @override
+  String get boTileBookings => 'Track my booking';
+
+  @override
+  String get boTileBookingsQuestion => 'Where do my bookings stand?';
+
+  @override
+  String get boInputHint => 'Ask Bo';
+
+  @override
+  String get boSend => 'Send';
+
+  @override
+  String get boNewChat => 'New conversation';
+
+  @override
+  String boToday(String time) {
+    return 'Today · $time';
+  }
+
+  @override
+  String get boChoice => 'Bo\'s pick';
+
+  @override
+  String get boPriceOnPage => 'Price on the listing';
+
+  @override
+  String get boView => 'View';
+
+  @override
+  String get boLoginRequired =>
+      'Log in to your traveller account to chat with Bo.';
+
+  @override
+  String get boLogin => 'Log in';
+
+  @override
+  String get boErrorTooFast =>
+      'You\'re asking questions a little fast. Wait a minute, then try again.';
+
+  @override
+  String get boErrorGeneric =>
+      'Bo couldn\'t answer. Check your connection, then try again.';
+
+  @override
+  String get boClose => 'Close the conversation with Bo';
 }
