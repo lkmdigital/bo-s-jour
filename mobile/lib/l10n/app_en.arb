@@ -315,5 +315,150 @@
   "boLogin": "Log in",
   "boErrorTooFast": "You're asking questions a little fast. Wait a minute, then try again.",
   "boErrorGeneric": "Bo couldn't answer. Check your connection, then try again.",
-  "boClose": "Close the conversation with Bo"
+  "boClose": "Close the conversation with Bo",
+  "bookTitle": "Book",
+  "bookStepOf": "Step {step} of {total}",
+  "@bookStepOf": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "bookGateTitle": "Log in to book",
+  "bookGateText": "Your request is tracked in “My bookings”: the host replies, then you pay, all from the app.",
+  "bookStayTitle": "Your stay",
+  "bookStaySubtitle": "Check the dates and number of guests.",
+  "bookDates": "Dates",
+  "bookDatesPick": "Choose dates",
+  "bookDatesValue": "{from} → {to} · {nights, plural, =1{1 night} other{{nights} nights}}",
+  "@bookDatesValue": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "int"
+      }
+    }
+  },
+  "bookGuests": "Guests",
+  "bookAdults": "Adults",
+  "bookChildren": "Children",
+  "bookRoom": "Room",
+  "bookRoomCapacity": "{count, plural, =1{1 person} other{{count} people}}",
+  "@bookRoomCapacity": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookTooManyGuests": "This room sleeps {max} people at most.",
+  "@bookTooManyGuests": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "bookWhoTitle": "Who is travelling?",
+  "bookWhoSubtitle": "The name must match an ID document shown on arrival.",
+  "bookWhoMe": "Myself",
+  "bookWhoOther": "Someone else",
+  "bookWhoOtherSub": "I'm booking for someone else",
+  "bookTravelerName": "Main traveller's name",
+  "bookTravelerPhone": "Traveller's phone",
+  "bookPhone": "Your phone (booking messages)",
+  "bookCountry": "Country of residence",
+  "bookCountryDefault": "Côte d'Ivoire",
+  "bookArrival": "Expected arrival time (optional)",
+  "bookArrivalNone": "I don't know yet",
+  "bookRequests": "Special request (optional)",
+  "bookFieldRequired": "Required field.",
+  "bookSummaryTitle": "Summary",
+  "bookSummarySubtitle": "You pay nothing now: the host confirms first.",
+  "bookStayLine": "{price} × {nights, plural, =1{1 night} other{{nights} nights}}",
+  "@bookStayLine": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "int"
+      }
+    }
+  },
+  "bookTotal": "Total",
+  "bookReferralCode": "Invitation code",
+  "bookReferralApply": "Apply",
+  "bookReferralApplied": "Invitation from {name}: −{amount} FCFA",
+  "@bookReferralApplied": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bookPayNowFull": "Pay everything now: {amount} FCFA (−{percent}%)",
+  "@bookPayNowFull": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "bookPayGuarantee": "Or secure the room: {amount} FCFA, balance on arrival",
+  "@bookPayGuarantee": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bookPayFullOnly": "Full payment: {amount} FCFA",
+  "@bookPayFullOnly": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bookPayLater": "After the host confirms, you choose how to pay:",
+  "bookSubmit": "Send my request",
+  "bookNext": "Continue",
+  "bookQuoteError": "Couldn't work out the price for these dates.",
+  "bookSentTitle": "Request sent!",
+  "bookSentText": "{host} has 24 hours to reply. You'll be notified, with your payment link.",
+  "@bookSentText": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "bookSentHostFallback": "The host",
+  "bookSentStep1": "Request sent",
+  "bookSentStep2": "Host's reply",
+  "bookSentStep2Sub": "Up to 24 hours to reply",
+  "bookSentStep3": "Payment",
+  "bookSentStep3Sub": "After confirmation, from the app",
+  "bookSentStep4": "Arrival code",
+  "bookSentStep4Sub": "Received once payment is confirmed",
+  "bookSentBookings": "My bookings",
+  "bookSentHome": "Back to home",
+  "welcomeContinue": "Continue my booking",
+  "authLoginTitle": "Log in"
 }

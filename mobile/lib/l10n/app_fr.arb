@@ -315,5 +315,150 @@
   "boLogin": "Me connecter",
   "boErrorTooFast": "Vous posez des questions un peu vite. Patientez une minute, puis réessayez.",
   "boErrorGeneric": "Bo n'a pas pu répondre. Vérifiez votre connexion, puis réessayez.",
-  "boClose": "Fermer la conversation avec Bo"
+  "boClose": "Fermer la conversation avec Bo",
+  "bookTitle": "Réserver",
+  "bookStepOf": "Étape {step} sur {total}",
+  "@bookStepOf": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "bookGateTitle": "Connectez-vous pour réserver",
+  "bookGateText": "Votre demande est suivie dans « Mes réservations » : l'hôte répond, puis vous payez, le tout depuis l'appli.",
+  "bookStayTitle": "Votre séjour",
+  "bookStaySubtitle": "Vérifiez les dates et le nombre de voyageurs.",
+  "bookDates": "Dates",
+  "bookDatesPick": "Choisir les dates",
+  "bookDatesValue": "{from} → {to} · {nights, plural, =1{1 nuit} other{{nights} nuits}}",
+  "@bookDatesValue": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "int"
+      }
+    }
+  },
+  "bookGuests": "Voyageurs",
+  "bookAdults": "Adultes",
+  "bookChildren": "Enfants",
+  "bookRoom": "Chambre",
+  "bookRoomCapacity": "{count, plural, =1{1 personne} other{{count} personnes}}",
+  "@bookRoomCapacity": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bookTooManyGuests": "Cette chambre accueille {max} personnes au maximum.",
+  "@bookTooManyGuests": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "bookWhoTitle": "Qui voyage ?",
+  "bookWhoSubtitle": "Le nom doit correspondre à une pièce d'identité présentée à l'arrivée.",
+  "bookWhoMe": "Moi-même",
+  "bookWhoOther": "Une autre personne",
+  "bookWhoOtherSub": "Je réserve pour quelqu'un d'autre",
+  "bookTravelerName": "Nom du voyageur principal",
+  "bookTravelerPhone": "Téléphone du voyageur",
+  "bookPhone": "Votre téléphone (messages de la réservation)",
+  "bookCountry": "Pays de résidence",
+  "bookCountryDefault": "Côte d'Ivoire",
+  "bookArrival": "Heure d'arrivée prévue (facultatif)",
+  "bookArrivalNone": "Je ne sais pas encore",
+  "bookRequests": "Demande particulière (facultatif)",
+  "bookFieldRequired": "Champ obligatoire.",
+  "bookSummaryTitle": "Récapitulatif",
+  "bookSummarySubtitle": "Vous ne payez rien maintenant : l'hôte confirme d'abord.",
+  "bookStayLine": "{price} × {nights, plural, =1{1 nuit} other{{nights} nuits}}",
+  "@bookStayLine": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "int"
+      }
+    }
+  },
+  "bookTotal": "Total",
+  "bookReferralCode": "Code d'invitation",
+  "bookReferralApply": "Appliquer",
+  "bookReferralApplied": "Invitation de {name} : −{amount} FCFA",
+  "@bookReferralApplied": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bookPayNowFull": "Payer tout de suite : {amount} FCFA (−{percent} %)",
+  "@bookPayNowFull": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "bookPayGuarantee": "Ou garantir la chambre : {amount} FCFA, le solde à l'arrivée",
+  "@bookPayGuarantee": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bookPayFullOnly": "Paiement intégral : {amount} FCFA",
+  "@bookPayFullOnly": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bookPayLater": "Après la confirmation de l'hôte, vous choisissez comment payer :",
+  "bookSubmit": "Envoyer ma demande",
+  "bookNext": "Continuer",
+  "bookQuoteError": "Impossible de calculer le prix pour ces dates.",
+  "bookSentTitle": "Demande envoyée !",
+  "bookSentText": "{host} a 24 h pour répondre. Vous êtes prévenu par notification et WhatsApp, avec votre lien de paiement.",
+  "@bookSentText": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "bookSentHostFallback": "L'hôte",
+  "bookSentStep1": "Demande envoyée",
+  "bookSentStep2": "Réponse de l'hôte",
+  "bookSentStep2Sub": "Jusqu'à 24 h pour répondre",
+  "bookSentStep3": "Paiement",
+  "bookSentStep3Sub": "Après confirmation, depuis l'appli",
+  "bookSentStep4": "Code d'arrivée",
+  "bookSentStep4Sub": "Reçu dès le paiement confirmé",
+  "bookSentBookings": "Mes réservations",
+  "bookSentHome": "Retour à l'accueil",
+  "welcomeContinue": "Continuer ma réservation",
+  "authLoginTitle": "Connexion"
 }

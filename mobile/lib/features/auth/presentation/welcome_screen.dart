@@ -62,7 +62,7 @@ class WelcomeScreen extends ConsumerWidget {
                 ),
               ],
               const Spacer(flex: 3),
-              FilledButton(key: const Key('welcome-cta'), onPressed: () => context.go('/'), child: Text(l10n.welcomeCta)),
+              FilledButton(key: const Key('welcome-cta'), onPressed: () => context.go(args.next ?? '/'), child: Text(args.next != null ? l10n.welcomeContinue : l10n.welcomeCta)),
             ]),
           ),
         ),

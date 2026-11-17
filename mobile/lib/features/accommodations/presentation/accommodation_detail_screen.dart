@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../core/error_text.dart';
 import '../../../core/format.dart';
 import '../../../core/network/api_exception.dart';
@@ -755,10 +754,10 @@ class _BookBar extends StatelessWidget {
                 child: Text(l10n.detailFromPerNight(formatFcfa(a.pricePerNight, lang)), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Brand.black)),
               ),
               const SizedBox(width: 16),
-              // Le parcours de réservation dans l'appli arrive ensuite : en attendant, la page du site prend le relais.
               FilledButton(
+                key: const Key('detail-book'),
                 style: FilledButton.styleFrom(minimumSize: const Size(150, 52)),
-                onPressed: () => launchUrl(AppConfig.sitePage('/accommodations/${a.id}'), mode: LaunchMode.externalApplication),
+                onPressed: () => context.push('/accommodations/${a.id}/book'),
                 child: Text(l10n.detailBook),
               ),
             ],

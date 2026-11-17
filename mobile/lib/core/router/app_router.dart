@@ -8,10 +8,12 @@ import '../../features/accommodations/presentation/home_screen.dart';
 import '../../features/assistant/presentation/bo_screen.dart';
 import '../../features/auth/presentation/auth_args.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
+import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/otp_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/two_factor_screen.dart';
 import '../../features/auth/presentation/welcome_screen.dart';
+import '../../features/bookings/presentation/booking_flow_screen.dart';
 import '../../features/bookings/presentation/bookings_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../l10n/app_localizations.dart';
@@ -22,11 +24,27 @@ final routerProvider = Provider<GoRouter>((ref) => GoRouter(
       routes: [
         // Hors des onglets : la fiche couvre tout l'écran (barre de navigation comprise) et le retour ramène à l'onglet d'origine.
         GoRoute(path: '/accommodations/:id', builder: (_, state) => AccommodationDetailScreen(id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0)),
+        GoRoute(path: '/accommodations/:id/book', builder: (_, state) {
+          // Lien du type /accommodations/16/book?check_in=2026-12-12&check_out=2026-12-14&guests=2&room=5
+          final q = state.uri.queryParameters;
+          final from = DateTime.tryParse(q['check_in'] ?? '');
+          final to = DateTime.tryParse(q['check_out'] ?? '');
+          final today = DateTime.now();
+          final valid = from != null && to != null && to.isAfter(from) && !from.isBefore(DateTime(today.year, today.month, today.day));
+
+          return BookingFlowScreen(
+            id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+            initialRange: valid ? DateTimeRange(start: from, end: to) : null,
+            initialGuests: int.tryParse(q['guests'] ?? ''),
+            initialRoom: int.tryParse(q['room'] ?? ''),
+          );
+        }),
         GoRoute(path: '/bo', builder: (_, _) => const BoScreen()),
-        GoRoute(path: '/auth/register', builder: (_, state) => RegisterScreen(referral: state.uri.queryParameters['ref'])),
+        GoRoute(path: '/auth/register', builder: (_, state) => RegisterScreen(referral: state.uri.queryParameters['ref'], next: state.uri.queryParameters['next'])),
+        GoRoute(path: '/auth/login', builder: (_, state) => LoginScreen(next: state.uri.queryParameters['next'])),
         // Les écrans suivants n'ont de sens qu'avec les données de l'étape précédente : sans elles (retour à froid), on revient au compte.
         GoRoute(path: '/auth/otp', redirect: (_, state) => state.extra is OtpArgs ? null : '/account', builder: (_, state) => OtpScreen(args: state.extra! as OtpArgs)),
-        GoRoute(path: '/auth/2fa', redirect: (_, state) => state.extra is String ? null : '/account', builder: (_, state) => TwoFactorScreen(tempToken: state.extra! as String)),
+        GoRoute(path: '/auth/2fa', redirect: (_, state) => state.extra is TwoFactorArgs ? null : '/account', builder: (_, state) => TwoFactorScreen(args: state.extra! as TwoFactorArgs)),
         GoRoute(path: '/auth/forgot', builder: (_, _) => const ForgotPasswordScreen()),
         GoRoute(path: '/auth/welcome', builder: (_, state) => WelcomeScreen(args: state.extra is WelcomeArgs ? state.extra! as WelcomeArgs : const WelcomeArgs())),
         StatefulShellRoute.indexedStack(

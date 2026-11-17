@@ -1075,6 +1075,348 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Fermer la conversation avec Bo'**
   String get boClose;
+
+  /// No description provided for @bookTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réserver'**
+  String get bookTitle;
+
+  /// No description provided for @bookStepOf.
+  ///
+  /// In fr, this message translates to:
+  /// **'Étape {step} sur {total}'**
+  String bookStepOf(String step, String total);
+
+  /// No description provided for @bookGateTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connectez-vous pour réserver'**
+  String get bookGateTitle;
+
+  /// No description provided for @bookGateText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre demande est suivie dans « Mes réservations » : l\'hôte répond, puis vous payez, le tout depuis l\'appli.'**
+  String get bookGateText;
+
+  /// No description provided for @bookStayTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre séjour'**
+  String get bookStayTitle;
+
+  /// No description provided for @bookStaySubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérifiez les dates et le nombre de voyageurs.'**
+  String get bookStaySubtitle;
+
+  /// No description provided for @bookDates.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dates'**
+  String get bookDates;
+
+  /// No description provided for @bookDatesPick.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir les dates'**
+  String get bookDatesPick;
+
+  /// No description provided for @bookDatesValue.
+  ///
+  /// In fr, this message translates to:
+  /// **'{from} → {to} · {nights, plural, =1{1 nuit} other{{nights} nuits}}'**
+  String bookDatesValue(String from, String to, int nights);
+
+  /// No description provided for @bookGuests.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voyageurs'**
+  String get bookGuests;
+
+  /// No description provided for @bookAdults.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adultes'**
+  String get bookAdults;
+
+  /// No description provided for @bookChildren.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enfants'**
+  String get bookChildren;
+
+  /// No description provided for @bookRoom.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chambre'**
+  String get bookRoom;
+
+  /// No description provided for @bookRoomCapacity.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 personne} other{{count} personnes}}'**
+  String bookRoomCapacity(int count);
+
+  /// No description provided for @bookTooManyGuests.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette chambre accueille {max} personnes au maximum.'**
+  String bookTooManyGuests(String max);
+
+  /// No description provided for @bookWhoTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Qui voyage ?'**
+  String get bookWhoTitle;
+
+  /// No description provided for @bookWhoSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le nom doit correspondre à une pièce d\'identité présentée à l\'arrivée.'**
+  String get bookWhoSubtitle;
+
+  /// No description provided for @bookWhoMe.
+  ///
+  /// In fr, this message translates to:
+  /// **'Moi-même'**
+  String get bookWhoMe;
+
+  /// No description provided for @bookWhoOther.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une autre personne'**
+  String get bookWhoOther;
+
+  /// No description provided for @bookWhoOtherSub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je réserve pour quelqu\'un d\'autre'**
+  String get bookWhoOtherSub;
+
+  /// No description provided for @bookTravelerName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom du voyageur principal'**
+  String get bookTravelerName;
+
+  /// No description provided for @bookTravelerPhone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Téléphone du voyageur'**
+  String get bookTravelerPhone;
+
+  /// No description provided for @bookPhone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre téléphone (messages de la réservation)'**
+  String get bookPhone;
+
+  /// No description provided for @bookCountry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pays de résidence'**
+  String get bookCountry;
+
+  /// No description provided for @bookCountryDefault.
+  ///
+  /// In fr, this message translates to:
+  /// **'Côte d\'Ivoire'**
+  String get bookCountryDefault;
+
+  /// No description provided for @bookArrival.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heure d\'arrivée prévue (facultatif)'**
+  String get bookArrival;
+
+  /// No description provided for @bookArrivalNone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je ne sais pas encore'**
+  String get bookArrivalNone;
+
+  /// No description provided for @bookRequests.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demande particulière (facultatif)'**
+  String get bookRequests;
+
+  /// No description provided for @bookFieldRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Champ obligatoire.'**
+  String get bookFieldRequired;
+
+  /// No description provided for @bookSummaryTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Récapitulatif'**
+  String get bookSummaryTitle;
+
+  /// No description provided for @bookSummarySubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous ne payez rien maintenant : l\'hôte confirme d\'abord.'**
+  String get bookSummarySubtitle;
+
+  /// No description provided for @bookStayLine.
+  ///
+  /// In fr, this message translates to:
+  /// **'{price} × {nights, plural, =1{1 nuit} other{{nights} nuits}}'**
+  String bookStayLine(String price, int nights);
+
+  /// No description provided for @bookTotal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total'**
+  String get bookTotal;
+
+  /// No description provided for @bookReferralCode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code d\'invitation'**
+  String get bookReferralCode;
+
+  /// No description provided for @bookReferralApply.
+  ///
+  /// In fr, this message translates to:
+  /// **'Appliquer'**
+  String get bookReferralApply;
+
+  /// No description provided for @bookReferralApplied.
+  ///
+  /// In fr, this message translates to:
+  /// **'Invitation de {name} : −{amount} FCFA'**
+  String bookReferralApplied(String name, String amount);
+
+  /// No description provided for @bookPayNowFull.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payer tout de suite : {amount} FCFA (−{percent} %)'**
+  String bookPayNowFull(String amount, String percent);
+
+  /// No description provided for @bookPayGuarantee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ou garantir la chambre : {amount} FCFA, le solde à l\'arrivée'**
+  String bookPayGuarantee(String amount);
+
+  /// No description provided for @bookPayFullOnly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paiement intégral : {amount} FCFA'**
+  String bookPayFullOnly(String amount);
+
+  /// No description provided for @bookPayLater.
+  ///
+  /// In fr, this message translates to:
+  /// **'Après la confirmation de l\'hôte, vous choisissez comment payer :'**
+  String get bookPayLater;
+
+  /// No description provided for @bookSubmit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer ma demande'**
+  String get bookSubmit;
+
+  /// No description provided for @bookNext.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer'**
+  String get bookNext;
+
+  /// No description provided for @bookQuoteError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de calculer le prix pour ces dates.'**
+  String get bookQuoteError;
+
+  /// No description provided for @bookSentTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demande envoyée !'**
+  String get bookSentTitle;
+
+  /// No description provided for @bookSentText.
+  ///
+  /// In fr, this message translates to:
+  /// **'{host} a 24 h pour répondre. Vous êtes prévenu par notification et WhatsApp, avec votre lien de paiement.'**
+  String bookSentText(String host);
+
+  /// No description provided for @bookSentHostFallback.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'hôte'**
+  String get bookSentHostFallback;
+
+  /// No description provided for @bookSentStep1.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demande envoyée'**
+  String get bookSentStep1;
+
+  /// No description provided for @bookSentStep2.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réponse de l\'hôte'**
+  String get bookSentStep2;
+
+  /// No description provided for @bookSentStep2Sub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jusqu\'à 24 h pour répondre'**
+  String get bookSentStep2Sub;
+
+  /// No description provided for @bookSentStep3.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paiement'**
+  String get bookSentStep3;
+
+  /// No description provided for @bookSentStep3Sub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Après confirmation, depuis l\'appli'**
+  String get bookSentStep3Sub;
+
+  /// No description provided for @bookSentStep4.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code d\'arrivée'**
+  String get bookSentStep4;
+
+  /// No description provided for @bookSentStep4Sub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reçu dès le paiement confirmé'**
+  String get bookSentStep4Sub;
+
+  /// No description provided for @bookSentBookings.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mes réservations'**
+  String get bookSentBookings;
+
+  /// No description provided for @bookSentHome.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour à l\'accueil'**
+  String get bookSentHome;
+
+  /// No description provided for @welcomeContinue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer ma réservation'**
+  String get welcomeContinue;
+
+  /// No description provided for @authLoginTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connexion'**
+  String get authLoginTitle;
 }
 
 class _AppLocalizationsDelegate

@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/error_text.dart';
+import '../../../core/phone.dart';
 import '../../../core/theme/brand.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/auth_repository.dart';
@@ -17,9 +18,12 @@ import 'auth_scaffold.dart';
 /// « Créer mon espace » : compte voyageur individuel ou entreprise, directement dans l'appli.
 /// [referral] vient d'un lien ou d'un QR d'invitation : le code est alors verrouillé.
 class RegisterScreen extends ConsumerStatefulWidget {
-  const RegisterScreen({super.key, this.referral});
+  const RegisterScreen({super.key, this.referral, this.next});
 
   final String? referral;
+
+  /// Écran où revenir après la création du compte (par exemple la réservation en cours).
+  final String? next;
 
   @override
   ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
@@ -85,16 +89,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
-  /// Numéro ivoirien saisi sans indicatif (« 07 07 00 00 00 ») → « +2250707000000 ».
-  String _internationalPhone() {
-    final raw = _phone.text.trim();
-    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
-    if (raw.startsWith('+')) return '+$digits';
-    if (raw.startsWith('00')) return '+${digits.substring(2)}';
-
-    return '+225$digits';
-  }
-
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
     final valid = _formKey.currentState!.validate();
@@ -112,7 +106,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             firstName: _first.text,
             lastName: _last.text,
             email: _email.text,
-            phone: _internationalPhone(),
+            phone: internationalPhone(_phone.text),
             password: _password.text,
             corporate: _corporate,
             companyName: _corporate ? _company.text : null,
@@ -120,7 +114,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ));
       if (!mounted) return;
       setState(() => _busy = false);
-      context.push('/auth/otp', extra: OtpArgs(userId: pending.userId, email: pending.email, signup: true, referral: _referral?.valid == true ? _referral : null));
+      context.push('/auth/otp', extra: OtpArgs(userId: pending.userId, email: pending.email, signup: true, referral: _referral?.valid == true ? _referral : null, next: widget.next));
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -186,7 +180,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               autofillHints: const [AutofillHints.telephoneNumber],
               textInputAction: TextInputAction.next,
               decoration: InputDecoration(prefixText: '+225  ', prefixStyle: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700), hintText: l10n.registerPhoneHint),
-              validator: (v) => _phoneDigits(v ?? '') < 8 ? l10n.registerPhoneInvalid : null,
+              validator: (v) => phoneDigits(v ?? '') < 8 ? l10n.registerPhoneInvalid : null,
             ),
           ),
           const SizedBox(height: 16),
@@ -246,14 +240,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           const SizedBox(height: 14),
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Text(l10n.registerHaveAccount, style: theme.textTheme.bodyMedium),
-            TextButton(onPressed: () => context.canPop() ? context.pop() : context.go('/account'), child: Text(l10n.registerLogin)),
+            TextButton(onPressed: () => widget.next != null ? context.pushReplacement('/auth/login?next=${Uri.encodeQueryComponent(widget.next!)}') : (context.canPop() ? context.pop() : context.go('/account')), child: Text(l10n.registerLogin)),
           ]),
         ]),
       ),
     ]);
   }
-
-  static int _phoneDigits(String v) => v.replaceAll(RegExp(r'[^0-9]'), '').length;
 }
 
 class _Field extends StatelessWidget {

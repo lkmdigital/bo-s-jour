@@ -65,9 +65,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       await ref.read(authControllerProvider.notifier).verifyOtp(widget.args.userId, code);
       if (!mounted) return;
       if (widget.args.signup) {
-        context.go('/auth/welcome', extra: WelcomeArgs(referral: widget.args.referral));
+        context.go('/auth/welcome', extra: WelcomeArgs(referral: widget.args.referral, next: widget.args.next));
       } else {
-        context.go('/account');
+        context.go(widget.args.next ?? '/account');
       }
     } catch (e) {
       if (!mounted) return;

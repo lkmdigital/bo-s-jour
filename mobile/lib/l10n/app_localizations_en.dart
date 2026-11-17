@@ -587,4 +587,216 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get boClose => 'Close the conversation with Bo';
+
+  @override
+  String get bookTitle => 'Book';
+
+  @override
+  String bookStepOf(String step, String total) {
+    return 'Step $step of $total';
+  }
+
+  @override
+  String get bookGateTitle => 'Log in to book';
+
+  @override
+  String get bookGateText =>
+      'Your request is tracked in “My bookings”: the host replies, then you pay, all from the app.';
+
+  @override
+  String get bookStayTitle => 'Your stay';
+
+  @override
+  String get bookStaySubtitle => 'Check the dates and number of guests.';
+
+  @override
+  String get bookDates => 'Dates';
+
+  @override
+  String get bookDatesPick => 'Choose dates';
+
+  @override
+  String bookDatesValue(String from, String to, int nights) {
+    String _temp0 = intl.Intl.pluralLogic(
+      nights,
+      locale: localeName,
+      other: '$nights nights',
+      one: '1 night',
+    );
+    return '$from → $to · $_temp0';
+  }
+
+  @override
+  String get bookGuests => 'Guests';
+
+  @override
+  String get bookAdults => 'Adults';
+
+  @override
+  String get bookChildren => 'Children';
+
+  @override
+  String get bookRoom => 'Room';
+
+  @override
+  String bookRoomCapacity(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count people',
+      one: '1 person',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String bookTooManyGuests(String max) {
+    return 'This room sleeps $max people at most.';
+  }
+
+  @override
+  String get bookWhoTitle => 'Who is travelling?';
+
+  @override
+  String get bookWhoSubtitle =>
+      'The name must match an ID document shown on arrival.';
+
+  @override
+  String get bookWhoMe => 'Myself';
+
+  @override
+  String get bookWhoOther => 'Someone else';
+
+  @override
+  String get bookWhoOtherSub => 'I\'m booking for someone else';
+
+  @override
+  String get bookTravelerName => 'Main traveller\'s name';
+
+  @override
+  String get bookTravelerPhone => 'Traveller\'s phone';
+
+  @override
+  String get bookPhone => 'Your phone (booking messages)';
+
+  @override
+  String get bookCountry => 'Country of residence';
+
+  @override
+  String get bookCountryDefault => 'Côte d\'Ivoire';
+
+  @override
+  String get bookArrival => 'Expected arrival time (optional)';
+
+  @override
+  String get bookArrivalNone => 'I don\'t know yet';
+
+  @override
+  String get bookRequests => 'Special request (optional)';
+
+  @override
+  String get bookFieldRequired => 'Required field.';
+
+  @override
+  String get bookSummaryTitle => 'Summary';
+
+  @override
+  String get bookSummarySubtitle =>
+      'You pay nothing now: the host confirms first.';
+
+  @override
+  String bookStayLine(String price, int nights) {
+    String _temp0 = intl.Intl.pluralLogic(
+      nights,
+      locale: localeName,
+      other: '$nights nights',
+      one: '1 night',
+    );
+    return '$price × $_temp0';
+  }
+
+  @override
+  String get bookTotal => 'Total';
+
+  @override
+  String get bookReferralCode => 'Invitation code';
+
+  @override
+  String get bookReferralApply => 'Apply';
+
+  @override
+  String bookReferralApplied(String name, String amount) {
+    return 'Invitation from $name: −$amount FCFA';
+  }
+
+  @override
+  String bookPayNowFull(String amount, String percent) {
+    return 'Pay everything now: $amount FCFA (−$percent%)';
+  }
+
+  @override
+  String bookPayGuarantee(String amount) {
+    return 'Or secure the room: $amount FCFA, balance on arrival';
+  }
+
+  @override
+  String bookPayFullOnly(String amount) {
+    return 'Full payment: $amount FCFA';
+  }
+
+  @override
+  String get bookPayLater => 'After the host confirms, you choose how to pay:';
+
+  @override
+  String get bookSubmit => 'Send my request';
+
+  @override
+  String get bookNext => 'Continue';
+
+  @override
+  String get bookQuoteError => 'Couldn\'t work out the price for these dates.';
+
+  @override
+  String get bookSentTitle => 'Request sent!';
+
+  @override
+  String bookSentText(String host) {
+    return '$host has 24 hours to reply. You\'ll be notified, with your payment link.';
+  }
+
+  @override
+  String get bookSentHostFallback => 'The host';
+
+  @override
+  String get bookSentStep1 => 'Request sent';
+
+  @override
+  String get bookSentStep2 => 'Host\'s reply';
+
+  @override
+  String get bookSentStep2Sub => 'Up to 24 hours to reply';
+
+  @override
+  String get bookSentStep3 => 'Payment';
+
+  @override
+  String get bookSentStep3Sub => 'After confirmation, from the app';
+
+  @override
+  String get bookSentStep4 => 'Arrival code';
+
+  @override
+  String get bookSentStep4Sub => 'Received once payment is confirmed';
+
+  @override
+  String get bookSentBookings => 'My bookings';
+
+  @override
+  String get bookSentHome => 'Back to home';
+
+  @override
+  String get welcomeContinue => 'Continue my booking';
+
+  @override
+  String get authLoginTitle => 'Log in';
 }

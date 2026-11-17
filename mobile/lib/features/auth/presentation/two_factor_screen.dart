@@ -6,14 +6,15 @@ import '../../../core/error_text.dart';
 import '../../../core/theme/brand.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/otp_input.dart';
+import 'auth_args.dart';
 import 'auth_controller.dart';
 import 'auth_scaffold.dart';
 
 /// Seconde étape de la connexion quand la double authentification est activée sur le compte.
 class TwoFactorScreen extends ConsumerStatefulWidget {
-  const TwoFactorScreen({super.key, required this.tempToken});
+  const TwoFactorScreen({super.key, required this.args});
 
-  final String tempToken;
+  final TwoFactorArgs args;
 
   @override
   ConsumerState<TwoFactorScreen> createState() => _TwoFactorScreenState();
@@ -39,8 +40,8 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen> {
       _error = null;
     });
     try {
-      await ref.read(authControllerProvider.notifier).completeTwoFactor(widget.tempToken, code: code, recoveryCode: recovery);
-      if (mounted) context.go('/account');
+      await ref.read(authControllerProvider.notifier).completeTwoFactor(widget.args.tempToken, code: code, recoveryCode: recovery);
+      if (mounted) context.go(widget.args.next ?? '/account');
     } catch (e) {
       if (!mounted) return;
       setState(() {

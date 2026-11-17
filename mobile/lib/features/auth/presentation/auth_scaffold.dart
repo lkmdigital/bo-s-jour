@@ -35,6 +35,11 @@ class AuthScaffold extends StatelessWidget {
 }
 
 /// Bandeau d'erreur rouge pâle, commun aux formulaires d'authentification.
+/// Alias public du bandeau d'erreur, utilisable hors de l'authentification (réservation…).
+class AuthErrorBanner extends AuthError {
+  const AuthErrorBanner(super.message, {super.key});
+}
+
 class AuthError extends StatelessWidget {
   const AuthError(this.message, {super.key});
 

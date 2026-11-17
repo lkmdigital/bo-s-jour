@@ -14,7 +14,10 @@ import 'auth_scaffold.dart';
 
 /// Formulaire de connexion (onglet Compte quand personne n'est connecté).
 class LoginForm extends ConsumerStatefulWidget {
-  const LoginForm({super.key});
+  const LoginForm({super.key, this.next});
+
+  /// Écran où aller une fois connecté ; sans lui, l'onglet Compte se met à jour tout seul.
+  final String? next;
 
   @override
   ConsumerState<LoginForm> createState() => _LoginFormState();
@@ -49,11 +52,11 @@ class _LoginFormState extends ConsumerState<LoginForm> {
       setState(() => _busy = false);
       switch (result) {
         case LoginSuccess():
-          break; // la session est ouverte : l'onglet Compte change tout seul
+          if (widget.next != null) context.go(widget.next!); // sinon la session est ouverte : l'onglet Compte change tout seul
         case LoginNeedsEmailOtp(:final userId):
-          context.push('/auth/otp', extra: OtpArgs(userId: userId, email: _email.text.trim()));
+          context.push('/auth/otp', extra: OtpArgs(userId: userId, email: _email.text.trim(), next: widget.next));
         case LoginNeedsTwoFactor(:final tempToken):
-          context.push('/auth/2fa', extra: tempToken);
+          context.push('/auth/2fa', extra: TwoFactorArgs(tempToken: tempToken, next: widget.next));
       }
     } on ApiException catch (e) {
       if (mounted) {
@@ -138,7 +141,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
           const SizedBox(height: 18),
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Text(l10n.loginNoAccount, style: theme.textTheme.bodyMedium),
-            TextButton(key: const Key('login-create'), onPressed: () => context.push('/auth/register'), child: Text(l10n.loginCreate)),
+            TextButton(key: const Key('login-create'), onPressed: () => context.push(widget.next != null ? '/auth/register?next=${Uri.encodeQueryComponent(widget.next!)}' : '/auth/register'), child: Text(l10n.loginCreate)),
           ]),
         ],
       ),

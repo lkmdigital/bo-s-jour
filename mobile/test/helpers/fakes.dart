@@ -11,6 +11,9 @@ import 'package:bosejour/features/accommodations/domain/accommodation_detail.dar
 import 'package:bosejour/features/assistant/data/assistant_repository.dart';
 import 'package:bosejour/features/assistant/domain/bo_models.dart';
 import 'package:bosejour/features/auth/data/auth_repository.dart';
+import 'package:bosejour/features/bookings/data/booking_repository.dart';
+import 'package:bosejour/features/bookings/domain/booking_request.dart';
+import 'package:bosejour/features/bookings/domain/price_quote.dart';
 import 'package:bosejour/features/auth/domain/user.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -236,6 +239,7 @@ Future<ProviderContainer> pumpApp(
   FakeAuthRepository? auth,
   FakeAccommodationRepository? accommodations,
   FakeAssistantRepository? assistant,
+  FakeBookingRepository? bookings,
   Size size = const Size(390, 844),
 }) async {
   await loadBrandFonts();
@@ -247,6 +251,7 @@ Future<ProviderContainer> pumpApp(
     authRepositoryProvider.overrideWithValue(auth ?? FakeAuthRepository()),
     accommodationRepositoryProvider.overrideWithValue(accommodations ?? FakeAccommodationRepository(cities: sampleCities, accommodations: sampleAccommodations)),
     assistantRepositoryProvider.overrideWithValue(assistant ?? FakeAssistantRepository()),
+    bookingRepositoryProvider.overrideWithValue(bookings ?? FakeBookingRepository()),
     tokenStorageProvider.overrideWithValue(MemoryTokenStorage()),
     localeProvider.overrideWithValue(const Locale('fr')),
     appVersionProvider.overrideWithValue('1.0.0+1'),
@@ -263,3 +268,48 @@ Future<ProviderContainer> pumpApp(
 
   return container;
 }
+
+/// Faux service de réservation : aucune demande ne part vraiment (en production, une demande prévient l'hôte par e-mail, SMS et WhatsApp).
+class FakeBookingRepository implements BookingRepository {
+  FakeBookingRepository({this.quoteResult, this.createError, this.quoteError});
+
+  PriceQuote? quoteResult;
+  Object? quoteError;
+  Object? createError;
+  final List<QuoteParams> quotes = [];
+  final List<BookingRequest> created = [];
+
+  @override
+  Future<PriceQuote> quote(QuoteParams params) async {
+    quotes.add(params);
+    if (quoteError != null) throw quoteError!;
+
+    return quoteResult ?? sampleQuote;
+  }
+
+  @override
+  Future<CreatedBooking> create(BookingRequest request) async {
+    created.add(request);
+    if (createError != null) throw createError!;
+
+    return const CreatedBooking(id: 1871, status: 'awaiting_host_confirmation', accessToken: 'tok', accommodationName: 'Hôtel');
+  }
+}
+
+/// Devis réel (hôtel 16, deux nuits) : paiement intégral à −5 %, garantie = 1re nuit.
+final sampleQuote = PriceQuote.fromJson(const {
+  'effective_price_per_night': 57000,
+  'nights': 2,
+  'total': 114000,
+  'extra_breakfast_total': 0,
+  'cancellation_policy_hours': 48,
+  'long_stay_discount': null,
+  'referral_discount': null,
+  'payment_options': {
+    'full_only': false,
+    'options': {
+      'full': {'label': 'Paiement intégral', 'amount': 108300, 'original_amount': 114000, 'discount_percent': 5},
+      'guarantee': {'label': 'Garantie de réservation', 'amount': 57000, 'summary': '1re nuit', 'balance_at_hotel': 57000},
+    },
+  },
+});
