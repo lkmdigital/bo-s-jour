@@ -21,7 +21,7 @@ class SendPostStayReviewLinks extends Command
     public function handle(): int
     {
         $dryRun = $this->option('dry-run');
-        $baseUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'https://monbeaupays.loyerpay.ci')), '/');
+        $baseUrl = rtrim(config('services.frontend_url'), '/');
 
         // Séjours terminés depuis au moins 1 jour (et au plus 14 jours : la tâche n'a pas tourné pendant des mois,
         // on n'envoie pas de demande d'avis pour un séjour de l'été), confirmés, lien pas encore envoyé

@@ -128,7 +128,7 @@ class OAuthController extends Controller
             // Token Bearer conservé en parallèle (fallback, sans effet pour ce frontend).
             $user->createToken('auth_token')->plainTextToken;
 
-            $frontendUrl = config('app.frontend_url', env('FRONTEND_URL', 'https://monbeaupays.loyerpay.ci'));
+            $frontendUrl = config('services.frontend_url');
             $redirectUrl = $frontendUrl . '/auth/oauth-callback?' . http_build_query([
                 'provider' => $provider,
             ]);

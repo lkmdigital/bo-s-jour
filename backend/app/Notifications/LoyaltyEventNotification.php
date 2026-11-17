@@ -47,7 +47,7 @@ class LoyaltyEventNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'https://monbeaupays.loyerpay.ci')), '/');
+        $frontendUrl = rtrim(config('services.frontend_url'), '/');
 
         return (new MailMessage)
             ->subject('boséjour — Programme Membre')

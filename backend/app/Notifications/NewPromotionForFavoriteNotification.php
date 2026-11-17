@@ -55,7 +55,7 @@ class NewPromotionForFavoriteNotification extends Notification implements Should
     public function toMail(object $notifiable): MailMessage
     {
         $name = $this->promotion->accommodation->name ?? 'un établissement';
-        $frontendUrl = rtrim(config('app.frontend_url', env('FRONTEND_URL', 'https://bosejour.ci')), '/');
+        $frontendUrl = rtrim(config('services.frontend_url'), '/');
 
         $mail = (new MailMessage)
             ->subject("boséjour — Nouvelle promotion chez {$name}")

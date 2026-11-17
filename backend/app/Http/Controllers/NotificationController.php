@@ -63,7 +63,7 @@ class NotificationController extends Controller
                 'fr' => "Votre demande de réservation pour {$name} a bien été reçue.",
                 'en' => "Your booking request for {$name} has been received.",
             ],
-            'url'                       => config('app.frontend_url') . "/bookings/{$bookingId}",
+            'url'                       => config('services.frontend_url') . "/bookings/{$bookingId}",
             'data'                      => ['event' => 'booking.created', 'booking_id' => $bookingId],
         ];
     }
@@ -81,7 +81,7 @@ class NotificationController extends Controller
                 'fr' => "Votre réservation chez {$name} est confirmée. Code : {$code}",
                 'en' => "Your booking at {$name} is confirmed. Code: {$code}",
             ],
-            'url'                       => config('app.frontend_url') . "/bookings/{$bookingId}",
+            'url'                       => config('services.frontend_url') . "/bookings/{$bookingId}",
             'data'                      => ['event' => 'booking.confirmed', 'booking_id' => $bookingId],
         ];
     }
@@ -98,7 +98,7 @@ class NotificationController extends Controller
                 'fr' => "Votre réservation chez {$name} a été annulée. Consultez vos réservations pour les détails.",
                 'en' => "Your booking at {$name} has been cancelled. Check your bookings for details.",
             ],
-            'url'                       => config('app.frontend_url') . "/bookings/{$bookingId}",
+            'url'                       => config('services.frontend_url') . "/bookings/{$bookingId}",
             'data'                      => ['event' => 'booking.cancelled', 'booking_id' => $bookingId],
         ];
     }
@@ -115,7 +115,7 @@ class NotificationController extends Controller
                 'fr' => "Votre séjour chez {$name} est terminé. Partagez votre expérience en laissant un avis !",
                 'en' => "Your stay at {$name} is over. Share your experience by leaving a review!",
             ],
-            'url'                       => config('app.frontend_url') . "/bookings/{$bookingId}/review",
+            'url'                       => config('services.frontend_url') . "/bookings/{$bookingId}/review",
             'data'                      => ['event' => 'booking.completed', 'booking_id' => $bookingId],
         ];
     }
@@ -164,7 +164,7 @@ class NotificationController extends Controller
                     'fr' => 'Votre compte a été créé avec succès. Explorez les meilleurs hébergements en Côte d\'Ivoire.',
                     'en' => 'Your account has been created. Explore the best accommodations in Côte d\'Ivoire.',
                 ],
-                'url'                           => config('app.frontend_url', 'https://bosejour.ci'),
+                'url'                           => config('services.frontend_url'),
             ]);
         } catch (\Throwable $e) {
             Log::error('OneSignal welcome error: ' . $e->getMessage());
