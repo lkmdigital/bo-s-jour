@@ -563,5 +563,72 @@
       }
     }
   },
-  "cancelImpossible": "Cette réservation ne peut plus être annulée."
+  "cancelImpossible": "Cette réservation ne peut plus être annulée.",
+  "payTitle": "Paiement",
+  "payChoosePlan": "Comment souhaitez-vous payer ?",
+  "payRecommended": "Recommandé",
+  "payFullTitle": "Payer tout de suite",
+  "payFullDiscount": "−{percent} %",
+  "@payFullDiscount": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "payFullSub": "Séjour entièrement réglé, rien à payer à l'arrivée.",
+  "payGuaranteeTitle": "Garantir la chambre",
+  "payGuaranteeSub": "Le solde de {balance} FCFA se règle à l'établissement à votre arrivée.",
+  "@payGuaranteeSub": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "payMethod": "Moyen de paiement",
+  "payNoMethods": "Aucun moyen de paiement n'est disponible pour le moment.",
+  "paySubmit": "Payer {amount} FCFA",
+  "@paySubmit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "payWaitingLinkTitle": "Terminez le paiement",
+  "payWaitingLinkText": "La page de paiement {method} s'est ouverte. Une fois le paiement effectué, revenez ici : cette page se met à jour toute seule.",
+  "@payWaitingLinkText": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "payWaitingPushTitle": "Validez sur votre téléphone",
+  "payWaitingPushText": "Ouvrez {method} et confirmez le paiement de {amount} FCFA. Cette page se met à jour toute seule.",
+  "@payWaitingPushText": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "payWaitingStatus": "En attente de la confirmation de l'opérateur…",
+  "payReopen": "Rouvrir la page de paiement",
+  "payCheck": "J'ai terminé le paiement",
+  "payTimeout": "Le délai de validation est dépassé. Si vous avez bien validé le paiement, votre réservation sera confirmée automatiquement dans quelques minutes ; sinon, vous pouvez réessayer.",
+  "payFailedTitle": "Paiement non abouti",
+  "payFailedText": "Le paiement n'a pas abouti : il a été refusé, annulé ou a expiré. Vous pouvez réessayer ou changer de moyen de paiement.",
+  "payRetry": "Réessayer",
+  "payDoneTitle": "Paiement reçu",
+  "payDoneText": "Votre réservation est confirmée.",
+  "payDoneView": "Voir ma réservation",
+  "payLinkMissing": "Le lien de paiement est indisponible. Veuillez réessayer.",
+  "payUnsupported": "Ce moyen de paiement n'est pas encore disponible dans l'appli. Choisissez-en un autre.",
+  "payAlreadyPaid": "Cette réservation est déjà payée.",
+  "payNotYet": "L'hôte n'a pas encore confirmé votre demande : vous pourrez payer dès qu'il l'aura acceptée."
 }

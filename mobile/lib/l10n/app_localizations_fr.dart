@@ -990,4 +990,109 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get cancelImpossible => 'Cette réservation ne peut plus être annulée.';
+
+  @override
+  String get payTitle => 'Paiement';
+
+  @override
+  String get payChoosePlan => 'Comment souhaitez-vous payer ?';
+
+  @override
+  String get payRecommended => 'Recommandé';
+
+  @override
+  String get payFullTitle => 'Payer tout de suite';
+
+  @override
+  String payFullDiscount(String percent) {
+    return '−$percent %';
+  }
+
+  @override
+  String get payFullSub =>
+      'Séjour entièrement réglé, rien à payer à l\'arrivée.';
+
+  @override
+  String get payGuaranteeTitle => 'Garantir la chambre';
+
+  @override
+  String payGuaranteeSub(String balance) {
+    return 'Le solde de $balance FCFA se règle à l\'établissement à votre arrivée.';
+  }
+
+  @override
+  String get payMethod => 'Moyen de paiement';
+
+  @override
+  String get payNoMethods =>
+      'Aucun moyen de paiement n\'est disponible pour le moment.';
+
+  @override
+  String paySubmit(String amount) {
+    return 'Payer $amount FCFA';
+  }
+
+  @override
+  String get payWaitingLinkTitle => 'Terminez le paiement';
+
+  @override
+  String payWaitingLinkText(String method) {
+    return 'La page de paiement $method s\'est ouverte. Une fois le paiement effectué, revenez ici : cette page se met à jour toute seule.';
+  }
+
+  @override
+  String get payWaitingPushTitle => 'Validez sur votre téléphone';
+
+  @override
+  String payWaitingPushText(String method, String amount) {
+    return 'Ouvrez $method et confirmez le paiement de $amount FCFA. Cette page se met à jour toute seule.';
+  }
+
+  @override
+  String get payWaitingStatus =>
+      'En attente de la confirmation de l\'opérateur…';
+
+  @override
+  String get payReopen => 'Rouvrir la page de paiement';
+
+  @override
+  String get payCheck => 'J\'ai terminé le paiement';
+
+  @override
+  String get payTimeout =>
+      'Le délai de validation est dépassé. Si vous avez bien validé le paiement, votre réservation sera confirmée automatiquement dans quelques minutes ; sinon, vous pouvez réessayer.';
+
+  @override
+  String get payFailedTitle => 'Paiement non abouti';
+
+  @override
+  String get payFailedText =>
+      'Le paiement n\'a pas abouti : il a été refusé, annulé ou a expiré. Vous pouvez réessayer ou changer de moyen de paiement.';
+
+  @override
+  String get payRetry => 'Réessayer';
+
+  @override
+  String get payDoneTitle => 'Paiement reçu';
+
+  @override
+  String get payDoneText => 'Votre réservation est confirmée.';
+
+  @override
+  String get payDoneView => 'Voir ma réservation';
+
+  @override
+  String get payLinkMissing =>
+      'Le lien de paiement est indisponible. Veuillez réessayer.';
+
+  @override
+  String get payUnsupported =>
+      'Ce moyen de paiement n\'est pas encore disponible dans l\'appli. Choisissez-en un autre.';
+
+  @override
+  String get payAlreadyPaid => 'Cette réservation est déjà payée.';
+
+  @override
+  String get payNotYet =>
+      'L\'hôte n\'a pas encore confirmé votre demande : vous pourrez payer dès qu\'il l\'aura acceptée.';
 }

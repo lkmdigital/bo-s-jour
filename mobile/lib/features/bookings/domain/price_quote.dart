@@ -21,6 +21,28 @@ class PayOption {
       );
 }
 
+/// Les façons de payer annoncées par le serveur : tout de suite (souvent avec une remise) ou garantie de réservation.
+class PaymentOptions {
+  const PaymentOptions({this.full, this.guarantee, this.fullOnly = false});
+
+  final PayOption? full;
+  final PayOption? guarantee;
+
+  /// Le paiement intégral est obligatoire (la garantie n'est pas proposée).
+  final bool fullOnly;
+
+  factory PaymentOptions.fromJson(Object? json) {
+    final options = json is Map<String, dynamic> ? json : const <String, dynamic>{};
+    final list = options['options'] is Map<String, dynamic> ? (options['options'] as Map<String, dynamic>) : const <String, dynamic>{};
+
+    return PaymentOptions(
+      full: list['full'] is Map<String, dynamic> ? PayOption.fromJson(list['full'] as Map<String, dynamic>) : null,
+      guarantee: list['guarantee'] is Map<String, dynamic> ? PayOption.fromJson(list['guarantee'] as Map<String, dynamic>) : null,
+      fullOnly: toBool(options['full_only']),
+    );
+  }
+}
+
 /// Remise d'invitation (ambassadeur) calculée par le serveur : un montant, ou une erreur à montrer au voyageur.
 class ReferralDiscount {
   const ReferralDiscount({this.amount, this.percent, this.label, this.error});
@@ -51,9 +73,7 @@ class PriceQuote {
     required this.extraBreakfastTotal,
     this.longStay,
     this.referral,
-    this.full,
-    this.guarantee,
-    this.fullOnly = false,
+    this.options = const PaymentOptions(),
     this.cancellationHours,
   });
 
@@ -65,10 +85,12 @@ class PriceQuote {
   final num extraBreakfastTotal;
   final LongStayDiscount? longStay;
   final ReferralDiscount? referral;
-  final PayOption? full;
-  final PayOption? guarantee;
-  final bool fullOnly;
+  final PaymentOptions options;
   final int? cancellationHours;
+
+  PayOption? get full => options.full;
+  PayOption? get guarantee => options.guarantee;
+  bool get fullOnly => options.fullOnly;
 
   /// Remise d'invitation effectivement appliquée (0 si elle est absente ou refusée).
   num get referralAmount => referral?.error == null ? (referral?.amount ?? 0) : 0;
@@ -77,8 +99,6 @@ class PriceQuote {
   num get payable => (total + extraBreakfastTotal - referralAmount).clamp(0, double.infinity);
 
   factory PriceQuote.fromJson(Map<String, dynamic> json) {
-    final options = json['payment_options'] is Map<String, dynamic> ? (json['payment_options'] as Map<String, dynamic>) : const <String, dynamic>{};
-    final list = options['options'] is Map<String, dynamic> ? (options['options'] as Map<String, dynamic>) : const <String, dynamic>{};
     final longStay = json['long_stay_discount'];
     final referral = json['referral_discount'];
 
@@ -89,9 +109,7 @@ class PriceQuote {
       extraBreakfastTotal: toNum(json['extra_breakfast_total']) ?? 0,
       longStay: longStay is Map<String, dynamic> ? LongStayDiscount(label: toText(longStay['label']) ?? '', amount: toNum(longStay['discount_amount']) ?? 0) : null,
       referral: referral is Map<String, dynamic> ? ReferralDiscount.fromJson(referral) : null,
-      full: list['full'] is Map<String, dynamic> ? PayOption.fromJson(list['full'] as Map<String, dynamic>) : null,
-      guarantee: list['guarantee'] is Map<String, dynamic> ? PayOption.fromJson(list['guarantee'] as Map<String, dynamic>) : null,
-      fullOnly: toBool(options['full_only']),
+      options: PaymentOptions.fromJson(json['payment_options']),
       cancellationHours: toInt(json['cancellation_policy_hours']),
     );
   }

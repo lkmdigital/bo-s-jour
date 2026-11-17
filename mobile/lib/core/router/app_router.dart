@@ -16,6 +16,7 @@ import '../../features/auth/presentation/welcome_screen.dart';
 import '../../features/bookings/presentation/booking_detail_screen.dart';
 import '../../features/bookings/presentation/booking_flow_screen.dart';
 import '../../features/bookings/presentation/cancel_booking_screen.dart';
+import '../../features/payments/presentation/payment_flow_screen.dart';
 import '../../features/bookings/presentation/bookings_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../l10n/app_localizations.dart';
@@ -42,6 +43,7 @@ final routerProvider = Provider<GoRouter>((ref) => GoRouter(
           );
         }),
         GoRoute(path: '/bookings/:id', builder: (_, state) => BookingDetailScreen(id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0)),
+        GoRoute(path: '/bookings/:id/pay', builder: (_, state) => PaymentFlowScreen(bookingId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0)),
         GoRoute(path: '/bookings/:id/cancel', builder: (_, state) => CancelBookingScreen(id: int.tryParse(state.pathParameters['id'] ?? '') ?? 0)),
         GoRoute(path: '/bo', builder: (_, _) => const BoScreen()),
         GoRoute(path: '/auth/register', builder: (_, state) => RegisterScreen(referral: state.uri.queryParameters['ref'], next: state.uri.queryParameters['next'])),

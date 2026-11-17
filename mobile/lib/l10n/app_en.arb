@@ -563,5 +563,72 @@
       }
     }
   },
-  "cancelImpossible": "This booking can no longer be cancelled."
+  "cancelImpossible": "This booking can no longer be cancelled.",
+  "payTitle": "Payment",
+  "payChoosePlan": "How would you like to pay?",
+  "payRecommended": "Recommended",
+  "payFullTitle": "Pay in full now",
+  "payFullDiscount": "−{percent}%",
+  "@payFullDiscount": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "payFullSub": "Stay fully paid, nothing to pay on arrival.",
+  "payGuaranteeTitle": "Secure the room",
+  "payGuaranteeSub": "The balance of {balance} FCFA is paid at the property on arrival.",
+  "@payGuaranteeSub": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "payMethod": "Payment method",
+  "payNoMethods": "No payment method is available right now.",
+  "paySubmit": "Pay {amount} FCFA",
+  "@paySubmit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "payWaitingLinkTitle": "Complete the payment",
+  "payWaitingLinkText": "The {method} payment page has opened. Once you've paid, come back here: this page updates by itself.",
+  "@payWaitingLinkText": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "payWaitingPushTitle": "Confirm on your phone",
+  "payWaitingPushText": "Open {method} and confirm the payment of {amount} FCFA. This page updates by itself.",
+  "@payWaitingPushText": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "payWaitingStatus": "Waiting for the operator's confirmation…",
+  "payReopen": "Reopen the payment page",
+  "payCheck": "I've finished paying",
+  "payTimeout": "The confirmation time has run out. If you did complete the payment, your booking will be confirmed automatically in a few minutes; otherwise you can try again.",
+  "payFailedTitle": "Payment unsuccessful",
+  "payFailedText": "The payment didn't go through: it was declined, cancelled or expired. You can try again or choose another payment method.",
+  "payRetry": "Try again",
+  "payDoneTitle": "Payment received",
+  "payDoneText": "Your booking is confirmed.",
+  "payDoneView": "View my booking",
+  "payLinkMissing": "The payment link is unavailable. Please try again.",
+  "payUnsupported": "This payment method isn't available in the app yet. Please choose another.",
+  "payAlreadyPaid": "This booking is already paid.",
+  "payNotYet": "The host hasn't confirmed your request yet: you'll be able to pay as soon as they accept."
 }

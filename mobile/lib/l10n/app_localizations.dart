@@ -1741,6 +1741,180 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Cette réservation ne peut plus être annulée.'**
   String get cancelImpossible;
+
+  /// No description provided for @payTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paiement'**
+  String get payTitle;
+
+  /// No description provided for @payChoosePlan.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comment souhaitez-vous payer ?'**
+  String get payChoosePlan;
+
+  /// No description provided for @payRecommended.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recommandé'**
+  String get payRecommended;
+
+  /// No description provided for @payFullTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payer tout de suite'**
+  String get payFullTitle;
+
+  /// No description provided for @payFullDiscount.
+  ///
+  /// In fr, this message translates to:
+  /// **'−{percent} %'**
+  String payFullDiscount(String percent);
+
+  /// No description provided for @payFullSub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Séjour entièrement réglé, rien à payer à l\'arrivée.'**
+  String get payFullSub;
+
+  /// No description provided for @payGuaranteeTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Garantir la chambre'**
+  String get payGuaranteeTitle;
+
+  /// No description provided for @payGuaranteeSub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le solde de {balance} FCFA se règle à l\'établissement à votre arrivée.'**
+  String payGuaranteeSub(String balance);
+
+  /// No description provided for @payMethod.
+  ///
+  /// In fr, this message translates to:
+  /// **'Moyen de paiement'**
+  String get payMethod;
+
+  /// No description provided for @payNoMethods.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun moyen de paiement n\'est disponible pour le moment.'**
+  String get payNoMethods;
+
+  /// No description provided for @paySubmit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payer {amount} FCFA'**
+  String paySubmit(String amount);
+
+  /// No description provided for @payWaitingLinkTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminez le paiement'**
+  String get payWaitingLinkTitle;
+
+  /// No description provided for @payWaitingLinkText.
+  ///
+  /// In fr, this message translates to:
+  /// **'La page de paiement {method} s\'est ouverte. Une fois le paiement effectué, revenez ici : cette page se met à jour toute seule.'**
+  String payWaitingLinkText(String method);
+
+  /// No description provided for @payWaitingPushTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Validez sur votre téléphone'**
+  String get payWaitingPushTitle;
+
+  /// No description provided for @payWaitingPushText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrez {method} et confirmez le paiement de {amount} FCFA. Cette page se met à jour toute seule.'**
+  String payWaitingPushText(String method, String amount);
+
+  /// No description provided for @payWaitingStatus.
+  ///
+  /// In fr, this message translates to:
+  /// **'En attente de la confirmation de l\'opérateur…'**
+  String get payWaitingStatus;
+
+  /// No description provided for @payReopen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rouvrir la page de paiement'**
+  String get payReopen;
+
+  /// No description provided for @payCheck.
+  ///
+  /// In fr, this message translates to:
+  /// **'J\'ai terminé le paiement'**
+  String get payCheck;
+
+  /// No description provided for @payTimeout.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le délai de validation est dépassé. Si vous avez bien validé le paiement, votre réservation sera confirmée automatiquement dans quelques minutes ; sinon, vous pouvez réessayer.'**
+  String get payTimeout;
+
+  /// No description provided for @payFailedTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paiement non abouti'**
+  String get payFailedTitle;
+
+  /// No description provided for @payFailedText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le paiement n\'a pas abouti : il a été refusé, annulé ou a expiré. Vous pouvez réessayer ou changer de moyen de paiement.'**
+  String get payFailedText;
+
+  /// No description provided for @payRetry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer'**
+  String get payRetry;
+
+  /// No description provided for @payDoneTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paiement reçu'**
+  String get payDoneTitle;
+
+  /// No description provided for @payDoneText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre réservation est confirmée.'**
+  String get payDoneText;
+
+  /// No description provided for @payDoneView.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir ma réservation'**
+  String get payDoneView;
+
+  /// No description provided for @payLinkMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le lien de paiement est indisponible. Veuillez réessayer.'**
+  String get payLinkMissing;
+
+  /// No description provided for @payUnsupported.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce moyen de paiement n\'est pas encore disponible dans l\'appli. Choisissez-en un autre.'**
+  String get payUnsupported;
+
+  /// No description provided for @payAlreadyPaid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette réservation est déjà payée.'**
+  String get payAlreadyPaid;
+
+  /// No description provided for @payNotYet.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'hôte n\'a pas encore confirmé votre demande : vous pourrez payer dès qu\'il l\'aura acceptée.'**
+  String get payNotYet;
 }
 
 class _AppLocalizationsDelegate

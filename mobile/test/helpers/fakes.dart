@@ -11,10 +11,13 @@ import 'package:bosejour/features/accommodations/domain/accommodation_detail.dar
 import 'package:bosejour/features/assistant/data/assistant_repository.dart';
 import 'package:bosejour/features/assistant/domain/bo_models.dart';
 import 'package:bosejour/features/auth/data/auth_repository.dart';
+import 'package:bosejour/features/payments/presentation/payment_flow_screen.dart';
 import 'package:bosejour/features/bookings/data/booking_repository.dart';
 import 'package:bosejour/features/bookings/domain/booking.dart';
 import 'package:bosejour/features/bookings/domain/booking_request.dart';
 import 'package:bosejour/features/bookings/domain/price_quote.dart';
+import 'package:bosejour/features/payments/data/payment_repository.dart';
+import 'package:bosejour/features/payments/domain/payment_models.dart';
 import 'package:bosejour/features/auth/domain/user.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -241,6 +244,7 @@ Future<ProviderContainer> pumpApp(
   FakeAccommodationRepository? accommodations,
   FakeAssistantRepository? assistant,
   FakeBookingRepository? bookings,
+  FakePaymentRepository? payments,
   Size size = const Size(390, 844),
 }) async {
   await loadBrandFonts();
@@ -253,6 +257,12 @@ Future<ProviderContainer> pumpApp(
     accommodationRepositoryProvider.overrideWithValue(accommodations ?? FakeAccommodationRepository(cities: sampleCities, accommodations: sampleAccommodations)),
     assistantRepositoryProvider.overrideWithValue(assistant ?? FakeAssistantRepository()),
     bookingRepositoryProvider.overrideWithValue(bookings ?? FakeBookingRepository()),
+    paymentRepositoryProvider.overrideWithValue(payments ?? FakePaymentRepository()),
+    urlOpenerProvider.overrideWithValue((uri) async {
+      openedUrls.add(uri);
+
+      return true;
+    }),
     tokenStorageProvider.overrideWithValue(MemoryTokenStorage()),
     localeProvider.overrideWithValue(const Locale('fr')),
     appVersionProvider.overrideWithValue('1.0.0+1'),
@@ -317,7 +327,7 @@ class FakeBookingRepository implements BookingRepository {
 }
 
 /// Réservation d'exemple : séjour dans 20 jours, confirmée et payée en intégral.
-Booking sampleBooking({int id = 1871, BookingStatus status = BookingStatus.confirmed, int daysAhead = 20, String? paymentStatus = 'paid', num total = 108300, num? paid = 108300, String? code = 'BS-4Q7K', String name = 'Hôtel Les Cocotiers', int nights = 2, bool nonRefundable = false, int? hours = 48, String type = 'full'}) {
+Booking sampleBooking({int id = 1871, BookingStatus status = BookingStatus.confirmed, int daysAhead = 20, String? paymentStatus = 'paid', num total = 108300, num? paid = 108300, String? code = 'BS-4Q7K', String name = 'Hôtel Les Cocotiers', int nights = 2, bool nonRefundable = false, int? hours = 48, String type = 'full', PaymentOptions? options}) {
   final from = DateTime.now().add(Duration(days: daysAhead));
   final checkIn = DateTime(from.year, from.month, from.day);
 
@@ -325,6 +335,13 @@ Booking sampleBooking({int id = 1871, BookingStatus status = BookingStatus.confi
     id: id, status: status, checkIn: checkIn, checkOut: checkIn.add(Duration(days: nights)), guests: 2, totalPrice: total, accommodationName: name, city: 'Grand-Bassam',
     paymentStatus: paymentStatus, paymentType: type, amountPaid: paid, confirmationCode: code, bookingNumber: 'BS-$id', accessToken: 'tok-$id',
     isNonRefundable: nonRefundable, cancellationHours: hours,
+    paymentOptions: options ?? PaymentOptions.fromJson(const {
+      'full_only': false,
+      'options': {
+        'full': {'label': 'Paiement intégral', 'amount': 108300, 'original_amount': 114000, 'discount_percent': 5},
+        'guarantee': {'label': 'Garantie', 'amount': 57000, 'summary': '1re nuit', 'balance_at_hotel': 57000},
+      },
+    }),
   );
 }
 
@@ -345,3 +362,53 @@ final sampleQuote = PriceQuote.fromJson(const {
     },
   },
 });
+
+/// Pages de paiement « ouvertes » pendant le test (aucun navigateur ne s'ouvre).
+final List<Uri> openedUrls = [];
+
+/// Fausse passerelle : aucun paiement réel ne part, jamais (un vrai paiement débite un vrai voyageur).
+class FakePaymentRepository implements PaymentRepository {
+  FakePaymentRepository({this.methodList = defaultMethods, this.initiation, this.initiateError, List<PaymentState>? states}) : states = states ?? [PaymentState.pending];
+
+  final List<PaymentMethodInfo> methodList;
+  PaymentInitiation? initiation;
+  Object? initiateError;
+
+  /// États renvoyés à chaque lecture, dans l'ordre ; le dernier se répète.
+  final List<PaymentState> states;
+  final List<(int, String, PaymentPlan)> initiations = [];
+  final List<(int, String)> linkRequests = [];
+  int statusReads = 0;
+
+  @override
+  Future<List<PaymentMethodInfo>> methods() async => methodList;
+
+  @override
+  Future<PaymentInitiation> initiate(int bookingId, {required String method, required PaymentPlan plan}) async {
+    initiations.add((bookingId, method, plan));
+    if (initiateError != null) throw initiateError!;
+
+    return initiation ?? const PaymentInitiation(paymentId: 501, link: 'https://pay.example/checkout/abc');
+  }
+
+  @override
+  Future<String?> link(int paymentId, String method) async {
+    linkRequests.add((paymentId, method));
+
+    return 'https://pay.example/fallback';
+  }
+
+  @override
+  Future<PaymentState> status(int paymentId) async {
+    final i = statusReads < states.length ? statusReads : states.length - 1;
+    statusReads++;
+
+    return states[i];
+  }
+}
+
+const defaultMethods = [
+  PaymentMethodInfo(slug: 'wave-ci', name: 'Wave CI'),
+  PaymentMethodInfo(slug: 'orange-ci', name: 'Orange CI'),
+  PaymentMethodInfo(slug: 'mtn-ci', name: 'MTN MoMo'),
+];

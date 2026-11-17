@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../core/error_text.dart';
 import '../../../core/format.dart';
 import '../../../core/theme/brand.dart';
@@ -111,12 +109,7 @@ class _Content extends ConsumerWidget {
       ],
       if (b.needsPayment(now)) ...[
         const SizedBox(height: 18),
-        // Le paiement dans l'appli arrive au lot suivant : en attendant, la page de paiement du site prend le relais.
-        FilledButton(
-          key: const Key('booking-pay'),
-          onPressed: b.accessToken == null ? null : () => launchUrl(AppConfig.sitePage('/bookings/${b.accessToken}/payment'), mode: LaunchMode.externalApplication),
-          child: Text(l10n.bookingPay),
-        ),
+        FilledButton(key: const Key('booking-pay'), onPressed: () => context.push('/bookings/${b.id}/pay'), child: Text(l10n.bookingPay)),
       ],
       if (b.canCancel(now)) ...[
         const SizedBox(height: 10),

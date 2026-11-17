@@ -1,5 +1,6 @@
 import '../../../core/json.dart';
 import '../../accommodations/domain/accommodation.dart';
+import 'price_quote.dart';
 
 enum BookingStatus { awaitingHost, pending, confirmed, cancelled, completed }
 
@@ -31,6 +32,7 @@ class Booking {
     this.specialRequests,
     this.refundAmount,
     this.creditAmount,
+    this.paymentOptions,
   });
 
   final int id;
@@ -58,6 +60,9 @@ class Booking {
   final String? specialRequests;
   final num? refundAmount;
   final num? creditAmount;
+
+  /// Montants à régler annoncés par le serveur (présents dans le détail d'une réservation).
+  final PaymentOptions? paymentOptions;
 
   int get nights => checkOut.difference(checkIn).inDays;
 
@@ -116,6 +121,7 @@ class Booking {
       specialRequests: toText(json['special_requests']),
       refundAmount: toNum(json['refund_amount']),
       creditAmount: toNum(json['credit_amount']),
+      paymentOptions: json['payment_options'] is Map ? PaymentOptions.fromJson(json['payment_options']) : null,
     );
   }
 

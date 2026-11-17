@@ -985,4 +985,106 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancelImpossible => 'This booking can no longer be cancelled.';
+
+  @override
+  String get payTitle => 'Payment';
+
+  @override
+  String get payChoosePlan => 'How would you like to pay?';
+
+  @override
+  String get payRecommended => 'Recommended';
+
+  @override
+  String get payFullTitle => 'Pay in full now';
+
+  @override
+  String payFullDiscount(String percent) {
+    return '−$percent%';
+  }
+
+  @override
+  String get payFullSub => 'Stay fully paid, nothing to pay on arrival.';
+
+  @override
+  String get payGuaranteeTitle => 'Secure the room';
+
+  @override
+  String payGuaranteeSub(String balance) {
+    return 'The balance of $balance FCFA is paid at the property on arrival.';
+  }
+
+  @override
+  String get payMethod => 'Payment method';
+
+  @override
+  String get payNoMethods => 'No payment method is available right now.';
+
+  @override
+  String paySubmit(String amount) {
+    return 'Pay $amount FCFA';
+  }
+
+  @override
+  String get payWaitingLinkTitle => 'Complete the payment';
+
+  @override
+  String payWaitingLinkText(String method) {
+    return 'The $method payment page has opened. Once you\'ve paid, come back here: this page updates by itself.';
+  }
+
+  @override
+  String get payWaitingPushTitle => 'Confirm on your phone';
+
+  @override
+  String payWaitingPushText(String method, String amount) {
+    return 'Open $method and confirm the payment of $amount FCFA. This page updates by itself.';
+  }
+
+  @override
+  String get payWaitingStatus => 'Waiting for the operator\'s confirmation…';
+
+  @override
+  String get payReopen => 'Reopen the payment page';
+
+  @override
+  String get payCheck => 'I\'ve finished paying';
+
+  @override
+  String get payTimeout =>
+      'The confirmation time has run out. If you did complete the payment, your booking will be confirmed automatically in a few minutes; otherwise you can try again.';
+
+  @override
+  String get payFailedTitle => 'Payment unsuccessful';
+
+  @override
+  String get payFailedText =>
+      'The payment didn\'t go through: it was declined, cancelled or expired. You can try again or choose another payment method.';
+
+  @override
+  String get payRetry => 'Try again';
+
+  @override
+  String get payDoneTitle => 'Payment received';
+
+  @override
+  String get payDoneText => 'Your booking is confirmed.';
+
+  @override
+  String get payDoneView => 'View my booking';
+
+  @override
+  String get payLinkMissing =>
+      'The payment link is unavailable. Please try again.';
+
+  @override
+  String get payUnsupported =>
+      'This payment method isn\'t available in the app yet. Please choose another.';
+
+  @override
+  String get payAlreadyPaid => 'This booking is already paid.';
+
+  @override
+  String get payNotYet =>
+      'The host hasn\'t confirmed your request yet: you\'ll be able to pay as soon as they accept.';
 }
