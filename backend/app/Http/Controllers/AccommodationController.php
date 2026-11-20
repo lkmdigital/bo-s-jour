@@ -728,9 +728,14 @@ class AccommodationController extends Controller
             Log::warning('Accommodation creation blocked: contact details incomplete', [
                 'user_id' => $user->id,
             ]);
+            $missing = HostProfileCompletion::missingContactLabels($complianceUser);
+
             return response()->json([
-                'message' => 'Complétez vos informations de contact dans la section "Profil" avant d\'ajouter un hébergement. Les documents (pièce d\'identité, RCCM, licence…) sont facultatifs pour le moment.',
-                'profile_completion_required' => true
+                'message' => 'Complétez vos informations de contact dans la section "Profil" avant d\'ajouter un hébergement'
+                    . ($missing ? ' : ' . implode(', ', $missing) . ' (champs marqués d\'une étoile)' : '')
+                    . '. Les documents (pièce d\'identité, RCCM, licence…) sont facultatifs pour le moment.',
+                'profile_completion_required' => true,
+                'missing_fields' => $missing,
             ], 403);
         }
 

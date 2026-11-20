@@ -102,13 +102,26 @@ class PartnerDocumentsSettingTest extends TestCase
         $this->postJson('/api/accommodations', self::ESTABLISHMENT)->assertCreated();
     }
 
-    public function test_with_optional_documents_contact_details_are_still_needed(): void
+    public function test_with_optional_documents_the_starred_contact_details_are_still_needed_and_named(): void
     {
-        Sanctum::actingAs($this->contactOnlyHost(['bio' => null, 'whatsapp' => null]));
+        Sanctum::actingAs($this->contactOnlyHost(['phone_fixed' => null, 'date_of_birth' => null]));
 
         $this->postJson('/api/accommodations', self::ESTABLISHMENT)
             ->assertStatus(403)
-            ->assertJsonPath('profile_completion_required', true);
+            ->assertJsonPath('profile_completion_required', true)
+            ->assertJsonPath('missing_fields', ['Date de naissance', 'Numéro établissement'])
+            ->assertJsonFragment(['message' => 'Complétez vos informations de contact dans la section "Profil" avant d\'ajouter un hébergement : Date de naissance, Numéro établissement (champs marqués d\'une étoile). Les documents (pièce d\'identité, RCCM, licence…) sont facultatifs pour le moment.']);
+    }
+
+    /** Régression : la biographie et le WhatsApp sont présentés comme facultatifs, ils ne doivent pas bloquer l'ajout. */
+    public function test_the_optional_bio_and_whatsapp_never_block_an_establishment(): void
+    {
+        $host = $this->contactOnlyHost(['bio' => null, 'whatsapp' => null]);
+        Sanctum::actingAs($host);
+
+        $this->assertSame(100, HostProfileCompletion::percentage($host, false));
+        $this->assertSame([], HostProfileCompletion::missingContactLabels($host));
+        $this->postJson('/api/accommodations', self::ESTABLISHMENT)->assertCreated();
     }
 
     public function test_once_made_mandatory_the_old_rules_apply_again(): void
