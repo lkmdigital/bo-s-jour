@@ -114,6 +114,18 @@ class PartnerDocumentsSettingTest extends TestCase
     }
 
     /** Régression : la biographie et le WhatsApp sont présentés comme facultatifs, ils ne doivent pas bloquer l'ajout. */
+    public function test_the_profile_names_the_missing_contact_details_while_documents_are_optional(): void
+    {
+        Sanctum::actingAs($this->contactOnlyHost(['date_of_birth' => null]));
+
+        $this->getJson('/api/host/profile')->assertOk()
+            ->assertJsonPath('missing_contact_fields', ['Date de naissance'])
+            ->assertJsonPath('is_complete', false);
+
+        Sanctum::actingAs($this->contactOnlyHost());
+        $this->getJson('/api/host/profile')->assertOk()->assertJsonPath('missing_contact_fields', [])->assertJsonPath('is_complete', true);
+    }
+
     public function test_the_optional_bio_and_whatsapp_never_block_an_establishment(): void
     {
         $host = $this->contactOnlyHost(['bio' => null, 'whatsapp' => null]);

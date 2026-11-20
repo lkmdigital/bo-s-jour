@@ -130,6 +130,7 @@ class HostProfileController extends Controller
             'compliance_status' => $user->compliance_status,
             'compliance_requirements' => $user->compliance_requirements,
             'documents_required' => PartnerDocuments::required(),
+            'missing_contact_fields' => PartnerDocuments::required() ? [] : HostProfileCompletion::missingContactLabels($user),
         ]);
     }
 
@@ -320,6 +321,8 @@ class HostProfileController extends Controller
                 'compliance_status' => $user->compliance_status,
                 'compliance_requirements' => $user->compliance_requirements,
                 'documents_required' => PartnerDocuments::required(),
+                'missing_contact_fields' => PartnerDocuments::required() ? [] : HostProfileCompletion::missingContactLabels($user),
+            'missing_contact_fields' => PartnerDocuments::required() ? [] : HostProfileCompletion::missingContactLabels($user),
             ], 200);
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la sauvegarde du profil', [
