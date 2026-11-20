@@ -506,6 +506,14 @@ class PaymentController extends Controller
         $response = Http::withHeaders(['X-API-Key' => config('services.malia_pay.api_key')])
             ->acceptJson()
             ->timeout(15)
+            // Un 503 renvoyé par la passerelle (« serveur temporairement occupé », page HTML) signifie que la demande
+            // n'a pas été traitée : on retente UNE fois après quelques secondes (panne du 2026-11-20 13:00).
+            // On ne retente jamais après un délai dépassé ni une coupure de connexion : le paiement pourrait déjà
+            // exister chez MaliaPay, et un second appel créerait un doublon.
+            ->retry(2, (int) config('services.malia_pay.retry_delay_ms', 3000), function ($exception) {
+                return $exception instanceof \Illuminate\Http\Client\RequestException
+                    && $exception->response->status() === 503;
+            }, throw: false)
             ->post($endpoint, $data);
 
         if ($response->failed()) {

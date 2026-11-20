@@ -164,6 +164,65 @@ class MaliaPayIntegrationTest extends TestCase
             && $request['channel'] === 'OMCI');
     }
 
+    public function test_a_temporary_503_from_maliapay_is_retried_once_and_the_payment_goes_through(): void
+    {
+        $this->configureMaliaPay(sandbox: false);
+        Config::set('services.malia_pay.retry_delay_ms', 0);
+
+        Http::fake([
+            'business.malia.ci/api/v1/payments' => Http::sequence()
+                ->push('<html>503 Service Unavailable</html>', 503)
+                ->push([
+                    'status' => 'pending',
+                    'link' => 'https://business.malia.ci/checkout/FAKE_TX_RETRY_1',
+                    'transaction_id' => 'FAKE_TX_RETRY_1',
+                ], 201),
+        ]);
+
+        $traveler = User::factory()->create();
+        $booking = Booking::factory()->for($traveler)->create(['total_price' => 47500, 'deposit_amount' => 47500]);
+        Sanctum::actingAs($traveler);
+
+        $response = $this->postJson("/api/bookings/{$booking->id}/payment/initiate", ['payment_method' => 'wave-ci']);
+
+        $response->assertOk();
+        $response->assertJsonPath('link', 'https://business.malia.ci/checkout/FAKE_TX_RETRY_1');
+        Http::assertSentCount(2);
+        $this->assertSame(1, Payment::where('booking_id', $booking->id)->count());
+    }
+
+    public function test_a_persistent_503_stops_after_one_retry_and_reports_an_error(): void
+    {
+        $this->configureMaliaPay(sandbox: false);
+        Config::set('services.malia_pay.retry_delay_ms', 0);
+
+        Http::fake(['business.malia.ci/api/v1/payments' => Http::response('<html>503</html>', 503)]);
+
+        $traveler = User::factory()->create();
+        $booking = Booking::factory()->for($traveler)->create(['total_price' => 47500, 'deposit_amount' => 47500]);
+        Sanctum::actingAs($traveler);
+
+        $response = $this->postJson("/api/bookings/{$booking->id}/payment/initiate", ['payment_method' => 'wave-ci']);
+
+        $this->assertGreaterThanOrEqual(400, $response->status());
+        Http::assertSentCount(2);
+    }
+
+    public function test_other_errors_are_never_retried(): void
+    {
+        $this->configureMaliaPay(sandbox: false);
+        Config::set('services.malia_pay.retry_delay_ms', 0);
+
+        Http::fake(['business.malia.ci/api/v1/payments' => Http::response(['errors' => ['channel' => ['invalide']]], 422)]);
+
+        $traveler = User::factory()->create();
+        $booking = Booking::factory()->for($traveler)->create(['total_price' => 47500, 'deposit_amount' => 47500]);
+        Sanctum::actingAs($traveler);
+
+        $this->postJson("/api/bookings/{$booking->id}/payment/initiate", ['payment_method' => 'wave-ci'])->assertStatus(422);
+        Http::assertSentCount(1);
+    }
+
     public function test_mtn_channel_is_mapped_and_active(): void
     {
         // Activé le 2026-09-01 (confirmé fonctionnel) — voir $channelMap dans
