@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FileCheck2, Lock, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { FileCheck2, Info, Lock } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/common/ToastContext';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -41,105 +41,103 @@ export default function AdminPartnerDocumentsSettingsPage() {
       setConfirming(false);
       useAppSettingsStore.getState().fetchSettings();
       showSuccess(required ? 'Documents partenaires : désormais obligatoires' : 'Documents partenaires : désormais facultatifs');
-    } catch (err: any) {
-      showError(err.response?.data?.message || "Erreur lors de l'enregistrement");
+    } catch (err: unknown) {
+      showError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur lors de l'enregistrement");
     } finally {
       setSaving(false);
     }
   };
 
+  const blocked = setting?.partners_non_compliant ?? 0;
+
   return (
     <SettingsPageShell
       icon={FileCheck2}
       title="Documents partenaires"
-      description="Quels documents sont demandés aux partenaires, lesquels sont obligatoires ou facultatifs, et si ces exigences s'appliquent pour ajouter un établissement."
+      description="Choisissez, pour chaque document, s'il est obligatoire, facultatif ou pas demandé, et si ces exigences s'appliquent pour ajouter un établissement."
     >
       {loading || !setting ? (
         <LoadingSpinner />
       ) : (
         <div className="space-y-4">
-          <section className="card">
-            <div className="flex items-start gap-3">
-              <span className={`mt-0.5 rounded-xl p-2 ${setting.required ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
-                {setting.required ? <ShieldAlert className="w-6 h-6" /> : <ShieldCheck className="w-6 h-6" />}
-              </span>
+          {/* Régime général : un seul interrupteur, son effet en clair et son impact avant de confirmer */}
+          <section className={`rounded-2xl border p-5 ${setting.required ? 'border-amber-300 bg-amber-50/70 dark:bg-amber-900/10' : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/60'}`}>
+            <div className="flex flex-col gap-4 md:flex-row md:items-center">
               <div className="min-w-0 flex-1">
-                <p className="text-xs uppercase tracking-wide text-gray-500">État actuel</p>
-                <h2 className="text-lg font-bold" data-testid="documents-state">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">Régime général</p>
+                <h2 className="mt-0.5 text-lg font-bold" data-testid="documents-state">
                   {setting.required ? 'Documents obligatoires' : 'Documents facultatifs'}
                 </h2>
-                {setting.last_change && (
-                  <p className="text-xs text-gray-500 mt-1">Dernière modification : {setting.last_change}</p>
-                )}
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                  {setting.required
+                    ? "Le profil doit être complet à 100 % et validé par un administrateur avant le premier établissement : seuls les documents marqués « Obligatoire » ci-dessous bloquent l'ajout. Les relances de conformité reprennent chaque matin."
+                    : "Un partenaire ajoute ses établissements dès que ses informations de contact sont complètes. Aucune validation par un administrateur, aucune relance de conformité. Les documents restent déposables : rien n'est effacé."}
+                </p>
+                {setting.last_change && <p className="mt-1 text-xs text-gray-500">Dernière modification : {setting.last_change}</p>}
               </div>
+
+              {setting.can_change ? (
+                <div className="inline-flex flex-none rounded-full bg-white p-0.5 shadow-sm dark:bg-gray-700" role="group" aria-label="Régime général des documents">
+                  <button
+                    type="button"
+                    aria-pressed={!setting.required}
+                    disabled={saving}
+                    onClick={() => { if (setting.required) change(false); else setConfirming(false); }}
+                    className={`rounded-full px-5 py-2 text-sm font-bold ${!setting.required ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600'}`}
+                  >
+                    Facultatifs
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={setting.required}
+                    disabled={saving}
+                    onClick={() => { if (!setting.required) setConfirming(true); }}
+                    className={`rounded-full px-5 py-2 text-sm font-bold ${setting.required ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600'}`}
+                  >
+                    Obligatoires
+                  </button>
+                </div>
+              ) : (
+                <p className="flex items-center gap-2 text-sm text-gray-500">
+                  <Lock className="w-4 h-4" /> Seul le super administrateur peut modifier ce réglage.
+                </p>
+              )}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 mt-5 text-sm">
-              <div className={`rounded-xl border p-4 ${!setting.required ? 'border-emerald-300 bg-emerald-50/60 dark:bg-emerald-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
-                <p className="font-semibold mb-2">Facultatifs</p>
-                <ul className="list-disc pl-4 space-y-1 text-gray-600 dark:text-gray-300">
-                  <li>Un partenaire ajoute ses établissements dès que ses informations de contact sont complètes.</li>
-                  <li>Aucune validation du compte par un administrateur n&apos;est nécessaire pour cela.</li>
-                  <li>Aucune relance de conformité n&apos;est envoyée.</li>
-                  <li>Les documents restent déposables et consultables : rien n&apos;est effacé.</li>
-                </ul>
+            {confirming && !setting.required && (
+              <div className="mt-4 rounded-xl bg-amber-100 p-4 text-sm text-amber-950 dark:bg-amber-900/30 dark:text-amber-100" role="alertdialog" aria-label="Confirmer le passage en documents obligatoires">
+                <p className="font-bold">Rendre les documents obligatoires ?</p>
+                <p className="mt-1">
+                  {blocked > 0 ? (
+                    <>
+                      <strong>{blocked} partenaire{blocked > 1 ? 's' : ''} sur {setting.partners_total}</strong>{' '}
+                      ne pourrai{blocked > 1 ? 'ent' : 't'} plus ajouter d&apos;établissement tant qu&apos;il{blocked > 1 ? 's' : ''} n&apos;aurai{blocked > 1 ? 'ent' : 't'} pas tous leurs documents obligatoires.
+                    </>
+                  ) : (
+                    'Aucun partenaire ne serait bloqué aujourd’hui.'
+                  )}{' '}
+                  Leurs établissements déjà publiés ne sont pas touchés. Réversible à tout moment. Suivi dans{' '}
+                  <Link href="/dashboard/admin/conformite" className="underline">Conformité</Link>.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button type="button" onClick={() => change(true)} disabled={saving} className="btn-primary text-sm">
+                    {saving ? 'Enregistrement…' : 'Oui, rendre obligatoires'}
+                  </button>
+                  <button type="button" onClick={() => setConfirming(false)} disabled={saving} className="btn-outline text-sm">Annuler</button>
+                </div>
               </div>
-              <div className={`rounded-xl border p-4 ${setting.required ? 'border-amber-300 bg-amber-50/60 dark:bg-amber-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
-                <p className="font-semibold mb-2">Obligatoires</p>
-                <ul className="list-disc pl-4 space-y-1 text-gray-600 dark:text-gray-300">
-                  <li>Le profil doit être complet à 100 % : informations de contact, numéros et documents cochés « Obligatoire » ci-dessous.</li>
-                  <li>Un administrateur doit valider le compte avant le premier établissement.</li>
-                  <li>Les relances de conformité reprennent chaque matin.</li>
-                </ul>
-              </div>
-            </div>
+            )}
           </section>
 
-          {!setting.required && setting.partners_non_compliant > 0 && (
-            <p className="text-sm rounded-xl bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-200 p-4">
-              Si vous les rendez obligatoires maintenant, <strong>{setting.partners_non_compliant} partenaire{setting.partners_non_compliant > 1 ? 's' : ''} sur {setting.partners_total}</strong>{' '}
-              n&apos;aurai{setting.partners_non_compliant > 1 ? 'ent' : 't'} pas tous leurs documents et ne pourrai{setting.partners_non_compliant > 1 ? 'ent' : 't'} plus ajouter d&apos;établissement
-              (leurs établissements déjà publiés ne sont pas touchés). Suivez-les dans{' '}
-              <Link href="/dashboard/admin/conformite" className="underline">Conformité</Link>.
-            </p>
-          )}
+          <p className="flex items-start gap-2 px-1 text-sm text-gray-600 dark:text-gray-300">
+            <Info className="mt-0.5 h-4 w-4 flex-none" />
+            <span>
+              Dans tous les cas, le partenaire doit renseigner ses <strong>informations de contact</strong> (nom, téléphone, numéro de l&apos;établissement,
+              date de naissance, adresse) pour ajouter un établissement. La biographie et le WhatsApp restent facultatifs.
+            </span>
+          </p>
 
-          {setting.can_change ? (
-            <section className="card">
-              {!confirming ? (
-                <button
-                  type="button"
-                  onClick={() => (setting.required ? change(false) : setConfirming(true))}
-                  disabled={saving}
-                  className={setting.required ? 'btn-outline' : 'btn-primary'}
-                >
-                  {setting.required ? 'Rendre les documents facultatifs' : 'Rendre les documents obligatoires'}
-                </button>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm">
-                    Confirmer ? À partir de maintenant, un partenaire devra avoir un profil complet et validé pour ajouter un établissement,
-                    et les relances de conformité reprendront.
-                  </p>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => change(true)} disabled={saving} className="btn-primary">
-                      {saving ? 'Enregistrement…' : 'Oui, rendre obligatoires'}
-                    </button>
-                    <button type="button" onClick={() => setConfirming(false)} disabled={saving} className="btn-outline">
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              )}
-              <p className="text-xs text-gray-500 mt-3">Le changement est immédiat et réversible à tout moment.</p>
-            </section>
-          ) : (
-            <p className="flex items-center gap-2 text-sm text-gray-500">
-              <Lock className="w-4 h-4" /> Seul le super administrateur peut modifier ce réglage.
-            </p>
-          )}
-
-          <HostDocumentTypesManager documentsRequired={setting.required} />
+          <HostDocumentTypesManager documentsRequired={setting.required} partnersTotal={setting.partners_total} />
         </div>
       )}
     </SettingsPageShell>
